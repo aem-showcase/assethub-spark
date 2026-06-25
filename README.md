@@ -13,8 +13,8 @@ Astra Pilot for an Assets Share Portal built on Helix & Content Hub (Dynamic Med
 Note: For branch URLs to work, the branch names must be short and only include lowercase letters, numbers, and dashes characters. Due to [cloudflare worker alias limitations](https://developers.cloudflare.com/workers/configuration/previews/#rules-and-limitations).
 
 ### Helix origins
-- Live: https://main--spark-eds--adobe.aem.live
-- Preview: https://main--spark-eds--adobe.aem.page
+- Live: https://main--assethub-spark--aem-showcase.aem.live
+- Preview: https://main--assethub-spark--aem-showcase.aem.page
 
 ## Project structure
 
@@ -104,7 +104,7 @@ Environment variables supported by `npm run dev`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AEM_PAGES_URL` | EDS content URL | https://main--spark-eds--adobe.aem.page |
+| `AEM_PAGES_URL` | EDS content URL | https://main--assethub-spark--aem-showcase.aem.page |
 | `AEM_ENV_ID` | AEM Program + Environment ID | p64403-e544653 |
 | `DEV_BROWSER` | Browser to open. Mac OS only.<br><br>Options:<ul><li>`Google Chrome`</li><li>`Safari`</li><li>`Firefox`</li></ul> | - (system default) |
 | `AEM_LOG_LEVEL` | Set [`aem` log level](https://www.aem.live/developer/cli-reference#general-options). | `info` |

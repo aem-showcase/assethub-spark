@@ -46,7 +46,7 @@ Creates a tabbed interface with accordion items inside each tab. Designed specif
 
 ## Live Examples
 
-- FAQ page: [da.live/edit#/.../help/faq](https://da.live/edit#/adobe/spark-eds/en/help/faq)
+- FAQ page: [da.live/edit#/.../help/faq](https://da.live/edit#/aem-showcase/assethub-spark/en/help/faq)
 
 ## Related
 

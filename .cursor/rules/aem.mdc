@@ -144,9 +144,9 @@ Pages are progressively loaded in three phases to maximize performance. This pro
 ## Deployment
 
 ### Environments
-- **Production Preview**: `https://main--spark-eds--adobe.aem.page/`
-- **Production Live**: `https://main--spark-eds--adobe.aem.live/`
-- **Feature Preview**: `https://{branch}--spark-eds--adobe.aem.page/`
+- **Production Preview**: `https://main--assethub-spark--aem-showcase.aem.page/`
+- **Production Live**: `https://main--assethub-spark--aem-showcase.aem.live/`
+- **Feature Preview**: `https://{branch}--assethub-spark--aem-showcase.aem.page/`
 
 ### Publishing Process
 1. Push changes to a feature branch

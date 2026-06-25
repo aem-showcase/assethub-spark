@@ -7,7 +7,7 @@ Two sheets are produced:
   config-access-users.xlsx        ->  /config/access/users
 
 Upload these DIRECTLY into DA at:
-  https://da.live/edit#/mohitar1/spark-eds
+  https://da.live/edit#/aem-showcase/assethub-spark
 under the path:  config/access/
 
 The Worker fetches them as JSON via fetchHelixSheet().
@@ -39,7 +39,7 @@ Sheet designs:
                  Leave blank to restrict the user to their own country only (from JWT).
 
 UPLOAD INSTRUCTIONS
-  1. Open https://da.live/edit#/mohitar1/spark-eds
+  1. Open https://da.live/edit#/aem-showcase/assethub-spark
   2. Create folder:  config/access/  (if it doesn't exist)
   3. Drag-and-drop both .xlsx files into that folder.
   4. DA publishes them at /config/access/application.json and /config/access/users.json
@@ -189,7 +189,7 @@ def build_application_sheet():
     path = OUT / 'application.xlsx'
     wb.save(path)
     print(f'Wrote {path}')
-    print('  → upload into DA: mohitar1/spark-eds  at path  config/access/application')
+    print('  → upload into DA: aem-showcase/assethub-spark  at path  config/access/application')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ def build_users_sheet():
     path = OUT / 'users.xlsx'
     wb.save(path)
     print(f'Wrote {path}')
-    print('  → upload into DA: mohitar1/spark-eds  at path  config/access/users')
+    print('  → upload into DA: aem-showcase/assethub-spark  at path  config/access/users')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -341,7 +341,7 @@ if __name__ == '__main__':
         '\nDone.'
         '\n'
         '\nUpload both .xlsx files into DA at:'
-        '\n  https://da.live/edit#/mohitar1/spark-eds'
+        '\n  https://da.live/edit#/aem-showcase/assethub-spark'
         '\n  folder:  config/access/'
         '\n'
         '\nThe Worker reads them as:'

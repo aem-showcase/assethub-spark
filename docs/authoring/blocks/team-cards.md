@@ -52,7 +52,7 @@ Each team member uses one row with:
 
 ## Live Examples
 
-- Meet the Team page: [da.live/edit#/.../help/meet-the-team](https://da.live/edit#/adobe/spark-eds/en/help/meet-the-team)
+- Meet the Team page: [da.live/edit#/.../help/meet-the-team](https://da.live/edit#/aem-showcase/assethub-spark/en/help/meet-the-team)
 
 ## Tips
 

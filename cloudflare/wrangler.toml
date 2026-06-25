@@ -49,7 +49,7 @@ d1_databases = [
 
 # NOTE: if changing vars, update the branch env below too
 [env.production.vars]
-HELIX_ORIGIN = "https://main--spark-eds--mohitar1.aem.live"
+HELIX_ORIGIN = "https://main--assethub-spark--aem-showcase.aem.live"
 AEM_ENV_ID = "p203220-e2129061"
 HELIX_PUSH_INVALIDATION = "disabled"
 SQIDS_ALPHABET = "8gGQeDOJsS069Pod4mU2BKWRXjpiThLkZEHCantwuV7IrcqfAzMbN3vx1YlF5y"
@@ -91,7 +91,7 @@ d1_databases = [
 
 # NOTE: if changing vars, update the production env above too
 [env.branch.vars]
-HELIX_ORIGIN = "https://main--spark-eds--mohitar1.aem.live"
+HELIX_ORIGIN = "https://main--assethub-spark--aem-showcase.aem.live"
 AEM_ENV_ID = "p203220-e2129061"
 HELIX_PUSH_INVALIDATION = "disabled"
 SQIDS_ALPHABET = "8gGQeDOJsS069Pod4mU2BKWRXjpiThLkZEHCantwuV7IrcqfAzMbN3vx1YlF5y"

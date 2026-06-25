@@ -206,7 +206,7 @@ def build_index():
 
     path = OUT / 'index.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/index')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/index')
 
 
 def build_search():
@@ -226,7 +226,7 @@ def build_search():
 
     path = OUT / 'search.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/search')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/search')
 
 
 def build_search_collections():
@@ -246,7 +246,7 @@ def build_search_collections():
 
     path = OUT / 'search-collections.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/search-collections')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/search-collections')
 
 
 def build_collection_details():
@@ -264,7 +264,7 @@ def build_collection_details():
 
     path = OUT / 'collection-details.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/collection-details')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/collection-details')
 
 
 def build_about():
@@ -282,7 +282,7 @@ def build_about():
 
     path = OUT / 'about.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/about')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/about')
 
 
 def build_nav():
@@ -303,7 +303,7 @@ def build_nav():
 
     path = OUT / 'nav.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/nav')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/nav')
 
 
 def build_report_page(filename, block_name, title, description, da_path):
@@ -319,7 +319,7 @@ def build_report_page(filename, block_name, title, description, da_path):
 
     path = OUT / filename
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> {da_path}')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> {da_path}')
 
 
 def build_reports_hub():
@@ -407,7 +407,7 @@ def build_footer():
 
     path = OUT / 'footer.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: mohitar1/spark-eds -> en/footer')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/footer')
 
 
 def main():
@@ -424,7 +424,7 @@ def main():
     build_nav()
     build_footer()
     print(
-        '\nDone. Upload each .docx DIRECTLY into https://da.live/edit#/mohitar1/spark-eds'
+        '\nDone. Upload each .docx DIRECTLY into https://da.live/edit#/aem-showcase/assethub-spark'
         '\n(do NOT open/save them in Microsoft Word first).'
         '\n\nReports: create folder en/reports/ in DA, then upload reports-*.docx pages there.'
     )

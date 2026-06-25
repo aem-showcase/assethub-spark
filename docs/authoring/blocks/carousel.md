@@ -52,7 +52,7 @@ The entire slide becomes clickable and opens the link in a new tab.
 
 ## Live Examples
 
-- Home page carousel: [da.live/edit#/.../index](https://da.live/edit#/adobe/spark-eds/en/index)
+- Home page carousel: [da.live/edit#/.../index](https://da.live/edit#/aem-showcase/assethub-spark/en/index)
 
 ## Tips
 

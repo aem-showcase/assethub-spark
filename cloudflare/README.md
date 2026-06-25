@@ -93,8 +93,8 @@ On each branch/PR push, the Github Actions CI will automatically deploy brancher
 
 | URL | Helix origin |
 |-----|--------------|
-| `https://{branch}-spark-eds.workers.dev` | `https://{branch}--spark-eds--adobe.aem.page` |
-| `https://{branch}-live-spark-eds.workers.dev` | `https://{branch}--spark-eds--adobe.aem.live` |
+| `https://{branch}-spark-eds.workers.dev` | `https://{branch}--assethub-spark--aem-showcase.aem.page` |
+| `https://{branch}-live-spark-eds.workers.dev` | `https://{branch}--assethub-spark--aem-showcase.aem.live` |
 
 
 ### CI main
@@ -104,8 +104,8 @@ On each `main` branch push, the Github ActionsCI will do the same as above and a
 
 | URL | Helix origin |
 |-----|--------------|
-| https://spark-eds.workers.dev | https://main--spark-eds--adobe.aem.live |
-| https://preview-spark-eds.workers.dev | https://main--spark-eds--adobe.aem.page |
+| https://spark-eds.workers.dev | https://main--assethub-spark--aem-showcase.aem.live |
+| https://preview-spark-eds.workers.dev | https://main--assethub-spark--aem-showcase.aem.page |
 
 ### Manual deploy
 
@@ -124,7 +124,7 @@ This will deploy the worker to the preview URL using the `user` id (git email ad
 https://{user}-{branch}-spark-eds.workers.dev
 ```
 
-This will use the same `branch` for the Helix origin: `{branch}--spark-eds--adobe.aem.live`
+This will use the same `branch` for the Helix origin: `{branch}--assethub-spark--aem-showcase.aem.live`
 
 Options:
 

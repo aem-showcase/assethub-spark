@@ -59,7 +59,7 @@ Use for featured content with a more prominent visual style:
 
 ## Live Examples
 
-- Home page (both variants): [da.live/edit#/.../index](https://da.live/edit#/adobe/spark-eds/en/index)
+- Home page (both variants): [da.live/edit#/.../index](https://da.live/edit#/aem-showcase/assethub-spark/en/index)
 
 ## Tips
 

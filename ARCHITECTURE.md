@@ -302,7 +302,7 @@ cloudflare/src/
 
 | Origin | Target | Auth Method | Purpose |
 |--------|--------|-------------|---------|
-| **Helix** | `main--spark-eds--adobe.aem.live` | Token header | EDS pages, CSS, JS |
+| **Helix** | `main--assethub-spark--aem-showcase.aem.live` | Token header | EDS pages, CSS, JS |
 | **Dynamic Media** | `delivery-p64403-e609778.adobeaemcloud.com` | IMS OAuth (cached in KV) | Asset search, metadata, downloads |
 | **AEM Publish** | `author-p64403-e609778.adobeaemcloud.com` | Basic Auth + sling.sudo | Templates, print jobs, legacy share |
 
@@ -640,7 +640,7 @@ Each `report-*` block:
 
 ### Document Authoring (DA)
 
-Content lives at: `https://da.live/#/adobe/spark-eds`
+Content lives at: `https://da.live/#/aem-showcase/assethub-spark`
 
 Authors use DA (a Google Docs-like interface) to:
 - Create pages (each doc = one web page)
@@ -724,8 +724,8 @@ Jobs:
 |------------|-----|---------|
 | Production | `spark.aem.media` | Live users |
 | Preview | `preview.spark.aem.media` | Content preview (requires `preview` permission) |
-| Helix Live | `main--spark-eds--adobe.aem.live` | Direct Helix access |
-| Helix Preview | `main--spark-eds--adobe.aem.page` | Content staging |
+| Helix Live | `main--assethub-spark--aem-showcase.aem.live` | Direct Helix access |
+| Helix Preview | `main--assethub-spark--aem-showcase.aem.page` | Content staging |
 | Local | `http://localhost:8787` | Developer machines |
 
 ---

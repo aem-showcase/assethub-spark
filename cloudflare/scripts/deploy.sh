@@ -21,8 +21,8 @@
 
 # Configuration
 # Helix github
-REPO=spark-eds
-ORG=mohitar1
+REPO=assethub-spark
+ORG=aem-showcase
 # cloudflare worker
 WORKER=spark-eds
 WORKER_DOMAIN=${WORKER_DOMAIN:-sparkedsmedia}
