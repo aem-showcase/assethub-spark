@@ -5,7 +5,7 @@
 
 import { fetchHelixSheet } from './helixutil.js';
 
-const PERMISSIONS = { ADMIN_SYSTEM: 'admin' };
+const PERMISSIONS = { ADMIN_SYSTEM: 'admin-system' };
 
 /**
  * Generate a unique message ID
@@ -112,9 +112,7 @@ export async function sendMessage(env, recipientEmail, messageData) {
  * @returns {Promise<Object>} Result with success count
  */
 export async function sendMessageToMultiple(env, recipientEmails, messageData) {
-  const results = await Promise.allSettled(
-    recipientEmails.map((email) => sendMessage(env, email, messageData)),
-  );
+  const results = await Promise.allSettled(recipientEmails.map((email) => sendMessage(env, email, messageData)));
 
   const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
   const failCount = results.length - successCount;
@@ -128,4 +126,3 @@ export async function sendMessageToMultiple(env, recipientEmails, messageData) {
     failed: failCount,
   };
 }
-
