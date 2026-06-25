@@ -118,7 +118,7 @@ async function fetchSystemNotifications(request, env, locale) {
   const path = `/${safeLocale}/system-notifications`;
   try {
     const edsData = await fetchHelixSheet(request, env, path);
-    if (!edsData || !edsData.data || !Array.isArray(edsData.data)) {
+    if (!edsData?.data || !Array.isArray(edsData.data)) {
       console.warn('No system notifications data from EDS:', path);
       return [];
     }

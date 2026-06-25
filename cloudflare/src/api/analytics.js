@@ -2071,7 +2071,7 @@ export async function searchMetricsApi(request, env) {
   }
 }
 
-async function executeSearchMetric(db, env, metricType, startDate, endDate, filters, year) {
+async function executeSearchMetric(db, env, metricType, startDate, endDate, filters, _year) {
   const { whereClause, bindings } = buildSearchD1Conditions(startDate, endDate, filters);
 
   switch (metricType) {

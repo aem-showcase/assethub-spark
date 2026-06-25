@@ -39,7 +39,8 @@ export function parsePageExclusions(html) {
   for (const entry of entries) {
     const [role, country] = entry.split(':');
     if (country) {
-      (exclusions.scopedRoles[role] ||= []).push(country);
+      if (!exclusions.scopedRoles[role]) exclusions.scopedRoles[role] = [];
+      exclusions.scopedRoles[role].push(country);
     } else {
       exclusions.roles.push(role);
     }

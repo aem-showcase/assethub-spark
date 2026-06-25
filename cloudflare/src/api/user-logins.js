@@ -19,7 +19,7 @@ const REQUIRED_PERMISSION = 'admin-reports';
  * @returns {Object} { firstName, lastName }
  */
 export function parseName(fullName) {
-  if (!fullName || !fullName.trim()) {
+  if (!fullName?.trim()) {
     return { firstName: '', lastName: '' };
   }
 
@@ -165,7 +165,7 @@ export async function exportUserLoginsCSV(request, env) {
   }
 
   // Check permissions
-  if (!request.user || !request.user.permissions || !request.user.permissions.includes(REQUIRED_PERMISSION)) {
+  if (!request.user?.permissions?.includes(REQUIRED_PERMISSION)) {
     console.warn('[User Logins CSV] Permission denied for user:', request.user?.email);
     return error(403, { success: false, error: `Permission denied. Requires ${REQUIRED_PERMISSION} permission.` });
   }
