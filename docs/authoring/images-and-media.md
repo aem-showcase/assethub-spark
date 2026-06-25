@@ -1,6 +1,6 @@
 # Images and Media
 
-This guide covers how to add and optimize images in your Spark Assets pages.
+This guide covers how to add and optimize images in your Spark pages.
 
 ## Adding Images
 

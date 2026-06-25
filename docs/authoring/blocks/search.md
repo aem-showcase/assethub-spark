@@ -69,7 +69,7 @@ Renders a dropdown with "All Assets" and "Templates" options next to the search 
 
 ## Live Examples
 
-- Home page: [da.live/edit#/.../index](https://da.live/edit#/adobe/spark-eds/en/index)
+- Home page: [da.live/edit#/.../index](https://da.live/edit#/aem-showcase/assethub-spark/en/index)
 
 ## Tips
 

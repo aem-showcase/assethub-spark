@@ -36,9 +36,9 @@ Use the special syntax `((fragment)):` followed by a link to the fragment:
 
 | tabs |  |
 |------|--|
-| Coca-Cola | ((fragment)): [/fragments/coca-cola](/fragments/coca-cola) |
-| Sprite | ((fragment)): [/fragments/sprite](/fragments/sprite) |
-| Fanta | ((fragment)): [/fragments/fanta](/fragments/fanta) |
+| Brand A | ((fragment)): [/fragments/brand-a](/fragments/brand-a) |
+| Brand B | ((fragment)): [/fragments/brand-b](/fragments/brand-b) |
+| Brand C | ((fragment)): [/fragments/brand-c](/fragments/brand-c) |
 
 ## Examples
 
@@ -54,8 +54,8 @@ Use the special syntax `((fragment)):` followed by a link to the fragment:
 
 | tabs |  |
 |------|--|
-| Coca-Cola | ((fragment)): [/fragments/coca-cola](/fragments/coca-cola) |
-| Fanta | ((fragment)): [/fragments/fanta](/fragments/fanta) |
+| Brand A | ((fragment)): [/fragments/brand-a](/fragments/brand-a) |
+| Brand B | ((fragment)): [/fragments/brand-b](/fragments/brand-b) |
 
 ### Content with Cards Inside Tabs
 
@@ -69,7 +69,7 @@ Tab content can include other blocks. Create the tab content with cards:
 
 ## Live Examples
 
-- Content Stores page: [da.live/edit#/.../all-content-stores](https://da.live/edit#/adobe/spark-eds/all-content-stores)
+- Content Stores page: [da.live/edit#/.../all-content-stores](https://da.live/edit#/aem-showcase/assethub-spark/all-content-stores)
 
 ## Tips
 

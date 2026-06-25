@@ -47,9 +47,9 @@ Each row becomes one accordion item. Add as many rows as needed.
 
 | accordion |  |
 |-----------|--|
-| What is Spark? | Spark is the digital asset management platform for Coca-Cola, providing access to brand-approved marketing materials. |
+| What is Spark? | Spark is the digital asset management platform for Acme, providing access to brand-approved marketing materials. |
 | How do I download assets? | Use the search to find assets, add them to your cart, then proceed to download. You may need to specify intended use for certain assets. |
-| Who do I contact for help? | Email assetmanagers@coca-cola.com or submit a Support Portal ticket. |
+| Who do I contact for help? | Email assetmanagers@example.com or submit a Support Portal ticket. |
 
 ### Help Section Example
 
@@ -69,8 +69,8 @@ Each row becomes one accordion item. Add as many rows as needed.
 
 ## Live Examples
 
-- Welcome page accordion: [da.live/edit#/.../public/welcome](https://da.live/edit#/adobe/spark-eds/public/welcome)
-- FAQ page: [da.live/edit#/.../help/faq](https://da.live/edit#/adobe/spark-eds/help/faq)
+- Welcome page accordion: [da.live/edit#/.../public/welcome](https://da.live/edit#/aem-showcase/assethub-spark/public/welcome)
+- FAQ page: [da.live/edit#/.../help/faq](https://da.live/edit#/aem-showcase/assethub-spark/help/faq)
 
 ## Tips
 

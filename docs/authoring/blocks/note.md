@@ -47,7 +47,7 @@ Creates styled callout boxes with icons for highlighting important information, 
 
 | note (info) |
 |-------------|
-| Need help? Don't hesitate to reach out to us at assetmanagers@coca-cola.com |
+| Need help? Don't hesitate to reach out to us at assetmanagers@example.com |
 
 ### Warning Note
 
@@ -82,7 +82,7 @@ Creates styled callout boxes with icons for highlighting important information, 
 
 ## Live Examples
 
-- Content Stores page: [da.live/edit#/.../all-content-stores](https://da.live/edit#/adobe/spark-eds/en/help/meet-the-team)
+- Content Stores page: [da.live/edit#/.../all-content-stores](https://da.live/edit#/aem-showcase/assethub-spark/en/help/meet-the-team)
 
 ## Tips
 

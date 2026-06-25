@@ -1,14 +1,15 @@
 # Localization
 
-This guide explains how to create and manage content for multiple languages in Spark Assets.
+This guide explains how to create and manage content for multiple languages in Spark.
 
 ## Supported Languages
 
-Spark Assets currently supports:
+Spark currently supports:
 
 | Language | Code | URL Path |
 |----------|------|----------|
 | English | `en` | `/en/...` |
+| Japanese | `ja` | `/ja/...` |
 
 ## How Localization Works
 
@@ -18,8 +19,8 @@ Each language has its own URL path prefix:
 
 | Language | Example URL |
 |----------|-------------|
-| English | `assets.coke.com/en/help/faq` |
-| Japanese | `assets.coke.com/ja/help/faq` |
+| English | `spark.aem.media/en/help/faq` |
+| Japanese | `spark.aem.media/ja/help/faq` |
 
 ### Content Structure
 

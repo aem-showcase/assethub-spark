@@ -3,7 +3,7 @@
  * Provides RESTful CRUD operations for the MESSAGES KV namespace
  */
 
-import { json, error } from 'itty-router';
+import { error, json } from 'itty-router';
 import { fetchHelixSheet } from '../util/helixutil.js';
 
 // Constants
@@ -101,9 +101,7 @@ function transformEdsNotification(edsNotification) {
 function getLocaleFromRequest(request) {
   const url = new URL(request.url);
   const localeParam = url.searchParams.get('locale');
-  return SUPPORTED_SYSTEM_NOTIFICATION_LOCALES.includes(localeParam)
-    ? localeParam
-    : DEFAULT_SYSTEM_NOTIFICATION_LOCALE;
+  return SUPPORTED_SYSTEM_NOTIFICATION_LOCALES.includes(localeParam) ? localeParam : DEFAULT_SYSTEM_NOTIFICATION_LOCALE;
 }
 
 /**
@@ -120,7 +118,7 @@ async function fetchSystemNotifications(request, env, locale) {
   const path = `/${safeLocale}/system-notifications`;
   try {
     const edsData = await fetchHelixSheet(request, env, path);
-    if (!edsData || !edsData.data || !Array.isArray(edsData.data)) {
+    if (!edsData?.data || !Array.isArray(edsData.data)) {
       console.warn('No system notifications data from EDS:', path);
       return [];
     }
@@ -226,9 +224,7 @@ export async function createNotification(request, env) {
     }
 
     const body = await request.json();
-    const {
-      id, subject, message, type, from, priority, expiresInXDays, status,
-    } = body;
+    const { id, subject, message, type, from, priority, expiresInXDays, status } = body;
 
     // Validate required fields
     if (!id || !subject || !message) {
