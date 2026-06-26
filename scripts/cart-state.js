@@ -187,7 +187,6 @@ export function loadPanelCSS() {
   loadCSS('/blocks/search-results/styles/cart-panel.css');
   loadCSS('/blocks/search-results/styles/date-picker.css');
   loadCSS('/blocks/search-results/styles/facets.css');
-  loadCSS('/blocks/search-results/styles/terms-modal.css');
 }
 
 export function setupGlobalFunctions() {

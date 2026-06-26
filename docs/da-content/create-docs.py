@@ -373,6 +373,45 @@ def build_my_notifications():
     )
 
 
+def build_welcome():
+    """Login/welcome page: shown to unauthenticated users at /public/welcome.
+
+    Centered-card layout (styled via Section Metadata style=welcome in styles.css):
+      coffee-bean mark -> serif heading -> subtext -> single Sign in button.
+    No columns block, no second logo (header already shows the brand logo).
+    Page metadata header=no triggers the logo-only welcome bar in header.js.
+    """
+    doc = Document()
+
+    # Coffee-bean brand mark (bean cluster only, not the full wordmark)
+    doc.add_paragraph(':frescopa-beans:')
+
+    # Heading + subtext
+    doc.add_heading('Welcome to the Fréscopa Asset Library', level=1)
+    doc.add_paragraph(
+        'Search, preview, and download brand-approved coffee, machine, and lifestyle imagery.'
+    )
+
+    # Single Sign in button (standalone link paragraph -> EDS button)
+    btn_p = doc.add_paragraph()
+    add_hyperlink(btn_p, 'Sign in', '/auth/login', bold=True)
+
+    # Section style hook for the centered-card styling
+    add_section_metadata(doc, 'welcome')
+    add_hr(doc)
+
+    add_metadata_table(doc, [
+        ('title', 'Sign in — Fréscopa Asset Library'),
+        ('description', 'Sign in to access the Fréscopa brand asset portal.'),
+        ('header', 'no'),
+        ('footer', 'no'),
+    ])
+
+    path = OUT / 'welcome.docx'
+    doc.save(path)
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> public/welcome')
+
+
 def build_footer():
     doc = Document()
 
@@ -423,6 +462,7 @@ def main():
     build_my_notifications()
     build_nav()
     build_footer()
+    build_welcome()
     print(
         '\nDone. Upload each .docx DIRECTLY into https://da.live/edit#/aem-showcase/assethub-spark'
         '\n(do NOT open/save them in Microsoft Word first).'

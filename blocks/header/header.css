@@ -987,3 +987,29 @@ header .search-hidden {
 header .search-hidden .main-content {
   display: none !important;
 }
+
+/* Welcome page minimal header bar */
+header .header-welcome-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--light-color);
+  height: var(--header-bar-height);
+  padding: 0 24px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 3;
+}
+
+header .header-welcome-bar .welcome-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+header .header-welcome-bar .icon img,
+header .header-welcome-bar .icon svg {
+  width: 150px;
+  height: auto;
+}

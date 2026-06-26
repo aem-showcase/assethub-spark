@@ -177,9 +177,9 @@ body.download-renditions-modal-open {
 }
 
 .download-renditions-content .renditions-status.error {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background-color: var(--light-color);
+  color: var(--text-color);
+  border: 1px solid var(--color-neutral-400);
 }
 
 /* ==========================================================================
@@ -277,34 +277,6 @@ body.download-renditions-modal-open {
   flex-shrink: 0;
   white-space: nowrap;
   color: #ccc;
-}
-
-/* ==========================================================================
-   Terms Checkbox
-   ========================================================================== */
-
-.download-renditions-terms {
-  margin-top: 8px;
-}
-
-.download-renditions-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: var(--font-size-02);
-  color: #333;
-}
-
-/* Checkbox appearance handled by checkbox.css */
-
-.terms-link {
-  color: var(--color-error);
-  text-decoration: none;
-}
-
-.terms-link:hover {
-  text-decoration: underline;
 }
 
 /* ==========================================================================

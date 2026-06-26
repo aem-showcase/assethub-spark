@@ -309,7 +309,7 @@
 
 /* Highlighted cells (e.g., totals) */
 .analytics-table tbody td.highlight {
-  background: #fff0f0;
+  background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color);
 }

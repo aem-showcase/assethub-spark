@@ -6,19 +6,32 @@ import { buildAssetDetailsUrl } from '../../scripts/asset-id-utils.js';
 import showToast from '../../scripts/toast/toast.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 
-// Colour palette — action values, user types, and fallback sequence for dynamic keys
+// Brand-derived chart palette — built around the Fréscopa theme (teal --primary-color
+// #00647D, maroon --text-color #58181D) plus harmonious supporting tones, so charts
+// match the rest of the app instead of using a generic/Google default palette.
+// Primary teal is reserved for `download` (the dominant action in this report).
+const BRAND_SEQUENCE = [
+  '#00647D', // brand teal (primary)
+  '#A35E4B', // terracotta
+  '#C99A3F', // warm gold
+  '#58181D', // brand maroon (text-color)
+  '#3D8FA3', // light teal
+  '#6E7E5B', // sage
+  '#8A6D3B', // bronze
+  '#4F6472', // slate
+];
 const PALETTE = {
-  view: '#4285F4',
-  download: '#34A853',
-  'share-link-copy': '#FBBC04',
-  'dm-url-copy': '#EA4335',
-  'collection-add': '#9C27B0',
-  internal: '#1976D2',
-  agency: '#F57C00',
-  external: '#0097A7',
-  unknown: '#9E9E9E',
+  download: '#00647D', // primary teal — dominant action
+  view: '#3D8FA3', // light teal
+  'share-link-copy': '#C99A3F', // warm gold
+  'dm-url-copy': '#A35E4B', // terracotta
+  'collection-add': '#58181D', // brand maroon
+  internal: '#00647D',
+  agency: '#C99A3F',
+  external: '#3D8FA3',
+  unknown: '#8F8F8F', // neutral grey (matches --color-neutral-600)
 };
-const FALLBACK_COLORS = ['#4285F4', '#34A853', '#FBBC04', '#EA4335', '#9C27B0', '#00ACC1', '#F57C00', '#5D4037'];
+const FALLBACK_COLORS = BRAND_SEQUENCE;
 
 // Per-block AbortController so a re-decorate of the same block tears down the
 // window-level popstate listener from the previous run (other listeners are on

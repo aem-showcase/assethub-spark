@@ -14,13 +14,11 @@ import mapMimeTypeToDisplayType from '../../utils/mime-type-mapper.js';
 import { EAGER_LOAD_IMAGE_COUNT } from '../../constants/images.js';
 import { renderPictureHTML } from '../picture.js';
 import showToast from '../../../../scripts/toast/toast.js';
-import { openTermsModal } from '../terms-modal.js';
 import { getAppLabel } from '../../../../scripts/locale-utils.js';
 
 // Module state
 let selectedRenditions = new Map(); // Map<assetId, Set<Rendition>>
 let collapsedAssets = new Set();
-let acceptTerms = false;
 let isDownloading = false;
 let renditionsLoadedAssets = new Set();
 
@@ -30,7 +28,6 @@ let renditionsLoadedAssets = new Set();
 function resetContentState() {
   selectedRenditions = new Map();
   collapsedAssets = new Set();
-  acceptTerms = false;
   isDownloading = false;
   renditionsLoadedAssets = new Set();
 }
@@ -78,44 +75,31 @@ function getAllRenditions(asset) {
 }
 
 /**
- * Render a single rendition item with a selectable checkbox
+ * Render a single rendition item (display only - no checkbox)
  */
 function renderRenditionItem(asset, rendition) {
-  const assetId = asset.assetId || `asset-${asset.name}`;
   const format = mapMimeTypeToDisplayType(rendition.format || '', asset?.name || '');
   const size = rendition?.size > 0 ? formatFileSize(rendition.size) : '';
-  const dims = rendition.dimensions
-    ? `${rendition.dimensions.width}×${rendition.dimensions.height}`
-    : '';
-  const checked = isRenditionSelected(assetId, rendition.name) ? 'checked' : '';
-  const isOriginal = rendition.name?.toLowerCase() === 'original';
-  const displayName = isOriginal ? 'Original' : rendition.name;
 
   return `
-    <label class="rendition-item${isOriginal ? ' rendition-original' : ''}" data-asset-id="${assetId}" data-rendition-name="${rendition.name}">
-      <input type="checkbox" class="rendition-checkbox" ${checked} />
-      <span class="rendition-name">${displayName}</span>
+    <div class="rendition-item">
       <span class="rendition-format">${format}</span>
-      ${dims ? `<span class="rendition-separator">|</span><span class="rendition-dims">${dims}</span>` : ''}
       ${size ? `<span class="rendition-separator">|</span><span class="rendition-size">${size}</span>` : ''}
-    </label>
+    </div>
   `;
 }
 
 /**
- * Render renditions list for an asset showing all available renditions
+ * Render renditions list for an asset (display only - shows original info)
  */
 function renderRenditionsList(asset) {
   const allRenditions = getAllRenditions(asset);
-  if (allRenditions.length === 0) return '<div class="renditions-list"></div>';
-
-  const original = allRenditions.filter((r) => r.name?.toLowerCase() === 'original');
-  const others = allRenditions.filter((r) => r.name?.toLowerCase() !== 'original');
+  const originalRendition = allRenditions.find((r) => r.name?.toLowerCase() === 'original');
 
   let html = '<div class="renditions-list">';
-  [...original, ...others].forEach((rendition) => {
-    html += renderRenditionItem(asset, rendition);
-  });
+  if (originalRendition) {
+    html += renderRenditionItem(asset, originalRendition);
+  }
   html += '</div>';
   return html;
 }
@@ -176,19 +160,6 @@ export function renderDownloadRenditionsContent(options, t) {
   }).join('')}
       </div>
 
-      <div class="download-renditions-terms">
-        <label class="download-renditions-checkbox">
-          <input
-            type="checkbox"
-            class="search-results-checkbox"
-            id="accept-terms-checkbox"
-            ${acceptTerms ? 'checked' : ''}
-          />
-          <span class="checkmark-checkbox"></span>
-          ${t('agreeToTermsPrefix', 'I agree to the')} <a href="#" class="terms-link">${t('termsAndConditions', 'terms and conditions')}</a> ${t('agreeToTermsSuffix', 'of use.')}
-        </label>
-      </div>
-
       <div class="download-renditions-actions">
         ${showCancel ? `
           <button
@@ -200,9 +171,9 @@ export function renderDownloadRenditionsContent(options, t) {
           </button>
         ` : ''}
         <button
-          class="download-renditions-button primary-button ${(!acceptTerms || isDownloading || selectedRenditions.size === 0) ? 'disabled' : ''}"
+          class="download-renditions-button primary-button ${isDownloading ? 'disabled' : ''}"
           data-action="download"
-          ${(!acceptTerms || isDownloading || selectedRenditions.size === 0) ? 'disabled' : ''}
+          ${isDownloading ? 'disabled' : ''}
         >
           ${isDownloading ? t('downloading', 'Downloading...') : t('download', 'Download')}
         </button>
@@ -282,39 +253,6 @@ export async function createDownloadRenditionsContent(container, options) {
   }
 
   function bindEvents() {
-    // Rendition checkboxes
-    container.querySelectorAll('.rendition-item').forEach((label) => {
-      const checkbox = label.querySelector('.rendition-checkbox');
-      checkbox?.addEventListener('change', () => {
-        const assetId = label.dataset.assetId;
-        const renditionName = label.dataset.renditionName;
-        const assetData = assets.find(
-          (a) => (a.asset.assetId || `asset-${a.asset.name}`) === assetId,
-        );
-        if (!assetData) return;
-        const allRenditions = getAllRenditions(assetData.asset);
-        const rendition = allRenditions.find((r) => r.name === renditionName);
-        if (rendition) {
-          toggleRendition(assetData.asset, rendition);
-          render();
-        }
-      });
-    });
-
-    // Terms checkbox
-    const termsCheckbox = container.querySelector('#accept-terms-checkbox');
-    termsCheckbox?.addEventListener('change', (e) => {
-      acceptTerms = e.target.checked;
-      render();
-    });
-
-    // Terms link
-    const termsLink = container.querySelector('.terms-link');
-    termsLink?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openTermsModal();
-    });
-
     // Cancel button
     const cancelBtn = container.querySelector('[data-action="cancel"]');
     cancelBtn?.addEventListener('click', () => {
@@ -332,6 +270,7 @@ export async function createDownloadRenditionsContent(container, options) {
 
 /**
  * Save archive to download panel localStorage and open the download panel.
+ * Dedupes by archiveId so the same archive cannot create duplicate rows.
  */
 function saveArchiveAndOpenDownloadPanel(assetsRenditions, archiveId, t) {
   const existingDownloads = JSON.parse(localStorage.getItem('downloadArchives') || '[]');
@@ -339,58 +278,46 @@ function saveArchiveAndOpenDownloadPanel(assetsRenditions, archiveId, t) {
     assetsRenditions: assetsRenditions.map((item) => ({
       assetId: item.asset.assetId || '',
       assetName: item.asset.name || item.asset.title || 'Unknown Asset',
-      renditions: item.renditions.map((r) => r.name),
+      renditions: ['original'],
     })),
     archiveId,
   };
-  existingDownloads.push(newDownloadEntry);
-  localStorage.setItem('downloadArchives', JSON.stringify(existingDownloads));
+
+  const deduped = existingDownloads.filter((entry) => entry.archiveId !== archiveId);
+  deduped.push(newDownloadEntry);
+  localStorage.setItem('downloadArchives', JSON.stringify(deduped));
   if (window.updateDownloadBadge) {
-    window.updateDownloadBadge(existingDownloads.length);
+    window.updateDownloadBadge(deduped.length);
   }
   showToast(t('downloadArchiveCreatedSuccessfully', 'Download archive created successfully'), 'success');
 }
 
 /**
- * Handle download action using user-selected renditions
+ * Handle download action (always downloads original)
  */
 async function handleDownload(assets, onClose, onCloseCartPanel, onDownloadCompleted, t) {
   const client = getDynamicMediaClient();
 
-  if (!client || !acceptTerms || isDownloading || assets.length === 0) {
+  if (!client || isDownloading || assets.length === 0) {
     return;
   }
 
   isDownloading = true;
 
   try {
-    const assetsRenditions = [];
-    const successfulAssets = [];
-
-    assets.forEach((assetData) => {
-      const { asset } = assetData;
-      const assetId = asset.assetId || `asset-${asset.name}`;
-      const assetSelected = Array.from(selectedRenditions.get(assetId) || new Set());
-      if (assetSelected.length > 0) {
-        assetsRenditions.push({ asset, renditions: assetSelected });
-        successfulAssets.push(asset);
-      }
-    });
-
-    if (assetsRenditions.length === 0) return;
-
-    const isSingleDirectDownload = assetsRenditions.length === 1
-      && assetsRenditions[0].renditions.length === 1;
-
-    if (isSingleDirectDownload) {
-      const { asset } = assetsRenditions[0];
-      const rendition = assetsRenditions[0].renditions[0];
+    if (assets.length === 1) {
+      // Single asset download — original rendition direct download
+      const { asset } = assets[0];
+      const allRenditions = getAllRenditions(asset);
+      const originalRendition = allRenditions.find((r) => r.name?.toLowerCase() === 'original');
+      const selectedRendition = originalRendition || { name: 'original', format: asset.format };
       const isImagePreset = asset.imagePresets?.items?.some(
-        (preset) => preset.name === rendition.name,
+        (preset) => preset.name === selectedRendition.name,
       );
-      await client.downloadAsset(asset, rendition, isImagePreset);
+      await client.downloadAsset(asset, selectedRendition, isImagePreset);
       showToast(t('downloadStartedSuccessfully', 'Download started successfully'), 'success');
-      onDownloadCompleted?.(true, successfulAssets);
+      onDownloadCompleted?.(true, [asset]);
+      // Single-rendition browser download: close cart panel, do not re-open/re-render
       if (onCloseCartPanel) {
         onCloseCartPanel();
       } else {
@@ -399,12 +326,22 @@ async function handleDownload(assets, onClose, onCloseCartPanel, onDownloadCompl
       return;
     }
 
+    // Multiple assets — create an archive with original renditions
+    const assetsRenditions = [];
+    const successfulAssets = [];
+    assets.forEach((assetData) => {
+      const { asset } = assetData;
+      assetsRenditions.push({ asset, renditions: [{ name: 'original' }] });
+      successfulAssets.push(asset);
+    });
+
     const archiveId = await client.createAssetsArchive(assetsRenditions);
 
     if (archiveId) {
       saveArchiveAndOpenDownloadPanel(assetsRenditions, archiveId, t);
       onDownloadCompleted?.(true, successfulAssets);
 
+      // Close cart panel and open download panel so user sees the archive
       if (onCloseCartPanel && window.openDownloadPanel) {
         onCloseCartPanel();
         window.openDownloadPanel();
@@ -423,7 +360,6 @@ async function handleDownload(assets, onClose, onCloseCartPanel, onDownloadCompl
     onDownloadCompleted?.(false, []);
   } finally {
     isDownloading = false;
-    acceptTerms = false;
   }
 }
 

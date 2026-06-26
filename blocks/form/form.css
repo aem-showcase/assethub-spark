@@ -133,7 +133,7 @@
 
 .form label[data-required]::after {
   content: '*';
-  color: firebrick;
+  color: var(--text-color);
   margin-inline-start: 1ch;
 }
 

@@ -260,8 +260,8 @@
 }
 
 .toast-error {
-  background-color: #dc3545;
-  border: 1px solid #b02a37;
+  background-color: var(--text-color);
+  border: 1px solid var(--color-dark-red);
 }
 
 .toast.show {

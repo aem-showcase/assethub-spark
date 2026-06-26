@@ -39,7 +39,19 @@ function resetDownloadState() {
 function loadDownloadAssetItems() {
   try {
     const stored = localStorage.getItem('downloadArchives');
-    downloadAssetItems = stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : [];
+
+    // Dedupe by archiveId (last-write-wins) to avoid duplicate rows.
+    const byArchiveId = new Map();
+    parsed.forEach((item) => {
+      if (!item || !item.archiveId) return;
+      byArchiveId.set(item.archiveId, item);
+    });
+    downloadAssetItems = Array.from(byArchiveId.values());
+
+    if (downloadAssetItems.length !== parsed.length) {
+      saveDownloadAssetItems();
+    }
   } catch (error) {
     console.warn('Failed to load download archives from localStorage:', error);
     downloadAssetItems = [];
@@ -85,6 +97,8 @@ async function pollArchiveStatus(archiveId) {
       if (controller.signal.aborted) return [];
 
       const archiveStatus = await client.getAssetsArchiveStatus(archiveId);
+      // eslint-disable-next-line no-console
+      console.warn(`[pollArchiveStatus] archiveId=${archiveId} retry=${retryCount}`, JSON.stringify(archiveStatus));
       const status = archiveStatus?.data?.status;
 
       if (status === ARCHIVE_STATUS.FAILED) {
@@ -94,7 +108,7 @@ async function pollArchiveStatus(archiveId) {
       if (status === ARCHIVE_STATUS.COMPLETED) {
         const files = archiveStatus?.data?.files;
         if (files?.length > 0) {
-          result = files.map((f) => f.href || f.url).filter(Boolean);
+          result = files.map((f) => (typeof f === 'string' ? f : f.href || f.url)).filter(Boolean);
           break;
         }
       }

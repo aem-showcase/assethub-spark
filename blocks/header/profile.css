@@ -107,8 +107,8 @@
 .profile-modal .reset-button {
   display: flex;
   align-items: center;
-  background: #dc3545;
-  border: 1px solid #dc3545;
+  background: var(--text-color);
+  border: 1px solid var(--text-color);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 14px;
@@ -124,13 +124,13 @@
 }
 
 .profile-modal .profile-save-button:hover {
-  background: #0056b3;
-  border-color: #004085;
+  background: var(--primary-color-hover);
+  border-color: var(--primary-color-hover);
 }
 
 .profile-modal .reset-button:hover {
-  background: #c82333;
-  border-color: #bd2130;
+  background: var(--color-dark-red);
+  border-color: var(--color-dark-red);
 }
 
 .profile-modal .edit-button .edit-icon {

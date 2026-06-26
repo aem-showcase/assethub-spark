@@ -779,8 +779,17 @@ export default async function decorate(block) {
   block.textContent = '';
 
   if (getMetadata('header') === 'no') {
-    // quick hack for welcome page
-    block.parentElement.style.height = '60px';
+    // Minimal welcome-page header: just the brand logo, no nav or toolbar
+    block.parentElement.style.height = 'var(--header-bar-height, 48px)';
+    const welcomeBar = document.createElement('div');
+    welcomeBar.className = 'header-welcome-bar';
+    welcomeBar.innerHTML = `
+      <a href="/" class="welcome-logo" aria-label="Home">
+        <span class="icon icon-frescopa-icon">
+          <img src="/icons/frescopa-icon.svg" alt="Fréscopa" loading="eager" />
+        </span>
+      </a>`;
+    block.append(welcomeBar);
     return;
   }
 
