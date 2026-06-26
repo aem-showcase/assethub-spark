@@ -1,6 +1,6 @@
-# Spark Pilot
+# Assets Hub Spark
 
-Astra Pilot for an Assets Share Portal built on Helix & Content Hub (Dynamic Media) APIs.
+Assets Hub Spark is a demo asset-sharing portal built on AEM Edge Delivery Services (Helix) & Content Hub (Dynamic Media) APIs.
 
 ## Environments
 
@@ -33,7 +33,7 @@ Before using the aem-boilerplate, we recommand you to go through the documentati
 3. [Web Performance](https://www.aem.live/developer/keeping-it-100)
 4. [Markup, Sections, Blocks, and Auto Blocking](https://www.aem.live/developer/markup-sections-blocks)
 
-### KO-Asset Search Block
+### Asset Search Block
 
 The asset search functionality is implemented as a vanilla JS EDS block in `blocks/search-results/`.
 
