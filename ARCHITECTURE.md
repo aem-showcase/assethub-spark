@@ -1,6 +1,6 @@
 # Spark — Complete System Architecture
 
-> **Spark** is a digital asset management (DAM) portal for Acme, built on Adobe Experience Manager Edge Delivery Services (AEM EDS) with a Cloudflare Worker gateway, backed by Adobe Dynamic Media (Content Hub).
+> **Spark** is a digital asset management (DAM) portal (the **Assets Hub Spark** demo), built on Adobe Experience Manager Edge Delivery Services (AEM EDS) with a Cloudflare Worker gateway, backed by Adobe Dynamic Media (Content Hub).
 
 ---
 
