@@ -265,7 +265,7 @@
 }
 
 .logins-geo-table tbody td.total-cell {
-  background: #fff0f0;
+  background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color, var(--primary-color));
 }

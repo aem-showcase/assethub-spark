@@ -107,7 +107,7 @@
 }
 
 .adobe-pdf-error-close:hover {
-  background-color: #a00c26;
+  background-color: var(--primary-color-hover);
 }
 
 .adobe-pdf-viewer {

@@ -54,7 +54,12 @@ export default async function makeRequest(config) {
       }
     }
 
+    const curlBody = data ? `-d '${JSON.stringify(data).replace(/'/g, "\\'")}'` : '';
+    // eslint-disable-next-line no-console
+    console.warn(`[api-client curl] curl -X ${method} '${window.location.origin}${fetchUrl}' -H 'Content-Type: application/json'${curlBody ? ` \\\n  ${curlBody}` : ''}`);
     const response = await fetch(fetchUrl, fetchConfig);
+    // eslint-disable-next-line no-console
+    console.warn(`[api-client] ${method} ${fetchUrl} -> ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       if (allowUndefinedResponse && response.status !== 200) {

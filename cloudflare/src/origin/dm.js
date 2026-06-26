@@ -888,7 +888,8 @@ export async function originDynamicMedia(request, env, ctx) {
   }
 
   const isSearchOrCollections = url.pathname.includes('/search') || url.pathname.includes('/collections');
-  if (isSearchOrCollections) {
+  const isArchive = url.pathname.includes('/archives');
+  if (isSearchOrCollections || isArchive) {
     const debugHeaders = [
       'authorization',
       'x-api-key',

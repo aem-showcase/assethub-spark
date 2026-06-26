@@ -152,13 +152,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: var(--color-neutral-200);
   border-radius: 6px;
   font-size: 16px;
+
+  /* Inline SVGs use fill: currentColor — render them in the brand colour */
+  color: var(--primary-color);
 }
 
 .report-card:hover .report-card-icon {
-  background: #fff0f0;
+  background: var(--light-color);
 }
 
 .report-card.coming-soon:hover .report-card-icon {
@@ -219,31 +222,10 @@
   transform: none;
 }
 
-/* Placeholder Icons (until actual icons are added) */
-.icon-download::before {
-  content: '📥';
-}
-
-.icon-login::before {
-  content: '🔐';
-}
-
-.icon-search::before {
-  content: '🔍';
-}
-
-.icon-asset::before {
-  content: '🖼️';
-}
-
-.icon-collections::before {
-  content: '📁';
-}
-
-.icon-rights::before {
-  content: '⚖️';
-}
-
+/* Placeholder glyphs for the few icons still rendered as spans.
+   Report-card icons are now inline brand-coloured SVGs (see report-hub.js),
+   so their former emoji placeholders have been removed to avoid off-brand
+   multicolour glyphs. */
 .icon-arrow-right::before {
   content: '→';
 }

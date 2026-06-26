@@ -4,6 +4,17 @@
  * Only accessible to users with admin-reports permission
  */
 
+/**
+ * Inline, monochrome SVG icons rendered with `fill="currentColor"` so they inherit
+ * the brand colour from CSS (var(--primary-color)). Replaces the previous multicolour
+ * emoji placeholders (🔐/🔍/🖼️) so the hub stays on-brand and consistent.
+ */
+const ICONS = {
+  user: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.69-8 6v2h16v-2c0-3.31-3.58-6-8-6Z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M5 21V10h3v11H5Zm5.5 0V3h3v18h-3ZM16 21v-7h3v7h-3Z"/></svg>',
+};
+
 const REPORT_CATEGORIES = [
   {
     id: 'activity',
@@ -15,8 +26,9 @@ const REPORT_CATEGORIES = [
         title: 'Users',
         description: 'User activity and engagement report',
         url: '/en/reports/logins',
-        icon: 'login',
+        icon: 'user',
         status: 'available',
+        // icon key maps into the inline ICONS map above
       },
       {
         id: 'searches',
@@ -31,7 +43,7 @@ const REPORT_CATEGORIES = [
         title: 'Asset Activity',
         description: 'Asset views, downloads, and usage audit',
         url: '/en/reports/asset-activity',
-        icon: 'asset',
+        icon: 'chart',
         status: 'available',
       },
     ],
@@ -64,7 +76,7 @@ function createReportCard(report) {
 
   const iconDiv = document.createElement('div');
   iconDiv.className = 'report-card-icon';
-  iconDiv.innerHTML = `<span class="icon icon-${report.icon}"></span>`;
+  iconDiv.innerHTML = ICONS[report.icon] ?? ICONS.chart;
 
   const title = document.createElement('div');
   title.className = 'report-card-title';

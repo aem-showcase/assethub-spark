@@ -254,8 +254,21 @@ function filterSectionsByRole(main) {
  * Decorates the main element.
  * @param {Element} main The main element
  */
+/**
+ * Normalize root-relative links that DA may emit as file:// URLs on docx import
+ * (e.g. "file:////auth/login" -> "/auth/login").
+ * @param {Element} main The container element
+ */
+function normalizeFileLinks(main) {
+  main.querySelectorAll('a[href^="file:"]').forEach((link) => {
+    const href = link.getAttribute('href');
+    link.setAttribute('href', href.replace(/^file:\/+/, '/'));
+  });
+}
+
 // eslint-disable-next-line import/prefer-default-export
 export function decorateMain(main) {
+  normalizeFileLinks(main);
   // hopefully forward compatible button decoration
   decorateButtons(main);
   decorateIcons(main);
@@ -636,9 +649,17 @@ export async function fetchSpreadsheetDataAsCsv(sheetPath, sheetName = '', heade
 export async function loadFragment(path) {
   if (path && path.startsWith('/')) {
     const resp = await fetch(`${path}.plain.html`);
-    if (resp.ok) {
+    // A fragment request that was redirected (e.g. auth bounce to the login page)
+    // returns a full HTML document, not a fragment — ignore it instead of
+    // injecting an entire page into the nav/footer.
+    if (resp.ok && !resp.redirected) {
+      const text = await resp.text();
+      // Guard against full-document responses leaking into a fragment slot
+      if (/<\/(html|head|body)>/i.test(text)) {
+        return null;
+      }
       const main = document.createElement('main');
-      main.innerHTML = await resp.text();
+      main.innerHTML = text;
 
       // reset base path for media to fragment base
       const resetAttributeBase = (tag, attr) => {

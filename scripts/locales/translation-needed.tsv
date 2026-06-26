@@ -8,8 +8,6 @@ addToCart	Add To Cart	no
 addToCollection	Add to Collection	no
 agency	Agency	no
 agencyName	Agency Name	no
-agreeToTermsPrefix	I agree to the	YES
-agreeToTermsSuffix	of use.	YES
 alerts	Alerts	YES
 all	All	no
 allNotifications	All Notifications	YES
@@ -179,7 +177,6 @@ success	SUCCESS	YES
 tags	Tags	no
 template	Template	no
 templates	Templates	no
-termsAndConditions	terms and conditions	YES
 thumbnail	THUMBNAIL	no
 title	TITLE	no
 topResults	Top Results	no

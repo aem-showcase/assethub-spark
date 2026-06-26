@@ -451,7 +451,7 @@ main > .section > .search-collection-results-wrapper {
 }
 
 .scr-error {
-  color: #c00;
+  color: var(--text-color);
 }
 
 /* New collection button */

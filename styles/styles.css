@@ -178,9 +178,99 @@ body.appear {
   display: flex;
 }
 
-/* Welcome/login page: white background from first paint (no flicker) */
-body:has(.loginpage) {
-  background-color: white;
+/* ------------------------------------------------------------------ */
+
+/* Welcome / sign-in page (Section Metadata style=welcome)            */
+
+/* ------------------------------------------------------------------ */
+
+/* Warm cream backdrop from first paint (no flicker) */
+body:has(.section.welcome) {
+  background-color: var(--light-color);
+}
+
+/* Center the welcome section in the viewport, below the slim header bar */
+body:has(.section.welcome) > main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - var(--header-bar-height, 48px));
+  padding: var(--spacing-xbig) var(--spacing-medium);
+}
+
+/* The card */
+.section.welcome {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: var(--spacing-xbig) var(--spacing-big);
+  background-color: var(--color-neutral-50);
+  border-radius: var(--shape-border-radius-2);
+  box-shadow: var(--shape-shadow-card);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.section.welcome > .default-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Coffee-bean brand mark (its own paragraph) */
+.section.welcome p:has(.icon-frescopa-beans) {
+  margin: 0 0 var(--spacing-small);
+  max-width: none;
+}
+
+.section.welcome .icon-frescopa-beans {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+}
+
+.section.welcome .icon-frescopa-beans img,
+.section.welcome .icon-frescopa-beans svg {
+  width: 64px;
+  height: 64px;
+}
+
+.section.welcome h1 {
+  font-family: var(--heading-font-family);
+  font-size: var(--heading-font-size-m);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-color);
+  margin: 0 0 var(--spacing-small);
+  padding: 0;
+}
+
+.section.welcome p {
+  font-family: var(--body-font-family);
+  font-size: var(--body-font-size-s);
+  line-height: 1.5;
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--spacing-big);
+  max-width: 32ch;
+}
+
+/* Full-width primary Sign in button */
+.section.welcome .button-container {
+  width: 100%;
+  margin: 0;
+}
+
+.section.welcome .button-container a.button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+@media (width <= 480px) {
+  .section.welcome {
+    padding: var(--spacing-big) var(--spacing-medium);
+  }
 }
 
 /* Ensure main content expands to push footer to viewport bottom on short pages */
@@ -1120,15 +1210,6 @@ input[type="checkbox"]:checked::after {
 .checkbox-label:has(input[type="checkbox"]:disabled) {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-a.terms-link {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-a.terms-link:hover {
-  text-decoration: underline;
 }
 
 picture.missing {

@@ -582,7 +582,7 @@
 
 .searches-geo-table tbody td.metric-label.total-row {
   font-weight: 700;
-  background: #fff0f0;
+  background: var(--light-color);
   color: var(--report-primary-color, var(--primary-color));
 }
 
@@ -592,13 +592,13 @@
 }
 
 .searches-geo-table tbody td.total-row-cell {
-  background: #fff0f0;
+  background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color, var(--primary-color));
 }
 
 .searches-geo-table tbody td.total-cell {
-  background: #fff0f0;
+  background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color, var(--primary-color));
 }
