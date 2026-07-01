@@ -1,4 +1,5 @@
 import { getAppLabel } from '../../scripts/locale-utils.js';
+import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 
 // Cached placeholder function
 let ph = null;
@@ -23,7 +24,7 @@ async function createProfileModal() {
   modal.id = 'profile-modal';
   modal.className = 'profile-modal';
 
-  const canSudo = window.user?.permissions?.includes('sudo');
+  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
 
   // Add sudo-mode class if user can sudo
   if (canSudo) {
@@ -246,7 +247,7 @@ function handleReset() {
 }
 
 function handleSave() {
-  const canSudo = window.user?.permissions?.includes('sudo');
+  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
 
   if (canSudo) {
     // Get values from input fields
