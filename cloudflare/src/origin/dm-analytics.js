@@ -320,13 +320,14 @@ function extractDownloadContext(url, _request) {
  * @returns {Object} Common user data fields
  */
 function extractCommonUserData(user) {
+  const userId = user?.userId || user?.sub || user?.email || '';
   return {
-    userId: user.userId,
-    userEmail: user.email,
-    country: user.country,
-    employeeType: user.employeeType,
-    company: user.company,
-    roles: user.roles || [],
+    userId,
+    userEmail: user?.email || null,
+    country: user?.country,
+    employeeType: user?.employeeType,
+    company: user?.company,
+    roles: user?.roles || [],
   };
 }
 
@@ -523,12 +524,25 @@ function extractAllowedCountryValues(fieldValue) {
 }
 
 /**
+ * Normalize search response hits to an array (ContentAI, Algolia, legacy shapes).
+ * ContentAI returns { hits: { results: [...], total: N } }, not hits as a bare array.
+ * @param {Object} data - Parsed search response JSON
+ * @returns {Object[]} Hit objects
+ */
+export function getSearchHitResults(data) {
+  if (Array.isArray(data?.hits)) return data.hits;
+  if (Array.isArray(data?.hits?.results)) return data.hits.results;
+  if (Array.isArray(data?.results?.[0]?.hits)) return data.results[0].hits;
+  return [];
+}
+
+/**
  * Collect distinct asset market tags from search response hits.
  * @param {Object} data - Parsed ContentAI or Algolia search response
  * @returns {string[]} Unique market values from assetMetadata.allowedCountries
  */
-function extractAssetMarketsFromHits(data) {
-  const hits = data?.hits || data?.results?.[0]?.hits || [];
+export function extractAssetMarketsFromHits(data) {
+  const hits = getSearchHitResults(data);
   const markets = new Set();
   hits.forEach((hit) => {
     extractAllowedCountryValues(hit?.assetMetadata?.allowedCountries).forEach((market) => {
@@ -552,7 +566,8 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
     const data = await clonedResponse.json();
     const resultCount = extractSearchResultCount(data);
 
-    if (!user?.userId) {
+    const userData = extractCommonUserData(user);
+    if (!userData.userId) {
       console.warn(
         '[Analytics] Search event written with no user ID — user may be missing User ID in IDP token.',
         `searchTerm="${searchContext.searchTerm}"`,
@@ -564,7 +579,7 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
 
     const { trackAnalyticsEvent } = await import('../util/analytics-helper.js');
     await trackAnalyticsEvent(env, 'search', {
-      ...extractCommonUserData(user),
+      ...userData,
       searchTerm: (searchContext.searchTerm || '').substring(0, ANALYTICS_SEARCH_TERM_MAX_LENGTH),
       searchType: searchContext.searchType,
       resourceType: '',
