@@ -487,6 +487,41 @@ function extractSearchResultCount(data) {
   return 0;
 }
 
+/** Maximum markets stored per search event (guards against malformed responses) */
+const MAX_MARKETS_PER_EVENT = 20;
+
+/**
+ * Normalize allowedCountries metadata values from a ContentAI hit.
+ * @param {*} fieldValue - string or string array from assetMetadata.allowedCountries
+ * @returns {string[]}
+ */
+function extractAllowedCountryValues(fieldValue) {
+  if (!fieldValue) return [];
+  if (!Array.isArray(fieldValue)) {
+    const value = String(fieldValue).trim();
+    return value ? [value] : [];
+  }
+  return fieldValue
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+}
+
+/**
+ * Collect distinct asset market tags from search response hits.
+ * @param {Object} data - Parsed ContentAI or Algolia search response
+ * @returns {string[]} Unique market values from assetMetadata.allowedCountries
+ */
+function extractAssetMarketsFromHits(data) {
+  const hits = data?.hits || data?.results?.[0]?.hits || [];
+  const markets = new Set();
+  hits.forEach((hit) => {
+    extractAllowedCountryValues(hit?.assetMetadata?.allowedCountries).forEach((market) => {
+      markets.add(market);
+    });
+  });
+  return [...markets].slice(0, MAX_MARKETS_PER_EVENT);
+}
+
 /**
  * Process search analytics asynchronously (fire-and-forget)
  * Extracts result count from response and tracks event.
@@ -509,6 +544,8 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
       );
     }
 
+    const assetMarkets = extractAssetMarketsFromHits(data);
+
     const { trackAnalyticsEvent } = await import('../util/analytics-helper.js');
     await trackAnalyticsEvent(env, 'search', {
       ...extractCommonUserData(user),
@@ -516,6 +553,7 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
       searchType: searchContext.searchType,
       resourceType: '',
       resultCount,
+      assetMarkets,
     });
 
     if (DEBUG_ANALYTICS) {

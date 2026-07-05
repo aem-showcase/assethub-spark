@@ -14,7 +14,6 @@ import { error, Router, withCookies } from 'itty-router';
 import { analyticsApi, searchMetricsApi } from './api/analytics';
 import { auditGetExportCsv, auditGetOrganisations, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
-import { exportUserLoginsCSV } from './api/user-logins';
 import { authRouter, withAuthentication } from './auth';
 import { originDynamicMedia } from './origin/dm';
 import { originHelix } from './origin/helix';
@@ -116,17 +115,9 @@ router
   .all('/api/messages/*', notificationsApi)
   .all('/api/messages', notificationsApi)
 
-  // Analytics API
+  // Analytics API (D1 search metrics only)
   .get('/api/analytics/search-metrics', searchMetricsApi)
   .get('/api/analytics/test', analyticsApi)
-  .get('/api/analytics/report-metrics', analyticsApi)
-  .get('/api/analytics/raw-downloads', analyticsApi)
-  .all('/api/analytics/query-sql', analyticsApi)
-  .all('/api/analytics/query', analyticsApi)
-  .all('/api/analytics', analyticsApi)
-
-  // User Logins CSV export (D1)
-  .get('/api/user-logins/csv', exportUserLoginsCSV)
 
   // Asset activity audit API (D1)
   .post('/api/audit/event', auditPostEvent)

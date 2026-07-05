@@ -6,6 +6,7 @@
 import {
   describe, it, expect,
 } from 'vitest';
+import { isValidMarketToken, FILTER_ELEMENT_IDS } from '../config.js';
 
 describe('Search Report Filters', () => {
   describe('Filter State Initialization', () => {
@@ -54,13 +55,13 @@ describe('Search Report Filters', () => {
       });
     });
 
-    it('should accept valid region values', () => {
-      const validRegions = ['all', 'AFR', 'ASP', 'EME', 'EU', 'GCM', 'INSWA', 'JSK', 'LA', 'NA'];
-
-      validRegions.forEach((region) => {
-        const state = { filters: { region } };
-        expect(state.filters.region).toBe(region);
-      });
+    it('should accept valid market token values', () => {
+      expect(isValidMarketToken('USA')).toBe(true);
+      expect(isValidMarketToken('EMEA')).toBe(true);
+      expect(isValidMarketToken('Global')).toBe(true);
+      expect(isValidMarketToken('APAC')).toBe(true);
+      expect(isValidMarketToken('bad/value')).toBe(false);
+      expect(isValidMarketToken('')).toBe(false);
     });
   });
 
@@ -74,7 +75,7 @@ describe('Search Report Filters', () => {
           role: 'partner',
           searchType: 'assets',
           searchTerm: 'non-empty',
-          region: 'NA',
+          region: 'USA',
         },
       };
 
@@ -144,7 +145,7 @@ describe('Search Report Filters', () => {
         role: 'agency',
         searchType: 'templates',
         searchTerm: 'empty',
-        region: 'EU',
+        region: 'EMEA',
       };
 
       const params = new URLSearchParams();
@@ -157,7 +158,7 @@ describe('Search Report Filters', () => {
       expect(params.get('role')).toBe('agency');
       expect(params.get('searchType')).toBe('templates');
       expect(params.get('searchTerm')).toBe('empty');
-      expect(params.get('region')).toBe('EU');
+      expect(params.get('region')).toBe('EMEA');
     });
   });
 
@@ -259,15 +260,8 @@ describe('Search Report Filters', () => {
     });
 
     it('should have correct FILTER_ELEMENT_IDS', () => {
-      const FILTER_ELEMENT_IDS = {
-        ROLE: 'role-select',
-        REGION: 'region-select',
-        SEARCH_TYPE: 'search-type-select',
-        SEARCH_TERM: 'search-term-select',
-      };
-
       expect(FILTER_ELEMENT_IDS.ROLE).toBe('role-select');
-      expect(FILTER_ELEMENT_IDS.REGION).toBe('region-select');
+      expect(FILTER_ELEMENT_IDS.MARKET).toBe('market-select');
       expect(FILTER_ELEMENT_IDS.SEARCH_TYPE).toBe('search-type-select');
       expect(FILTER_ELEMENT_IDS.SEARCH_TERM).toBe('search-term-select');
     });

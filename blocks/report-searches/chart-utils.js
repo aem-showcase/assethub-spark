@@ -16,7 +16,7 @@ export {
   destroyCharts,
   renderMonthlyBarChart,
   renderRolePieChart,
-  renderGeoPieChart,
+  renderGeoPieChart as renderMarketPieChart,
 } from '../../scripts/analytics/chart-utils.js';
 
 /**

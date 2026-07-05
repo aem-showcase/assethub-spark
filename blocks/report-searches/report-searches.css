@@ -498,7 +498,7 @@
   height: 300px;
 }
 
-/* Geography Table */
+/* Market Table */
 .searches-table-container {
   margin-top: 30px;
   background: white;
@@ -517,18 +517,18 @@
   border-bottom: 2px solid var(--light-color);
 }
 
-.searches-geo-table {
+.searches-market-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
   background: white;
 }
 
-.searches-geo-table thead {
+.searches-market-table thead {
   background: linear-gradient(to right, var(--report-primary-color, var(--primary-color)), var(--primary-color-hover));
 }
 
-.searches-geo-table thead th {
+.searches-market-table thead th {
   color: #fff;
   padding: 12px 16px;
   text-align: center;
@@ -539,65 +539,65 @@
   border-right: 1px solid rgb(255 255 255 / 20%);
 }
 
-.searches-geo-table thead th:last-child {
+.searches-market-table thead th:last-child {
   border-right: none;
 }
 
-.searches-geo-table thead th.metric-label-header {
+.searches-market-table thead th.metric-label-header {
   background: transparent;
   min-width: 180px;
   text-align: left;
 }
 
-.searches-geo-table thead th.total-column {
+.searches-market-table thead th.total-column {
   background: var(--primary-color-hover);
   font-weight: 800;
 }
 
-.searches-geo-table tbody tr {
+.searches-market-table tbody tr {
   border-bottom: 1px solid #eee;
 }
 
-.searches-geo-table tbody tr:last-child {
+.searches-market-table tbody tr:last-child {
   border-bottom: none;
 }
 
-.searches-geo-table tbody td {
+.searches-market-table tbody td {
   padding: 12px 16px;
   text-align: center;
 }
 
-.searches-geo-table tbody td.metric-label {
+.searches-market-table tbody td.metric-label {
   text-align: left;
   font-weight: 600;
   color: #333;
   background: #f9f9f9;
 }
 
-.searches-geo-table tbody td.metric-label.search-type-row {
+.searches-market-table tbody td.metric-label.search-type-row {
   padding-left: 32px;
   font-weight: 500;
   font-size: 13px;
 }
 
-.searches-geo-table tbody td.metric-label.total-row {
+.searches-market-table tbody td.metric-label.total-row {
   font-weight: 700;
   background: var(--light-color);
   color: var(--report-primary-color, var(--primary-color));
 }
 
-.searches-geo-table tbody td.numeric-cell {
+.searches-market-table tbody td.numeric-cell {
   color: #333;
   font-weight: 500;
 }
 
-.searches-geo-table tbody td.total-row-cell {
+.searches-market-table tbody td.total-row-cell {
   background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color, var(--primary-color));
 }
 
-.searches-geo-table tbody td.total-cell {
+.searches-market-table tbody td.total-cell {
   background: var(--light-color);
   font-weight: 700;
   color: var(--report-primary-color, var(--primary-color));

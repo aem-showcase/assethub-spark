@@ -1973,18 +1973,43 @@ export async function writeAnalyticsEvent(analyticsEngine, eventType, data, env)
 
 const SEARCH_TOP_LIMIT = 20;
 
+/** Allowed characters for asset market filter values (assetMetadata.allowedCountries) */
+const MARKET_TOKEN_PATTERN = /^[A-Za-z0-9 _-]{1,64}$/;
+
 /**
- * Build D1 WHERE clause params for search_events queries.
+ * Validate a market filter token from the report UI.
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isValidMarketToken(value) {
+  return typeof value === 'string' && MARKET_TOKEN_PATTERN.test(value);
+}
+
+/**
+ * Date-only conditions for market discovery queries (no market filter applied).
+ * @param {string} startDate
+ * @param {string} endDate
+ * @returns {{ whereClause: string, bindings: string[] }}
+ */
+function buildSearchDateConditions(startDate, endDate) {
+  return {
+    whereClause: 'se.occurred_at >= ? AND se.occurred_at <= ?',
+    bindings: [`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`],
+  };
+}
+
+/**
+ * Build D1 WHERE clause params for search_events queries (alias `se`).
  * Returns { whereClause, bindings } where bindings are positional (? placeholders).
  */
 function buildSearchD1Conditions(startDate, endDate, filters = {}) {
-  const conditions = [`occurred_at >= ?`, `occurred_at <= ?`];
+  const conditions = [`se.occurred_at >= ?`, `se.occurred_at <= ?`];
   const bindings = [`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`];
 
   if (filters.role && filters.role !== FILTER_DEFAULT_VALUE) {
     if (!VALID_ROLES.includes(filters.role)) throw new Error(`Invalid role filter: ${filters.role}`);
     const roleValues = ROLE_MAPPINGS[filters.role] || [filters.role];
-    const roleClauses = roleValues.map(() => `user_role = ?`).join(' OR ');
+    const roleClauses = roleValues.map(() => `se.user_role = ?`).join(' OR ');
     conditions.push(`(${roleClauses})`);
     bindings.push(...roleValues);
   }
@@ -1992,7 +2017,7 @@ function buildSearchD1Conditions(startDate, endDate, filters = {}) {
   if (filters.searchType && filters.searchType !== FILTER_DEFAULT_VALUE) {
     if (!VALID_SEARCH_TYPES.includes(filters.searchType))
       throw new Error(`Invalid searchType filter: ${filters.searchType}`);
-    conditions.push(`search_type = ?`);
+    conditions.push(`se.search_type = ?`);
     bindings.push(filters.searchType);
   }
 
@@ -2000,19 +2025,18 @@ function buildSearchD1Conditions(startDate, endDate, filters = {}) {
     if (!VALID_SEARCH_TERMS.includes(filters.searchTerm))
       throw new Error(`Invalid searchTerm filter: ${filters.searchTerm}`);
     if (filters.searchTerm === 'empty') {
-      conditions.push(`(search_term = '' OR search_term IS NULL)`);
+      conditions.push(`(se.search_term = '' OR se.search_term IS NULL)`);
     } else {
-      conditions.push(`search_term != ''`);
+      conditions.push(`se.search_term != ''`);
     }
   }
 
   if (filters.region && filters.region !== FILTER_DEFAULT_VALUE) {
-    if (!VALID_REGIONS.includes(filters.region)) throw new Error(`Invalid region filter: ${filters.region}`);
-    const codes = REGION_TO_COUNTRIES[filters.region];
-    if (codes?.length) {
-      conditions.push(`user_country IN (${codes.map(() => '?').join(', ')})`);
-      bindings.push(...codes);
-    }
+    if (!isValidMarketToken(filters.region)) throw new Error(`Invalid region filter: ${filters.region}`);
+    conditions.push(
+      `EXISTS (SELECT 1 FROM search_event_markets sem WHERE sem.event_id = se.id AND sem.market = ?)`,
+    );
+    bindings.push(filters.region);
   }
 
   return { whereClause: conditions.join(' AND '), bindings };
@@ -2103,7 +2127,7 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
 
     case 'uniqueSearchers': {
       const row = await db
-        .prepare(`SELECT COUNT(DISTINCT user_id) as unique_count FROM search_events WHERE ${whereClause}`)
+        .prepare(`SELECT COUNT(DISTINCT se.user_id) as unique_count FROM search_events se WHERE ${whereClause}`)
         .bind(...bindings)
         .first();
       return [{ unique_count: row?.unique_count ?? 0 }];
@@ -2114,10 +2138,10 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
       const row = await db
         .prepare(
           `SELECT COUNT(*) as first_time_count FROM (
-          SELECT user_id, MIN(occurred_at) as first_search
-          FROM search_events
+          SELECT se.user_id, MIN(se.occurred_at) as first_search
+          FROM search_events se
           WHERE ${wc}
-          GROUP BY user_id
+          GROUP BY se.user_id
         )`,
         )
         .bind(...bs)
@@ -2128,8 +2152,8 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'uniqueSearchersByMonth': {
       const rows = await db
         .prepare(
-          `SELECT strftime('%Y-%m', occurred_at) as month, COUNT(DISTINCT user_id) as users
-         FROM search_events WHERE ${whereClause}
+          `SELECT strftime('%Y-%m', se.occurred_at) as month, COUNT(DISTINCT se.user_id) as users
+         FROM search_events se WHERE ${whereClause}
          GROUP BY month ORDER BY month`,
         )
         .bind(...bindings)
@@ -2140,8 +2164,8 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'searchesByMonth': {
       const rows = await db
         .prepare(
-          `SELECT strftime('%Y-%m', occurred_at) as month, search_type as searchType, COUNT(*) as searches
-         FROM search_events WHERE ${whereClause}
+          `SELECT strftime('%Y-%m', se.occurred_at) as month, se.search_type as searchType, COUNT(*) as searches
+         FROM search_events se WHERE ${whereClause}
          GROUP BY month, searchType ORDER BY month`,
         )
         .bind(...bindings)
@@ -2152,8 +2176,8 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'uniqueSearchersByRole': {
       const rows = await db
         .prepare(
-          `SELECT user_role as role, COUNT(DISTINCT user_id) as users
-         FROM search_events WHERE ${whereClause}
+          `SELECT se.user_role as role, COUNT(DISTINCT se.user_id) as users
+         FROM search_events se WHERE ${whereClause}
          GROUP BY role ORDER BY users DESC`,
         )
         .bind(...bindings)
@@ -2164,8 +2188,8 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'searchesByRole': {
       const rows = await db
         .prepare(
-          `SELECT user_role as role, COUNT(*) as searches
-         FROM search_events WHERE ${whereClause}
+          `SELECT se.user_role as role, COUNT(*) as searches
+         FROM search_events se WHERE ${whereClause}
          GROUP BY role ORDER BY searches DESC`,
         )
         .bind(...bindings)
@@ -2173,36 +2197,57 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
       return rows.results || [];
     }
 
-    case 'uniqueSearchersByGeo': {
+    case 'distinctMarkets': {
+      const { whereClause: dateWhere, bindings: dateBindings } = buildSearchDateConditions(startDate, endDate);
       const rows = await db
         .prepare(
-          `SELECT user_country as geo, COUNT(DISTINCT user_id) as users
-         FROM search_events WHERE ${whereClause}
-         GROUP BY geo ORDER BY users DESC`,
+          `SELECT DISTINCT sem.market as market
+         FROM search_event_markets sem
+         INNER JOIN search_events se ON se.id = sem.event_id
+         WHERE ${dateWhere}
+         ORDER BY sem.market ASC`,
+        )
+        .bind(...dateBindings)
+        .all();
+      return rows.results || [];
+    }
+
+    case 'uniqueSearchersByMarket': {
+      const rows = await db
+        .prepare(
+          `SELECT sem.market as market, COUNT(DISTINCT se.user_id) as users
+         FROM search_events se
+         INNER JOIN search_event_markets sem ON sem.event_id = se.id
+         WHERE ${whereClause}
+         GROUP BY sem.market ORDER BY users DESC`,
         )
         .bind(...bindings)
         .all();
       return rows.results || [];
     }
 
-    case 'searchesByGeo': {
+    case 'searchesByMarket': {
       const rows = await db
         .prepare(
-          `SELECT user_country as geo, COUNT(*) as searches
-         FROM search_events WHERE ${whereClause}
-         GROUP BY geo ORDER BY searches DESC`,
+          `SELECT sem.market as market, COUNT(*) as searches
+         FROM search_events se
+         INNER JOIN search_event_markets sem ON sem.event_id = se.id
+         WHERE ${whereClause}
+         GROUP BY sem.market ORDER BY searches DESC`,
         )
         .bind(...bindings)
         .all();
       return rows.results || [];
     }
 
-    case 'searchesByGeoAndType': {
+    case 'searchesByMarketAndType': {
       const rows = await db
         .prepare(
-          `SELECT user_country as geo, search_type as searchType, COUNT(*) as searches
-         FROM search_events WHERE ${whereClause}
-         GROUP BY geo, searchType ORDER BY searches DESC`,
+          `SELECT sem.market as market, se.search_type as searchType, COUNT(*) as searches
+         FROM search_events se
+         INNER JOIN search_event_markets sem ON sem.event_id = se.id
+         WHERE ${whereClause}
+         GROUP BY sem.market, searchType ORDER BY searches DESC`,
         )
         .bind(...bindings)
         .all();
@@ -2212,8 +2257,8 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'searchDistributionByType': {
       const rows = await db
         .prepare(
-          `SELECT search_type as searchType, COUNT(*) as searches
-         FROM search_events WHERE ${whereClause}
+          `SELECT se.search_type as searchType, COUNT(*) as searches
+         FROM search_events se WHERE ${whereClause}
          GROUP BY searchType ORDER BY searches DESC`,
         )
         .bind(...bindings)
@@ -2223,20 +2268,20 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
 
     case 'searchDistributionByResultSize': {
       const buckets = [
-        { bucket: '0 results', condition: '(result_count = 0 OR result_count IS NULL)' },
-        { bucket: '1-10 results', condition: 'result_count > 0 AND result_count <= 10' },
-        { bucket: '11-50 results', condition: 'result_count > 10 AND result_count <= 50' },
-        { bucket: '51-100 results', condition: 'result_count > 50 AND result_count <= 100' },
-        { bucket: '101-500 results', condition: 'result_count > 100 AND result_count <= 500' },
-        { bucket: '501-1000 results', condition: 'result_count > 500 AND result_count <= 1000' },
-        { bucket: '1001-10000 results', condition: 'result_count > 1000 AND result_count <= 10000' },
-        { bucket: '10001-100000 results', condition: 'result_count > 10000 AND result_count <= 100000' },
-        { bucket: '100000+ results', condition: 'result_count > 100000' },
+        { bucket: '0 results', condition: '(se.result_count = 0 OR se.result_count IS NULL)' },
+        { bucket: '1-10 results', condition: 'se.result_count > 0 AND se.result_count <= 10' },
+        { bucket: '11-50 results', condition: 'se.result_count > 10 AND se.result_count <= 50' },
+        { bucket: '51-100 results', condition: 'se.result_count > 50 AND se.result_count <= 100' },
+        { bucket: '101-500 results', condition: 'se.result_count > 100 AND se.result_count <= 500' },
+        { bucket: '501-1000 results', condition: 'se.result_count > 500 AND se.result_count <= 1000' },
+        { bucket: '1001-10000 results', condition: 'se.result_count > 1000 AND se.result_count <= 10000' },
+        { bucket: '10001-100000 results', condition: 'se.result_count > 10000 AND se.result_count <= 100000' },
+        { bucket: '100000+ results', condition: 'se.result_count > 100000' },
       ];
       const results = await Promise.all(
         buckets.map(async ({ bucket, condition }) => {
           const row = await db
-            .prepare(`SELECT COUNT(*) as searches FROM search_events WHERE ${whereClause} AND ${condition}`)
+            .prepare(`SELECT COUNT(*) as searches FROM search_events se WHERE ${whereClause} AND ${condition}`)
             .bind(...bindings)
             .first();
           return { bucket, searches: row?.searches ?? 0 };
@@ -2248,9 +2293,9 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'topSearches': {
       const rows = await db
         .prepare(
-          `SELECT search_term as searchTerm, search_type as searchType,
-                COUNT(DISTINCT user_id) as uniqueSearchers, COUNT(*) as totalSearches
-         FROM search_events WHERE ${whereClause} AND search_term != ''
+          `SELECT se.search_term as searchTerm, se.search_type as searchType,
+                COUNT(DISTINCT se.user_id) as uniqueSearchers, COUNT(*) as totalSearches
+         FROM search_events se WHERE ${whereClause} AND se.search_term != ''
          GROUP BY searchTerm, searchType
          ORDER BY totalSearches DESC LIMIT ${SEARCH_TOP_LIMIT}`,
         )
@@ -2262,10 +2307,10 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     case 'topZeroResultSearches': {
       const rows = await db
         .prepare(
-          `SELECT search_term as searchTerm, search_type as searchType,
-                COUNT(DISTINCT user_id) as uniqueSearchers, COUNT(*) as totalSearches
-         FROM search_events WHERE ${whereClause} AND search_term != ''
-                              AND (result_count = 0 OR result_count IS NULL)
+          `SELECT se.search_term as searchTerm, se.search_type as searchType,
+                COUNT(DISTINCT se.user_id) as uniqueSearchers, COUNT(*) as totalSearches
+         FROM search_events se WHERE ${whereClause} AND se.search_term != ''
+                              AND (se.result_count = 0 OR se.result_count IS NULL)
          GROUP BY searchTerm, searchType
          ORDER BY totalSearches DESC LIMIT ${SEARCH_TOP_LIMIT}`,
         )
@@ -2284,6 +2329,11 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
  * Called fire-and-forget from analytics-helper.js.
  */
 export async function writeSearchEvent(db, data) {
+  const markets = Array.isArray(data.assetMarkets)
+    ? [...new Set(data.assetMarkets.map((m) => String(m).trim()).filter(Boolean))].slice(0, 20)
+    : [];
+  const occurredAt = new Date().toISOString();
+
   await db
     .prepare(
       `INSERT INTO search_events (user_id, user_email, user_country, user_role, search_term, search_type, result_count, occurred_at)
@@ -2297,7 +2347,28 @@ export async function writeSearchEvent(db, data) {
       (data.searchTerm || '').substring(0, 200),
       data.searchType || 'all',
       data.resultCount ?? null,
-      new Date().toISOString(),
+      occurredAt,
     )
     .run();
+
+  if (markets.length === 0) return;
+
+  const row = await db.prepare('SELECT last_insert_rowid() as id').first();
+  const eventId = row?.id;
+  if (!eventId) {
+    console.error('[Search Metrics] Failed to resolve event id after insert — market rows skipped');
+    return;
+  }
+
+  try {
+    await db.batch(
+      markets.map((market) =>
+        db.prepare('INSERT OR IGNORE INTO search_event_markets (event_id, market) VALUES (?, ?)').bind(eventId, market),
+      ),
+    );
+  } catch (err) {
+    console.error('[Search Metrics] Failed to write search_event_markets:', err);
+  }
 }
+
+export { buildSearchD1Conditions, isValidMarketToken, MARKET_TOKEN_PATTERN };

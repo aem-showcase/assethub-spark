@@ -168,7 +168,7 @@ function scaffold(actions, userTypes) {
         </div>
       </div>
       <div class="aar-table-section">
-        <h3 class="aar-chart-title">Top Used Assets</h3>
+        <h3 class="aar-table-title">Top Used Assets</h3>
         <div class="aar-table-wrap">
           <table class="aar-table">
             <thead>

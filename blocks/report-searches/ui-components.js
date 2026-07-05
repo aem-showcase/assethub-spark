@@ -9,7 +9,7 @@ import {
   ROLE_OPTIONS,
   SEARCH_TYPE_OPTIONS,
   SEARCH_TERM_OPTIONS,
-  REGION_OPTIONS,
+  ALL_MARKETS_OPTION,
   FILTER_ELEMENT_IDS,
   UI_TEXT,
 } from './config.js';
@@ -43,7 +43,7 @@ export function createUniqueSearchersChartsSection() {
   const chartConfigs = [
     { id: 'unique-searchers-monthly-chart', title: 'Unique Searchers by Month' },
     { id: 'unique-searchers-role-chart', title: 'Share of Searchers (by Role)' },
-    { id: 'unique-searchers-geo-chart', title: 'Share of Searchers (by Geography)' },
+    { id: 'unique-searchers-market-chart', title: 'Share of Searchers (by Market)' },
   ];
 
   return createChartsSection(chartConfigs, 'searches-charts');
@@ -57,7 +57,7 @@ export function createSearchEventsChartsSection() {
   const chartConfigs = [
     { id: 'search-events-monthly-chart', title: 'Search Events by Month' },
     { id: 'search-events-role-chart', title: 'Share of Searches (by Role)' },
-    { id: 'search-events-geo-chart', title: 'Share of Searches (by Geography)' },
+    { id: 'search-events-market-chart', title: 'Share of Searches (by Market)' },
   ];
 
   return createChartsSection(chartConfigs, 'searches-charts');
@@ -245,51 +245,45 @@ export function createDistributionChartsSection() {
 }
 
 /**
- * Create geography table with searchers and searches data
- * @param {Object} geoData - Geography data with geos, users, and searches
+ * Create market table with searchers and searches data
+ * @param {Object} marketData - Market data with markets, users, and searches
  * @returns {HTMLElement} Table container
  */
-export function createGeoTable(geoData) {
+export function createMarketTable(marketData) {
   const tableContainer = document.createElement('div');
   tableContainer.className = 'searches-table-container';
 
   const title = document.createElement('div');
   title.className = 'table-title';
-  title.textContent = 'Searches by Geography';
+  title.textContent = 'Searches by Market';
 
   const table = document.createElement('table');
-  table.className = 'searches-geo-table report-table';
+  table.className = 'searches-market-table report-table';
 
-  // Table header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
 
-  // First column is empty (for row labels)
   const emptyTh = document.createElement('th');
   emptyTh.className = 'metric-label-header';
   headerRow.appendChild(emptyTh);
 
-  // Add geo columns
-  geoData.geos.forEach((geo) => {
+  (marketData.markets || []).forEach((market) => {
     const th = document.createElement('th');
-    th.textContent = geo;
-    th.className = 'geo-header';
+    th.textContent = market;
+    th.className = 'market-header';
     headerRow.appendChild(th);
   });
 
-  // Add TOTAL column
   const totalTh = document.createElement('th');
   totalTh.textContent = 'TOTAL';
-  totalTh.className = 'geo-header total-column';
+  totalTh.className = 'market-header total-column';
   headerRow.appendChild(totalTh);
 
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
-  // Table body
   const tbody = document.createElement('tbody');
 
-  // Row 1: # of Searchers
   const usersRow = document.createElement('tr');
   const usersLabel = document.createElement('td');
   usersLabel.textContent = '# of Searchers';
@@ -297,9 +291,9 @@ export function createGeoTable(geoData) {
   usersRow.appendChild(usersLabel);
 
   let usersTotal = 0;
-  geoData.geos.forEach((geo) => {
+  (marketData.markets || []).forEach((market) => {
     const td = document.createElement('td');
-    const value = geoData.users[geo] || 0;
+    const value = marketData.users[market] || 0;
     td.textContent = value.toLocaleString();
     td.className = 'numeric-cell';
     usersRow.appendChild(td);
@@ -310,10 +304,8 @@ export function createGeoTable(geoData) {
   usersTotalTd.textContent = usersTotal.toLocaleString();
   usersTotalTd.className = 'numeric-cell total-cell';
   usersRow.appendChild(usersTotalTd);
-
   tbody.appendChild(usersRow);
 
-  // Helper function to create a search type row
   const createSearchTypeRow = (label, typeKey) => {
     const row = document.createElement('tr');
     const labelTd = document.createElement('td');
@@ -322,9 +314,9 @@ export function createGeoTable(geoData) {
     row.appendChild(labelTd);
 
     let rowTotal = 0;
-    geoData.geos.forEach((geo) => {
+    (marketData.markets || []).forEach((market) => {
       const td = document.createElement('td');
-      const value = geoData.searchesByType[typeKey][geo] || 0;
+      const value = marketData.searchesByType[typeKey][market] || 0;
       td.textContent = value.toLocaleString();
       td.className = 'numeric-cell';
       row.appendChild(td);
@@ -339,19 +331,11 @@ export function createGeoTable(geoData) {
     return row;
   };
 
-  // Row 2: All searches
   tbody.appendChild(createSearchTypeRow('All', 'all'));
-
-  // Row 3: Assets searches
   tbody.appendChild(createSearchTypeRow('Assets', 'assets'));
-
-  // Row 4: Products searches
   tbody.appendChild(createSearchTypeRow('Products', 'products'));
-
-  // Row 5: Templates searches
   tbody.appendChild(createSearchTypeRow('Templates', 'templates'));
 
-  // Row 6: # of Searches (TOTAL - sum of all types)
   const searchesRow = document.createElement('tr');
   const searchesLabel = document.createElement('td');
   searchesLabel.textContent = '# of Searches';
@@ -359,13 +343,9 @@ export function createGeoTable(geoData) {
   searchesRow.appendChild(searchesLabel);
 
   let searchesTotal = 0;
-  geoData.geos.forEach((geo) => {
+  (marketData.markets || []).forEach((market) => {
     const td = document.createElement('td');
-    // Sum all search types for this geo
-    const value = (geoData.searchesByType.all[geo] || 0)
-                  + (geoData.searchesByType.assets[geo] || 0)
-                  + (geoData.searchesByType.products[geo] || 0)
-                  + (geoData.searchesByType.templates[geo] || 0);
+    const value = marketData.searches[market] || 0;
     td.textContent = value.toLocaleString();
     td.className = 'numeric-cell total-row-cell';
     searchesRow.appendChild(td);
@@ -374,13 +354,11 @@ export function createGeoTable(geoData) {
 
   const searchesTotalTd = document.createElement('td');
   searchesTotalTd.textContent = searchesTotal.toLocaleString();
-  searchesTotalTd.className = 'numeric-cell total-cell total-row-cell';
+  searchesTotalTd.className = 'numeric-cell total-cell';
   searchesRow.appendChild(searchesTotalTd);
-
   tbody.appendChild(searchesRow);
 
   table.appendChild(tbody);
-
   tableContainer.appendChild(title);
   tableContainer.appendChild(table);
 
@@ -390,13 +368,14 @@ export function createGeoTable(geoData) {
 /**
  * Create filters section with two-row layout
  * Row 1: Date filters (View, Year, Month)
- * Row 2: User filters (Role, Region) + Search filters (Type, Term) + Reset button
+ * Row 2: User filters (Role, Market) + Search filters (Type, Term) + Reset button
  * @param {Object} filters - Current filter settings
  * @param {Function} handleFilterChange - Callback for filter changes
  * @param {Function} handleReset - Callback for reset button
+ * @param {string[]} marketOptions - Distinct asset markets for the active date range
  * @returns {HTMLElement} The filter section element
  */
-export function createFiltersSection(filters, handleFilterChange, handleReset) {
+export function createFiltersSection(filters, handleFilterChange, handleReset, marketOptions = []) {
   const filterSection = document.createElement('div');
   filterSection.className = 'searches-filters';
 
@@ -579,24 +558,29 @@ export function createFiltersSection(filters, handleFilterChange, handleReset) {
   roleGroup.appendChild(roleSelect);
   userGroupBox.appendChild(roleGroup);
 
-  // Region filter
-  const regionGroup = document.createElement('div');
-  regionGroup.className = 'filter-group';
+  // Market filter (dynamic options from asset allowedCountries)
+  const marketGroup = document.createElement('div');
+  marketGroup.className = 'filter-group';
 
-  const regionLabel = document.createElement('label');
-  regionLabel.textContent = 'Region:';
-  regionLabel.htmlFor = FILTER_ELEMENT_IDS.REGION;
+  const marketLabel = document.createElement('label');
+  marketLabel.textContent = 'Market:';
+  marketLabel.htmlFor = FILTER_ELEMENT_IDS.MARKET;
 
-  const regionSelect = createFilterDropdown({
-    id: FILTER_ELEMENT_IDS.REGION,
-    options: REGION_OPTIONS,
+  const marketFilterOptions = [
+    ALL_MARKETS_OPTION,
+    ...marketOptions.map((market) => ({ value: market, label: market })),
+  ];
+
+  const marketSelect = createFilterDropdown({
+    id: FILTER_ELEMENT_IDS.MARKET,
+    options: marketFilterOptions,
     selectedValue: filters.region || 'all',
     onChange: (value) => handleFilterChange({ region: value }),
   });
 
-  regionGroup.appendChild(regionLabel);
-  regionGroup.appendChild(regionSelect);
-  userGroupBox.appendChild(regionGroup);
+  marketGroup.appendChild(marketLabel);
+  marketGroup.appendChild(marketSelect);
+  userGroupBox.appendChild(marketGroup);
 
   userGroupWrapper.appendChild(userGroupLabel);
   userGroupWrapper.appendChild(userGroupBox);

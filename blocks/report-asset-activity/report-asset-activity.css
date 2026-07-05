@@ -1,3 +1,5 @@
+@import url('../../scripts/analytics/report-styles.css');
+
 .report-asset-activity {
   /* Map this block's local tokens onto the global Fréscopa theme so it stays
      on-brand. These were previously undefined and fell back to a hardcoded red. */
@@ -30,7 +32,7 @@
 }
 
 .aar-title {
-  font-size: 1.75rem;
+  font-size: var(--report-font-size-3xl);
   font-weight: 700;
   margin: 0;
   color: var(--color-text, #222);
@@ -56,7 +58,7 @@
 .aar-label {
   display: flex;
   flex-direction: column;
-  font-size: 0.8rem;
+  font-size: var(--report-font-size-md);
   font-weight: 600;
   color: var(--color-text-light, #555);
   gap: 0.25rem;
@@ -64,7 +66,7 @@
 
 .aar-input,
 .aar-select {
-  font-size: 0.9rem;
+  font-size: var(--report-font-size-md);
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-border, #ccc);
   border-radius: 4px;
@@ -83,7 +85,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--report-font-size-md);
   font-weight: 600;
   color: var(--color-brand);
   padding: 0.45rem 0;
@@ -92,7 +94,7 @@
 
 .aar-filter-toggle::after {
   content: ' \25BA';
-  font-size: 0.7rem;
+  font-size: var(--report-font-size-xs);
 }
 
 .aar-filter-toggle[aria-expanded="true"]::after {
@@ -120,7 +122,7 @@
 
 .aar-filter-group-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: var(--report-font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -142,7 +144,7 @@
 }
 
 .aar-filter-item-label {
-  font-size: 0.875rem;
+  font-size: var(--report-font-size-md);
   font-weight: 600;
   white-space: nowrap;
   color: var(--color-text, #333);
@@ -155,7 +157,7 @@
 
 .aar-btn {
   padding: 0.55rem 1.4rem;
-  font-size: 0.875rem;
+  font-size: var(--report-font-size-md);
   border: 1px solid var(--color-border, #ccc);
   border-radius: 50px;
   cursor: pointer;
@@ -202,14 +204,14 @@
 }
 
 .aar-stat-value {
-  font-size: 2rem;
+  font-size: var(--report-font-size-2xl);
   font-weight: 700;
   line-height: 1;
   color: var(--color-text, #222);
 }
 
 .aar-stat-label {
-  font-size: 0.7rem;
+  font-size: var(--report-font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -219,7 +221,7 @@
 .report-asset-activity .aar-export-btn,
 .report-asset-activity .aar-export-btn:link,
 .report-asset-activity .aar-export-btn:visited {
-  font-size: 0.875rem;
+  font-size: var(--report-font-size-md);
   font-weight: 700;
   color: #fff;
   text-decoration: none;
@@ -265,8 +267,15 @@
 }
 
 .aar-chart-title {
-  font-size: 0.95rem;
+  font-size: var(--report-font-size-md);
   font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--color-text, #333);
+}
+
+.aar-table-title {
+  font-size: var(--report-font-size-xl);
+  font-weight: 700;
   margin: 0 0 0.75rem;
   color: var(--color-text, #333);
 }
@@ -291,13 +300,13 @@
 .aar-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--report-font-size-md);
 }
 
 .aar-table thead th {
   background: var(--color-brand);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: var(--report-font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -376,6 +385,10 @@
 }
 
 @media (width <= 768px) {
+  .aar-title {
+    font-size: 24px;
+  }
+
   .aar-chart-grid {
     grid-template-columns: 1fr;
   }
