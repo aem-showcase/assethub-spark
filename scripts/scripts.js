@@ -81,7 +81,7 @@ function showSudoBanner() {
   const simUser = window.user;
   const extras = [
     simUser.country && `country: ${simUser.country}`,
-    simUser.employeeType && `empType: ${simUser.employeeType}`,
+    simUser.userType && `userType: ${simUser.userType}`,
   ].filter(Boolean);
   const label = `Simulating: ${simUser.email || '?'}${extras.length ? ` (${extras.join(', ')})` : ''}`;
 

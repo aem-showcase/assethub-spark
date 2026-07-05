@@ -34,8 +34,12 @@ OUT = Path(__file__).parent
 LOGO = ':frescopa-icon:'
 
 ASSET_EXC_FACETS = """{
-"dc:subject": {
-"label": "Keywords",
+"productCategory": {
+"label": "Category",
+"type": "string"
+},
+"campaign": {
+"label": "Campaign",
 "type": "string"
 },
 "dc:format": {
@@ -63,7 +67,7 @@ BRAND_STORY = [
     'and download product photography, machine imagery, lifestyle shots, packaging, and more.',
 ]
 
-CATEGORY_FACET_KEY = 'dc:subject'
+CATEGORY_FACET_KEY = 'productCategory'
 
 CATEGORY_TILES = [
     ('Coffee', 'Bagged coffee, pods, and signature roasts.', 'coffee'),
@@ -74,7 +78,7 @@ CATEGORY_TILES = [
 
 
 def category_search_url(facet_value):
-    """Build a search URL that applies a dc:subject facet filter (not full-text query)."""
+    """Build a search URL that applies a productCategory facet filter (not full-text query)."""
     facet_filters = json.dumps(
         {CATEGORY_FACET_KEY: {facet_value: True}},
         separators=(',', ':'),
