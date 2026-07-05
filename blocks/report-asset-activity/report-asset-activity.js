@@ -1,7 +1,12 @@
 import loadChartJs from '../../scripts/audit/chart-loader.js';
 import {
-  ASSET_AUDIT_ACTION_LABELS, ASSET_AUDIT_ACTION_VALUES, ASSET_AUDIT_USER_TYPES, defaultFrom,
+  ASSET_AUDIT_ACTION_LABELS,
+  ASSET_AUDIT_ACTION_VALUES,
+  ASSET_AUDIT_ROLE_OPTIONS,
+  ASSET_AUDIT_USER_TYPES,
+  defaultFrom,
 } from '../../scripts/audit/asset-audit-constants.js';
+import { getRoleColor, resolveRole, FALLBACK_ROLE_COLOR } from '../../scripts/analytics/analytics-constants.js';
 import { buildAssetDetailsUrl } from '../../scripts/asset-id-utils.js';
 import showToast from '../../scripts/toast/toast.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
@@ -27,7 +32,6 @@ const PALETTE = {
   'dm-url-copy': '#A35E4B', // terracotta
   'collection-add': '#58181D', // brand maroon
   internal: '#00647D',
-  agency: '#C99A3F',
   external: '#3D8FA3',
   unknown: '#8F8F8F', // neutral grey (matches --color-neutral-600)
 };
@@ -48,7 +52,7 @@ function readFiltersFromURL() {
     user: p.get('user') || '',
     country: p.get('country') || '',
     userType: p.get('userType') || '',
-    organisation: p.get('organisation') || '',
+    role: p.get('role') || '',
     assetId: p.get('assetId') || '',
     action: p.get('action') || '',
     from: p.get('from') || defaultFrom(),
@@ -82,9 +86,10 @@ function buildExportURL(filters) {
   return url.toString();
 }
 
-function scaffold(actions, userTypes) {
+function scaffold(actions, userTypes, roleOptions) {
   const actionOptions = ['', ...actions].map((a) => `<option value="${a}">${a || 'All'}</option>`).join('');
   const userTypeOptions = ['', ...userTypes].map((t) => `<option value="${t}">${t || 'All'}</option>`).join('');
+  const roleOptionsHtml = roleOptions.map(({ value, label }) => `<option value="${value}">${label}</option>`).join('');
 
   return `
     <div class="aar-title-row">
@@ -110,7 +115,7 @@ function scaffold(actions, userTypes) {
               <span class="aar-filter-item"><span class="aar-filter-item-label">Email:</span><input class="aar-input" name="user" type="text" placeholder="user@example.com"></span>
               <span class="aar-filter-item"><span class="aar-filter-item-label">Country:</span><input class="aar-input" name="country" type="text" placeholder="GB, unknown…"></span>
               <span class="aar-filter-item"><span class="aar-filter-item-label">User Type:</span><select class="aar-select" name="userType">${userTypeOptions}</select></span>
-              <span class="aar-filter-item"><span class="aar-filter-item-label">Organisation:</span><select class="aar-select" name="organisation"><option value="">All</option></select></span>
+              <span class="aar-filter-item"><span class="aar-filter-item-label">Role:</span><select class="aar-select" name="role">${roleOptionsHtml}</select></span>
             </div>
           </div>
           <div class="aar-filter-group">
@@ -155,8 +160,8 @@ function scaffold(actions, userTypes) {
           <canvas class="aar-canvas" id="aar-canvas-usertype"></canvas>
         </div>
         <div class="aar-chart-cell">
-          <h3 class="aar-chart-title">By Organisation</h3>
-          <canvas class="aar-canvas" id="aar-canvas-org"></canvas>
+          <h3 class="aar-chart-title">By Role</h3>
+          <canvas class="aar-canvas" id="aar-canvas-role"></canvas>
         </div>
         <div class="aar-chart-cell">
           <h3 class="aar-chart-title">By Country</h3>
@@ -168,7 +173,7 @@ function scaffold(actions, userTypes) {
         </div>
       </div>
       <div class="aar-table-section">
-        <h3 class="aar-chart-title">Top Used Assets</h3>
+        <h3 class="aar-table-title">Top Used Assets</h3>
         <div class="aar-table-wrap">
           <table class="aar-table">
             <thead>
@@ -194,24 +199,23 @@ function applyFormValues(form, filters) {
   });
 }
 
-function populateOrgDropdown(select, organisations) {
-  select.innerHTML = '';
-  ['', ...organisations].forEach((o) => {
-    const opt = document.createElement('option');
-    opt.value = o;
-    opt.textContent = o || 'All';
-    select.appendChild(opt);
+function aggregateRoleData(byRole) {
+  const out = {};
+  Object.entries(byRole ?? {}).forEach(([raw, count]) => {
+    const label = raw === 'unknown' ? 'Unknown' : (resolveRole(raw) || 'Other');
+    out[label] = (out[label] || 0) + count;
   });
+  return out;
 }
 
-function pieConfig(labels, values) {
+function pieConfig(labels, values, colorFn = color) {
   return {
     type: 'pie',
     data: {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: labels.map((l, i) => color(l, i)),
+        backgroundColor: labels.map((l, i) => colorFn(l, i)),
       }],
     },
     options: {
@@ -283,10 +287,13 @@ export default async function decorate(block) {
   const state = { filters: readFiltersFromURL() };
   const chartInstances = {};
 
-  block.innerHTML = scaffold(ASSET_AUDIT_ACTION_VALUES, ASSET_AUDIT_USER_TYPES);
+  block.innerHTML = scaffold(
+    ASSET_AUDIT_ACTION_VALUES,
+    ASSET_AUDIT_USER_TYPES,
+    ASSET_AUDIT_ROLE_OPTIONS,
+  );
 
   const form = block.querySelector('.aar-form');
-  const orgSelect = block.querySelector('select[name="organisation"]');
   const statTotal = block.querySelector('#aar-stat-total');
   const statUsers = block.querySelector('#aar-stat-users');
   const statAssets = block.querySelector('#aar-stat-assets');
@@ -296,7 +303,7 @@ export default async function decorate(block) {
   const toggleBtn = block.querySelector('.aar-filter-toggle');
   const extraFilters = block.querySelector('.aar-filter-extra');
 
-  const EXTRA_FILTER_KEYS = ['user', 'country', 'userType', 'organisation', 'assetId', 'action'];
+  const EXTRA_FILTER_KEYS = ['user', 'country', 'userType', 'role', 'assetId', 'action'];
 
   function setExtraFiltersOpen(open) {
     extraFilters.hidden = !open;
@@ -312,7 +319,7 @@ export default async function decorate(block) {
   // Auto-expand if any extra filter is active from URL
   if (EXTRA_FILTER_KEYS.some((k) => state.filters[k])) setExtraFiltersOpen(true);
 
-  function renderPie(id, dataObj) {
+  function renderPie(id, dataObj, colorFn) {
     const canvas = block.querySelector(`#${id}`);
     if (!canvas) return;
     chartInstances[id]?.destroy();
@@ -320,7 +327,11 @@ export default async function decorate(block) {
     if (!entries.length) return;
     const labels = entries.map(([k]) => k);
     const values = entries.map(([, v]) => v);
-    chartInstances[id] = new window.Chart(canvas, pieConfig(labels, values));
+    chartInstances[id] = new window.Chart(canvas, pieConfig(labels, values, colorFn));
+  }
+
+  function roleColor(label) {
+    return getRoleColor(label) || FALLBACK_ROLE_COLOR;
   }
 
   function renderTimeline(timelineData) {
@@ -409,7 +420,7 @@ export default async function decorate(block) {
       renderTimeline(data.timeline);
       renderPie('aar-canvas-action', data.byAction);
       renderPie('aar-canvas-usertype', data.byUserType);
-      renderPie('aar-canvas-org', data.byOrganisation);
+      renderPie('aar-canvas-role', aggregateRoleData(data.byRole), roleColor);
       renderPie('aar-canvas-country', data.byCountry);
       const byAssetShort = Object.fromEntries(
         Object.entries(data.byAsset ?? {}).map(([k, v]) => [`${k.slice(0, 8)}…`, v]),
@@ -426,12 +437,6 @@ export default async function decorate(block) {
     syncFiltersToURL(state.filters);
     await loadSummary();
   }
-
-  // Populate organisation dropdown
-  fetch('/api/audit/organisations', { credentials: 'include' })
-    .then((r) => r.json())
-    .then(({ organisations }) => populateOrgDropdown(orgSelect, organisations))
-    .catch(() => { /* non-fatal — dropdown stays at "All" */ });
 
   // Filter form submit
   form.addEventListener('submit', async (e) => {

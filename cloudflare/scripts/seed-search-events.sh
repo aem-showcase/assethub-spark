@@ -132,6 +132,22 @@ INSERT OR IGNORE INTO search_events (user_id, user_email, user_country, user_rol
 ;
 "
 
+echo "Seeding search event markets..."
+
+WRANGLER_LOG=error npx wrangler d1 execute spark-search-events --local -y --command "
+INSERT OR IGNORE INTO search_event_markets (event_id, market)
+SELECT id, 'USA' FROM search_events WHERE user_id = 'user-carol-003';
+
+INSERT OR IGNORE INTO search_event_markets (event_id, market)
+SELECT id, 'EMEA' FROM search_events WHERE user_id IN ('user-alice-001', 'user-bob-002');
+
+INSERT OR IGNORE INTO search_event_markets (event_id, market)
+SELECT id, 'Global' FROM search_events WHERE user_id = 'user-dieter-004';
+
+INSERT OR IGNORE INTO search_event_markets (event_id, market)
+SELECT id, 'APAC' FROM search_events WHERE user_id = 'user-dieter-004' AND search_type = 'products';
+"
+
 echo ""
 echo "Done. $(WRANGLER_LOG=error npx wrangler d1 execute spark-search-events --local -y --command "SELECT COUNT(*) as total FROM search_events;" 2>/dev/null | grep -o '[0-9]*' | tail -1) search events in local D1."
 echo "Run 'npx wrangler dev' from cloudflare/ to test."

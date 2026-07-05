@@ -1,11 +1,8 @@
 import { getMetadata } from '../../scripts/aem.js';
-import { fetchSpreadsheetData, loadFragment } from '../../scripts/scripts.js';
+import { loadFragment } from '../../scripts/scripts.js';
 import {
   getAppLabel,
   localizePath,
-  getCurrentLocale,
-  getExplicitLocalePrefix,
-  saveLocalePreference,
 } from '../../scripts/locale-utils.js';
 import showProfileModal from './profile.js';
 
@@ -465,7 +462,7 @@ const portalOrigins = new WeakMap();
  *
  * @param {Element} triggerEl   The button that was clicked
  * @param {Element} menuEl      The .dropdown-menu element containing the <ul>
- * @param {string}  portalClass Extra class for type-specific styling (e.g. 'language-portal')
+ * @param {string}  portalClass Extra class for type-specific styling (e.g. 'my-account-portal')
  * @returns {{ portal: Element, close: Function }}
  */
 function openDropdownPortal(triggerEl, menuEl, portalClass = '') {
@@ -508,183 +505,11 @@ function openDropdownPortal(triggerEl, menuEl, portalClass = '') {
 }
 
 async function createHeaderBar(t) {
-  // Create primary header bar
   const headerBar = document.createElement('div');
   headerBar.className = 'header-bar';
 
-  // Portal state for all dropdowns (function-scoped so click-outside handler can access)
-  let activeLanguagePortal = null;
-  let activeHelpPortal = null;
   let activeAccountPortal = null;
 
-  // Create language section with dropdown
-  const languageSection = document.createElement('div');
-  languageSection.className = 'language-selector';
-
-  const currentLocale = getCurrentLocale();
-  const localeConfig = {
-    en: { flag: 'country-flag-usa', label: 'EN' },
-    ja: { flag: 'country-flag-japan', label: 'JA' },
-  };
-  const currentConfig = localeConfig[currentLocale] || localeConfig.en;
-
-  const languageButton = document.createElement('div');
-  languageButton.className = 'language-selector-button';
-  languageButton.innerHTML = `
-    <span class="language-icon ${currentConfig.flag}"></span>
-    <span class="country-name">${currentConfig.label}</span>
-    <span class="down-arrow-icon"></span>
-  `;
-  languageSection.appendChild(languageButton);
-
-  // Create language dropdown menu
-  const languageMenu = document.createElement('div');
-  languageMenu.className = 'language-menu dropdown-menu';
-  languageMenu.innerHTML = `
-    <ul>
-      <li data-locale="en">
-        <a href="#">
-          <span class="language-icon country-flag-usa"></span>
-          <span>EN</span>
-        </a>
-      </li>
-      <li data-locale="ja">
-        <a href="#">
-          <span class="language-icon country-flag-japan"></span>
-          <span>JA</span>
-        </a>
-      </li>
-    </ul>
-  `;
-  languageSection.appendChild(languageMenu);
-
-  // Bind language selection once using event delegation (works regardless of portal state)
-  languageMenu.querySelector('ul').addEventListener('click', (ev) => {
-    const li = ev.target.closest('li[data-locale]');
-    if (!li) return;
-    ev.preventDefault();
-    const newLocale = li.dataset.locale;
-    if (newLocale !== currentLocale) {
-      saveLocalePreference(newLocale);
-      const { pathname, search, hash } = window.location;
-      const explicitPrefix = getExplicitLocalePrefix();
-      let newPath;
-      if (explicitPrefix) {
-        newPath = pathname.replace(explicitPrefix, `/${newLocale}`);
-      } else {
-        newPath = `/${newLocale}${pathname}`;
-      }
-      window.location.href = `${newPath}${search}${hash}`;
-    }
-    activeLanguagePortal?.close();
-    activeLanguagePortal = null;
-    languageButton.classList.remove('active');
-  });
-
-  // Toggle language dropdown via portal
-  languageButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = !!activeLanguagePortal;
-    if (isOpen) {
-      activeLanguagePortal.close();
-      activeLanguagePortal = null;
-      languageButton.classList.remove('active');
-    } else {
-      activeLanguagePortal = openDropdownPortal(languageButton, languageMenu, 'language-portal');
-      languageButton.classList.add('active');
-    }
-  });
-
-  // Close language dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (activeLanguagePortal && !languageButton.contains(e.target)
-      && !activeLanguagePortal.portal?.contains(e.target)) {
-      activeLanguagePortal.close();
-      activeLanguagePortal = null;
-      languageButton.classList.remove('active');
-    }
-  });
-
-  // Create upload button
-  const uploadButton = document.createElement('div');
-  uploadButton.className = 'header-upload-button';
-  uploadButton.innerHTML = `
-    <a class="upload-icon" href="${localizePath('/upload-details')}">${t('upload', 'Upload')}</a>
-  `;
-
-  // Create help section with dropdown
-  const helpSection = document.createElement('div');
-  helpSection.className = 'help-section';
-
-  const helpButton = document.createElement('div');
-  helpButton.className = 'help-section-button';
-  helpButton.innerHTML = `
-    ${t('help', 'Help')}
-    <span class="down-arrow-icon"></span>
-  `;
-
-  const helpMenu = document.createElement('div');
-  helpMenu.className = 'help-menu dropdown-menu';
-  helpMenu.innerHTML = `
-    <ul></ul>
-  `;
-
-  // Fetch help menu items
-  async function loadHelpMenu() {
-    try {
-      const configs = await fetchSpreadsheetData('configs', 'help-menu');
-      const menuItems = configs?.data || [];
-
-      const helpMenuList = helpMenu.querySelector('ul');
-
-      // Populate menu with items
-      helpMenuList.innerHTML = '';
-      menuItems.forEach((item) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<a href="${item.link}">${item.title}</a>`;
-        helpMenuList.appendChild(li);
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error loading help menu:', error);
-    }
-  }
-
-  // Load help menu items
-  loadHelpMenu();
-
-  helpButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    // Only show dropdown if there are menu items
-    const helpMenuList = helpMenu.querySelector('ul');
-    if (!helpMenuList || helpMenuList.children.length === 0) {
-      return;
-    }
-    const isOpen = !!activeHelpPortal;
-    if (isOpen) {
-      activeHelpPortal.close();
-      activeHelpPortal = null;
-      helpButton.classList.remove('active');
-    } else {
-      // Close other portals properly (openDropdownPortal also handles orphaned portals)
-      if (activeLanguagePortal) { activeLanguagePortal.close(); activeLanguagePortal = null; }
-      languageButton.classList.remove('active');
-      if (activeAccountPortal) { activeAccountPortal.close(); activeAccountPortal = null; }
-      document.querySelector('.my-account-button')?.classList.remove('active');
-
-      activeHelpPortal = openDropdownPortal(helpButton, helpMenu, 'help-portal');
-      helpButton.classList.add('active');
-    }
-  });
-
-  helpSection.appendChild(helpButton);
-  helpSection.appendChild(helpMenu);
-
-  headerBar.append(languageSection, uploadButton, helpSection);
-
-  // Create user button (user dropdown)
-  // Note: window.user not defined aka logged out should normally not happen
-  //       as the user agent should be redirected to the login page before
   if (window.user) {
     const myAccount = document.createElement('div');
     myAccount.className = 'my-account';
@@ -729,12 +554,6 @@ async function createHeaderBar(t) {
         activeAccountPortal = null;
         myAccountButton.classList.remove('active');
       } else {
-        // Close other portals properly
-        if (activeLanguagePortal) { activeLanguagePortal.close(); activeLanguagePortal = null; }
-        languageButton.classList.remove('active');
-        if (activeHelpPortal) { activeHelpPortal.close(); activeHelpPortal = null; }
-        helpButton.classList.remove('active');
-
         activeAccountPortal = openDropdownPortal(myAccountButton, myAccountMenu, 'my-account-portal');
         myAccountButton.classList.add('active');
       }
@@ -745,19 +564,7 @@ async function createHeaderBar(t) {
     headerBar.append(myAccount);
   }
 
-  // Centralized click outside handler for help and my-account portaled dropdowns
-  // (language dropdown has its own handler above)
   document.addEventListener('click', (e) => {
-    // Close help portal if clicking outside
-    if (activeHelpPortal
-      && !helpButton.contains(e.target)
-      && !activeHelpPortal.portal?.contains(e.target)) {
-      activeHelpPortal.close();
-      activeHelpPortal = null;
-      helpButton.classList.remove('active');
-    }
-
-    // Close my-account portal if clicking outside
     const myAccountBtn = headerBar.querySelector('.my-account-button');
     if (activeAccountPortal
       && !myAccountBtn?.contains(e.target)

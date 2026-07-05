@@ -9,6 +9,7 @@ import {
   parseDate,
   parseFilterParams,
   parseToBoundary,
+  resolveAuditUserFields,
   validateFilterParams,
 } from '../audit.js';
 
@@ -100,6 +101,12 @@ describe('buildWhere', () => {
   it('maps "unknown" to IS NULL without a bound value', () => {
     expect(buildWhere({ country: 'unknown' })).toEqual({ clause: 'WHERE user_country IS NULL', values: [] });
     expect(buildWhere({ userType: 'unknown' })).toEqual({ clause: 'WHERE user_type IS NULL', values: [] });
+    expect(buildWhere({ role: 'unknown' })).toEqual({ clause: 'WHERE user_role IS NULL', values: [] });
+  });
+  it('expands associate role filter to employee aliases', () => {
+    const { clause, values } = buildWhere({ role: 'associate' });
+    expect(clause).toBe('WHERE (user_role = ? OR user_role = ? OR user_role = ?)');
+    expect(values).toEqual(['associate', 'employee', 'contingent-worker']);
   });
   it('combines multiple conditions with AND', () => {
     const { clause, values } = buildWhere({ from: 'X', to: 'Y' });
@@ -129,9 +136,30 @@ describe('validateFilterParams', () => {
     expect(validateFilterParams({ action: 'view', userType: 'external' })).toBeNull();
     expect(validateFilterParams({})).toBeNull();
   });
-  it('rejects unknown action and userType with a 400', () => {
+  it('rejects unknown action, userType, and role with a 400', () => {
     expect(validateFilterParams({ action: 'bogus' }).status).toBe(400);
     expect(validateFilterParams({ userType: 'bogus' }).status).toBe(400);
+    expect(validateFilterParams({ role: 'bogus' }).status).toBe(400);
+  });
+});
+
+describe('resolveAuditUserFields', () => {
+  it('maps session fields to audit columns', () => {
+    expect(
+      resolveAuditUserFields({
+        sub: 'sub-1',
+        email: 'a@b.com',
+        country: 'GB',
+        userType: 'external',
+        roles: ['agency'],
+      }),
+    ).toEqual({
+      userId: 'sub-1',
+      userEmail: 'a@b.com',
+      userCountry: 'GB',
+      userType: 'external',
+      userRole: 'agency',
+    });
   });
 });
 

@@ -152,6 +152,9 @@ const PARAM_ATTACHMENT_VALUE = 'true';
 // Internal Helper Functions
 // ==========================================
 
+/** Matches Frescopa unified search page: /{locale}/search (no /all|/assets suffix). */
+const UNIFIED_SEARCH_PATH = /\/search\/?$/i;
+
 /**
  * Derive search type from the Referer header URL path.
  * Returns null when the request does not originate from a known search UI
@@ -162,10 +165,22 @@ const PARAM_ATTACHMENT_VALUE = 'true';
  */
 function extractSearchType(request) {
   const referer = request.headers.get(HEADER_REFERER) || '';
+  if (!referer) return null;
+
+  // Typed search pages — check specific paths before the unified /search page.
   if (referer.includes(SEARCH_TYPE_PATHS.all)) return 'all';
   if (referer.includes(SEARCH_TYPE_PATHS.assets)) return 'assets';
   if (referer.includes(SEARCH_TYPE_PATHS.products)) return 'products';
   if (referer.includes(SEARCH_TYPE_PATHS.templates)) return 'templates';
+
+  // Unified search UI (e.g. /en/search?query=…) — Frescopa default search route.
+  try {
+    const { pathname } = new URL(referer);
+    if (UNIFIED_SEARCH_PATH.test(pathname)) return 'all';
+  } catch {
+    // invalid referer URL — treat as non-UI
+  }
+
   return null;
 }
 
@@ -305,12 +320,14 @@ function extractDownloadContext(url, _request) {
  * @returns {Object} Common user data fields
  */
 function extractCommonUserData(user) {
+  const userId = user?.userId || user?.sub || user?.email || '';
   return {
-    userId: user.userId,
-    country: user.country,
-    employeeType: user.employeeType,
-    company: user.company,
-    roles: user.roles || [],
+    userId,
+    userEmail: user?.email || null,
+    country: user?.country,
+    employeeType: user?.employeeType,
+    company: user?.company,
+    roles: user?.roles || [],
   };
 }
 
@@ -487,6 +504,54 @@ function extractSearchResultCount(data) {
   return 0;
 }
 
+/** Maximum markets stored per search event (guards against malformed responses) */
+const MAX_MARKETS_PER_EVENT = 20;
+
+/**
+ * Normalize allowedCountries metadata values from a ContentAI hit.
+ * @param {*} fieldValue - string or string array from assetMetadata.allowedCountries
+ * @returns {string[]}
+ */
+function extractAllowedCountryValues(fieldValue) {
+  if (!fieldValue) return [];
+  if (!Array.isArray(fieldValue)) {
+    const value = String(fieldValue).trim();
+    return value ? [value] : [];
+  }
+  return fieldValue
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+}
+
+/**
+ * Normalize search response hits to an array (ContentAI, Algolia, legacy shapes).
+ * ContentAI returns { hits: { results: [...], total: N } }, not hits as a bare array.
+ * @param {Object} data - Parsed search response JSON
+ * @returns {Object[]} Hit objects
+ */
+export function getSearchHitResults(data) {
+  if (Array.isArray(data?.hits)) return data.hits;
+  if (Array.isArray(data?.hits?.results)) return data.hits.results;
+  if (Array.isArray(data?.results?.[0]?.hits)) return data.results[0].hits;
+  return [];
+}
+
+/**
+ * Collect distinct asset market tags from search response hits.
+ * @param {Object} data - Parsed ContentAI or Algolia search response
+ * @returns {string[]} Unique market values from assetMetadata.allowedCountries
+ */
+export function extractAssetMarketsFromHits(data) {
+  const hits = getSearchHitResults(data);
+  const markets = new Set();
+  hits.forEach((hit) => {
+    extractAllowedCountryValues(hit?.assetMetadata?.allowedCountries).forEach((market) => {
+      markets.add(market);
+    });
+  });
+  return [...markets].slice(0, MAX_MARKETS_PER_EVENT);
+}
+
 /**
  * Process search analytics asynchronously (fire-and-forget)
  * Extracts result count from response and tracks event.
@@ -501,7 +566,8 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
     const data = await clonedResponse.json();
     const resultCount = extractSearchResultCount(data);
 
-    if (!user?.userId) {
+    const userData = extractCommonUserData(user);
+    if (!userData.userId) {
       console.warn(
         '[Analytics] Search event written with no user ID — user may be missing User ID in IDP token.',
         `searchTerm="${searchContext.searchTerm}"`,
@@ -509,13 +575,16 @@ async function processSearchAnalytics(clonedResponse, user, searchContext, env) 
       );
     }
 
+    const assetMarkets = extractAssetMarketsFromHits(data);
+
     const { trackAnalyticsEvent } = await import('../util/analytics-helper.js');
     await trackAnalyticsEvent(env, 'search', {
-      ...extractCommonUserData(user),
+      ...userData,
       searchTerm: (searchContext.searchTerm || '').substring(0, ANALYTICS_SEARCH_TERM_MAX_LENGTH),
       searchType: searchContext.searchType,
       resourceType: '',
       resultCount,
+      assetMarkets,
     });
 
     if (DEBUG_ANALYTICS) {

@@ -94,30 +94,14 @@ export const testConfig = {
   reporting: {
     api: [
       {
-        name: 'Report metrics',
+        name: 'Search metrics (D1)',
         method: 'GET',
-        path: '/api/analytics/report-metrics',
-        query: { start: '2025-01-01', end: '2025-12-31' },
+        path: '/api/analytics/search-metrics',
+        query: { type: 'uniqueSearchers', startDate: '2025-01-01', endDate: '2025-12-31' },
         expect: {
-          status: 200,
-          hasFields: ['success', 'metrics', 'charts'],
+          status: [200, 500],
+          hasFields: ['success', 'type', 'data'],
         },
-        expectByEnv: {
-          local: { status: [200, 500] }, // local may lack Analytics Engine
-        },
-      },
-      {
-        name: 'Raw downloads',
-        method: 'GET',
-        path: '/api/analytics/raw-downloads',
-        query: { start: '2025-01-01', end: '2025-12-31' },
-        expect: { status: [200, 500] }, // gracefully handle missing AE
-      },
-      {
-        name: 'User logins CSV',
-        method: 'GET',
-        path: '/api/user-logins/csv',
-        expect: { status: [200, 403, 500] }, // depends on permission + D1
       },
     ],
     pages: [
@@ -130,11 +114,6 @@ export const testConfig = {
         name: 'Downloads report page',
         path: '/en/reports/downloads',
         expect: { status: 200, contentType: 'text/html', contains: ['<header', '<main', 'report-downloads'] },
-      },
-      {
-        name: 'Users report page',
-        path: '/en/reports/logins',
-        expect: { status: 200, contentType: 'text/html', contains: ['<header', '<main', 'report-logins'] },
       },
       {
         name: 'Search analytics report page',

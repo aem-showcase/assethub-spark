@@ -13,9 +13,8 @@ export {
   CHART_JS_CDN,
   CHART_DATALABELS_CDN,
   CHART_INIT_DELAY,
-  // Geography configuration
+  // Chart colors
   GEO_COLORS,
-  GEO_CODES,
   // Date configuration
   MONTH_NAMES,
   MONTH_NAMES_FULL,
@@ -41,7 +40,6 @@ export const ROLE_OPTIONS = [
 
 /**
  * Search type filter options
- * Note: 'all' in blob7 means "All" search type, not a filter for all types
  */
 export const SEARCH_TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
@@ -59,28 +57,26 @@ export const SEARCH_TERM_OPTIONS = [
   { value: 'non-empty', label: 'Non-empty only' },
 ];
 
+/** Default market filter option — dynamic markets loaded from API */
+export const ALL_MARKETS_OPTION = { value: 'all', label: 'All Markets' };
+
+/** Safe token pattern for assetMetadata.allowedCountries values in URL params */
+export const MARKET_TOKEN_PATTERN = /^[A-Za-z0-9 _-]{1,64}$/;
+
 /**
- * Region filter options (using GEO_CODES)
+ * @param {string} value
+ * @returns {boolean}
  */
-export const REGION_OPTIONS = [
-  { value: 'all', label: 'All Regions' },
-  { value: 'AFR', label: 'AFR (Africa)' },
-  { value: 'ASP', label: 'ASP (Asia Pacific)' },
-  { value: 'EME', label: 'EME (Eurasia/Middle East)' },
-  { value: 'EU', label: 'EU (Europe)' },
-  { value: 'GCM', label: 'GCM (Greater China)' },
-  { value: 'INSWA', label: 'INSWA (India/SW Asia)' },
-  { value: 'JSK', label: 'JSK (Japan/S. Korea)' },
-  { value: 'LA', label: 'LA (Latin America)' },
-  { value: 'NA', label: 'NA (North America)' },
-];
+export function isValidMarketToken(value) {
+  return typeof value === 'string' && MARKET_TOKEN_PATTERN.test(value);
+}
 
 /**
  * Element IDs for filter controls
  */
 export const FILTER_ELEMENT_IDS = {
   ROLE: 'role-select',
-  REGION: 'region-select',
+  MARKET: 'market-select',
   SEARCH_TYPE: 'search-type-select',
   SEARCH_TERM: 'search-term-select',
 };

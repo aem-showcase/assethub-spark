@@ -11,7 +11,7 @@ import {
   ROLE_OPTIONS,
   SEARCH_TYPE_OPTIONS,
   SEARCH_TERM_OPTIONS,
-  REGION_OPTIONS,
+  isValidMarketToken,
 } from './config.js';
 import {
   loadChartJs,
@@ -19,11 +19,11 @@ import {
   renderMonthlyBarChart,
   renderSearchesByMonthChart,
   renderRolePieChart,
-  renderGeoPieChart,
+  renderMarketPieChart,
   renderSearchTypeDistributionChart,
   renderResultSizeDistributionChart,
 } from './chart-utils.js';
-import { fetchSearchMetrics } from './data-calculations.js';
+import { fetchSearchMetrics, fetchDistinctMarkets } from './data-calculations.js';
 import showToast from '../../scripts/toast/toast.js';
 import {
   createMetricsSection,
@@ -33,7 +33,7 @@ import {
   createTopSearchesTable,
   createTopZeroResultSearchesTable,
   createDistributionChartsSection,
-  createGeoTable,
+  createMarketTable,
 } from './ui-components.js';
 
 /**
@@ -73,9 +73,9 @@ function parseQueryParams() {
     invalidFilters.push(`searchTerm="${rawSearchTerm}"`);
   }
 
-  // Validate region filter
+  // Validate market filter (token safety; availability checked after API load)
   const rawRegion = params.get('region') || 'all';
-  const validRegion = REGION_OPTIONS.some((opt) => opt.value === rawRegion);
+  const validRegion = rawRegion === 'all' || isValidMarketToken(rawRegion);
   const region = validRegion ? rawRegion : 'all';
   if (!validRegion && rawRegion !== 'all') {
     invalidFilters.push(`region="${rawRegion}"`);
@@ -122,15 +122,16 @@ const state = {
   chartInstances: {
     uniqueSearchersMonth: null,
     uniqueSearchersRole: null,
-    uniqueSearchersGeo: null,
+    uniqueSearchersMarket: null,
     searchEventsMonth: null,
     searchEventsRole: null,
-    searchEventsGeo: null,
+    searchEventsMarket: null,
     searchTypeDistribution: null,
     resultSizeDistribution: null,
   },
-  filters: null, // Will be initialized in decorate()
-  invalidFilters: [], // Track invalid filters from URL
+  filters: null,
+  invalidFilters: [],
+  marketOptions: [],
 };
 
 /**
@@ -196,11 +197,11 @@ function initializeCharts() {
     );
   }
 
-  const uniqueSearchersGeoCanvas = document.getElementById('unique-searchers-geo-chart');
-  if (uniqueSearchersGeoCanvas && chartData.uniqueSearchersByGeo) {
-    state.chartInstances.uniqueSearchersGeo = renderGeoPieChart(
-      uniqueSearchersGeoCanvas,
-      chartData.uniqueSearchersByGeo,
+  const uniqueSearchersMarketCanvas = document.getElementById('unique-searchers-market-chart');
+  if (uniqueSearchersMarketCanvas && chartData.uniqueSearchersByMarket) {
+    state.chartInstances.uniqueSearchersMarket = renderMarketPieChart(
+      uniqueSearchersMarketCanvas,
+      chartData.uniqueSearchersByMarket,
     );
   }
 
@@ -221,11 +222,11 @@ function initializeCharts() {
     );
   }
 
-  const searchEventsGeoCanvas = document.getElementById('search-events-geo-chart');
-  if (searchEventsGeoCanvas && chartData.searchesByGeo) {
-    state.chartInstances.searchEventsGeo = renderGeoPieChart(
-      searchEventsGeoCanvas,
-      chartData.searchesByGeo,
+  const searchEventsMarketCanvas = document.getElementById('search-events-market-chart');
+  if (searchEventsMarketCanvas && chartData.searchesByMarket) {
+    state.chartInstances.searchEventsMarket = renderMarketPieChart(
+      searchEventsMarketCanvas,
+      chartData.searchesByMarket,
     );
   }
 
@@ -258,10 +259,44 @@ function initializeCharts() {
 }
 
 /**
+ * Sync market dropdown options from API and validate current selection.
+ * @returns {Promise<void>}
+ */
+async function refreshMarketOptions() {
+  const markets = await fetchDistinctMarkets(state.filters);
+  state.marketOptions = markets;
+
+  const marketSelect = document.getElementById(FILTER_ELEMENT_IDS.MARKET);
+  if (marketSelect) {
+    const selected = state.filters.region || 'all';
+    marketSelect.innerHTML = '';
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All Markets';
+    marketSelect.appendChild(allOption);
+    markets.forEach((market) => {
+      const option = document.createElement('option');
+      option.value = market;
+      option.textContent = market;
+      marketSelect.appendChild(option);
+    });
+    if (selected !== 'all' && !markets.includes(selected)) {
+      state.filters.region = 'all';
+      state.invalidFilters.push(`region="${selected}"`);
+      marketSelect.value = 'all';
+    } else {
+      marketSelect.value = selected;
+    }
+  }
+}
+
+/**
  * Refresh the report with current filter settings
  */
 async function refreshReport() {
   const { filters } = state;
+
+  await refreshMarketOptions();
 
   // Destroy all existing charts
   destroyCharts(state.chartInstances);
@@ -279,11 +314,11 @@ async function refreshReport() {
   state.chartData = {
     uniqueSearchersByMonth: metrics.uniqueSearchersByMonth,
     uniqueSearchersByRole: metrics.uniqueSearchersByRole,
-    uniqueSearchersByGeo: metrics.uniqueSearchersByGeo,
+    uniqueSearchersByMarket: metrics.uniqueSearchersByMarket,
     searchesByMonth: metrics.searchesByMonth,
     searchesByRole: metrics.searchesByRole,
-    searchesByGeo: metrics.searchesByGeo,
-    geoTableData: metrics.geoTableData,
+    searchesByMarket: metrics.searchesByMarket,
+    marketTableData: metrics.marketTableData,
     searchDistributionByType: metrics.searchDistributionByType,
     searchDistributionByResultSize: metrics.searchDistributionByResultSize,
     topSearches: metrics.topSearches,
@@ -294,8 +329,7 @@ async function refreshReport() {
   const metricsSection = document.querySelector('.searches-metrics');
   if (metricsSection) {
     const newMetrics = createMetricsSection({
-      uniqueUsers: metrics.uniqueUsers,
-      firstTimeUsers: metrics.firstTimeUsers,
+      totalSearches: metrics.totalSearches,
       uniqueSearchers: metrics.uniqueSearchers,
       firstTimeSearchers: metrics.firstTimeSearchers,
     });
@@ -320,10 +354,10 @@ async function refreshReport() {
     topZeroResultSearchesContainer.replaceWith(newTopZeroResultSearches);
   }
 
-  // Update geo table
+  // Update market table
   const tableContainer = document.querySelector('.searches-table-container');
-  if (tableContainer && state.chartData.geoTableData) {
-    const newTable = createGeoTable(state.chartData.geoTableData);
+  if (tableContainer && state.chartData.marketTableData) {
+    const newTable = createMarketTable(state.chartData.marketTableData);
     tableContainer.replaceWith(newTable);
   }
 
@@ -356,12 +390,12 @@ async function handleFilterReset() {
 
   // Update the UI dropdowns to reflect the reset
   const roleSelect = document.getElementById(FILTER_ELEMENT_IDS.ROLE);
-  const regionSelect = document.getElementById(FILTER_ELEMENT_IDS.REGION);
+  const marketSelect = document.getElementById(FILTER_ELEMENT_IDS.MARKET);
   const searchTypeSelect = document.getElementById(FILTER_ELEMENT_IDS.SEARCH_TYPE);
   const searchTermSelect = document.getElementById(FILTER_ELEMENT_IDS.SEARCH_TERM);
 
   if (roleSelect) roleSelect.value = 'all';
-  if (regionSelect) regionSelect.value = 'all';
+  if (marketSelect) marketSelect.value = 'all';
   if (searchTypeSelect) searchTypeSelect.value = 'all';
   if (searchTermSelect) searchTermSelect.value = 'all';
 
@@ -417,8 +451,19 @@ export default async function decorate(block) {
     await loadChartJs();
     loading.remove();
 
-    // Add filters section
-    const filtersEl = createFiltersSection(state.filters, handleFilterChange, handleFilterReset);
+    // Load market options and add filters section
+    state.marketOptions = await fetchDistinctMarkets(state.filters);
+    if (state.filters.region !== 'all' && !state.marketOptions.includes(state.filters.region)) {
+      state.invalidFilters.push(`region="${state.filters.region}"`);
+      state.filters.region = 'all';
+    }
+
+    const filtersEl = createFiltersSection(
+      state.filters,
+      handleFilterChange,
+      handleFilterReset,
+      state.marketOptions,
+    );
     container.appendChild(filtersEl);
 
     // Fetch initial data
@@ -432,11 +477,11 @@ export default async function decorate(block) {
     state.chartData = {
       uniqueSearchersByMonth: metrics.uniqueSearchersByMonth,
       uniqueSearchersByRole: metrics.uniqueSearchersByRole,
-      uniqueSearchersByGeo: metrics.uniqueSearchersByGeo,
+      uniqueSearchersByMarket: metrics.uniqueSearchersByMarket,
       searchesByMonth: metrics.searchesByMonth,
       searchesByRole: metrics.searchesByRole,
-      searchesByGeo: metrics.searchesByGeo,
-      geoTableData: metrics.geoTableData,
+      searchesByMarket: metrics.searchesByMarket,
+      marketTableData: metrics.marketTableData,
       searchDistributionByType: metrics.searchDistributionByType,
       searchDistributionByResultSize: metrics.searchDistributionByResultSize,
       topSearches: metrics.topSearches,
@@ -445,8 +490,7 @@ export default async function decorate(block) {
 
     // Add metrics section (Row 1)
     const metricsEl = createMetricsSection({
-      uniqueUsers: metrics.uniqueUsers,
-      firstTimeUsers: metrics.firstTimeUsers,
+      totalSearches: metrics.totalSearches,
       uniqueSearchers: metrics.uniqueSearchers,
       firstTimeSearchers: metrics.firstTimeSearchers,
     });
@@ -464,9 +508,9 @@ export default async function decorate(block) {
     const distributionCharts = createDistributionChartsSection();
     container.appendChild(distributionCharts);
 
-    // Add geography table
-    const geoTable = createGeoTable(metrics.geoTableData);
-    container.appendChild(geoTable);
+    // Add market table
+    const marketTable = createMarketTable(metrics.marketTableData);
+    container.appendChild(marketTable);
 
     // Add top searches table
     const topSearchesTable = createTopSearchesTable(metrics.topSearches);

@@ -196,6 +196,7 @@ def build_application_sheet():
 # /config/access/users
 # ─────────────────────────────────────────────────────────────────────────────
 def build_users_sheet():
+    """DA-ready users sheet (data rows only — no comment rows that would pollute JSON keys)."""
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'data'
@@ -203,127 +204,44 @@ def build_users_sheet():
     COLS = ['email', 'roles', 'userType', 'countries']
     NCOLS = len(COLS)
 
-    # ── Header row ────────────────────────────────────────────────────────────
     for c, col in enumerate(COLS, 1):
         style_header(ws.cell(row=1, column=c), col)
     ws.row_dimensions[1].height = 28
     freeze_header(ws)
 
-    row = 2
-
-    # ── Section: Wildcard defaults ────────────────────────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Wildcard (*): baseline for every authenticated user. '
-        'userType and countries left blank — computed from JWT claims at runtime. '
-        'No roles granted by default.')
-    row += 1
-
+    # email | roles | userType | countries
+    # roles=admin bypasses all asset filters. @adobe.com is internal by default (leave userType blank).
+    # countries: lowercase ISO codes; must match assetMetadata.allowedCountries. Worker always adds global.
+    # Blank countries = JWT ctry only + global.
     data = [
-        #  email   roles  userType  countries
-        ('*',      '',    '',       ''),
+        # Domain fallback for @adobe.com not listed below
+        ('adobe.com', '', '', ''),
+        # Full access for portal setup / debugging
+        ('mohitar@adobe.com', 'admin', '', ''),
+        # Team — market-scoped demos (no admin)
+        ('aklimets@adobe.com', '', '', 'us'),
+        ('inedoviesov@adobe.com', '', '', 'es,gb'),
+        ('jfait@adobe.com', '', '', 'us,es,gb'),
+        ('pkoch@adobe.com', '', '', ''),
+        ('jarricha@adobe.com', '', '', ''),
+        ('tphan@adobe.com', '', '', ''),
+        # Fictional personas — use with sudo impersonation
+        ('us.manager@adobe.com', '', '', 'us'),
+        ('emea.lead@adobe.com', '', '', 'es,gb'),
+        ('global.manager@adobe.com', '', '', 'us,es,gb'),
+        # External partners (userType for future use; market filter via countries today)
+        ('demo.external.us@frescopa.coffee', '', 'external', 'us'),
+        ('demo.external.es@frescopa.coffee', '', 'external', 'es'),
+        ('demo.external.gb@frescopa.coffee', '', 'external', 'gb'),
+        ('demo.agency@frescopa.coffee', '', 'external', 'es,gb'),
     ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email)
-        style_data(ws.cell(row=row, column=2), roles)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
 
-    # ── Section: Internal domain (adobe.com) ──────────────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Domain entry: every @adobe.com user is classified as "internal". '
-        'countries left blank — each user sees assets for their own country (from JWT ctry claim) '
-        'plus global assets automatically.')
-    row += 1
-
-    data = [
-        ('adobe.com',  '',      'internal',  ''),
-    ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email)
-        style_data(ws.cell(row=row, column=2), roles)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
-
-    # ── Section: Named admin ──────────────────────────────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Named admin: roles=admin bypasses all asset filters (buildAssetAuthClauses returns []). '
-        'userType and countries not needed — admin sees everything.')
-    row += 1
-
-    data = [
-        ('mohitar@adobe.com',  'admin',  'internal',  'IN'),
-    ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email, bold=True)
-        style_data(ws.cell(row=row, column=2), roles, bold=True)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
-
-    # ── Section: Demo external users ──────────────────────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Demo external users: simulate agency partners / distributors from different countries. '
-        'userType=external means they only see assets tagged external or all. '
-        'countries restricts them to assets tagged with their market + global.')
-    row += 1
-
-    data = [
-        # US-based external (e.g. US distributor)
-        ('demo.external.us@frescopa.coffee',  '',  'external',  'US'),
-        # Spain-based external (e.g. ES agency partner)
-        ('demo.external.es@frescopa.coffee',  '',  'external',  'ES'),
-        # UK-based external
-        ('demo.external.gb@frescopa.coffee',  '',  'external',  'GB'),
-        # Agency with multi-market access (EMEA agency seeing ES + GB + global)
-        ('demo.agency@frescopa.coffee',       '',  'external',  'ES,GB'),
-    ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email)
-        style_data(ws.cell(row=row, column=2), roles)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
-
-    # ── Section: Demo internal users (multi-country) ──────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Demo internal users: simulate Adobe employees with broader market access. '
-        'A global brand manager sees all markets; a regional lead sees their region only. '
-        'userType left blank because adobe.com domain already resolves to internal.')
-    row += 1
-
-    data = [
-        # Global brand manager — sees all markets (US + ES + GB + global)
-        ('global.manager@adobe.com',   '',  '',  'US,ES,GB'),
-        # EMEA regional lead — sees ES + GB + global
-        ('emea.lead@adobe.com',        '',  '',  'ES,GB'),
-        # US market manager — sees US + global only
-        ('us.manager@adobe.com',       '',  '',  'US'),
-    ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email)
-        style_data(ws.cell(row=row, column=2), roles)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
-
-    # ── Section: Edge-case overrides ──────────────────────────────────────────
-    style_comment(ws, row, NCOLS,
-        'Override examples: promote a specific non-Adobe email to internal (e.g. embedded '
-        'contractor who needs access to internal assets), or demote to external for demo purposes.')
-    row += 1
-
-    data = [
-        # Contractor on a non-Adobe domain promoted to internal
-        ('contractor@partner-agency.com',  '',  'internal',  'US'),
-    ]
-    for email, roles, utype, countries in data:
-        style_data(ws.cell(row=row, column=1), email)
-        style_data(ws.cell(row=row, column=2), roles)
-        style_data(ws.cell(row=row, column=3), utype)
-        style_data(ws.cell(row=row, column=4), countries)
-        row += 1
+    for row_idx, (email, roles, utype, countries) in enumerate(data, start=2):
+        bold = email == 'mohitar@adobe.com'
+        style_data(ws.cell(row=row_idx, column=1), email, bold=bold)
+        style_data(ws.cell(row=row_idx, column=2), roles, bold=bold)
+        style_data(ws.cell(row=row_idx, column=3), utype)
+        style_data(ws.cell(row=row_idx, column=4), countries)
 
     set_col_widths(ws, [36, 12, 12, 22])
 
@@ -351,7 +269,13 @@ if __name__ == '__main__':
         '\nAfter uploading, click "Publish" on each file in DA.'
         '\nThe Cloudflare Worker picks up the new values on the next request.'
         '\n'
-        '\nContent Hub asset tagging required for filters to take effect:'
-        '\n  custom:userType  =  internal | external | all'
-        '\n  custom:country   =  US | ES | GB | global  (ISO 3166-1 alpha-2 or "global")'
+        '\nContent Hub asset tagging required for market auth demo:'
+        '\n  allowedCountries  =  us | es | gb | in | global  (lowercase ISO codes)'
+        '\n'
+        '\nDemo script:'
+        '\n  1. mohitar@adobe.com (admin) — sees all assets'
+        '\n  2. aklimets@adobe.com (us) — US + global only'
+        '\n  3. inedoviesov@adobe.com (es,gb) — EMEA + global only'
+        '\n  4. jfait@adobe.com (us,es,gb) — all demo markets'
+        '\n  5. sudo → demo.external.es@frescopa.coffee — ES partner view'
     )

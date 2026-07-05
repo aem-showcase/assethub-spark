@@ -18,9 +18,18 @@ export const ASSET_AUDIT_ACTION_LABELS = {
   'collection-add': 'Collection Adds',
 };
 
-export const ASSET_AUDIT_USER_TYPES = ['internal', 'agency', 'external', 'unknown'];
+export const ASSET_AUDIT_USER_TYPES = ['internal', 'external', 'unknown'];
 
-export const ASSET_AUDIT_STACK_BY_VALUES = ['action', 'userType', 'organisation', 'country'];
+export const ASSET_AUDIT_ROLE_FILTER_VALUES = ['associate', 'agency', 'partner'];
+
+export const ASSET_AUDIT_ROLE_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'associate', label: 'Associate' },
+  { value: 'agency', label: 'Agency' },
+  { value: 'partner', label: 'Partner' },
+];
+
+export const ASSET_AUDIT_STACK_BY_VALUES = ['action', 'userType', 'role', 'country'];
 
 export const CHART_JS_CDN = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
 export const CHART_DATALABELS_CDN = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js';

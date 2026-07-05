@@ -1,4 +1,5 @@
 import { json } from 'itty-router';
+import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 import { fetchHelixSheet } from './util/helixutil.js';
 
 export const ROLE = {
@@ -95,7 +96,7 @@ async function getUserAttributes(request, env, user) {
 
 async function handleSudo(request, env, user) {
   if (['SUDO_NAME', 'SUDO_EMAIL', 'SUDO_COUNTRY', 'SUDO_EMPLOYEE_TYPE'].some((c) => request.cookies[c])) {
-    if (!user.permissions.includes('sudo')) {
+    if (!hasPermission(user, PERMISSIONS.SUDO)) {
       console.warn('Sudo denied for user:', user.email);
       return user;
     }

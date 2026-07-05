@@ -1,4 +1,5 @@
 import { getAppLabel } from '../../scripts/locale-utils.js';
+import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 
 // Cached placeholder function
 let ph = null;
@@ -23,7 +24,7 @@ async function createProfileModal() {
   modal.id = 'profile-modal';
   modal.className = 'profile-modal';
 
-  const canSudo = window.user?.permissions?.includes('sudo');
+  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
 
   // Add sudo-mode class if user can sudo
   if (canSudo) {
@@ -34,7 +35,6 @@ async function createProfileModal() {
   const currentName = window.user?.name || '';
   const currentEmail = window.user?.email || '';
   const currentCountry = window.user?.country || '';
-  const currentEmployeeType = window.user?.employeeType || '';
 
   modal.innerHTML = `
     <div class="profile-modal-content">
@@ -66,28 +66,12 @@ async function createProfileModal() {
            <div class="profile-field">
              <label>${ph('country', 'COUNTRY')}</label>
              <div class="profile-value" id="profile-country">${currentCountry}</div>
-             ${canSudo ? `<input type="text" class="profile-input" id="profile-country-input" value="${currentCountry}" style="display: none;">` : ''}
+             ${canSudo ? `<input type="text" class="profile-input" id="profile-country-input" value="${currentCountry}" placeholder="ISO code, e.g. us, es, gb" style="display: none;">` : ''}
            </div>
-           ${window.user?.su || canSudo ? `
-           <div class="profile-field" id="employeetype-field" style="${!window.user?.su ? 'display: none;' : ''}">
-             <label>${ph('employeeType', 'EMPLOYEE TYPE')}</label>
-             <div class="profile-value" id="profile-employeetype">${currentEmployeeType}</div>
-             <div class="profile-employeetype-dropdown" id="profile-employeetype-dropdown" style="display: none;">
-               <select class="profile-input" id="profile-employeetype-select">
-                 <option value="" ${currentEmployeeType === '' ? 'selected' : ''}>${ph('selectEmployeeType', 'Select employee type...')}</option>
-                 <option value="10" ${currentEmployeeType === '10' ? 'selected' : ''}>${ph('employee10', 'Employee (10)')}</option>
-                 <option value="11" ${currentEmployeeType === '11' ? 'selected' : ''}>${ph('contingentWorker11', 'Contingent Worker (11)')}</option>
-                 <option value="99" ${currentEmployeeType === '99' ? 'selected' : ''}>${ph('external99', 'External (99)')}</option>
-                 <option value="custom" ${currentEmployeeType !== '10' && currentEmployeeType !== '11' && currentEmployeeType !== '99' && currentEmployeeType !== '' ? 'selected' : ''}>${ph('other', 'Other')}</option>
-               </select>
-               <input type="text" class="profile-input profile-employeetype-custom" id="profile-employeetype-custom" value="${currentEmployeeType !== '10' && currentEmployeeType !== '11' && currentEmployeeType !== '99' ? currentEmployeeType : ''}" placeholder="${ph('enterCustomEmployeeType', 'Enter custom employee type')}" style="${currentEmployeeType !== '10' && currentEmployeeType !== '11' && currentEmployeeType !== '99' && currentEmployeeType !== '' ? 'display: block; margin-top: 8px;' : 'display: none; margin-top: 8px;'}">
-             </div>
-           </div>
-           ` : ''}
          </div>
          ${canSudo ? `
          <div class="sudo-edit-note" id="sudo-edit-note" style="display: none;">
-           ${ph('sudoEditNote', 'Enter values as provided in Microsoft Directory.')}
+           ${ph('sudoEditNote', 'Use an email from the users sheet. Country must be a lowercase ISO code (us, es, gb).')}
          </div>
          <div class="profile-buttons">
            <button class="edit-button" id="profile-edit-btn" type="button">
@@ -171,19 +155,6 @@ ${window.user?.su ? ph('simulatingUser', 'Simulating User') : ph('simulateUser',
     document.getElementById('profile-name-input').style.display = 'none';
     document.getElementById('profile-email-input').style.display = 'none';
     document.getElementById('profile-country-input').style.display = 'none';
-
-    // Handle EMPLOYEE TYPE field visibility
-    const employeeTypeField = document.getElementById('employeetype-field');
-    const employeeTypeValue = document.getElementById('profile-employeetype');
-    const employeeTypeDropdown = document.getElementById('profile-employeetype-dropdown');
-    if (employeeTypeField && employeeTypeValue && employeeTypeDropdown) {
-      // Hide EMPLOYEE TYPE field if not currently impersonating
-      if (!window.user?.su) {
-        employeeTypeField.style.display = 'none';
-      }
-      employeeTypeValue.style.display = 'block';
-      employeeTypeDropdown.style.display = 'none';
-    }
   } else {
     // Switch to edit mode
     modal.classList.add('editing-mode');
@@ -220,17 +191,6 @@ ${window.user?.su ? ph('simulatingUser', 'Simulating User') : ph('simulateUser',
     document.getElementById('profile-name-input').style.display = 'block';
     document.getElementById('profile-email-input').style.display = 'block';
     document.getElementById('profile-country-input').style.display = 'block';
-
-    // Show and handle EMPLOYEE TYPE field in edit mode
-    const employeeTypeField = document.getElementById('employeetype-field');
-    const employeeTypeValue = document.getElementById('profile-employeetype');
-    const employeeTypeDropdown = document.getElementById('profile-employeetype-dropdown');
-    if (employeeTypeField && employeeTypeValue && employeeTypeDropdown) {
-      // Always show EMPLOYEE TYPE field in edit mode (for sudo users)
-      employeeTypeField.style.display = 'block';
-      employeeTypeValue.style.display = 'none';
-      employeeTypeDropdown.style.display = 'block';
-    }
   }
 }
 
@@ -246,15 +206,13 @@ function handleReset() {
 }
 
 function handleSave() {
-  const canSudo = window.user?.permissions?.includes('sudo');
+  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
 
   if (canSudo) {
     // Get values from input fields
     const nameInput = document.getElementById('profile-name-input');
     const emailInput = document.getElementById('profile-email-input');
     const countryInput = document.getElementById('profile-country-input');
-    const employeeTypeSelect = document.getElementById('profile-employeetype-select');
-    const employeeTypeCustom = document.getElementById('profile-employeetype-custom');
 
     if (nameInput && emailInput && countryInput) {
       let needsReload = false;
@@ -273,20 +231,6 @@ function handleSave() {
       if (countryInput.value !== (window.user?.country || '')) {
         setCookie('SUDO_COUNTRY', countryInput.value);
         needsReload = true;
-      }
-
-      if (employeeTypeSelect) {
-        let employeeTypeValue = '';
-        if (employeeTypeSelect.value === 'custom') {
-          employeeTypeValue = employeeTypeCustom ? employeeTypeCustom.value : '';
-        } else {
-          employeeTypeValue = employeeTypeSelect.value;
-        }
-
-        if (employeeTypeValue !== (window.user?.employeeType || '')) {
-          setCookie('SUDO_EMPLOYEE_TYPE', employeeTypeValue);
-          needsReload = true;
-        }
       }
 
       // Only reload if we actually set any cookies
@@ -327,10 +271,8 @@ export default async function showProfileModal() {
     const nameInput = modal.querySelector('#profile-name-input');
     const emailInput = modal.querySelector('#profile-email-input');
     const countryInput = modal.querySelector('#profile-country-input');
-    const employeeTypeSelect = modal.querySelector('#profile-employeetype-select');
-    const employeeTypeCustom = modal.querySelector('#profile-employeetype-custom');
 
-    [nameInput, emailInput, countryInput, employeeTypeCustom].forEach((input) => {
+    [nameInput, emailInput, countryInput].forEach((input) => {
       if (input) {
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
@@ -340,21 +282,6 @@ export default async function showProfileModal() {
         });
       }
     });
-
-    // Add change event listener to employeeType select to show/hide custom input
-    if (employeeTypeSelect) {
-      employeeTypeSelect.addEventListener('change', (e) => {
-        const customInput = document.getElementById('profile-employeetype-custom');
-        if (customInput) {
-          if (e.target.value === 'custom') {
-            customInput.style.display = 'block';
-            customInput.focus();
-          } else {
-            customInput.style.display = 'none';
-          }
-        }
-      });
-    }
 
     // Add reset button event listener (only if window.user.su is set)
     const resetBtn = modal.querySelector('#profile-reset-btn');
