@@ -251,8 +251,7 @@ export async function fetchSearchMetrics(filters) {
 
   try {
     const [
-      uniqueUsersData,
-      firstTimeUsersData,
+      totalSearchesData,
       uniqueSearchersData,
       firstTimeSearchersData,
       uniqueSearchersByMonthData,
@@ -267,8 +266,7 @@ export async function fetchSearchMetrics(filters) {
       topSearchesData,
       topZeroResultSearchesData,
     ] = await Promise.all([
-      fetchMetric('uniqueUsers', startDate, endDate),
-      fetchMetric('firstTimeUsers', startDate, endDate),
+      fetchMetric('totalSearches', startDate, endDate, searchFilters),
       fetchMetric('uniqueSearchers', startDate, endDate, searchFilters),
       fetchMetric('firstTimeSearchers', startDate, endDate, searchFilters),
       fetchMetric('uniqueSearchersByMonth', startDate, endDate, searchFilters),
@@ -285,8 +283,7 @@ export async function fetchSearchMetrics(filters) {
     ]);
 
     return {
-      uniqueUsers: uniqueUsersData[0]?.unique_count || 0,
-      firstTimeUsers: firstTimeUsersData[0]?.first_time_count || 0,
+      totalSearches: totalSearchesData[0]?.total || 0,
       uniqueSearchers: uniqueSearchersData[0]?.unique_count || 0,
       firstTimeSearchers: firstTimeSearchersData[0]?.first_time_count || 0,
       uniqueSearchersByMonth: processMonthlyData(uniqueSearchersByMonthData, selectedYear, 'users'),

@@ -20,14 +20,13 @@ import {
 } from '../../scripts/analytics/ui-components.js';
 
 /**
- * Create summary metrics section
- * @param {Object} summary - Summary data with uniqueSearchers, firstTimeSearchers
+ * Create summary metrics section (all sourced from search_events).
+ * @param {Object} summary - totalSearches, uniqueSearchers, firstTimeSearchers
  * @returns {HTMLElement} Metrics section
  */
 export function createMetricsSection(summary) {
   const metrics = [
-    { label: 'Unique Users', value: summary.uniqueUsers.toLocaleString() },
-    { label: 'First Time Users', value: summary.firstTimeUsers.toLocaleString() },
+    { label: 'Total Searches', value: summary.totalSearches.toLocaleString() },
     { label: 'Unique Searchers', value: summary.uniqueSearchers.toLocaleString() },
     { label: 'First Time Searchers', value: summary.firstTimeSearchers.toLocaleString() },
   ];

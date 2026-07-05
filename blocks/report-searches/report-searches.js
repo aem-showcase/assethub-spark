@@ -329,8 +329,7 @@ async function refreshReport() {
   const metricsSection = document.querySelector('.searches-metrics');
   if (metricsSection) {
     const newMetrics = createMetricsSection({
-      uniqueUsers: metrics.uniqueUsers,
-      firstTimeUsers: metrics.firstTimeUsers,
+      totalSearches: metrics.totalSearches,
       uniqueSearchers: metrics.uniqueSearchers,
       firstTimeSearchers: metrics.firstTimeSearchers,
     });
@@ -491,8 +490,7 @@ export default async function decorate(block) {
 
     // Add metrics section (Row 1)
     const metricsEl = createMetricsSection({
-      uniqueUsers: metrics.uniqueUsers,
-      firstTimeUsers: metrics.firstTimeUsers,
+      totalSearches: metrics.totalSearches,
       uniqueSearchers: metrics.uniqueSearchers,
       firstTimeSearchers: metrics.firstTimeSearchers,
     });

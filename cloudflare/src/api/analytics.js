@@ -1999,13 +1999,10 @@ function buildSearchDateConditions(startDate, endDate) {
 }
 
 /**
- * Build D1 WHERE clause params for search_events queries (alias `se`).
- * Returns { whereClause, bindings } where bindings are positional (? placeholders).
+ * Role, search type, term, and market filters for search_events (alias `se`).
+ * Does not include the occurred_at date range.
  */
-function buildSearchD1Conditions(startDate, endDate, filters = {}) {
-  const conditions = [`se.occurred_at >= ?`, `se.occurred_at <= ?`];
-  const bindings = [`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`];
-
+function appendSearchAttributeFilters(conditions, bindings, filters = {}) {
   if (filters.role && filters.role !== FILTER_DEFAULT_VALUE) {
     if (!VALID_ROLES.includes(filters.role)) throw new Error(`Invalid role filter: ${filters.role}`);
     const roleValues = ROLE_MAPPINGS[filters.role] || [filters.role];
@@ -2038,13 +2035,33 @@ function buildSearchD1Conditions(startDate, endDate, filters = {}) {
     );
     bindings.push(filters.region);
   }
+}
 
+/**
+ * Build D1 WHERE clause params for search_events queries (alias `se`).
+ * Returns { whereClause, bindings } where bindings are positional (? placeholders).
+ */
+function buildSearchD1Conditions(startDate, endDate, filters = {}) {
+  const conditions = [`se.occurred_at >= ?`, `se.occurred_at <= ?`];
+  const bindings = [`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`];
+  appendSearchAttributeFilters(conditions, bindings, filters);
   return { whereClause: conditions.join(' AND '), bindings };
+}
+
+/** Attribute filters only (no date range), for first-time user subqueries. */
+function buildSearchAttributeConditions(filters = {}) {
+  const conditions = [];
+  const bindings = [];
+  appendSearchAttributeFilters(conditions, bindings, filters);
+  return {
+    whereClause: conditions.length ? conditions.join(' AND ') : '1=1',
+    bindings,
+  };
 }
 
 /**
  * GET /api/analytics/search-metrics
- * All search report metrics served from SEARCH_EVENTS D1 table.
+ * All search report metrics served from the SEARCH_EVENTS D1 database.
  */
 export async function searchMetricsApi(request, env) {
   if (request.method !== 'GET') return error(405, { success: false, error: 'Method not allowed' });
@@ -2087,7 +2104,7 @@ export async function searchMetricsApi(request, env) {
       return error(400, { success: false, error: 'Missing required parameter: type' });
     }
 
-    const data = await executeSearchMetric(db, env, metricType, startDate, endDate, filters, year);
+    const data = await executeSearchMetric(db, metricType, startDate, endDate, filters, year);
     return json({ success: true, type: metricType, data });
   } catch (err) {
     console.error('[Search Metrics] Error:', err.message);
@@ -2095,34 +2112,18 @@ export async function searchMetricsApi(request, env) {
   }
 }
 
-async function executeSearchMetric(db, env, metricType, startDate, endDate, filters, _year) {
+async function executeSearchMetric(db, metricType, startDate, endDate, filters, _year) {
   const { whereClause, bindings } = buildSearchD1Conditions(startDate, endDate, filters);
+  const startTs = `${startDate}T00:00:00.000Z`;
+  const endTs = `${endDate}T23:59:59.999Z`;
 
   switch (metricType) {
-    case 'uniqueUsers': {
-      const logins = env.USER_LOGINS;
-      if (!logins) return [{ unique_count: 0 }];
-      const row = await logins
-        .prepare(
-          `SELECT COUNT(DISTINCT email) as unique_count FROM user_logins
-         WHERE last_login_date >= ? AND first_login_date <= ?`,
-        )
-        .bind(`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`)
+    case 'totalSearches': {
+      const row = await db
+        .prepare(`SELECT COUNT(*) as total FROM search_events se WHERE ${whereClause}`)
+        .bind(...bindings)
         .first();
-      return [{ unique_count: row?.unique_count ?? 0 }];
-    }
-
-    case 'firstTimeUsers': {
-      const logins = env.USER_LOGINS;
-      if (!logins) return [{ first_time_count: 0 }];
-      const row = await logins
-        .prepare(
-          `SELECT COUNT(*) as first_time_count FROM user_logins
-         WHERE first_login_date >= ? AND first_login_date <= ?`,
-        )
-        .bind(`${startDate}T00:00:00.000Z`, `${endDate}T23:59:59.999Z`)
-        .first();
-      return [{ first_time_count: row?.first_time_count ?? 0 }];
+      return [{ total: row?.total ?? 0 }];
     }
 
     case 'uniqueSearchers': {
@@ -2134,17 +2135,18 @@ async function executeSearchMetric(db, env, metricType, startDate, endDate, filt
     }
 
     case 'firstTimeSearchers': {
-      const { whereClause: wc, bindings: bs } = buildSearchD1Conditions(startDate, endDate, filters);
+      const { whereClause: attrWhere, bindings: attrBindings } = buildSearchAttributeConditions(filters);
       const row = await db
         .prepare(
           `SELECT COUNT(*) as first_time_count FROM (
-          SELECT se.user_id, MIN(se.occurred_at) as first_search
+          SELECT se.user_id
           FROM search_events se
-          WHERE ${wc}
+          WHERE ${attrWhere}
           GROUP BY se.user_id
+          HAVING MIN(se.occurred_at) >= ? AND MIN(se.occurred_at) <= ?
         )`,
         )
-        .bind(...bs)
+        .bind(...attrBindings, startTs, endTs)
         .first();
       return [{ first_time_count: row?.first_time_count ?? 0 }];
     }
