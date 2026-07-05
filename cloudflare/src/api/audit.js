@@ -1,6 +1,7 @@
 import { error, json } from 'itty-router';
 import {
   ASSET_AUDIT_ACTION_VALUES,
+  ASSET_AUDIT_ROLE_FILTER_VALUES,
   ASSET_AUDIT_USER_TYPES,
   defaultFrom,
 } from '../../../scripts/audit/asset-audit-constants.js';
@@ -9,8 +10,16 @@ import { assertPermission } from '../util/authz.js';
 
 const AUDIT_ACTIONS = ASSET_AUDIT_ACTION_VALUES;
 const USER_TYPES = ASSET_AUDIT_USER_TYPES;
+const ROLE_FILTERS = ASSET_AUDIT_ROLE_FILTER_VALUES;
 const EXPORT_LIMIT = 10_000;
 const TOP_ASSETS_LIMIT = 20;
+
+/** Map filter role to stored user_role values (matches search analytics). */
+const ROLE_MAPPINGS = {
+  associate: ['associate', 'employee', 'contingent-worker'],
+  agency: ['agency'],
+  partner: ['partner'],
+};
 
 export function parseDate(str) {
   if (!str) return null;
@@ -69,6 +78,16 @@ export function enumerateBuckets(from, to, bucket) {
   return out;
 }
 
+export function resolveAuditUserFields(user = {}) {
+  return {
+    userId: user.sub,
+    userEmail: user.email,
+    userCountry: user.country ?? null,
+    userType: user.userType ?? null,
+    userRole: user.roles?.[0] ?? null,
+  };
+}
+
 export function buildWhere(p) {
   const conds = [];
   const vals = [];
@@ -90,10 +109,16 @@ export function buildWhere(p) {
     vals.push(p.userType);
   }
 
-  if (p.organisation === 'unknown') conds.push('user_organisation IS NULL');
-  else if (p.organisation) {
-    conds.push('user_organisation = ?');
-    vals.push(p.organisation);
+  if (p.role === 'unknown') conds.push('user_role IS NULL');
+  else if (p.role) {
+    const roleValues = ROLE_MAPPINGS[p.role] || [p.role];
+    if (roleValues.length === 1) {
+      conds.push('user_role = ?');
+      vals.push(roleValues[0]);
+    } else {
+      conds.push(`(${roleValues.map(() => 'user_role = ?').join(' OR ')})`);
+      vals.push(...roleValues);
+    }
   }
 
   if (p.assetId) {
@@ -127,7 +152,7 @@ export function parseFilterParams(url) {
     user: url.searchParams.get('user') || '',
     country: url.searchParams.get('country') || '',
     userType: url.searchParams.get('userType') || '',
-    organisation: url.searchParams.get('organisation') || '',
+    role: url.searchParams.get('role') || '',
     assetId: url.searchParams.get('assetId') || '',
     action: url.searchParams.get('action') || '',
     from: parseDate(url.searchParams.get('from')) || defaultFrom(),
@@ -138,6 +163,7 @@ export function parseFilterParams(url) {
 export function validateFilterParams(p) {
   if (p.action && !AUDIT_ACTIONS.includes(p.action)) return error(400, 'Invalid action');
   if (p.userType && !USER_TYPES.includes(p.userType)) return error(400, 'Invalid userType');
+  if (p.role && !ROLE_FILTERS.includes(p.role) && p.role !== 'unknown') return error(400, 'Invalid role');
   return null;
 }
 
@@ -155,27 +181,21 @@ export async function auditPostEvent(request, env) {
   }
   if (!assetId) return error(400, 'assetId is required');
 
-  const {
-    sub: userId,
-    email: userEmail,
-    country: userCountry,
-    type: userType,
-    organisation: userOrganisation,
-  } = request.user ?? {};
+  const { userId, userEmail, userCountry, userType, userRole } = resolveAuditUserFields(request.user);
   if (!userId || !userEmail) return error(401, 'User session is incomplete');
 
   try {
     await env.AUDIT_EVENTS.prepare(
       `INSERT INTO audit_events
-       (user_id, user_email, user_country, user_type, user_organisation, action, asset_id, occurred_at)
+       (user_id, user_email, user_country, user_type, user_role, action, asset_id, occurred_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
-        userId ?? null,
-        userEmail ?? null,
-        userCountry ?? null,
-        userType ?? null,
-        userOrganisation ?? null,
+        userId,
+        userEmail,
+        userCountry,
+        userType,
+        userRole,
         action,
         assetId,
         new Date().toISOString(),
@@ -213,7 +233,7 @@ export async function auditGetSummary(request, env) {
     timelineResult,
     byActionResult,
     byUserTypeResult,
-    byOrgResult,
+    byRoleResult,
     byCountryResult,
     byAssetResult,
     topAssetsResult;
@@ -225,7 +245,7 @@ export async function auditGetSummary(request, env) {
       timelineResult,
       byActionResult,
       byUserTypeResult,
-      byOrgResult,
+      byRoleResult,
       byCountryResult,
       byAssetResult,
       topAssetsResult,
@@ -260,7 +280,7 @@ export async function auditGetSummary(request, env) {
         .all(),
       db
         .prepare(
-          `SELECT COALESCE(user_organisation, 'unknown') AS user_organisation, COUNT(*) AS count FROM audit_events ${clause} GROUP BY user_organisation ORDER BY count DESC`,
+          `SELECT COALESCE(user_role, 'unknown') AS user_role, COUNT(*) AS count FROM audit_events ${clause} GROUP BY user_role ORDER BY count DESC`,
         )
         .bind(...values)
         .all(),
@@ -324,34 +344,11 @@ export async function auditGetSummary(request, env) {
     timeline: { bucket, series, data: timelineData },
     byAction: Object.fromEntries(byActionResult.results.map((r) => [r.action, r.count])),
     byUserType: Object.fromEntries(byUserTypeResult.results.map((r) => [r.user_type, r.count])),
-    byOrganisation: Object.fromEntries(byOrgResult.results.map((r) => [r.user_organisation, r.count])),
+    byRole: Object.fromEntries(byRoleResult.results.map((r) => [r.user_role, r.count])),
     byCountry: Object.fromEntries(byCountryResult.results.map((r) => [r.user_country, r.count])),
     byAsset: Object.fromEntries(byAssetResult.results.map((r) => [r.asset_id, r.count])),
     topAssets,
   });
-}
-
-export async function auditGetOrganisations(request, env) {
-  const denied = assertPermission(request, PERMISSIONS.VIEW_AUDIT);
-  if (denied) return denied;
-
-  let orgsResult, hasNull;
-  try {
-    [orgsResult, hasNull] = await Promise.all([
-      env.AUDIT_EVENTS.prepare(
-        'SELECT DISTINCT user_organisation FROM audit_events WHERE user_organisation IS NOT NULL ORDER BY user_organisation',
-      ).all(),
-      env.AUDIT_EVENTS.prepare('SELECT 1 FROM audit_events WHERE user_organisation IS NULL LIMIT 1').first(),
-    ]);
-  } catch (err) {
-    console.error('[audit] organisations query failed:', err?.message);
-    return error(500, 'Failed to query organisations');
-  }
-
-  const organisations = orgsResult.results.map((r) => r.user_organisation);
-  if (hasNull) organisations.push('unknown');
-
-  return json({ organisations });
 }
 
 export async function auditGetExportCsv(request, env) {
@@ -367,7 +364,7 @@ export async function auditGetExportCsv(request, env) {
   let result;
   try {
     result = await env.AUDIT_EVENTS.prepare(
-      `SELECT occurred_at, user_id, user_email, user_country, user_type, user_organisation, action, asset_id
+      `SELECT occurred_at, user_id, user_email, user_country, user_type, user_role, action, asset_id
        FROM audit_events ${clause} ORDER BY occurred_at DESC LIMIT ${EXPORT_LIMIT + 1}`,
     )
       .bind(...values)
@@ -380,10 +377,10 @@ export async function auditGetExportCsv(request, env) {
   const truncated = result.results.length > EXPORT_LIMIT;
   const rows = truncated ? result.results.slice(0, EXPORT_LIMIT) : result.results;
 
-  const header = 'Occurred At,User ID,Email,Country,User Type,Organisation,Action,Asset ID\r\n';
+  const header = 'Occurred At,User ID,Email,Country,User Type,Role,Action,Asset ID\r\n';
   const csvBody = rows
     .map((r) =>
-      [r.occurred_at, r.user_id, r.user_email, r.user_country, r.user_type, r.user_organisation, r.action, r.asset_id]
+      [r.occurred_at, r.user_id, r.user_email, r.user_country, r.user_type, r.user_role, r.action, r.asset_id]
         .map(csvEscape)
         .join(','),
     )

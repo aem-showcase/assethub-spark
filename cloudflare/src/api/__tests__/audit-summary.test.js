@@ -22,8 +22,8 @@ function resultsFor(sql) {
     };
   }
   if (sql.includes('REPLACE(asset_id')) return { all: [{ asset_id: 'x', count: 3 }] };
-  if (sql.includes('user_type')) return { all: [{ user_type: 'unknown', count: 3 }] };
-  if (sql.includes('user_organisation')) return { all: [{ user_organisation: 'unknown', count: 3 }] };
+  if (sql.includes('user_type')) return { all: [{ user_type: 'internal', count: 2 }] };
+  if (sql.includes('user_role')) return { all: [{ user_role: 'employee', count: 2 }] };
   if (sql.includes('user_country')) return { all: [{ user_country: 'US', count: 3 }] };
   if (sql.includes('GROUP BY action')) return { all: [{ action: 'view', count: 3 }] };
   return { all: [] };
@@ -74,6 +74,8 @@ describe('auditGetSummary', () => {
     expect(body.timeline.data[1].view).toBe(0);
     // top assets aggregated and sorted by total desc (5 before 1)
     expect(body.topAssets.map((a) => a.total)).toEqual([5, 1]);
+    expect(body.byRole).toEqual({ employee: 2 });
+    expect(body.byUserType).toEqual({ internal: 2 });
     // TODO(portal-wip): encodedId obfuscation (sqids) not yet implemented; re-enable once encoding lands.
     // expect(body.topAssets[0].encodedId).not.toContain('urn:aaid:aem:');
   });

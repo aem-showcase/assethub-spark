@@ -12,7 +12,7 @@
 
 import { error, Router, withCookies } from 'itty-router';
 import { analyticsApi, searchMetricsApi } from './api/analytics';
-import { auditGetExportCsv, auditGetOrganisations, auditGetSummary, auditPostEvent } from './api/audit';
+import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
 import { authRouter, withAuthentication } from './auth';
 import { originDynamicMedia } from './origin/dm';
@@ -122,7 +122,6 @@ router
   // Asset activity audit API (D1)
   .post('/api/audit/event', auditPostEvent)
   .get('/api/audit/summary', auditGetSummary)
-  .get('/api/audit/organisations', auditGetOrganisations)
   .get('/api/audit/export.csv', auditGetExportCsv)
 
   // catch-all for unknown API routes
