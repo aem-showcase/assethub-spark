@@ -152,6 +152,9 @@ const PARAM_ATTACHMENT_VALUE = 'true';
 // Internal Helper Functions
 // ==========================================
 
+/** Matches Frescopa unified search page: /{locale}/search (no /all|/assets suffix). */
+const UNIFIED_SEARCH_PATH = /\/search\/?$/i;
+
 /**
  * Derive search type from the Referer header URL path.
  * Returns null when the request does not originate from a known search UI
@@ -162,10 +165,22 @@ const PARAM_ATTACHMENT_VALUE = 'true';
  */
 function extractSearchType(request) {
   const referer = request.headers.get(HEADER_REFERER) || '';
+  if (!referer) return null;
+
+  // Typed search pages — check specific paths before the unified /search page.
   if (referer.includes(SEARCH_TYPE_PATHS.all)) return 'all';
   if (referer.includes(SEARCH_TYPE_PATHS.assets)) return 'assets';
   if (referer.includes(SEARCH_TYPE_PATHS.products)) return 'products';
   if (referer.includes(SEARCH_TYPE_PATHS.templates)) return 'templates';
+
+  // Unified search UI (e.g. /en/search?query=…) — Frescopa default search route.
+  try {
+    const { pathname } = new URL(referer);
+    if (UNIFIED_SEARCH_PATH.test(pathname)) return 'all';
+  } catch {
+    // invalid referer URL — treat as non-UI
+  }
+
   return null;
 }
 
@@ -307,6 +322,7 @@ function extractDownloadContext(url, _request) {
 function extractCommonUserData(user) {
   return {
     userId: user.userId,
+    userEmail: user.email,
     country: user.country,
     employeeType: user.employeeType,
     company: user.company,
