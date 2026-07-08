@@ -105,7 +105,7 @@ Environment variables supported by `npm run dev`:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AEM_PAGES_URL` | EDS content URL | https://main--assethub-spark--aem-showcase.aem.page |
-| `AEM_ENV_ID` | AEM Program + Environment ID | p64403-e544653 |
+| `AEM_ENV_ID` | AEM Program + Environment ID | p203220-e2129061 |
 | `DEV_BROWSER` | Browser to open. Mac OS only.<br><br>Options:<ul><li>`Google Chrome`</li><li>`Safari`</li><li>`Firefox`</li></ul> | - (system default) |
 | `AEM_LOG_LEVEL` | Set [`aem` log level](https://www.aem.live/developer/cli-reference#general-options). | `info` |
 | `CLOUDFLARE_LOG_LEVEL` | Set [wrangler dev --log-level](https://developers.cloudflare.com/workers/wrangler/commands/#dev). Maps to `console.<level>()` in js. <br><br>From most to least verbose: <ul><li>`debug` (avoid, very noisy with internals)</li><li>`log`</li><li>`info`</li><li>`warn`</li><li>`error`</li><li>`none`</li></ul> | `info`<br><br> This hides `console.log` output, but works well if you treat `console.log` as "debug" level that should be hidden by default from local output. Then use `console.info` for your test logs you want to see immediately.  |
