@@ -13,8 +13,8 @@ AEM_LOG_LEVEL=${AEM_LOG_LEVEL:-info}
 # setting for wrangler dev --log-level
 CLOUDFLARE_LOG_LEVEL=${CLOUDFLARE_LOG_LEVEL:-info}
 
-# Skip Microsoft Entra login locally (set to "false" to enable auth)
-DISABLE_AUTHENTICATION=${DISABLE_AUTHENTICATION:-true}
+# Skip Microsoft Entra login locally (set to "true" to disable auth)
+DISABLE_AUTHENTICATION=${DISABLE_AUTHENTICATION:-false}
 
 export FORCE_COLOR=1
 set -e
