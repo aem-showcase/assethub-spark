@@ -39,6 +39,14 @@ To make a slide clickable, add a link to the title:
 
 The entire slide becomes clickable and opens the link in a new tab.
 
+## Variants
+
+| Variant | Description |
+|---------|-------------|
+| (default) | Dark card: image on top, black content bar with a single white title. Best for "What's New"-style featured content. |
+| `(tiles)` | Light card: transparent content area with visible title, description, and link, matching the site's `.home .cards` tile styling. Best for navigation-style carousels like category or brand tiles. |
+| `(bold)` | Heavier (bold) text weight for the slide description. |
+
 ## Examples
 
 ### What's New Carousel
@@ -49,6 +57,16 @@ The entire slide becomes clickable and opens the link in a new tab.
 | artd.jpg | [ARTD Portfolio](/campaigns/artd) |
 | fifa.jpg | [FIFA 26 Slim Can](/campaigns/fifa) |
 | holiday.jpg | [Road to FIFA](/campaigns/road-to-fifa) |
+
+### Tiles Carousel
+
+Use the `(tiles)` variant for navigation-style content like categories or brands,
+where a visible description and link help orient the reader:
+
+| carousel (tiles) |  |
+|----------|--|
+| coffee.jpg | Coffee<br>Bagged coffee, pods, and signature roasts.<br>[Browse →](/en/search?category=coffee) |
+| machines.jpg | Machines<br>Espresso machines and smart brewing gear.<br>[Browse →](/en/search?category=machine) |
 
 ## Live Examples
 
