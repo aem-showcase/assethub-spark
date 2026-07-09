@@ -92,11 +92,25 @@ function updateNavigationArrows(block, currentPage, totalPages) {
   }
 }
 
+// Hide nav arrows + pagination dots entirely when everything fits on one page
+// (re-evaluated on resize since cardsPerScreen changes per breakpoint).
+function updatePaginationVisibility(block, totalPages) {
+  const navButtons = block.querySelector('.carousel-navigation-buttons');
+  const indicatorsNav = block.querySelector('.carousel-slide-indicators-nav');
+  // Use inline display (not the `hidden` attribute) since `.carousel-navigation-buttons`
+  // already has an explicit `display: flex` rule that would otherwise out-specificity it.
+  const display = totalPages <= 1 ? 'none' : '';
+  if (navButtons) navButtons.style.display = display;
+  if (indicatorsNav) indicatorsNav.style.display = display;
+}
+
 function resizeCarousel(block) {
   const slides = block.querySelectorAll('.carousel-slide');
   const slideIndicatorsContainer = block.querySelector('.carousel-slide-indicators');
   const cardsPerScreen = getCardsPerScreen();
   const totalPages = Math.ceil(slides.length / cardsPerScreen);
+
+  updatePaginationVisibility(block, totalPages);
 
   // Clear existing indicators
   slideIndicatorsContainer.innerHTML = '';
@@ -251,7 +265,6 @@ export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
   const rows = block.querySelectorAll(':scope > div');
-  const isSingleSlide = rows.length < 2;
 
   const ph = await getAppLabel();
 
@@ -265,24 +278,22 @@ export default async function decorate(block) {
   slidesWrapper.classList.add('carousel-slides');
   block.prepend(slidesWrapper);
 
-  let slideIndicators;
-  if (!isSingleSlide) {
-    const slideIndicatorsNav = document.createElement('nav');
-    slideIndicatorsNav.setAttribute('aria-label', ph('carouselSlideControls', 'Carousel Slide Controls'));
-    slideIndicators = document.createElement('ol');
-    slideIndicators.classList.add('carousel-slide-indicators');
-    slideIndicatorsNav.append(slideIndicators);
-    block.append(slideIndicatorsNav);
+  const slideIndicatorsNav = document.createElement('nav');
+  slideIndicatorsNav.classList.add('carousel-slide-indicators-nav');
+  slideIndicatorsNav.setAttribute('aria-label', ph('carouselSlideControls', 'Carousel Slide Controls'));
+  const slideIndicators = document.createElement('ol');
+  slideIndicators.classList.add('carousel-slide-indicators');
+  slideIndicatorsNav.append(slideIndicators);
+  block.append(slideIndicatorsNav);
 
-    const slideNavButtons = document.createElement('div');
-    slideNavButtons.classList.add('carousel-navigation-buttons');
-    slideNavButtons.innerHTML = `
-      <button type="button" class= "slide-prev" aria-label="${ph('previousSlide', 'Previous Slide')}"></button>
-      <button type="button" class="slide-next" aria-label="${ph('nextSlide', 'Next Slide')}"></button>
-    `;
+  const slideNavButtons = document.createElement('div');
+  slideNavButtons.classList.add('carousel-navigation-buttons');
+  slideNavButtons.innerHTML = `
+    <button type="button" class="slide-prev" aria-label="${ph('previousSlide', 'Previous Slide')}"></button>
+    <button type="button" class="slide-next" aria-label="${ph('nextSlide', 'Next Slide')}"></button>
+  `;
 
-    container.append(slideNavButtons);
-  }
+  container.append(slideNavButtons);
 
   rows.forEach((row, idx) => {
     const slide = createSlide(row, idx, carouselId);
@@ -291,23 +302,23 @@ export default async function decorate(block) {
   });
 
   // Create page indicators based on cards per screen
-  if (slideIndicators) {
-    const cardsPerScreen = getCardsPerScreen();
-    const totalPages = Math.ceil(rows.length / cardsPerScreen);
+  const cardsPerScreen = getCardsPerScreen();
+  const totalPages = Math.ceil(rows.length / cardsPerScreen);
 
-    for (let pageIdx = 0; pageIdx < totalPages; pageIdx += 1) {
-      const indicator = document.createElement('li');
-      indicator.classList.add('carousel-slide-indicator');
-      indicator.dataset.targetSlide = pageIdx;
-      indicator.innerHTML = `<button type="button" aria-label="${ph('showSlide', 'Show Page')} ${pageIdx + 1} ${ph('of', 'of')} ${totalPages}"></button>`;
-      slideIndicators.append(indicator);
-    }
+  for (let pageIdx = 0; pageIdx < totalPages; pageIdx += 1) {
+    const indicator = document.createElement('li');
+    indicator.classList.add('carousel-slide-indicator');
+    indicator.dataset.targetSlide = pageIdx;
+    indicator.innerHTML = `<button type="button" aria-label="${ph('showSlide', 'Show Page')} ${pageIdx + 1} ${ph('of', 'of')} ${totalPages}"></button>`;
+    slideIndicators.append(indicator);
   }
 
   container.append(slidesWrapper);
   block.prepend(container);
 
-  if (!isSingleSlide) {
-    bindEvents(block);
-  }
+  // Hide nav arrows + pagination dots entirely when everything fits on one page
+  // (must run after the nav buttons are attached to block via `container`)
+  updatePaginationVisibility(block, totalPages);
+
+  bindEvents(block);
 }
