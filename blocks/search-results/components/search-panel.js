@@ -59,6 +59,8 @@ export async function createSearchPanel(container, callbacks) {
     { key: 'dateCreated', label: ph(placeholders, 'dateCreated', 'Date Created') },
     { key: 'lastModified', label: ph(placeholders, 'lastModified', 'Last Modified') },
     { key: 'size', label: ph(placeholders, 'size', 'Size') },
+    { key: 'download7Days', label: ph(placeholders, 'download7Days', 'Downloads (Last 7 Days)') },
+    { key: 'download30Days', label: ph(placeholders, 'download30Days', 'Downloads (Last 30 Days)') },
   ];
 
   const sortDirectionOptions = [

@@ -9,6 +9,8 @@ export const SORT_TYPE = {
   DATE_CREATED: 'dateCreated',
   LAST_MODIFIED: 'lastModified',
   SIZE: 'size',
+  DOWNLOAD_7_DAYS: 'download7Days',
+  DOWNLOAD_30_DAYS: 'download30Days',
 };
 
 // Sort direction constants (keys match state values)
@@ -22,6 +24,8 @@ export const SORT_TYPE_FIELD_MAP = {
   [SORT_TYPE.DATE_CREATED]: 'repositoryMetadata.repo:createDate',
   [SORT_TYPE.LAST_MODIFIED]: 'repositoryMetadata.repo:modifyDate',
   [SORT_TYPE.SIZE]: 'repositoryMetadata.repo:size',
+  [SORT_TYPE.DOWNLOAD_7_DAYS]: 'assetMetadata.download7Days',
+  [SORT_TYPE.DOWNLOAD_30_DAYS]: 'assetMetadata.download30Days',
 };
 
 export const DEFAULT_SORT_TYPE = SORT_TYPE.TOP_RESULTS;
