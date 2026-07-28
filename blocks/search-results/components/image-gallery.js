@@ -62,6 +62,7 @@ export async function createImageGallery(container, callbacks) {
   const viewLargerImageLabel = t('viewLargerImage', 'Preview');
   const downloadLabel = ph(placeholders, 'download', 'Download');
   const popularBadgeLabel = ph(placeholders, 'popularBadgeLabel', 'Popular');
+  const recentlyDownloadedLabel = ph(placeholders, 'recentlyDownloadedLabel', 'Recently Downloaded');
 
   let selectedCards = new Set();
   let previousImageCount = 0; // Track image count for Load More optimization
@@ -212,6 +213,7 @@ export async function createImageGallery(container, callbacks) {
           viewLargerImageLabel,
           downloadLabel,
           popularBadgeLabel,
+          recentlyDownloadedLabel,
           popularThreshold,
           addToCartLabel,
           removeFromCartLabel,
@@ -273,6 +275,7 @@ export async function createImageGallery(container, callbacks) {
         viewLargerImageLabel,
         downloadLabel,
         popularBadgeLabel,
+        recentlyDownloadedLabel,
         popularThreshold,
         addToCartLabel: ph(placeholders, 'addToCart', 'Add To Cart'),
         removeFromCartLabel: ph(placeholders, 'removeFromCart', 'Remove From Cart'),

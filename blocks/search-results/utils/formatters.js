@@ -67,26 +67,34 @@ export function formatRelativeDate(date, locale) {
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '';
     const now = new Date();
-    const diffMs = now - d;
-    const diffSec = Math.round(diffMs / 1000);
-    const diffMin = Math.round(diffSec / 60);
-    const diffHr = Math.round(diffMin / 60);
-    const diffDay = Math.round(diffHr / 24);
+    // Floor to day granularity (never seconds/minutes/hours) by comparing
+    // calendar dates, not raw elapsed time.
+    const startOfDay = (dt) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const diffDay = Math.round((startOfDay(now) - startOfDay(d)) / (24 * 60 * 60 * 1000));
     const diffMonth = Math.round(diffDay / 30);
     const diffYear = Math.round(diffDay / 365);
 
     const loc = locale || (typeof document !== 'undefined' && document.documentElement?.lang) || 'en';
     const rtf = new Intl.RelativeTimeFormat(loc, { numeric: 'auto' });
 
-    if (Math.abs(diffSec) < 60) return rtf.format(-diffSec, 'second');
-    if (Math.abs(diffMin) < 60) return rtf.format(-diffMin, 'minute');
-    if (Math.abs(diffHr) < 24) return rtf.format(-diffHr, 'hour');
     if (Math.abs(diffDay) < 30) return rtf.format(-diffDay, 'day');
     if (Math.abs(diffYear) < 1) return rtf.format(-diffMonth, 'month');
     return rtf.format(-diffYear, 'year');
   } catch {
     return '';
   }
+}
+
+/**
+ * Format a download count for display: exact below 100, rounded down to the nearest
+ * hundred with a "+" suffix at or above 100 (e.g. 47 -> "47", 128 -> "100+", 243 -> "200+").
+ * @param {number} count - Raw count
+ * @returns {string} Formatted count
+ */
+export function formatDownloadCount(count) {
+  const value = Number(count) || 0;
+  if (value < 100) return `${value}`;
+  return `${Math.floor(value / 100) * 100}+`;
 }
 
 /**

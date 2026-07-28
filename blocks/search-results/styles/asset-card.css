@@ -105,8 +105,8 @@
 .asset-card-view-grid .popular-badge,
 .asset-card-view-list .popular-badge {
   position: absolute;
-  top: 18px;
-  left: 45px;
+  top: 56px;
+  left: 15px;
   display: flex;
   align-items: center;
   gap: 4px;

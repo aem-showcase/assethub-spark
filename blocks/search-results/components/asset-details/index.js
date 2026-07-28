@@ -28,6 +28,7 @@ import { loadZipContents, bindTreeToggleEvents } from './zip-contents-section.js
 import { isZipAsset, getAssetWithOriginalOnlyForZip } from '../../utils/zip-helper.js';
 import { getCachedPlaceholders, getSearchPlaceholders, ph } from '../../utils/placeholders.js';
 import showToast from '../../../../scripts/toast/toast.js';
+import { formatRelativeDate, formatDownloadCount } from '../../utils/formatters.js';
 import {
   fetchMetadataWithDisclaimer,
   isDisclaimerRequiredResponse,
@@ -248,6 +249,8 @@ function renderInfoSection(actionButtonEnable, isDeepLinkAsset) {
             ${renderMetadataGroup(t('width', 'WIDTH'), populatedImage?.imageWidth)}
             ${renderMetadataGroup(t('smartTags', 'SMART TAGS'), populatedImage?.smartTags)}
             ${renderMetadataGroup(t('keywords', 'KEYWORDS'), populatedImage?.xcmKeywords)}
+            ${renderMetadataGroup(t('lastDownloaded', 'LAST DOWNLOADED'), formatRelativeDate(populatedImage?.lastDownloadedAt))}
+            ${renderMetadataGroup(t('downloads7Days30Days', 'DOWNLOADS (7D / 30D)'), `${formatDownloadCount(populatedImage?.downloads7Days)} / ${formatDownloadCount(populatedImage?.downloads30Days)}`)}
           </div>
         </div>
 

@@ -356,6 +356,11 @@ export function populateAssetFromMetadata(metadata) {
       safeMetadataStringField(repoMeta, assetMeta, 'dc:title'),
     ),
     lastModified: safeMetadataDateField(repoMeta, assetMeta, 'repo:modifyDate'),
+    // Raw value (not pre-formatted) so the UI can render it as a relative date
+    // (e.g. "3 days ago") via formatRelativeDate.
+    lastDownloadedAt: assetMeta?.lastDownloadedAt || repoMeta?.lastDownloadedAt || '',
+    downloads7Days: Number(assetMeta?.download7Days) || 0,
+    downloads30Days: Number(assetMeta?.download30Days) || 0,
     modifyDate: safeMetadataDateField(repoMeta, assetMeta, 'repo:modifyDate'),
     name,
     orientation,

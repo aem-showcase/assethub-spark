@@ -37,6 +37,7 @@ export function createAssetCard(options) {
     viewLargerImageLabel = 'Preview',
     downloadLabel = 'Download',
     popularBadgeLabel = 'Popular',
+    recentlyDownloadedLabel = 'Recently Downloaded',
     // Minimum downloads7Days for the "Popular" badge; caller computes this relative
     // to the currently loaded page of results (see utils/popular-utils.js).
     popularThreshold = Infinity,
@@ -55,6 +56,10 @@ export function createAssetCard(options) {
   const containerClass = `asset-card-view-${viewMode}`;
   const innerClass = `asset-card-view-${viewMode}-inner`;
   const isInCart = cartAssetItems.some((item) => item.assetId === image.assetId);
+  // On pages already scoped to recently-downloaded assets (e.g. Trending), every card
+  // qualifies, so show a static tag instead of the threshold-based "Popular" badge.
+  const showRecentlyDownloadedTag = !!getState().externalParams?.showRecentlyDownloadedTag;
+  const showPopularBadge = !showRecentlyDownloadedTag && image.downloads7Days >= popularThreshold;
 
   // Build the asset details URL for real link support (enables "Open in New Tab")
   // Include filename in URL for identification in browser address bar
@@ -101,7 +106,10 @@ export function createAssetCard(options) {
           </svg>
         </button>
 
-        ${image.downloads7Days >= popularThreshold ? `
+        ${showRecentlyDownloadedTag ? `
+          <span class="popular-badge">${recentlyDownloadedLabel}</span>
+        ` : ''}
+        ${showPopularBadge ? `
           <span class="popular-badge">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2c1 3-2 4-2 7a3 3 0 0 0 6 0c1.5 1.5 2 3.5 2 5a6 6 0 0 1-12 0c0-4 3-6 3-8.5C9 4 10.5 2.8 12 2Z" />
