@@ -47,9 +47,9 @@ ASSET_EXC_FACETS = """{
 "label": "Format",
 "type": "string"
 },
-"downloadedRecently": {
+"lastDownloadedAt": {
 "label": "Downloaded Recently",
-"type": "string"
+"type": "date"
 }
 }"""
 
