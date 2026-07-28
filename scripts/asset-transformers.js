@@ -436,6 +436,10 @@ export function populateAssetFromContentAIHit(contentAIHit) {
     illustratorType: safeStringField(assetMetadata, 'illustrator:Type'),
     orientation: safeStringField(assetMetadata, 'tiff:Orientation'),
 
+    // Download activity
+    downloads7Days: Number(assetMetadata.download7Days) || 0,
+    downloads30Days: Number(assetMetadata.download30Days) || 0,
+
     // User tracking fields
     createdBy: safeStringField(repositoryMetadata, 'repo:createdBy'),
 

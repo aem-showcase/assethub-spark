@@ -101,6 +101,21 @@
   flex-shrink: 0;
 }
 
+/* Popular badge */
+.asset-card-view-grid .popular-badge,
+.asset-card-view-list .popular-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 15px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background-color: var(--primary-color);
+  color: #fff;
+  font-size: var(--font-size-01);
+  font-weight: 700;
+  z-index: 1;
+}
+
 /* Product title */
 .asset-card-view-grid .product-title,
 .asset-card-view-list .product-title {
