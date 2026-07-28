@@ -4,6 +4,7 @@
 Landing + dedicated search pages. Pages map to DA paths under en/:
   index.docx              -> en/index             (landing: hero search-bar + Browse-by-category)
   search.docx             -> en/search            (search-bar + asset results)
+  trending.docx           -> en/trending          (search-bar + assets sorted by recent downloads)
   search-collections.docx -> en/search-collections (search-bar + collection results)
   collection-details.docx -> en/collection-details (single collection asset results)
   about.docx              -> en/about             (brand story)
@@ -44,6 +45,10 @@ ASSET_EXC_FACETS = """{
 },
 "dc:format": {
 "label": "Format",
+"type": "string"
+},
+"downloadedRecently": {
+"label": "Downloaded Recently",
 "type": "string"
 }
 }"""
@@ -231,6 +236,33 @@ def build_search():
     path = OUT / 'search.docx'
     doc.save(path)
     print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/search')
+
+
+def build_trending():
+    """Trending page: search bar + results grid defaulted to Downloads (Last 7 Days).
+
+    Reuses the search-results block; the sortType/sortDirection rows set the page's
+    default sort via the block-config tier (see blocks/search-results/search-results.js
+    priority chain: URL params > session storage > block config > hardcoded default).
+    """
+    doc = Document()
+
+    add_block_table(doc, 'search-bar')
+    add_hr(doc)
+    add_block_table(doc, 'search-results', [
+        ('excFacets', ASSET_EXC_FACETS),
+        ('sortType', 'download7Days'),
+        ('sortDirection', 'descending'),
+    ])
+    add_hr(doc)
+    add_metadata_table(doc, [
+        ('title', 'Trending Downloads'),
+        ('description', 'Fréscopa assets ranked by recent download activity.'),
+    ])
+
+    path = OUT / 'trending.docx'
+    doc.save(path)
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> en/trending')
 
 
 def build_search_collections():
@@ -456,6 +488,7 @@ def build_footer():
 def main():
     build_index()
     build_search()
+    build_trending()
     build_search_collections()
     build_collection_details()
     build_about()
