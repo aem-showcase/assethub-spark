@@ -101,33 +101,44 @@
   flex-shrink: 0;
 }
 
-/* Popular badge */
-.asset-card-view-grid .popular-badge,
-.asset-card-view-list .popular-badge {
+/* Asset status badge (ribbon-style, anchored to card corner, below checkbox row) */
+.asset-card-view-grid .asset-badge,
+.asset-card-view-list .asset-badge {
   position: absolute;
-  top: 56px;
+  top: 0;
   left: 15px;
+  margin-top: 54px;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px 4px 8px;
-  border-radius: 20px;
-  border: 1px solid rgb(255 255 255 / 40%);
-  background-color: var(--primary-color);
+  padding: 5px 10px 5px 8px;
+  border-radius: 0 0 6px 6px;
   color: #fff;
   font-size: var(--font-size-01);
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
   z-index: 1;
 }
 
-.asset-card-view-grid .popular-badge svg,
-.asset-card-view-list .popular-badge svg {
+.asset-card-view-grid .asset-badge svg,
+.asset-card-view-list .asset-badge svg {
   width: 12px;
   height: 12px;
   fill: #fff;
   flex-shrink: 0;
+}
+
+/* Popular badge - amber, flame icon */
+.asset-card-view-grid .popular-badge,
+.asset-card-view-list .popular-badge {
+  background-color: #d97706;
+}
+
+/* Recently Downloaded badge - primary teal, download-arrow icon */
+.asset-card-view-grid .recently-downloaded-badge,
+.asset-card-view-list .recently-downloaded-badge {
+  background-color: var(--primary-color);
 }
 
 /* Product title */

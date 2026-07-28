@@ -5,6 +5,7 @@
 
 import { getDynamicMediaClient } from '../clients/dynamicmedia-client.js';
 import { formatMetadataValueUc, getFileExtension } from '../utils/formatters.js';
+import { getPopularScore } from '../utils/popular-utils.js';
 import { EAGER_LOAD_IMAGE_COUNT } from '../constants/images.js';
 import { createPicture } from './picture.js';
 import { createActionButton, BUTTON_CONFIGS } from './action-button.js';
@@ -38,8 +39,8 @@ export function createAssetCard(options) {
     downloadLabel = 'Download',
     popularBadgeLabel = 'Popular',
     recentlyDownloadedLabel = 'Recently Downloaded',
-    // Minimum downloads7Days for the "Popular" badge; caller computes this relative
-    // to the currently loaded page of results (see utils/popular-utils.js).
+    // Minimum popularity score (see getPopularScore) for the "Popular" badge; caller
+    // computes this relative to the currently loaded page of results (see utils/popular-utils.js).
     popularThreshold = Infinity,
     addToCartLabel = 'Add To Cart',
     removeFromCartLabel = 'Remove From Cart',
@@ -59,7 +60,7 @@ export function createAssetCard(options) {
   // On pages already scoped to recently-downloaded assets (e.g. Trending), every card
   // qualifies, so show a static tag instead of the threshold-based "Popular" badge.
   const showRecentlyDownloadedTag = !!getState().externalParams?.showRecentlyDownloadedTag;
-  const showPopularBadge = !showRecentlyDownloadedTag && image.downloads7Days >= popularThreshold;
+  const showPopularBadge = !showRecentlyDownloadedTag && getPopularScore(image) >= popularThreshold;
 
   // Build the asset details URL for real link support (enables "Open in New Tab")
   // Include filename in URL for identification in browser address bar
@@ -107,10 +108,16 @@ export function createAssetCard(options) {
         </button>
 
         ${showRecentlyDownloadedTag ? `
-          <span class="popular-badge">${recentlyDownloadedLabel}</span>
+          <span class="asset-badge recently-downloaded-badge">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3a1 1 0 0 1 1 1v9.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-5 5a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 13.586V4a1 1 0 0 1 1-1Z" />
+              <path d="M5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z" />
+            </svg>
+            ${recentlyDownloadedLabel}
+          </span>
         ` : ''}
         ${showPopularBadge ? `
-          <span class="popular-badge">
+          <span class="asset-badge popular-badge">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2c1 3-2 4-2 7a3 3 0 0 0 6 0c1.5 1.5 2 3.5 2 5a6 6 0 0 1-12 0c0-4 3-6 3-8.5C9 4 10.5 2.8 12 2Z" />
             </svg>
