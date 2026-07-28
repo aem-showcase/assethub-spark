@@ -199,7 +199,7 @@ export async function createImageGallery(container, callbacks) {
     const fileExtLabel = ph(placeholders, 'fileExtension', 'FILE EXT');
 
     if (assetsGrid && visibleImages.length > 0) {
-      const popularThreshold = getPopularThreshold(visibleImages);
+      const popularThreshold = getPopularThreshold();
       visibleImages.forEach((image, index) => {
         const cardElement = createAssetCard({
           image,
@@ -253,14 +253,13 @@ export async function createImageGallery(container, callbacks) {
       viewType,
       expandAllDetails,
       cartAssetItems,
-      dmImages,
     } = state;
 
     const assetsGrid = container.querySelector('#assets-grid');
     if (!assetsGrid || newImages.length === 0) return;
 
     const currentCount = assetsGrid.children.length;
-    const popularThreshold = getPopularThreshold(dmImages);
+    const popularThreshold = getPopularThreshold();
 
     newImages.forEach((image, index) => {
       const cardElement = createAssetCard({

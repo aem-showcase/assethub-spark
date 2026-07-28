@@ -101,44 +101,27 @@
   flex-shrink: 0;
 }
 
-/* Asset status badge (ribbon-style, anchored to card corner, below checkbox row) */
-.asset-card-view-grid .asset-badge,
-.asset-card-view-list .asset-badge {
-  position: absolute;
-  top: 0;
-  left: 15px;
-  margin-top: 54px;
-  display: flex;
+/* Recently Downloaded label — plain text, no icon, no pill background.
+   Sits in normal document flow above the title, never overlaps the image
+   (hard requirement: badge must never sit on the photo). */
+.asset-card-view-grid .recently-downloaded-label,
+.asset-card-view-list .recently-downloaded-label {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px 5px 8px;
-  border-radius: 0 0 6px 6px;
-  color: #fff;
-  font-size: var(--font-size-01);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
-  z-index: 1;
+  margin-bottom: 6px;
+  cursor: default;
 }
 
-.asset-card-view-grid .asset-badge svg,
-.asset-card-view-list .asset-badge svg {
-  width: 12px;
-  height: 12px;
-  fill: #fff;
+.asset-card-view-grid .recently-downloaded-label svg,
+.asset-card-view-list .recently-downloaded-label svg {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
   flex-shrink: 0;
-}
-
-/* Popular badge - amber, flame icon */
-.asset-card-view-grid .popular-badge,
-.asset-card-view-list .popular-badge {
-  background-color: #d97706;
-}
-
-/* Recently Downloaded badge - primary teal, download-arrow icon */
-.asset-card-view-grid .recently-downloaded-badge,
-.asset-card-view-list .recently-downloaded-badge {
-  background-color: var(--primary-color);
+  fill: #ea580c;
 }
 
 /* Product title */
