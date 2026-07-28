@@ -19,6 +19,7 @@ import { buildAssetDetailsUrl } from '../../../scripts/asset-id-utils.js';
 import showToast from '../../../scripts/toast/toast.js';
 import { getAppLabel } from '../../../scripts/locale-utils.js';
 import { getSearchPlaceholders, ph } from '../utils/placeholders.js';
+import { getPopularThreshold } from '../utils/popular-utils.js';
 
 let popstateHandler = null;
 let escapeHandler = null;
@@ -197,6 +198,7 @@ export async function createImageGallery(container, callbacks) {
     const fileExtLabel = ph(placeholders, 'fileExtension', 'FILE EXT');
 
     if (assetsGrid && visibleImages.length > 0) {
+      const popularThreshold = getPopularThreshold(visibleImages);
       visibleImages.forEach((image, index) => {
         const cardElement = createAssetCard({
           image,
@@ -210,6 +212,7 @@ export async function createImageGallery(container, callbacks) {
           viewLargerImageLabel,
           downloadLabel,
           popularBadgeLabel,
+          popularThreshold,
           addToCartLabel,
           removeFromCartLabel,
           cartAssetItems,
@@ -248,12 +251,14 @@ export async function createImageGallery(container, callbacks) {
       viewType,
       expandAllDetails,
       cartAssetItems,
+      dmImages,
     } = state;
 
     const assetsGrid = container.querySelector('#assets-grid');
     if (!assetsGrid || newImages.length === 0) return;
 
     const currentCount = assetsGrid.children.length;
+    const popularThreshold = getPopularThreshold(dmImages);
 
     newImages.forEach((image, index) => {
       const cardElement = createAssetCard({
@@ -268,6 +273,7 @@ export async function createImageGallery(container, callbacks) {
         viewLargerImageLabel,
         downloadLabel,
         popularBadgeLabel,
+        popularThreshold,
         addToCartLabel: ph(placeholders, 'addToCart', 'Add To Cart'),
         removeFromCartLabel: ph(placeholders, 'removeFromCart', 'Remove From Cart'),
         cartAssetItems,

@@ -18,9 +18,6 @@ import {
 } from './asset-details/zip-media-handler.js';
 import { openDownloadRenditionsModal } from './download-renditions/download-renditions-modal.js';
 
-// Minimum downloads in the last 7 days for an asset to be flagged "Popular"
-const POPULAR_DOWNLOAD_THRESHOLD_7D = 10;
-
 /**
  * Create an asset card element
  * @param {Object} options - Card options
@@ -40,6 +37,9 @@ export function createAssetCard(options) {
     viewLargerImageLabel = 'Preview',
     downloadLabel = 'Download',
     popularBadgeLabel = 'Popular',
+    // Minimum downloads7Days for the "Popular" badge; caller computes this relative
+    // to the currently loaded page of results (see utils/popular-utils.js).
+    popularThreshold = Infinity,
     addToCartLabel = 'Add To Cart',
     removeFromCartLabel = 'Remove From Cart',
     cartAssetItems = [],
@@ -101,7 +101,14 @@ export function createAssetCard(options) {
           </svg>
         </button>
 
-        ${image.downloads7Days >= POPULAR_DOWNLOAD_THRESHOLD_7D ? `<span class="popular-badge">${popularBadgeLabel}</span>` : ''}
+        ${image.downloads7Days >= popularThreshold ? `
+          <span class="popular-badge">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2c1 3-2 4-2 7a3 3 0 0 0 6 0c1.5 1.5 2 3.5 2 5a6 6 0 0 1-12 0c0-4 3-6 3-8.5C9 4 10.5 2.8 12 2Z" />
+            </svg>
+            ${popularBadgeLabel}
+          </span>
+        ` : ''}
 
         ${getAddToCollectionOverlayHTML(image)}
       </div>
