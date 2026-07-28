@@ -329,3 +329,87 @@
 .carousel.bold .carousel-slide .carousel-slide-content p {
     font-weight: bold;
 }
+
+/* Tiles variant: light card style matching main .section.category-tiles .cards */
+.carousel.tiles .carousel-slide {
+    border: 1px solid rgb(88 24 29 / 8%);
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgb(88 24 29 / 6%);
+}
+
+.carousel.tiles .carousel-slide:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
+}
+
+.carousel.tiles .carousel-slide-image {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    background: var(--background-color);
+}
+
+.carousel.tiles .carousel-slide-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-height: 0;
+    text-align: left;
+    background: transparent;
+    color: var(--text-color);
+    padding: 22px;
+    border-radius: 0;
+}
+
+.carousel.tiles .carousel-slide:hover .carousel-slide-content {
+    background: transparent;
+    color: var(--text-color);
+}
+
+.carousel.tiles .carousel-slide-content h1,
+.carousel.tiles .carousel-slide-content h2,
+.carousel.tiles .carousel-slide-content h3,
+.carousel.tiles .carousel-slide-content h4,
+.carousel.tiles .carousel-slide-content h5,
+.carousel.tiles .carousel-slide-content h6 {
+    font-family: var(--heading-font-family);
+    font-size: var(--heading-font-size-xs);
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h1,
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h2,
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h3,
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h4,
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h5,
+.carousel.tiles .carousel-slide:hover .carousel-slide-content h6 {
+    color: var(--text-color);
+}
+
+.carousel.tiles .carousel-slide-content p {
+    margin: 0;
+    font-family: var(--body-font-family);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-color);
+    opacity: 0.75;
+}
+
+.carousel.tiles .carousel-slide:hover .carousel-slide-content p {
+    color: var(--text-color);
+}
+
+.carousel.tiles .carousel-navigation-buttons button {
+    background: var(--background-color);
+    box-shadow: var(--shape-shadow-card);
+}
+
+.carousel.tiles .carousel-navigation-buttons button::after {
+    border-color: var(--text-color);
+}
+
+.carousel.tiles .carousel-navigation-buttons button:hover:not(:disabled)::after,
+.carousel.tiles .carousel-navigation-buttons button:focus-visible:not(:disabled)::after {
+    border-color: var(--primary-color);
+}
