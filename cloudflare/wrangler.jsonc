@@ -43,20 +43,14 @@
       ],
 
       "kv_namespaces": [
-        { "binding": "AUTH_TOKENS", "id": "36672f6acf244f80855367c1322110d5" },
-        // TODO: real KV namespace id from Cloudflare dashboard. Used by /api/messages
-        // (src/api/notifications.js) — that route 500s until this is filled.
-        { "binding": "MESSAGES", "id": "REPLACE_ME_messages_kv_id" }
+        { "binding": "AUTH_TOKENS", "id": "36672f6acf244f80855367c1322110d5" }
       ],
 
       "secrets_store_secrets": [
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "COOKIE_SECRET", "secret_name": "SPARK_COOKIE_SECRET" },
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "HELIX_ORIGIN_AUTHENTICATION", "secret_name": "SPARK_HELIX_ORIGIN_AUTHENTICATION" },
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_ID", "secret_name": "SPARK_DM_CLIENT_ID" },
-        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_SECRET", "secret_name": "SPARK_DM_CLIENT_SECRET" },
-        // TODO: provision this secret value in .secrets and the Cloudflare Secret Store.
-        // Used by the analytics API (src/api/analytics.js) via .get(); guarded (graceful 500 if absent).
-        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "ANALYTICS_API_TOKEN", "secret_name": "SPARK_ANALYTICS_API_TOKEN" }
+        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_SECRET", "secret_name": "SPARK_DM_CLIENT_SECRET" }
       ],
 
       // BUG: shared database_id — see note at top-level d1_databases.
@@ -64,12 +58,6 @@
         { "binding": "USER_LOGINS", "database_name": "spark-user-logins", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" },
         { "binding": "AUDIT_EVENTS", "database_name": "spark-audit-events", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" },
         { "binding": "SEARCH_EVENTS", "database_name": "spark-search-events", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" }
-      ],
-
-      // TODO: real dataset name from Cloudflare dashboard. Used by src/util/analytics-helper.js
-      // (guarded — analytics writes are skipped when absent).
-      "analytics_engine_datasets": [
-        { "binding": "SPARK_ANALYTICS_ENGINE", "dataset": "REPLACE_ME_analytics_dataset" }
       ]
     },
 
@@ -79,29 +67,20 @@
     // ==================================================================
     "branch": {
       "kv_namespaces": [
-        { "binding": "AUTH_TOKENS", "id": "36672f6acf244f80855367c1322110d5" },
-        // TODO: real KV namespace id (see production note above).
-        { "binding": "MESSAGES", "id": "REPLACE_ME_messages_kv_id" }
+        { "binding": "AUTH_TOKENS", "id": "36672f6acf244f80855367c1322110d5" }
       ],
 
       "secrets_store_secrets": [
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "COOKIE_SECRET", "secret_name": "SPARK_COOKIE_SECRET" },
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "HELIX_ORIGIN_AUTHENTICATION", "secret_name": "SPARK_HELIX_ORIGIN_AUTHENTICATION" },
         { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_ID", "secret_name": "SPARK_DM_CLIENT_ID" },
-        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_SECRET", "secret_name": "SPARK_DM_CLIENT_SECRET" },
-        // TODO: provision this secret value (see production note above).
-        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "ANALYTICS_API_TOKEN", "secret_name": "SPARK_ANALYTICS_API_TOKEN" }
+        { "store_id": "a6f677643a894c5c99d08a280e61e605", "binding": "DM_CLIENT_SECRET", "secret_name": "SPARK_DM_CLIENT_SECRET" }
       ],
 
       "d1_databases": [
         { "binding": "USER_LOGINS", "database_name": "spark-user-logins", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" },
         { "binding": "AUDIT_EVENTS", "database_name": "spark-audit-events", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" },
         { "binding": "SEARCH_EVENTS", "database_name": "spark-search-events", "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2" }
-      ],
-
-      // TODO: real dataset name (see production note above).
-      "analytics_engine_datasets": [
-        { "binding": "SPARK_ANALYTICS_ENGINE", "dataset": "REPLACE_ME_analytics_dataset" }
       ]
     }
   }
