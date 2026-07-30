@@ -23,28 +23,33 @@
 
 set -e
 
-# Script directory and wrangler.toml location
+# Script directory and config locations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WRANGLER_TOML="$SCRIPT_DIR/../wrangler.toml"
+CONFIG_JS="$SCRIPT_DIR/../src/config.js"
+WRANGLER_JSONC="$SCRIPT_DIR/../wrangler.jsonc"
 
-# Read configuration from wrangler.toml
-if [ ! -f "$WRANGLER_TOML" ]; then
-    echo -e "${RED}Error: wrangler.toml not found at $WRANGLER_TOML${NC}"
+if [ ! -f "$CONFIG_JS" ]; then
+    echo -e "${RED}Error: config.js not found at $CONFIG_JS${NC}"
+    exit 1
+fi
+if [ ! -f "$WRANGLER_JSONC" ]; then
+    echo -e "${RED}Error: wrangler.jsonc not found at $WRANGLER_JSONC${NC}"
     exit 1
 fi
 
-# Extract values from wrangler.toml (grep for the line, then extract the quoted value)
-DEFAULT_TENANT_ID=$(grep 'MICROSOFT_ENTRA_TENANT_ID' "$WRANGLER_TOML" | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/')
-DEFAULT_CLIENT_ID=$(grep 'MICROSOFT_ENTRA_CLIENT_ID' "$WRANGLER_TOML" | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/')
-KV_NAMESPACE_ID=$(grep -A1 'binding = "AUTH_TOKENS"' "$WRANGLER_TOML" | grep 'id =' | sed 's/.*= *"\([^"]*\)".*/\1/')
+# Entra ids are static config, now in src/config.js (single source of truth).
+DEFAULT_TENANT_ID=$(node -e "import('$CONFIG_JS').then((m) => process.stdout.write(m.default.MICROSOFT_ENTRA_TENANT_ID || ''))")
+DEFAULT_CLIENT_ID=$(node -e "import('$CONFIG_JS').then((m) => process.stdout.write(m.default.MICROSOFT_ENTRA_CLIENT_ID || ''))")
+# AUTH_TOKENS KV id is a binding, still declared in wrangler.jsonc (strip // comments before JSON.parse).
+KV_NAMESPACE_ID=$(node -e "const fs=require('fs');const raw=fs.readFileSync('$WRANGLER_JSONC','utf8').replace(/^\s*\/\/.*$/gm,'');const c=JSON.parse(raw);const kv=(c.env.production.kv_namespaces||[]).find((b)=>b.binding==='AUTH_TOKENS');process.stdout.write(kv?kv.id:'')")
 
 if [ -z "$DEFAULT_TENANT_ID" ] || [ -z "$DEFAULT_CLIENT_ID" ]; then
-    echo -e "${RED}Error: Could not read MICROSOFT_ENTRA_TENANT_ID or MICROSOFT_ENTRA_CLIENT_ID from wrangler.toml${NC}"
+    echo -e "${RED}Error: Could not read MICROSOFT_ENTRA_TENANT_ID or MICROSOFT_ENTRA_CLIENT_ID from src/config.js${NC}"
     exit 1
 fi
 
 if [ -z "$KV_NAMESPACE_ID" ]; then
-    echo -e "${RED}Error: Could not read AUTH_TOKENS KV namespace ID from wrangler.toml${NC}"
+    echo -e "${RED}Error: Could not read AUTH_TOKENS KV namespace ID from wrangler.jsonc${NC}"
     exit 1
 fi
 
