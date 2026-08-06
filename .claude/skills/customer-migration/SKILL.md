@@ -58,10 +58,12 @@ Schema:
     "backend-onboarding": {
       "status": "in_progress",
       "lastUpdated": null,
+      "scopeChoice": null,
       "steps": {
         "node-version-check": "pending",
         "fork-identity-resolved": "pending",
         "code-sync-verified": "pending",
+        "helix-url-and-readme-corrected": "pending",
         "intake-file-generated": "pending",
         "content-hub-creds-collected": "pending",
         "repo-identity-rename-applied": "pending",
@@ -80,6 +82,13 @@ on something external — the customer fetching credentials, provisioning
 Cloudflare resources, or installing Code Sync). Update `lastUpdated` and
 the relevant step every time you complete or block on a step. Set a
 phase's `status` to `"done"` only when every one of its steps is `done`.
+
+`backend-onboarding.scopeChoice` (`null` / `"preview-only"` / `"full"`)
+is different from a step: it's revisitable, mutable state, not a
+forward-only completion marker — a customer can pick `"preview-only"` now
+and ask for the full backend later, in this session or a future one. It
+lives alongside `status`/`lastUpdated`, not inside `steps`, precisely
+because it can change after being set. See B.5 below for how it's used.
 
 If the file doesn't exist, create it with the schema above before doing
 anything else in either phase. If it exists, read it and jump to the
@@ -328,7 +337,72 @@ whose Code Sync isn't installed will silently see the upstream
 template's own demo content via the `aem up` fallback proxy instead of
 their own.
 
-## B.4: Intake file generation (`intake-file-generated`)
+## B.4: Helix URL and README correction (`helix-url-and-readme-corrected`)
+
+Always runs, regardless of what the customer wants next — this needs no
+Cloudflare account, no credentials, no intake file. It's a pure text
+substitution using values B.2/B.3 already derived, and it matters even
+for a customer who only ever wants a local preview: their `aem up`
+process and their own README should already point at their own fork, not
+the upstream template.
+
+Using the org/repo from B.2:
+
+- Repoint `AEM_PAGES_URL` in `local.sh` (the line with its `:-` default)
+  to `https://main--{repo}--{org}.aem.page`.
+- Repoint `HELIX_ORIGIN` in **both** `[env.production.vars]` and
+  `[env.branch.vars]` of `cloudflare/wrangler.toml` to
+  `https://main--{repo}--{org}.aem.live`.
+- Correct `README.md`'s Live/Preview URLs and its `AEM_PAGES_URL` example
+  row to the same values.
+
+Do not touch `local.sh`'s placeholder `git remote add origin` line — it
+only runs inside a guard for repos with no `origin` at all, which is not
+this customer's situation (they have a real fork with a real remote).
+
+Show the customer the before/after for these few lines, apply it, and
+mark step `done`.
+
+## B.5: Local-run scope choice (`scopeChoice`)
+
+Ask the customer directly, in plain outcome language — never step names
+or internal detail:
+
+> "I can get this running two ways: just show you what it looks like
+> right now with no setup needed, or get the whole thing properly
+> connected — your own search, your own credentials, sign-in working —
+> which takes some real setup on your end (Cloudflare account, Adobe
+> credentials). Want the quick look first, or go straight to the full
+> setup?"
+
+Record the answer in `phases["backend-onboarding"].scopeChoice`.
+
+**If `"preview-only"`:** tell the customer, as a real documented fact
+(not an improvisation): running `npx aem up` alone serves the site's raw
+EDS pages directly. This does not start the Cloudflare Worker at all —
+`local.sh` runs the AEM dev server and the Cloudflare worker as two
+independent background processes, and everything in
+`cloudflare/src/auth.js`/`index.js` (session cookies, Entra login,
+`DISABLE_AUTHENTICATION`) only exists inside the worker process. So the
+preview-only path needs no secrets, no Content Hub credentials, no Entra
+app, and none of B.6-B.12 below. **Do not claim
+`DISABLE_AUTHENTICATION=true` skips login in this or any path** — verify
+first via B.9 before ever saying that, since as of this writing the
+bypass code is dead (see B.9). Stop here for this phase; do not mark
+`phases["backend-onboarding"].status` as `"done"` — it stays
+`"in_progress"`, since the backend genuinely isn't set up yet.
+
+**If `"full"`:** continue to B.6.
+
+**If the customer later asks for the full backend** (same session or a
+future one, after previously choosing `"preview-only"`): read
+`scopeChoice`, see it's `"preview-only"`, and proceed directly to B.6 —
+say only the outcome (*"Good — since you're already set up locally, the
+next part is connecting your own Cloudflare account and Content Hub so
+search actually works. I'll need a few things from you for that."*),
+never step names or "resuming." Update `scopeChoice` to `"full"`.
+
+## B.6: Intake file generation (`intake-file-generated`)
 
 Several values need the customer to run a command or look something up
 in their own Cloudflare account first — not answerable one-at-a-time in
@@ -376,7 +450,7 @@ when done. Mark step `blocked` until they confirm, then re-read the
 file, confirm every field is non-null (except `productionDomain` if
 intentionally skipped), and mark `done`.
 
-## B.5: Content Hub credential collection (`content-hub-creds-collected`)
+## B.7: Content Hub credential collection (`content-hub-creds-collected`)
 
 Ask the customer for:
 
@@ -402,19 +476,19 @@ regardless of auth-bypass state. If missing, generate one locally with
 Write only the non-secret `aemEnvId` into `customer.aemEnvId`. Mark step
 `done` once the customer confirms all three lines are in place.
 
-## B.6: Repo identity rename (`repo-identity-rename-applied`)
+## B.8: Repo identity rename (`repo-identity-rename-applied`)
 
-Repoint every file that currently identifies the upstream template
-instead of this customer's fork. One bulk, previewed, single-confirmation
-pass — not file-by-file confirmations, since every change here is a
-mechanical substitution of values already known by this point.
+Repoint every remaining file that identifies the upstream template's
+*Cloudflare account* rather than this customer's own — everything here
+genuinely depends on the intake file (B.6) and Content Hub credentials
+(B.7), unlike B.4's Helix-URL/README fix, which already ran earlier and
+needed neither. One bulk, previewed, single-confirmation pass — not
+file-by-file confirmations, since every change here is a mechanical
+substitution of values already known by this point.
 
 **Gather the substitution map** (old → new), reading old values live
 from the files:
 
-- GitHub org/repo: read the current `HELIX_ORIGIN` in
-  `cloudflare/wrangler.toml` (or `local.sh`'s `AEM_PAGES_URL` default) →
-  new value from `customer.githubRepo`/`customer.githubOrg`.
 - Cloudflare worker name / account id: read `wrangler.toml`'s `name` /
   `account_id` → new values from the intake file.
 - Production domain / workers.dev subdomain: read the current
@@ -425,20 +499,21 @@ from the files:
   from `customer.aemEnvId`.
 
 **Files to update** (re-derive by searching, this is a starting point,
-not a guarantee):
+not a guarantee). Note `README.md` and `local.sh`'s `AEM_PAGES_URL`
+default are **not** in this list — B.4 already corrected those, since
+they needed no Cloudflare-account data at all:
 
 - Functional/CI: `cloudflare/wrangler.toml`, `cloudflare/scripts/deploy.sh`,
   `.github/workflows/build.yaml`, `.github/workflows/release.yaml`,
-  `local.sh`, `package.json`, `cloudflare/package.json`,
-  `sonar-project.properties`, `cloudflare/src/index.js` (CORS
-  `allowedOrigins` — security-relevant), `cloudflare/src/user.js` (the
-  `liveHosts` array — security/access-relevant: if the fork's real
-  production host isn't listed, every request is treated as preview and
-  requires the `preview` permission), `cloudflare/src/api/notifications.js`
-  (default from-email), `cloudflare/src/api/analytics.js` (fallback
-  analytics account id, two occurrences), `tests/shared/env.js`,
-  `tests/integration/test-public-urls.sh`.
-- Documentation (same values, same pass): `README.md`, `ARCHITECTURE.md`,
+  `package.json`, `cloudflare/package.json`, `sonar-project.properties`,
+  `cloudflare/src/index.js` (CORS `allowedOrigins` — security-relevant),
+  `cloudflare/src/user.js` (the `liveHosts` array — security/access-
+  relevant: if the fork's real production host isn't listed, every
+  request is treated as preview and requires the `preview` permission),
+  `cloudflare/src/api/notifications.js` (default from-email),
+  `cloudflare/src/api/analytics.js` (fallback analytics account id, two
+  occurrences), `tests/shared/env.js`, `tests/integration/test-public-urls.sh`.
+- Documentation (same values, same pass): `ARCHITECTURE.md`,
   `cloudflare/README.md`, `cloudflare/NOTES.md`, `.cursor/rules/aem.mdc`,
   `.github/pull_request_template.md`, `docs/api/API-SECURITY-REVIEW.md`,
   `docs/authoring/getting-started.md`, `docs/authoring/localization.md`,
@@ -463,7 +538,7 @@ regenerate the lockfiles via `npm install` — do not hand-edit them.
 
 Mark step `done` once applied and confirmed.
 
-## B.7: Auth-bypass check (`auth-bypass-checked`)
+## B.9: Auth-bypass check (`auth-bypass-checked`)
 
 Read `cloudflare/src/auth.js` and check whether the
 `DISABLE_AUTHENTICATION` bypass block inside `withAuthentication` is
@@ -483,23 +558,24 @@ works."
 
 Still set `DISABLE_AUTHENTICATION=true` in the local env regardless.
 
-## B.8: Local environment configuration (`local-env-configured`)
+## B.10: Local environment configuration (`local-env-configured`)
 
 `wrangler.toml`'s `HELIX_ORIGIN` isn't consulted by `local.sh` for local
 dev (it always points the local Cloudflare worker at the locally-running
-`aem up` server) — but it matters for CI/deploy, already corrected in B.6.
+`aem up` server) — but it matters for CI/deploy, already corrected in B.4
+(Helix URL) and B.8 (the rest of the Cloudflare-account identity).
 
 Set for the `npm run dev` invocation:
 
 - `AEM_PAGES_URL` = `https://main--{repo}--{org}.aem.page` (from B.2/B.3).
-- `AEM_ENV_ID` = the value from B.5.
+- `AEM_ENV_ID` = the value from B.7.
 - `DISABLE_AUTHENTICATION` = `true`.
 
 Mark step `done`.
 
-## B.9: Boot verification (`boot-verified`)
+## B.11: Boot verification (`boot-verified`)
 
-Run `npm run dev` with the environment from B.8. Wait for both the AEM
+Run `npm run dev` with the environment from B.10. Wait for both the AEM
 dev server and the Cloudflare worker dev server to report ready (watch
 for the script's own "Ready on http://localhost:{port}" line).
 
@@ -508,7 +584,7 @@ Once up, verify, in order:
 1. **The server is serving this repo's own local files**, not a stale or
    unrelated cached directory — confirm a distinctive string from a
    local file actually appears in the served output.
-2. Auth-redirect behavior matches what B.7 recorded.
+2. Auth-redirect behavior matches what B.9 recorded.
 3. A real search request returns results sourced from the customer's own
    Content Hub environment.
 
@@ -518,7 +594,7 @@ technical account lacking access to that delivery environment.
 
 Mark step `done` once verified.
 
-## B.10: Deploy readiness note (`deploy-readiness-noted`)
+## B.12: Deploy readiness note (`deploy-readiness-noted`)
 
 Informational only — this phase never deploys. Tell the customer plainly
 what's still needed before any real deploy:
