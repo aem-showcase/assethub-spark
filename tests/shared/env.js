@@ -6,7 +6,7 @@
  */
 
 const ENV_URLS = {
-  production: 'https://spark.aem.media',
+  production: 'https://frescopamedia.com',
   preview: 'https://preview-spark-eds.sparkedsmedia.workers.dev',
   local: 'http://localhost:8787',
 };

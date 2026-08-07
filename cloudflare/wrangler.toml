@@ -24,7 +24,7 @@ enabled = true
 name = "spark-eds-production"
 
 routes = [
-  { pattern = "spark.aem.media/*", zone_name = "spark.aem.media" }
+  { pattern = "frescopamedia.com/*", zone_name = "frescopamedia.com" }
 ]
 
 kv_namespaces = [

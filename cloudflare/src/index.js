@@ -25,6 +25,8 @@ import { cors } from './util/itty';
 // Shared CORS origins
 const allowedOrigins = [
   'https://spark.aem.media',
+  'https://frescopamedia.com',
+  /https:\/\/.*\.frescopamedia\.com$/,
   'https://spark-eds.sparkedsmedia.workers.dev',
   /https:\/\/.*-spark-eds\.sparkedsmedia\.workers\.dev$/,
   /http:\/\/localhost:.*/,

@@ -15,6 +15,7 @@ let adobeDCViewInstance = null;
 const CLIENT_IDS = {
   localhost: '5b30e43dabf0482480341b9395596694',
   'spark.aem.media': 'REPLACE_WITH_SPARK_PDF_EMBED_CLIENT_ID',
+  'frescopamedia.com': 'REPLACE_WITH_FRESCOPA_PDF_EMBED_CLIENT_ID',
 };
 
 /**
