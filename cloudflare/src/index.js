@@ -24,11 +24,9 @@ import { cors } from './util/itty';
 
 // Shared CORS origins
 const allowedOrigins = [
-  'https://spark.aem.media',
   'https://frescopamedia.com',
-  /https:\/\/.*\.frescopamedia\.com$/,
-  'https://spark-eds.sparkedsmedia.workers.dev',
-  /https:\/\/.*-spark-eds\.sparkedsmedia\.workers\.dev$/,
+  'https://preview.frescopamedia.com',
+  /https:\/\/.*\.creative\.frescopamedia\.com$/,
   /http:\/\/localhost:.*/,
 ];
 
@@ -49,7 +47,7 @@ function withTlsCheck(request) {
 /** Switch to AEM preview content for preview hostnames. */
 function withPreviewOrigin(request, env) {
   const { hostname } = new URL(request.url);
-  if (hostname.startsWith('preview-') && hostname.endsWith('.workers.dev')) {
+  if (hostname === 'preview.frescopamedia.com') {
     request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
     console.info(`Preview hostname detected: ${hostname}, using Helix origin: ${request.helixOrigin}`);
   }

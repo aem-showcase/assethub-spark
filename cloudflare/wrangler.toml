@@ -26,6 +26,9 @@ name = "spark-eds-production"
 routes = [
   { pattern = "frescopamedia.com/*", zone_name = "frescopamedia.com" }
 ]
+# preview.frescopamedia.com is attached as a Workers Custom Domain (Dashboard:
+# Workers & Pages > spark-eds-production > Settings > Domains & Routes), not a
+# Route here — Custom Domains are configured outside wrangler.toml.
 
 kv_namespaces = [
   { binding = "AUTH_TOKENS", id = "36672f6acf244f80855367c1322110d5" },
