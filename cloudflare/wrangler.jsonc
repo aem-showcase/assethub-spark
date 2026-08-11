@@ -94,6 +94,9 @@
     },
     // branch environment (PRs/branches and local dev)
     "branch": {
+      "vars": {
+        "DISABLE_AUTHENTICATION": "true"
+      },
       "kv_namespaces": [
         {
           "binding": "AUTH_TOKENS",
