@@ -58,6 +58,13 @@ export async function originHelix(request, env) {
   searchParams.sort();
 
   const helixOrigin = request.helixOrigin || env.HELIX_ORIGIN;
+  if (!helixOrigin) {
+    // A var-less production deploy (wrangler deploy without --var and without
+    // keep_vars) can wipe HELIX_ORIGIN, leaving it undefined. Fail with a clear
+    // message instead of a TypeError that surfaces as Cloudflare Error 1101.
+    console.error('HELIX_ORIGIN is not set (request.helixOrigin and env.HELIX_ORIGIN are both undefined)');
+    return new Response('HELIX_ORIGIN is not configured', { status: 500 });
+  }
   if (
     !helixOrigin.match(/^http:\/\/localhost:\d+$/) &&
     !helixOrigin.match(/^https:\/\/.*--.*--.*\.(?:aem|hlx)\.(live|page)$/)
