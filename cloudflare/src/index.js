@@ -26,7 +26,7 @@ import { cors } from './util/itty';
 const allowedOrigins = [
   'https://frescopamedia.com',
   'https://preview.frescopamedia.com',
-  /https:\/\/.*\.creative\.frescopamedia\.com$/,
+  /https:\/\/.*\.dev\.frescopamedia\.com$/,
   /http:\/\/localhost:.*/,
 ];
 

@@ -17,10 +17,10 @@ const ENV_URLS = {
 export function getBaseUrl() {
   const env = process.env.TEST_ENV || 'production';
 
-  // branch:my-feature → https://my-feature.creative.frescopamedia.com
+  // branch:my-feature → https://my-feature.dev.frescopamedia.com
   if (env.startsWith('branch:')) {
     const branch = env.split(':')[1];
-    return `https://${branch}.creative.frescopamedia.com`;
+    return `https://${branch}.dev.frescopamedia.com`;
   }
 
   return ENV_URLS[env] || ENV_URLS.production;
