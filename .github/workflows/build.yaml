@@ -49,7 +49,7 @@ jobs:
         subject="$(git log -1 --pretty='%s' "$sha")"
         message="$(echo "${{ github.actor }}: $subject" | cut -c1-100)"
         echo "ref=$ref" >> "$GITHUB_OUTPUT"
-        echo "url=https://${ref}.spark.aem.media" >> "$GITHUB_OUTPUT"
+        echo "url=https://${ref}.dev.frescopamedia.com" >> "$GITHUB_OUTPUT"
         echo "tag=$tag" >> "$GITHUB_OUTPUT"
         echo "message=$message" >> "$GITHUB_OUTPUT"
 
@@ -71,7 +71,7 @@ jobs:
           deploy --env branch
           --name "spark-eds-pr-${{ github.event.pull_request.number }}"
           --var "HELIX_ORIGIN:https://${{ steps.setup.outputs.ref }}--assethub-spark--aem-showcase.aem.page"
-          --route "${{ steps.setup.outputs.ref }}.spark.aem.media/*"
+          --route "${{ steps.setup.outputs.ref }}.dev.frescopamedia.com/*"
           --tag "${{ steps.setup.outputs.tag }}"
           --message "${{ steps.setup.outputs.message }}"
 

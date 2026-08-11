@@ -1,4 +1,5 @@
 import { json } from 'itty-router';
+import config from './config.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 import { fetchHelixSheet } from './util/helixutil.js';
 
@@ -150,7 +151,7 @@ export async function createSession(request, env) {
   ];
 
   const host = request.headers.get('host') || '';
-  const liveHosts = ['localhost', 'spark-eds.adobe.workers.dev'];
+  const liveHosts = ['localhost', 'frescopamedia.com'];
   const isNonLiveHost = !liveHosts.some((h) => host === h || host.startsWith(`${h}:`));
   if (isNonLiveHost) {
     if (!permissions.includes('preview')) {
@@ -196,11 +197,11 @@ export async function getUser(request, env, session) {
 /**
  * Request handler returning the user information as JSON API for the frontend.
  */
-export async function apiUser(request, env) {
+export async function apiUser(request, _env) {
   const user = {
     ...request.user,
     sessionExpiresInSec: request.user.exp && Math.floor((request.user.exp * 1000 - Date.now()) / 1000),
-    aemLoginUrl: env.AEM_ENV_ID ? `https://publish-${env.AEM_ENV_ID}.adobeaemcloud.com/content/share/us/en.html` : '',
+    aemLoginUrl: config.AEM_ENV_ID ? `https://publish-${config.AEM_ENV_ID}.adobeaemcloud.com/content/share/us/en.html` : '',
   };
 
   delete user.sub;

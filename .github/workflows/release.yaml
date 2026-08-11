@@ -53,7 +53,7 @@ jobs:
       with:
         token: '${{ github.token }}'
         deployment-id: ${{ steps.deployment.outputs.deployment_id }}
-        environment-url: 'https://spark.aem.media'
+        environment-url: 'https://frescopamedia.com'
         state: 'success'
 
     - name: Update deployment status (failure)

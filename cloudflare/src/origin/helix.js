@@ -1,3 +1,5 @@
+import config from '../config.js';
+
 const getExtension = (path) => {
   const basename = path.split('/').pop();
   const pos = basename.lastIndexOf('.');
@@ -82,7 +84,7 @@ export async function originHelix(request, env) {
   if (env.HELIX_ORIGIN_AUTHENTICATION && !isLocalHelix) {
     req.headers.set('authorization', `token ${await env.HELIX_ORIGIN_AUTHENTICATION.get()}`);
   }
-  const pushInvalidation = env.HELIX_PUSH_INVALIDATION !== 'disabled';
+  const pushInvalidation = config.HELIX_PUSH_INVALIDATION !== 'disabled';
   if (pushInvalidation) {
     req.headers.set('x-push-invalidation', 'enabled');
   }
