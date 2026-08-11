@@ -15,7 +15,6 @@ import { analyticsApi, searchMetricsApi } from './api/analytics';
 import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
 import { authRouter, withAuthentication } from './auth';
-import { originCoa, originCoaImage } from './origin/coa';
 import { originDynamicMedia } from './origin/dm';
 import { originHelix } from './origin/helix';
 import { isUserExcluded, parsePageExclusions } from './origin/page-access';
@@ -111,10 +110,6 @@ router
 
   // dynamic media (asset proxy, search, metadata)
   .all('/api/adobe/assets/*', originDynamicMedia)
-
-  // Content Optimization Agent (AI image renditions)
-  .post('/api/adobe/coa/generate', originCoa)
-  .get('/api/adobe/coa/image', originCoaImage)
 
   // Notifications API
   .all('/api/messages/*', notificationsApi)
