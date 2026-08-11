@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
+
+// A mutable stand-in for config.js's frozen singleton, so resolveCOAEndpoint's
+// stage/prod branches can both be exercised without touching the real config.
+const mockConfig = { AEM_ENV_ID: 'p203220-e2129061', COA_ENV: 'prod' };
+vi.mock('../../config.js', () => ({ default: mockConfig }));
+
+const {
   buildCOAEnvelope,
   buildFullPrompt,
   COA_MAX_ASSETS,
@@ -7,7 +13,7 @@ import {
   originCoa,
   originCoaImage,
   resolveCOAEndpoint,
-} from '../coa.js';
+} = await import('../coa.js');
 
 function makeKV() {
   const store = new Map();
@@ -28,8 +34,6 @@ function makeSecret(value) {
 
 function makeEnv(overrides = {}) {
   return {
-    AEM_ENV_ID: 'p203220-e2129061',
-    COA_ENV: 'prod',
     AUTH_TOKENS: makeKV(),
     // originCoa/originCoaImage authenticate via dm.js's getIMSToken, i.e. the
     // same DM S2S technical account COA is called with in production.
@@ -69,12 +73,17 @@ describe('coa.js - pure logic', () => {
   });
 
   describe('resolveCOAEndpoint', () => {
-    it('resolves to prod by default', () => {
-      expect(resolveCOAEndpoint({})).toBe('https://aem-content-optimizer-agent.adobe.io/');
+    afterEach(() => {
+      mockConfig.COA_ENV = 'prod';
     });
 
-    it('resolves to stage when COA_ENV=stage', () => {
-      expect(resolveCOAEndpoint({ COA_ENV: 'stage' })).toBe(
+    it('resolves to prod by default', () => {
+      expect(resolveCOAEndpoint()).toBe('https://aem-content-optimizer-agent.adobe.io/');
+    });
+
+    it('resolves to stage when config.COA_ENV=stage', () => {
+      mockConfig.COA_ENV = 'stage';
+      expect(resolveCOAEndpoint()).toBe(
         'https://aem-assets-adobe-aem-content-optimisation-agent-dep-e3caae.stage.cloud.adobe.io/',
       );
     });
