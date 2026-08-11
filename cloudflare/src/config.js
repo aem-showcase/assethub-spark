@@ -14,12 +14,6 @@ const config = {
   // AEM environment (Program-Environment) id for the backing DM tenant.
   AEM_ENV_ID: 'p203220-e2129061',
 
-  // Content Optimization Agent environment. COA is called with the same DM
-  // S2S technical account/token as Dynamic Media, so this must match whatever
-  // IMS environment that account's credentials were issued against — not an
-  // independent per-deploy choice.
-  COA_ENV: 'prod',
-
   // Helix push-invalidation mode. 'disabled' turns off cache purge on publish.
   HELIX_PUSH_INVALIDATION: 'disabled',
 

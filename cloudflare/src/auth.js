@@ -159,18 +159,18 @@ function getOriginalRedirectUrl(request, originalUrl) {
 export async function withAuthentication(request, env) {
   request.uri = new URL(request.url);
 
-  if (env.DISABLE_AUTHENTICATION === 'true') {
-    request.user = {
-      email: 'dev@localhost',
-      name: 'Local Dev',
-      roles: ['admin', 'employee'],
-      permissions: ['preview', 'admin-reports', 'manage-rights', 'admin-rights', 'sudo'],
-      countries: ['us'],
-      userId: 'local-dev',
-    };
-    console.warn('Authentication is disabled because DISABLE_AUTHENTICATION is set');
-    return;
-  }
+  // if (env.DISABLE_AUTHENTICATION === 'true') {
+  //   request.user = {
+  //     email: 'dev@localhost',
+  //     name: 'Local Dev',
+  //     roles: ['admin', 'employee'],
+  //     permissions: ['preview', 'admin-reports', 'manage-rights', 'admin-rights', 'sudo'],
+  //     countries: ['us'],
+  //     userId: 'local-dev',
+  //   };
+  //   console.warn('Authentication is disabled because DISABLE_AUTHENTICATION is set');
+  //   return;
+  // }
 
   const sessionJWT = request.cookies[COOKIE_SESSION];
   if (!sessionJWT) {
