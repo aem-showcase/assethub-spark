@@ -10,6 +10,7 @@ import {
   fetchSpreadsheetData,
   getBlockKeyValues,
   stripHtmlAndNewlines,
+  SEARCH_URL_PARAMS,
 } from '../../scripts/scripts.js';
 import { localizePath, getAppLabel } from '../../scripts/locale-utils.js';
 import { getDateFacets, getFacetsConfig } from './constants/facets.js';
@@ -61,6 +62,10 @@ const LOADING = {
   dmImages: 'dmImages',
 };
 
+// ContentAI match modes; FULLTEXT is the API's own default (mirrors MatchMode.yaml)
+const DEFAULT_SEARCH_MODE = 'FULLTEXT';
+const VALID_SEARCH_MODES = ['FULLTEXT', 'HYBRID'];
+
 // Central state store
 const state = {
   // External params
@@ -109,6 +114,9 @@ const state = {
   // Sort (use keys, not display values - translated at display time)
   selectedSortType: DEFAULT_SORT_TYPE,
   selectedSortDirection: DEFAULT_SORT_DIRECTION,
+
+  // ContentAI match mode: FULLTEXT (default) or HYBRID
+  searchMode: DEFAULT_SEARCH_MODE,
 
   // Renditions cache
   imagePresets: {},
@@ -288,6 +296,7 @@ export async function performSearchImages(query, page = 0) {
       cursor,
       orderBy: getOrderBy(),
       collectionId: state.externalParams?.collectionId,
+      searchMode: state.searchMode,
     });
 
     await processContentAIImages(rawResponse, isLoadingMoreFlag, hitsPerPage);
@@ -574,9 +583,17 @@ export default async function decorate(block) {
   if (sortTypeParam === SORT_TYPE.TOP_RESULTS && sortDirectionParam === SORT_DIRECTION.ASCENDING) {
     sortDirectionParam = SORT_DIRECTION.DESCENDING;
   }
+
+  // Resolve search mode: URL param > default (FULLTEXT). Omitted from the URL for the default,
+  // matching the API's own "omit for FULLTEXT" convention (see MatchQueryMatch.yaml default).
+  const urlSearchMode = params.get(SEARCH_URL_PARAMS.SEARCH_MODE);
+  const searchModeParam = VALID_SEARCH_MODES.includes(urlSearchMode)
+    ? urlSearchMode : DEFAULT_SEARCH_MODE;
+
   setState({
     selectedSortType: sortTypeParam,
     selectedSortDirection: sortDirectionParam,
+    searchMode: searchModeParam,
   });
 
   // Always ensure sort options are in the URL (populate defaults if missing)
@@ -674,10 +691,24 @@ export default async function decorate(block) {
       );
     }
 
+    // Persist search mode to URL when it changes (omit param for the default, matching
+    // the API's own "omit for FULLTEXT" convention)
+    if (updates.searchMode !== undefined) {
+      const url = new URL(window.location.href);
+      if (currentState.searchMode && currentState.searchMode !== DEFAULT_SEARCH_MODE) {
+        url.searchParams.set(SEARCH_URL_PARAMS.SEARCH_MODE, currentState.searchMode);
+      } else {
+        url.searchParams.delete(SEARCH_URL_PARAMS.SEARCH_MODE);
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+
     const canSearch = currentState.authenticated && currentState.dynamicMediaClient;
     if (canSearch) {
       if (updates.facetCheckedState !== undefined
-          || updates.selectedNumericFilters !== undefined) {
+          || updates.selectedNumericFilters !== undefined
+          || (updates.searchMode !== undefined
+            && updates.searchMode !== prevState.searchMode)) {
         search(undefined, { force: true });
       }
 

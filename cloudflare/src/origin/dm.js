@@ -21,6 +21,7 @@
  */
 
 import { decodeJwt } from 'jose';
+import config from '../config.js';
 import {
   CollectionCreatedByMeVisibility,
   CollectionListSegment,
@@ -736,7 +737,6 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
  * @param {Request} request - Incoming HTTP request
  * @param {Object} request.user - Authenticated user object (added by auth middleware)
  * @param {Object} env - Cloudflare environment bindings
- * @param {string} env.AEM_ENV_ID - AEM environment ID (format: pXXXXX-eYYYYY)
  * @param {KVNamespace} env.AUTH_TOKENS - KV store for IMS token caching
  * @param {AnalyticsEngine} env.SPARK_ANALYTICS_ENGINE - Analytics Engine binding
  * @param {ExecutionContext} ctx - Cloudflare execution context (for waitUntil)
@@ -754,7 +754,7 @@ export async function originDynamicMedia(request, env, ctx) {
   // origin url:
   //   delivery-pXX-eYY.adobeaemcloud.com/adobe/assets/...
 
-  const aemEnvId = env.AEM_ENV_ID;
+  const aemEnvId = config.AEM_ENV_ID;
   if (!aemEnvId.match(/^p(.*)-e(.*)$/)) {
     return new Response('Invalid AEM_ENV_ID', { status: 500 });
   }
@@ -910,6 +910,13 @@ export async function originDynamicMedia(request, env, ctx) {
   // The browser's Referer can be enormous (search URLs with many facet filters
   // easily reach 3KB+) and push total headers past the upstream's 8KB limit → 400.
   headers.delete('referer');
+
+  // The incoming request's Content-Length reflects the original browser-sent body.
+  // Search (and other) handlers above may have re-serialized `body` after injecting
+  // auth clauses, changing its byte length — a stale Content-Length here causes the
+  // upstream to read a truncated/misframed body ("Expecting value" JSON parse errors).
+  // Let fetch() (via undici) compute the correct Content-Length from the actual body.
+  headers.delete('content-length');
 
   const response = await fetch(url, {
     method: request.method,

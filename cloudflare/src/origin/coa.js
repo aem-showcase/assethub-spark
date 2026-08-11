@@ -14,6 +14,7 @@
  */
 
 import { decodeJwt } from 'jose';
+import config from '../config.js';
 import { getIMSToken } from './dm.js';
 import { isTrustedHost } from '../util/trusted-hosts.js';
 
@@ -35,8 +36,8 @@ export function deliveryDomainFromEnvId(aemEnvId) {
   return `delivery-${aemEnvId}.adobeaemcloud.com`;
 }
 
-export function resolveCOAEndpoint(env) {
-  return env.COA_ENV === 'stage' ? COA_ENDPOINTS.stage : COA_ENDPOINTS.prod;
+export function resolveCOAEndpoint() {
+  return config.COA_ENV === 'stage' ? COA_ENDPOINTS.stage : COA_ENDPOINTS.prod;
 }
 
 export function buildFullPrompt(userPrompt, assets, deliveryDomain) {
@@ -98,8 +99,7 @@ export async function originCoa(request, env) {
 
   const cappedAssets = assets.slice(0, COA_MAX_ASSETS).map((a) => ({ id: a.id, name: a.name }));
 
-  const aemEnvId = env.AEM_ENV_ID;
-  const deliveryDomain = deliveryDomainFromEnvId(aemEnvId);
+  const deliveryDomain = deliveryDomainFromEnvId(config.AEM_ENV_ID);
   const fullPrompt = buildFullPrompt(userPrompt, cappedAssets, deliveryDomain);
 
   const imsToken = await getIMSToken(request, env);
@@ -111,7 +111,7 @@ export async function originCoa(request, env) {
   // org id from a different IMS identity fails COA's payload validation.
   const { org: imsOrgId, user_id: imsUserId } = decodeJwt(imsToken);
   const envelope = buildCOAEnvelope(fullPrompt, { imsOrgId, imsUserId });
-  const endpoint = resolveCOAEndpoint(env);
+  const endpoint = resolveCOAEndpoint();
 
   const coaHeaders = {
     'Content-Type': 'application/json',
