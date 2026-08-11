@@ -65,20 +65,6 @@ export async function createImageGallery(container, callbacks) {
   let previousImageCount = 0; // Track image count for Load More optimization
 
   /**
-   * Notify listeners (e.g. search-bar's generate-mode) that the selection changed.
-   * Decouples image-gallery from search-bar — same CustomEvent-on-window pattern
-   * already used for handleBulkShare/handleBulkAddToCollection below.
-   */
-  function dispatchAssetSelectionChanged() {
-    const state = getState();
-    const visibleImages = state.dmImages;
-    const selectedAssets = visibleImages.filter((img) => selectedCards.has(img.assetId || ''));
-    window.dispatchEvent(new CustomEvent('assetSelectionChanged', {
-      detail: { selectedAssets },
-    }));
-  }
-
-  /**
    * Update only the selection count in search panel without re-rendering the entire panel
    */
   function updateSelectionUI() {
@@ -113,8 +99,6 @@ export async function createImageGallery(container, callbacks) {
         updateDropdownSelection(actionsDropdown, ph(placeholders, 'actions', 'Actions'));
       }
     }
-
-    dispatchAssetSelectionChanged();
   }
 
   // Build gallery structure

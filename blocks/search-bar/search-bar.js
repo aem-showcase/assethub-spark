@@ -4,9 +4,6 @@ import {
   stripHtmlAndNewlines,
 } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
-import { setCoaState } from '../../scripts/coa-state.js';
-import { COA_MAX_ASSETS } from '../search-results/clients/coa-client.js';
-import { isImageMimeType } from '../search-results/utils/mime-type-converter.js';
 import {
   loadSortPreference,
   SORT_TYPE,
@@ -69,9 +66,6 @@ function loadSearchModePreference() {
 
 export default async function decorate(block) {
   const t = await getAppLabel();
-
-  let selectedImageAssets = [];
-  let isGenerateMode = false;
 
   const blockObj = getBlockKeyValues(block);
   const availableSearchModes = SEARCH_MODES.filter(({ configKey }) => {
@@ -295,11 +289,7 @@ export default async function decorate(block) {
   searchBtn.addEventListener('click', performSearch);
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-      if (isGenerateMode) {
-        submitGenerate();
-      } else {
-        performSearch();
-      }
+      performSearch();
     }
   });
 
@@ -317,106 +307,12 @@ export default async function decorate(block) {
   input.addEventListener('input', toggleClearIcon);
   toggleClearIcon();
 
-  // Generate mode ("COA") — search bar swaps to prompt mode when the user has
-  // selected 1+ image assets in the gallery.
-  const generateBadge = document.createElement('div');
-  generateBadge.className = 'generate-mode-badge';
-  generateBadge.hidden = true;
-
-  const generateCancelBtn = document.createElement('button');
-  generateCancelBtn.type = 'button';
-  generateCancelBtn.className = 'generate-mode-cancel';
-  generateCancelBtn.textContent = t('cancel', 'Cancel');
-
-  generateBadge.append(generateCancelBtn);
-
-  const generateSuggestions = document.createElement('ul');
-  generateSuggestions.className = 'generate-mode-suggestions';
-  generateSuggestions.hidden = true;
-
-  const GENERATE_SUGGESTION_KEYS = [
-    ['promptSuggestion1', 'Get me Instagram and LinkedIn renditions'],
-    ['promptSuggestion2', 'Generate a web hero banner rendition with sharpening'],
-    ['promptSuggestion3', 'Create a 2000 pixel rendition as webp format with 90% quality'],
-  ];
-  GENERATE_SUGGESTION_KEYS.forEach(([key, fallback]) => {
-    const li = document.createElement('li');
-    li.className = 'generate-mode-suggestion';
-    li.textContent = t(key, fallback);
-    li.addEventListener('click', () => {
-      input.value = t(key, fallback);
-      toggleClearIcon();
-      generateSuggestions.hidden = true;
-      input.focus();
-    });
-    generateSuggestions.appendChild(li);
-  });
-
-  const generateBtn = document.createElement('button');
-  generateBtn.type = 'button';
-  generateBtn.className = 'generate-mode-submit';
-  generateBtn.textContent = t('generate', 'Generate');
-
-  function setGenerateMode(enabled) {
-    isGenerateMode = enabled;
-    generateBadge.hidden = !enabled;
-    generateBtn.hidden = !enabled;
-    searchBtn.hidden = enabled;
-    if (modeSelector) modeSelector.hidden = enabled;
-    generateSuggestions.hidden = !enabled;
-    input.placeholder = enabled
-      ? t('generatePromptPlaceholder', 'Describe the renditions you want…')
-      : t('searchPlaceholder', 'What are you looking for?');
-  }
-
-  function handleAssetSelectionChanged(selectedAssets) {
-    selectedImageAssets = (selectedAssets ?? []).filter((a) => isImageMimeType(a.format));
-    setGenerateMode(selectedImageAssets.length > 0);
-  }
-
-  window.addEventListener('assetSelectionChanged', (e) => {
-    handleAssetSelectionChanged(e.detail?.selectedAssets);
-  });
-
-  generateCancelBtn.addEventListener('click', () => {
-    setGenerateMode(false);
-  });
-
-  const submitGenerate = () => {
-    const prompt = input.value.trim();
-    if (!prompt || selectedImageAssets.length === 0) return;
-
-    const requestId = crypto.randomUUID();
-    const assets = selectedImageAssets
-      .slice(0, COA_MAX_ASSETS)
-      .map((a) => ({ id: a.assetId, name: a.name }));
-
-    // Don't call generateRenditions() here — a full-page navigation is about
-    // to tear down this page's JS context, which would abort the fetch before
-    // it resolves. Store the pending request; /renditions issues the actual
-    // call itself once it has loaded, so the fetch's lifetime matches the
-    // page that will render its result.
-    setCoaState({
-      coaIsLoading: true,
-      coaResult: null,
-      coaError: null,
-      coaRequestId: requestId,
-      coaPendingRequest: { prompt, assets },
-    });
-
-    window.location.href = localizePath('/renditions');
-  };
-
-  generateBtn.addEventListener('click', submitGenerate);
-
-  setGenerateMode(false);
-
   queryInputBar.append(typeSelector, queryInputWrapper);
   if (modeSelector) {
     queryInputBar.append(modeSelector);
   }
-  queryInputBar.append(generateBadge, generateBtn, searchBtn);
-  queryInputContainer.append(queryInputBar, generateSuggestions);
+  queryInputBar.append(searchBtn);
+  queryInputContainer.append(queryInputBar);
 
   block.textContent = '';
   block.append(queryInputContainer);
