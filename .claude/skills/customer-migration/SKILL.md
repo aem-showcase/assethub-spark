@@ -64,13 +64,17 @@ Schema:
         "fork-identity-resolved": "pending",
         "code-sync-verified": "pending",
         "helix-url-and-readme-corrected": "pending",
-        "intake-file-generated": "pending",
+        "tier-selected": "pending",
         "content-hub-creds-collected": "pending",
-        "repo-identity-rename-applied": "pending",
-        "auth-bypass-checked": "pending",
-        "local-env-configured": "pending",
+        "auth-mode-applied": "pending",
         "boot-verified": "pending",
-        "deploy-readiness-noted": "pending"
+        "deploy-bypass-gated": "pending",
+        "intake-file-generated": "pending",
+        "repo-identity-rename-applied": "pending",
+        "remote-secrets-pushed": "pending",
+        "remote-d1-migrated": "pending",
+        "ci-token-set": "pending",
+        "deployed-via-merge": "pending"
       }
     }
   }
@@ -80,15 +84,36 @@ Schema:
 Step values are one of `pending`, `done`, or `blocked` (blocked = waiting
 on something external — the customer fetching credentials, provisioning
 Cloudflare resources, or installing Code Sync). Update `lastUpdated` and
-the relevant step every time you complete or block on a step. Set a
-phase's `status` to `"done"` only when every one of its steps is `done`.
+the relevant step every time you complete or block on a step.
 
-`backend-onboarding.scopeChoice` (`null` / `"preview-only"` / `"full"`)
+The `backend-onboarding` steps split along two axes, and phase
+completion respects that split:
+
+- **Run-tier steps** (`node-version-check`, `fork-identity-resolved`,
+  `code-sync-verified`, `helix-url-and-readme-corrected`,
+  `tier-selected`, `content-hub-creds-collected`, `auth-mode-applied`,
+  `boot-verified`) — getting the portal running locally at the customer's
+  chosen tier.
+- **Deploy-only steps** (`deploy-bypass-gated`, `intake-file-generated`,
+  `repo-identity-rename-applied`, `remote-secrets-pushed`,
+  `remote-d1-migrated`, `ci-token-set`, `deployed-via-merge`) — only
+  relevant if the customer wants to deploy.
+
+A customer who only wants to run locally leaves every deploy-only step
+`pending` — that is **not** an incomplete state, it's a complete, valid
+end state. Set `phases["backend-onboarding"].status` to `"done"` when the
+run-tier steps for the chosen tier are done (a `"preview"` tier needs
+fewer than a `"local-login"` tier — see B.5). Do not hold the phase
+`in_progress` waiting on deploy-only steps the customer never asked for.
+
+`backend-onboarding.scopeChoice`
+(`null` / `"preview"` / `"local-no-login"` / `"local-login"`)
 is different from a step: it's revisitable, mutable state, not a
-forward-only completion marker — a customer can pick `"preview-only"` now
-and ask for the full backend later, in this session or a future one. It
+forward-only completion marker — a customer can pick `"preview"` now
+and ask for more later, in this session or a future one. It
 lives alongside `status`/`lastUpdated`, not inside `steps`, precisely
 because it can change after being set. See B.5 below for how it's used.
+These are internal values only — never shown to the customer.
 
 If the file doesn't exist, create it with the schema above before doing
 anything else in either phase. If it exists, read it and jump to the
@@ -99,8 +124,9 @@ or re-ask questions whose answers are already recorded under `customer`.
 
 `.internal/customer-config.json` (also gitignored, same convention) holds
 non-secret Cloudflare identity/resource values the customer must look up
-themselves. Generated during Phase B step 4; described fully there. Not
-used by Phase A.
+themselves. Generated in the deploy stage (step D.2), and only when the
+customer actually wants to deploy — not needed to run locally. Not used
+by Phase A.
 
 ---
 
@@ -135,9 +161,36 @@ Permissions before starting:
   lag or an Adobe sign-in prompt — not a missing separate toggle.
 - **Git access** — required for committing/pushing/opening a PR.
 
-State the hard rule plainly: never accept a pasted token in chat. If a
-token appears in the conversation anyway, treat it as compromised, tell
-the customer to revoke/rotate it immediately, and do not use it.
+State the hard rule plainly: never accept a pasted token or secret in
+chat — this covers the IMS session above and the `DA_TOKEN`/
+`HLX_ADMIN_TOKEN` below equally. If any token appears in the
+conversation anyway, treat it as compromised, tell the customer to
+revoke/rotate it immediately, and do not use it.
+
+### A.1.d: DA / Helix Admin tokens (`token.env`)
+
+Any Document Authoring or Helix Admin API call this phase makes on the
+customer's behalf (preview, publish, status) authenticates with two
+tokens the customer supplies — not the IMS session above. Set these up
+before the first such call:
+
+- Ask the customer to create a gitignored `token.env` at the repo root
+  with exactly two lines, `KEY=value` format, no quotes:
+  `DA_TOKEN=...` and `HLX_ADMIN_TOKEN=...`. The customer fills in the
+  values themselves; you never read them back or echo them.
+- Confirm `token.env` is gitignored. If the repo's `.gitignore` has no
+  `token.env` entry, add one — do not rely on it being covered by
+  another pattern.
+- Read the values from `token.env` at call time (via the environment /
+  file), never from chat. This is the same never-paste rule as A.1.a.
+
+Known API quirk, state it so it isn't rediscovered by trial and error: a
+preview/publish call to the Helix Admin API (`admin.hlx.page`) can return
+`401` **even with a valid `DA_TOKEN`**, because the Admin API's own
+server-side fetch back to Document Authoring needs that token forwarded
+via an `x-content-source-authorization` header. A 401 of this shape is a
+missing-forwarded-header problem, not an invalid-token problem — add the
+header rather than assuming the token is wrong.
 
 ### A.1.b: Content-source context
 
@@ -313,29 +366,46 @@ proceed the same way.
 
 ## B.3: AEM Code Sync verification (`code-sync-verified`)
 
-Using the org/repo from B.2, construct the expected Helix preview URL:
+Using the org/repo from B.2, probe a path that actually has content —
+**not** the bare root. This template's real content lives under `/en/`,
+and a bare-root `/` almost always 404s even when Code Sync is perfectly
+installed (no document is published at `/index`). Probing `/` and
+reading its 404 as "not installed" is a false negative that will misfire
+for nearly every fork.
 
 ```
-https://main--{repo}--{org}.aem.page
+https://main--{repo}--{org}.aem.page/en/
 ```
 
-Fetch it. Determine the result:
+Fetch it (a `curl -sI` for headers is enough). Determine the result:
 
-- **Real content / 200** → Code Sync is installed and working. Mark step
-  `done`.
-- **404 / "site not found"** → Code Sync is not installed yet. Explain
-  plainly that this is a required one-time GitHub-side step the customer
-  must do themselves (the agent cannot install a GitHub App on their
-  org): install the AEM Code Sync GitHub App on their forked repository.
-  Point them to the aem.live documentation for exact steps (look it up,
-  don't guess the URL). Mark step `blocked`, explain you'll re-check
-  once they've done it, and stop here for this session if they need to
-  go do it now.
+- **200** → Code Sync is installed and working. Mark step `done`.
+- **404 with an `x-error: Lambda: ...` response header** → Code Sync
+  **is** installed (the content-bus Lambda is running and answering),
+  but nothing is published at this path yet. Do not tell the customer to
+  install anything. Explain that content just needs to be published (a
+  Phase A publish, or their own DA publish) — the fork's plumbing is
+  fine. Mark step `done` (installation is verified; content is a
+  separate concern handled elsewhere).
+- **404 with no `x-error: Lambda:` header** (or a "site not found"
+  response) → Code Sync is genuinely not installed yet. Explain plainly
+  that this is a required one-time GitHub-side step the customer must do
+  themselves (the agent cannot install a GitHub App on their org):
+  install the AEM Code Sync GitHub App on their forked repository. Point
+  them to the aem.live documentation for exact steps (look it up, don't
+  guess the URL). Mark step `blocked`, explain you'll re-check once
+  they've done it, and stop here for this session if they need to go do
+  it now.
 
-Do not proceed past this step on an unverified assumption — a customer
-whose Code Sync isn't installed will silently see the upstream
-template's own demo content via the `aem up` fallback proxy instead of
-their own.
+The `x-error: Lambda:` header is the discriminator: it only appears when
+the content-bus Lambda is running, i.e. Code Sync is installed. A bare
+`/` 404 on its own is never evidence of anything — always judge from the
+`/en/` probe and its headers.
+
+Do not proceed past a genuine "not installed" state on an unverified
+assumption — a customer whose Code Sync isn't installed will silently
+see the upstream template's own demo content via the `aem up` fallback
+proxy instead of their own.
 
 ## B.4: Helix URL and README correction (`helix-url-and-readme-corrected`)
 
@@ -363,51 +433,243 @@ this customer's situation (they have a real fork with a real remote).
 Show the customer the before/after for these few lines, apply it, and
 mark step `done`.
 
-## B.5: Local-run scope choice (`scopeChoice`)
+## B.5: Local-run tier choice (`tier-selected`, sets `scopeChoice`)
 
-Ask the customer directly, in plain outcome language — never step names
-or internal detail:
+There are three genuinely different ways to run this locally, and they
+cost the customer very different amounts of setup. Offer all three, in
+plain outcome language — **never** say `scopeChoice`, the enum values
+(`"preview"` / `"local-no-login"` / `"local-login"`), step names, or
+"tier." The customer hears outcomes only. Use wording like:
 
-> "I can get this running two ways: just show you what it looks like
-> right now with no setup needed, or get the whole thing properly
-> connected — your own search, your own credentials, sign-in working —
-> which takes some real setup on your end (Cloudflare account, Adobe
-> credentials). Want the quick look first, or go straight to the full
-> setup?"
+> "There are three ways I can get this running for you:
+>
+> **1. Just show me the new look** — I'll start it up so you can click
+> through your rebranded pages right away. Nothing needed from you.
+> Search and sign-in won't work yet — it's a visual preview.
+>
+> **2. Get it actually working, skip sign-in for now** — real search,
+> real assets and thumbnails, browsing your own content, running on your
+> machine without making you set up a login. I'll need two values from
+> your Adobe Content Hub for this. (Reports and notifications still need
+> the deployed version — those won't work locally.)
+>
+> **3. The full experience, with real sign-in** — same as option 2, plus
+> your real Microsoft sign-in so it behaves exactly like production. This
+> needs a bit of setup on Microsoft's side from you or your IT team.
+>
+> Most people start with 1 or 2. Which sounds right?"
 
-Record the answer in `phases["backend-onboarding"].scopeChoice`.
+Map the customer's answer to the internal value and record it in
+`phases["backend-onboarding"].scopeChoice`: option 1 → `"preview"`,
+option 2 → `"local-no-login"`, option 3 → `"local-login"`. Mark
+`tier-selected` `done`.
 
-**If `"preview-only"`:** tell the customer, as a real documented fact
-(not an improvisation): running `npx aem up` alone serves the site's raw
-EDS pages directly. This does not start the Cloudflare Worker at all —
-`local.sh` runs the AEM dev server and the Cloudflare worker as two
-independent background processes, and everything in
-`cloudflare/src/auth.js`/`index.js` (session cookies, Entra login,
-`DISABLE_AUTHENTICATION`) only exists inside the worker process. So the
-preview-only path needs no secrets, no Content Hub credentials, no Entra
-app, and none of B.6-B.12 below. **Do not claim
-`DISABLE_AUTHENTICATION=true` skips login in this or any path** — verify
-first via B.9 before ever saying that, since as of this writing the
-bypass code is dead (see B.9). Stop here for this phase; do not mark
-`phases["backend-onboarding"].status` as `"done"` — it stays
-`"in_progress"`, since the backend genuinely isn't set up yet.
+**Honest expectations for options 2 and 3, state at choice time** so the
+customer isn't surprised later. In the local no-login/fake-admin mode,
+these genuinely work: search, asset thumbnails and previews, the
+collections list, and the header/user widget (it'll show a "Local Dev"
+user). These do **not** work locally and need the real deployed backend:
+notifications (the bell), the reports/asset-activity dashboards, and
+search/analytics reports — they'll error or come back empty. Opening a
+collection you don't own can also be denied. Say this plainly; don't
+oversell option 2 as "everything works."
 
-**If `"full"`:** continue to B.6.
+### If `"preview"`
 
-**If the customer later asks for the full backend** (same session or a
-future one, after previously choosing `"preview-only"`): read
-`scopeChoice`, see it's `"preview-only"`, and proceed directly to B.6 —
-say only the outcome (*"Good — since you're already set up locally, the
-next part is connecting your own Cloudflare account and Content Hub so
-search actually works. I'll need a few things from you for that."*),
-never step names or "resuming." Update `scopeChoice` to `"full"`.
+Tell the customer, as a real documented fact (not an improvisation):
+running `npx aem up` alone serves the site's raw EDS pages directly. It
+does not start the Cloudflare Worker at all — `local.sh` runs the AEM
+dev server and the Cloudflare worker as two independent background
+processes, and everything in `cloudflare/src/auth.js`/`index.js`
+(session cookies, Entra login, `DISABLE_AUTHENTICATION`) lives only
+inside the worker process. So preview needs no secrets, no Content Hub
+credentials, no Entra app, and none of the deploy steps. Start it, let
+them click around, and stop here. Do **not** mark
+`phases["backend-onboarding"].status` `"done"` if the customer indicated
+they want more later — but if `"preview"` is genuinely all they want,
+this is a complete, valid end state and the phase may be `"done"`.
 
-## B.6: Intake file generation (`intake-file-generated`)
+### If `"local-no-login"`
+
+Proceed through the local-run steps: B.7 (Content Hub creds) → B.9
+(apply the auth bypass) → B.11 (boot & verify). **Skip the entire deploy
+stage** — none of the Cloudflare-account intake, identity rename, or
+remote push is needed to run locally. Placeholder resource ids in
+`wrangler.toml` are fine for local dev (miniflare simulates the
+bindings).
+
+### If `"local-login"`
+
+Proceed: B.7 (Content Hub creds) → B.9 (real Entra, bypass left off) →
+B.11 (boot & verify). Same skip of the deploy stage.
+
+### Re-entry / changing the choice later
+
+If the customer previously chose a lighter option and now wants more
+(same session or a future one): read `scopeChoice`, and proceed directly
+to the next needed step for the new tier — say only the outcome
+(*"Good — since you're already running locally, next I'll wire up real
+search, which needs two values from your Content Hub."*), never step
+names, "resuming," or the stored value. Update `scopeChoice` to the new
+value. The same applies for a later request to actually deploy: move
+into the deploy stage (below), which is otherwise never entered.
+
+# Phase B — local run (B.7-B.11)
+
+These steps get the portal running locally at the tier B.5 selected.
+They are reached for `"local-no-login"` and `"local-login"` (and are
+what a later upgrade from `"preview"` runs). None of them needs a
+Cloudflare account, the intake file, or the identity rename — those are
+deploy-only (the separate stage further below).
+
+## B.7: Content Hub credential collection (`content-hub-creds-collected`)
+
+As mentioned at the tier choice, real search needs two values from the
+customer's Content Hub — collect them now. Ask for:
+
+- **`AEM_ENV_ID`** — their AEM Program + Environment ID, `pXXXX-eYYYY`.
+- **Content Hub OAuth Server-to-Server credentials** — client ID and
+  secret, from an Adobe Developer Console project with access to that
+  delivery environment's Dynamic Media / Content Hub API.
+
+Never ask the customer to paste secret values into the chat:
+
+1. Tell them to create `cloudflare/.secrets` (gitignored) from the
+   template documented in `cloudflare/README.md` / root `README.md`.
+2. Tell them exactly which two lines to add: `SPARK_DM_CLIENT_ID="..."`
+   and `SPARK_DM_CLIENT_SECRET="..."`.
+3. Confirm with them that they've done it — do not read the file's
+   contents yourself to "verify."
+
+The `cloudflare/.secrets` file must **exist** or `wrangler dev` won't
+even boot (its `predev` hook hard-fails on a missing file) — so this
+step is mandatory for both `"local-no-login"` and `"local-login"`, not
+optional.
+
+Also check whether `cloudflare/.secrets` has a `SPARK_COOKIE_SECRET`
+line — required by `cloudflare/src/auth.js`'s `REQUIRED_ENV_VARS`
+regardless of auth-bypass state. If missing, generate one locally with
+`openssl rand -base64 32` and have the customer add it themselves.
+
+Write only the non-secret `aemEnvId` into `customer.aemEnvId`. Mark step
+`done` once the customer confirms all three lines are in place.
+
+## B.9: Auth mode — apply the customer's tier choice (`auth-mode-applied`)
+
+This step **acts** on the tier choice — it does not merely report state.
+The `DISABLE_AUTHENTICATION` bypass block in `cloudflare/src/auth.js`
+(lines ~161-172, inside `withAuthentication`) is a self-contained local
+seam: `withAuthentication` only validates a locally-signed session
+cookie and never itself contacts Microsoft (the Entra calls live only in
+`/auth/login` and `/auth/callback`). Uncommenting that block makes
+`withAuthentication` set a fabricated dev user and return, so every
+downstream route (search, DM/assets) works with **no Entra config at
+all**. Re-commenting restores real login.
+
+**If `scopeChoice` is `"local-no-login"`:** edit `cloudflare/src/auth.js`
+to **uncomment** the `DISABLE_AUTHENTICATION` block (lines ~161-172) —
+uncomment exactly those lines, nothing else. Tell the customer plainly
+this makes everyone a local-only fake admin (`dev@localhost`, `admin`/
+`employee` roles), fine for local dev but a security hole if it ever
+ships — it must be re-commented before any deploy (the deploy stage
+enforces this). Re-state the honest limits from B.5: search, thumbnails,
+previews, collections list, and the header work; notifications, reports,
+and analytics dashboards do not (they need the deployed backend). Set
+`customer.authBypassActive` to `true`.
+
+**If `scopeChoice` is `"local-login"`:** leave `auth.js` untouched
+(bypass stays commented, real login active). Walk the customer through a
+real Microsoft Entra app registration — reuse the exact steps in the
+deploy-readiness note (entra.microsoft.com → App registrations → New
+registration → **Single-page application** redirect URI → copy the
+Application (client) ID and Directory (tenant) ID) — and have them place
+the resulting `MICROSOFT_ENTRA_TENANT_ID`/`MICROSOFT_ENTRA_CLIENT_ID`
+into `wrangler.toml`'s `vars` (and `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET`
+into `cloudflare/.secrets` if they want SMTP). Set
+`customer.authBypassActive` to `false`.
+
+Then set the local run environment for `npm run dev`, regardless of
+branch:
+
+- `AEM_PAGES_URL` = `https://main--{repo}--{org}.aem.page` (from B.2/B.3).
+- `AEM_ENV_ID` = the value from B.7.
+- `DISABLE_AUTHENTICATION` = `true` (this only takes effect for
+  `"local-no-login"`, where the block is now uncommented; harmless
+  otherwise).
+
+Note `wrangler.toml`'s `HELIX_ORIGIN` isn't consulted by `local.sh` for
+local dev (it always points the local worker at the locally-running
+`aem up` server) — it matters only for CI/deploy, corrected in B.4
+(Helix URL) and the deploy-stage rename (the rest). Mark step `done`.
+
+## B.11: Boot verification (`boot-verified`)
+
+Run `npm run dev` with the environment from B.9. Wait for both the AEM
+dev server and the Cloudflare worker dev server to report ready (watch
+for the script's own "Ready on http://localhost:{port}" line). Open the
+**worker** port in the browser (not the aem-up port) — that's the one
+that serves `/api/*`.
+
+Once up, verify, in order:
+
+1. **The server is serving this repo's own local files**, not a stale or
+   unrelated cached directory — confirm a distinctive string from a
+   local file actually appears in the served output.
+2. Auth behavior matches the chosen tier: `"local-no-login"` should let
+   you reach the app as the fake dev user with no login prompt;
+   `"local-login"` should redirect to Microsoft sign-in.
+3. A real search request returns results sourced from the customer's own
+   Content Hub environment, and at least one asset thumbnail renders.
+
+If search fails, check in order: wrong/missing
+`SPARK_DM_CLIENT_ID`/`SECRET`, wrong `AEM_ENV_ID`, or the Content Hub
+technical account lacking access to that delivery environment.
+
+Mark step `done` once verified. If the customer only wanted to run
+locally, set `phases["backend-onboarding"].status` to `"done"` — a
+running local tier with no deploy is a complete, valid end state. Offer
+the deploy stage below only if they want it; never force it.
+
+---
+
+# Phase B — deploy stage (deploy-only, opt-in)
+
+**This entire stage is only for a customer who wants to deploy.** It is
+offered *after* a tier is running locally, never as a prerequisite to
+running. A customer who only runs locally leaves every step here
+`pending` — that is a complete, valid end state, not an unfinished one.
+
+**Who runs what (governs every step in this stage).** The agent
+*prepares* — exact commands, edited config, a ready PR — but the
+**customer performs** any step that (a) handles a real secret value,
+(b) runs under their own Cloudflare/GitHub authenticated session, or
+(c) mutates their production environment. The agent's job in each step
+is to make it a single unambiguous command (or a one-click merge),
+verify the pre-state, and confirm the result after the customer reports
+back — never to perform the privileged action itself. The agent never
+sees/types/reads back a real secret, and never pushes or merges to the
+customer's `main`.
+
+## D.1: Bypass gate (`deploy-bypass-gated`)
+
+Do this **first**, before anything else in this stage. If
+`customer.authBypassActive` is `true`, the repo is **not** deploy-ready:
+a fabricated admin user must never ship. Re-comment the
+`DISABLE_AUTHENTICATION` block in `cloudflare/src/auth.js` (lines
+~161-172) — the exact inverse of the edit B.9 made — set
+`customer.authBypassActive` to `false`, and tell the customer real login
+is now required, which is why the Entra registration (D.6 / the note
+below) matters. Refuse to proceed with deploy while the bypass is
+active. Mark step `done` once re-commented.
+
+## D.2: Intake file generation (`intake-file-generated`)
 
 Several values need the customer to run a command or look something up
 in their own Cloudflare account first — not answerable one-at-a-time in
-chat. Generate `.internal/customer-config.json` pre-populated with these
-fields, each `null` until filled in:
+chat, and needed only for deploy (local dev uses simulated bindings, so
+these are irrelevant to running locally). Generate
+`.internal/customer-config.json` pre-populated with these fields, each
+`null` until filled in:
 
 ```json
 {
@@ -425,9 +687,10 @@ fields, each `null` until filled in:
 }
 ```
 
-Tell the customer, for each field, exactly how to get the value —
-prefer the `wrangler` CLI wherever it gives an unambiguous answer, fall
-back to a dashboard path only where no CLI getter exists:
+Tell the customer, for each field, exactly how to get the value — the
+**customer runs** these `wrangler` commands under their own account;
+prefer the CLI wherever it gives an unambiguous answer, fall back to a
+dashboard path only where no CLI getter exists:
 
 - `cloudflareAccountId` — `wrangler whoami` (or dashboard: Workers &
   Pages → Overview → Account Details).
@@ -450,41 +713,15 @@ when done. Mark step `blocked` until they confirm, then re-read the
 file, confirm every field is non-null (except `productionDomain` if
 intentionally skipped), and mark `done`.
 
-## B.7: Content Hub credential collection (`content-hub-creds-collected`)
-
-Ask the customer for:
-
-- **`AEM_ENV_ID`** — their AEM Program + Environment ID, `pXXXX-eYYYY`.
-- **Content Hub OAuth Server-to-Server credentials** — client ID and
-  secret, from an Adobe Developer Console project with access to that
-  delivery environment's Dynamic Media / Content Hub API.
-
-Never ask the customer to paste secret values into the chat:
-
-1. Tell them to create `cloudflare/.secrets` (gitignored) from the
-   template documented in `cloudflare/README.md` / root `README.md`.
-2. Tell them exactly which two lines to add: `SPARK_DM_CLIENT_ID="..."`
-   and `SPARK_DM_CLIENT_SECRET="..."`.
-3. Confirm with them that they've done it — do not read the file's
-   contents yourself to "verify."
-
-Also check whether `cloudflare/.secrets` has a `SPARK_COOKIE_SECRET`
-line — required by `cloudflare/src/auth.js`'s `REQUIRED_ENV_VARS`
-regardless of auth-bypass state. If missing, generate one locally with
-`openssl rand -base64 32` and have the customer add it themselves.
-
-Write only the non-secret `aemEnvId` into `customer.aemEnvId`. Mark step
-`done` once the customer confirms all three lines are in place.
-
-## B.8: Repo identity rename (`repo-identity-rename-applied`)
+## D.3: Repo identity rename (`repo-identity-rename-applied`)
 
 Repoint every remaining file that identifies the upstream template's
 *Cloudflare account* rather than this customer's own — everything here
-genuinely depends on the intake file (B.6) and Content Hub credentials
-(B.7), unlike B.4's Helix-URL/README fix, which already ran earlier and
-needed neither. One bulk, previewed, single-confirmation pass — not
-file-by-file confirmations, since every change here is a mechanical
-substitution of values already known by this point.
+depends on the intake file (D.2), unlike B.4's Helix-URL/README fix,
+which already ran earlier and needed no account data. One bulk,
+previewed, single-confirmation pass — not file-by-file confirmations,
+since every change here is a mechanical substitution of values already
+known by this point.
 
 **Gather the substitution map** (old → new), reading old values live
 from the files:
@@ -494,9 +731,15 @@ from the files:
 - Production domain / workers.dev subdomain: read the current
   route/domain literals → new values from the intake file.
 - KV namespace id, three D1 database ids, Secrets Store id: read current
-  ids in `wrangler.toml` → new values from the intake file.
+  ids in `wrangler.toml` → new values from the intake file. **Note the
+  known template bug**: the three D1 bindings currently share one
+  `database_id` — the customer must end up with three *distinct* ids
+  here, one per database.
 - `AEM_ENV_ID`: read the current value in `wrangler.toml` → new value
   from `customer.aemEnvId`.
+
+Mirror var changes into **both** `[env.production.vars]` and
+`[env.branch.vars]` — the toml warns to keep them in sync.
 
 **Files to update** (re-derive by searching, this is a starting point,
 not a guarantee). Note `README.md` and `local.sh`'s `AEM_PAGES_URL`
@@ -538,86 +781,99 @@ regenerate the lockfiles via `npm install` — do not hand-edit them.
 
 Mark step `done` once applied and confirmed.
 
-## B.9: Auth-bypass check (`auth-bypass-checked`)
+## D.4: Push secrets to the remote Secrets Store (`remote-secrets-pushed`)
 
-Read `cloudflare/src/auth.js` and check whether the
-`DISABLE_AUTHENTICATION` bypass block inside `withAuthentication` is
-active code or commented out.
+Critical distinction: the `cloudflare/.secrets` file (from B.7) populates
+only the **local** simulated store — it never reaches the deployed
+worker. There is no automation that pushes it. The deployed worker's
+secrets are set by a **manual, per-secret** command the **customer
+runs** under their own `wrangler` session. The agent supplies each
+command with the `<name>` filled in; the customer runs it and enters the
+value; the agent never sees the value.
 
-If commented out (as of this writing, it is — lines ~161-172): tell the
-customer plainly that setting `DISABLE_AUTHENTICATION=true` will **not**
-actually disable login today. Every route still requires a valid session
-cookie via the normal Entra flow. Give the exact file/line location. Ask
-whether they want to proceed anyway with real auth required locally, or
-pause until they/their engineering team restores the bypass block.
+For each secret the deploy needs, against the Secrets Store id now in
+`wrangler.toml`:
 
-Do not edit `auth.js` yourself. Record `customer.authBypassActive` as
-`true` or `false` based on what you found, and mark this step `done`
-either way — "done" means "the true state is now known," not "the bypass
-works."
+```
+npx wrangler secrets-store secret create <store-id> --scopes workers --name <SPARK_NAME>
+```
 
-Still set `DISABLE_AUTHENTICATION=true` in the local env regardless.
+Secrets to push: `SPARK_COOKIE_SECRET`, `SPARK_HELIX_ORIGIN_AUTHENTICATION`,
+`SPARK_DM_CLIENT_ID`, `SPARK_DM_CLIENT_SECRET`, and — since deploy means
+real login is active — `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET` (needed for
+`/auth/*` and SMTP). Note `--scopes workers` and **no** `--local` (that
+would target the local store again). Mark step `done` once the customer
+confirms all are set.
 
-## B.10: Local environment configuration (`local-env-configured`)
+## D.5: Migrate the remote D1 databases (`remote-d1-migrated`)
 
-`wrangler.toml`'s `HELIX_ORIGIN` isn't consulted by `local.sh` for local
-dev (it always points the local Cloudflare worker at the locally-running
-`aem up` server) — but it matters for CI/deploy, already corrected in B.4
-(Helix URL) and B.8 (the rest of the Cloudflare-account identity).
+Local D1 setup uses `--local`; the real production databases need the
+schema applied explicitly, and there is no migrations framework wired
+up. The **customer runs**, once per database, under their own session:
 
-Set for the `npm run dev` invocation:
+```
+npx wrangler d1 execute <db-name> --remote --file cloudflare/schema/<file>.sql
+```
 
-- `AEM_PAGES_URL` = `https://main--{repo}--{org}.aem.page` (from B.2/B.3).
-- `AEM_ENV_ID` = the value from B.7.
-- `DISABLE_AUTHENTICATION` = `true`.
+for `user_logins.sql`, `audit_events.sql`, `search_events.sql` against
+the three databases. Only production has D1 (branch/preview deploys have
+none), so this targets the production databases. Mark step `done` once
+the customer confirms.
 
-Mark step `done`.
+## D.6: Set the CI deploy token (`ci-token-set`)
 
-## B.11: Boot verification (`boot-verified`)
+Deploy runs in GitHub Actions and needs exactly one repo secret. The
+**customer adds** `CLOUDFLARE_API_TOKEN` to their fork's GitHub repo
+secrets (Settings → Secrets and variables → Actions → New repository
+secret), scoped to deploy Workers on their account. The agent can't and
+shouldn't set this. Mark step `done` once confirmed.
 
-Run `npm run dev` with the environment from B.10. Wait for both the AEM
-dev server and the Cloudflare worker dev server to report ready (watch
-for the script's own "Ready on http://localhost:{port}" line).
+## D.7: Deploy via merge (`deployed-via-merge`)
 
-Once up, verify, in order:
+Deploy is CI-driven, not a script: `.github/workflows/release.yaml` runs
+`wrangler deploy --env production` on push to `main`, and `build.yaml`
+auto-deploys a per-PR branch worker on pull requests. So **deploying =
+merging to `main`**.
 
-1. **The server is serving this repo's own local files**, not a stale or
-   unrelated cached directory — confirm a distinctive string from a
-   local file actually appears in the served output.
-2. Auth-redirect behavior matches what B.9 recorded.
-3. A real search request returns results sourced from the customer's own
-   Content Hub environment.
+Do **not** use `npm run deploy` / `cloudflare/scripts/deploy.sh` — it's
+stale (no `--env`, hardcoded upstream identity) and diverges from the CI
+path. Tell the customer this explicitly if they reach for it.
 
-If search fails, check in order: wrong/missing
-`SPARK_DM_CLIENT_ID`/`SECRET`, wrong `AEM_ENV_ID`, or the Content Hub
-technical account lacking access to that delivery environment.
+The agent prepares and verifies the PR (all deploy steps above done,
+bypass re-commented, CI token set) and confirms it's ready; the
+**customer merges** — the agent never pushes or merges to their `main`.
+Once merged, watch the Actions run and confirm the deploy succeeded.
+Mark step `done`, and set `phases["backend-onboarding"].status` to
+`"done"`.
 
-Mark step `done` once verified.
+## D.8: Updating values later
 
-## B.12: Deploy readiness note (`deploy-readiness-noted`)
+Tell the customer how to change a value after the initial setup — the
+path differs by what kind of value it is:
 
-Informational only — this phase never deploys. Tell the customer plainly
-what's still needed before any real deploy:
+- **A non-secret var** (e.g. `AEM_ENV_ID`, a domain/route,
+  `MICROSOFT_ENTRA_CLIENT_ID`, session expiry): edit it in
+  `wrangler.toml` — in **both** `[env.production.vars]` and
+  `[env.branch.vars]`, which the toml itself warns to keep in sync — then
+  **re-deploy by merging to `main`**.
+- **A secret** (`SPARK_DM_CLIENT_SECRET`, `SPARK_COOKIE_SECRET`,
+  `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET`, etc.): update it **directly in
+  the Secret Store, no redeploy needed** — re-run the D.4 command
+  (`wrangler secrets-store secret create/update <store-id> --scopes workers --name <SPARK_NAME>`).
+  This no-redeploy rotation is the whole reason the app uses Secret Store
+  over baked-in worker secrets. Note that editing local
+  `cloudflare/.secrets` does **not** touch the deployed store — it's a
+  separate local copy, and the two can silently drift.
+- **A D1 schema change**: re-run the D.5 remote `wrangler d1 execute
+  --remote` against the affected database — there's no migrations
+  framework to do this automatically.
 
-- **A real Microsoft Entra app registration**: `cloudflare/src/auth.js`'s
-  `REQUIRED_ENV_VARS` hard-blocks `/auth/*` (503) if
-  `MICROSOFT_ENTRA_TENANT_ID`/`CLIENT_ID` are missing, regardless of
-  auth-bypass state. Their IT admin: entra.microsoft.com → **App
-  registrations → New registration** → redirect URI under **Single-page
-  application** platform → copy the **Application (client) ID** and
-  **Directory (tenant) ID**. No premium license tier required. If they
-  also want SMTP, the same registration can hold an additional **Web**
-  platform config with a client secret.
-- **The auth-bypass gap itself** — either it stays unresolved (real
-  login required everywhere deployed) or their engineering team restores
-  the bypass block — their call.
-- **Any intake-file fields left blank** — note which ones.
-
-Mark step `done` once reported, and set
-`phases["backend-onboarding"].status` to `"done"`.
+This step is informational; mark `done` once conveyed.
 
 ## Phase B completion report
 
-Summarize plainly: what's now configured and verified; every identity
-value renamed and where; the true auth-bypass state; the deploy
-checklist; the known PDF-preview gap; the state/intake file locations.
+Summarize plainly: the tier that's running and verified; for a deploy,
+every identity value renamed and where, and that the auth bypass is
+re-commented; the true auth state; the known PDF-preview gap
+(`adobe-pdf-viewer.js`); any intake fields left blank; the update paths
+from D.8; and the state/intake file locations.
