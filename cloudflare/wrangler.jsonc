@@ -39,6 +39,13 @@
       // preview.frescopamedia.com is attached as a Workers Custom Domain
       // (Dashboard: Workers & Pages > spark-eds-production > Settings >
       // Domains & Routes), not a Route here.
+      "vars": {
+        // AEM EDS live origin for production. Kept here (not injected via
+        // --var at deploy time) so a var-less `wrangler deploy` cannot wipe it
+        // and leave env.HELIX_ORIGIN undefined -> originHelix crash -> 1101.
+        // index.js swaps .aem.live -> .aem.page at runtime for the preview host.
+        "HELIX_ORIGIN": "https://main--assethub-spark--aem-showcase.aem.live"
+      },
       "kv_namespaces": [
         {
           "binding": "AUTH_TOKENS",
