@@ -193,7 +193,10 @@ def build_index():
     doc.add_paragraph(
         'Search, preview, and download brand-approved coffee, machine, and lifestyle imagery.'
     )
-    add_block_table(doc, 'search-bar')
+    add_block_table(doc, 'search-bar', [
+        ('enableSemanticSearch', 'true'),
+        ('enableNaturalLanguageSearch', 'true'),
+    ])
     add_section_metadata(doc, 'search-hero')
     add_hr(doc)
 
@@ -217,7 +220,10 @@ def build_search():
     """Dedicated asset search page: search bar + results grid (Santander pattern)."""
     doc = Document()
 
-    add_block_table(doc, 'search-bar')
+    add_block_table(doc, 'search-bar', [
+        ('enableSemanticSearch', 'true'),
+        ('enableNaturalLanguageSearch', 'true'),
+    ])
     add_hr(doc)
     add_block_table(doc, 'search-results', [
         ('excFacets', ASSET_EXC_FACETS),

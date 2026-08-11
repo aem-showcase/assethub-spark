@@ -911,6 +911,13 @@ export async function originDynamicMedia(request, env, ctx) {
   // easily reach 3KB+) and push total headers past the upstream's 8KB limit → 400.
   headers.delete('referer');
 
+  // The incoming request's Content-Length reflects the original browser-sent body.
+  // Search (and other) handlers above may have re-serialized `body` after injecting
+  // auth clauses, changing its byte length — a stale Content-Length here causes the
+  // upstream to read a truncated/misframed body ("Expecting value" JSON parse errors).
+  // Let fetch() (via undici) compute the correct Content-Length from the actual body.
+  headers.delete('content-length');
+
   const response = await fetch(url, {
     method: request.method,
     headers: headers,
