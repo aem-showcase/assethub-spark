@@ -52,6 +52,7 @@ export async function createSearchPanel(container, callbacks) {
   const {
     viewType, expandAllDetails, isMobileFilterOpen, selectedSortType, selectedSortDirection,
   } = state;
+  const hideControls = !!state.externalParams?.hideControls;
 
   // Sort options: key -> label mapping (state stores keys, display uses labels)
   const sortTypeOptions = [
@@ -59,6 +60,8 @@ export async function createSearchPanel(container, callbacks) {
     { key: 'dateCreated', label: ph(placeholders, 'dateCreated', 'Date Created') },
     { key: 'lastModified', label: ph(placeholders, 'lastModified', 'Last Modified') },
     { key: 'size', label: ph(placeholders, 'size', 'Size') },
+    { key: 'download7Days', label: ph(placeholders, 'download7Days', 'Downloads (Last 7 Days)') },
+    { key: 'download30Days', label: ph(placeholders, 'download30Days', 'Downloads (Last 30 Days)') },
   ];
 
   const sortDirectionOptions = [
@@ -88,8 +91,10 @@ export async function createSearchPanel(container, callbacks) {
       <div class="primary-panel-container">
         <!-- Left side -->
         <div class="left-panel-group">
-          <div class="sort-dropdown-container SortCards sort-dropdown-disabled" id="sort-type-dropdown"></div>
-          <div class="sort-dropdown-container SortCards sort-dropdown-disabled" id="sort-direction-dropdown"></div>
+          ${hideControls ? '' : `
+            <div class="sort-dropdown-container SortCards sort-dropdown-disabled" id="sort-type-dropdown"></div>
+            <div class="sort-dropdown-container SortCards sort-dropdown-disabled" id="sort-direction-dropdown"></div>
+          `}
 
           <!-- Show Full Details Toggle -->
           <div class="cmp-title">
@@ -101,7 +106,7 @@ export async function createSearchPanel(container, callbacks) {
             </h1>
           </div>
         </div>
-        
+
         <!-- Right side: Filter button -->
         <div class="right-panel-group">
           <div class="card-view-container">
@@ -112,11 +117,13 @@ export async function createSearchPanel(container, callbacks) {
               <span class="icon-mask icon-mask-listview" aria-hidden="true"></span>
             </button>
           </div>
-          
-          <button class="filter-button" type="button" aria-label="${filterLabel}">
-            <span class="icon-mask icon-mask-filter-search filter-icon" aria-hidden="true"></span>
-            ${isMobileFilterOpen ? hideFilterLabel : showFilterLabel}
-          </button>
+
+          ${hideControls ? '' : `
+            <button class="filter-button" type="button" aria-label="${filterLabel}">
+              <span class="icon-mask icon-mask-filter-search filter-icon" aria-hidden="true"></span>
+              ${isMobileFilterOpen ? hideFilterLabel : showFilterLabel}
+            </button>
+          `}
         </div>
       </div>
     </div>

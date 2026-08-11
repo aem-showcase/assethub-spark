@@ -9,6 +9,8 @@ export const SORT_TYPE = {
   DATE_CREATED: 'dateCreated',
   LAST_MODIFIED: 'lastModified',
   SIZE: 'size',
+  DOWNLOAD_7_DAYS: 'download7Days',
+  DOWNLOAD_30_DAYS: 'download30Days',
 };
 
 // Sort direction constants (keys match state values)
@@ -22,6 +24,16 @@ export const SORT_TYPE_FIELD_MAP = {
   [SORT_TYPE.DATE_CREATED]: 'repositoryMetadata.repo:createDate',
   [SORT_TYPE.LAST_MODIFIED]: 'repositoryMetadata.repo:modifyDate',
   [SORT_TYPE.SIZE]: 'repositoryMetadata.repo:size',
+  [SORT_TYPE.DOWNLOAD_7_DAYS]: 'assetMetadata.download7Days',
+  [SORT_TYPE.DOWNLOAD_30_DAYS]: 'assetMetadata.download30Days',
+};
+
+// Secondary (tie-break) field for sort types where ties are likely (e.g. equal download counts).
+// orderBy supports a comma-separated list of "field direction" expressions; ties on the first
+// expression are broken by the second. See AEM Assets Delivery API OrderBy schema.
+const SORT_TYPE_TIEBREAK_FIELD_MAP = {
+  [SORT_TYPE.DOWNLOAD_7_DAYS]: 'assetMetadata.lastDownloadedAt',
+  [SORT_TYPE.DOWNLOAD_30_DAYS]: 'assetMetadata.lastDownloadedAt',
 };
 
 export const DEFAULT_SORT_TYPE = SORT_TYPE.TOP_RESULTS;
@@ -31,15 +43,20 @@ const VALID_SORT_TYPES = Object.values(SORT_TYPE);
 const VALID_SORT_DIRECTIONS = Object.values(SORT_DIRECTION);
 
 /**
- * Build orderBy string for ContentAI from sort type and direction
- * @param {string} sortType - Sort type ('dateCreated', 'lastModified', 'size')
+ * Build orderBy string for ContentAI from sort type and direction.
+ * Appends a tie-break field (comma-separated) for sort types where ties are
+ * likely, per SORT_TYPE_TIEBREAK_FIELD_MAP.
+ * @param {string} sortType - Sort type ('dateCreated', 'lastModified', 'size',
+ *   'download7Days', 'download30Days')
  * @param {string} sortDirection - Sort direction ('ascending' or 'descending')
  * @returns {string} orderBy string (e.g. 'repositoryMetadata.repo:modifyDate desc')
  */
 export function buildOrderBy(sortType, sortDirection) {
   const field = SORT_TYPE_FIELD_MAP[sortType] || SORT_TYPE_FIELD_MAP[SORT_TYPE.LAST_MODIFIED];
   const direction = sortDirection === SORT_DIRECTION.ASCENDING ? 'asc' : 'desc';
-  return `${field} ${direction}`;
+  const tiebreakField = SORT_TYPE_TIEBREAK_FIELD_MAP[sortType];
+  const primary = `${field} ${direction}`;
+  return tiebreakField ? `${primary},${tiebreakField} ${direction}` : primary;
 }
 
 // --- Per-page sort preference (session storage) ---

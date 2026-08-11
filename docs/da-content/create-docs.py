@@ -166,6 +166,8 @@ def add_nav_role_metadata(doc, role):
     table.rows[1].cells[0].text = 'role'
     table.rows[1].cells[1].text = role
     doc.add_paragraph('')
+
+
 def add_cards(doc, cards):
     """1-column Cards block: each row is a category tile with a Browse link."""
     table = doc.add_table(rows=1 + len(cards), cols=1)

@@ -240,6 +240,18 @@ async function processContentAIImages(rawResponse, isLoadingMoreFlag = false, hi
 }
 
 /**
+ * Build a numeric filter scoping results to assets downloaded within the last N days,
+ * computed fresh at call time (not a stale baked-in timestamp).
+ * @param {number} windowDays - Number of days to look back; 0/falsy disables the filter.
+ * @returns {string[]} Numeric filter array (empty when windowDays is not set).
+ */
+function getTrendingWindowFilters(windowDays) {
+  if (!windowDays) return [];
+  const sinceEpochSeconds = Math.floor((Date.now() - windowDays * 24 * 60 * 60 * 1000) / 1000);
+  return [`assetMetadata.lastDownloadedAt >= ${sinceEpochSeconds}`];
+}
+
+/**
  * Perform search for images
  * @param {string} query - Search query
  * @param {number} page - Page number
@@ -279,10 +291,13 @@ export async function performSearchImages(query, page = 0) {
     // Use ContentAI search
     const cursor = isLoadingMoreFlag ? state.contentAICursor : null;
     const hitsPerPage = getHitsPerPage();
+    const trendingWindowFilters = getTrendingWindowFilters(
+      state.externalParams?.trendingWindowDays,
+    );
     const rawResponse = await getContentAIClient().searchAssets(query.trim(), {
       facets: Object.keys(getFacetsConfig()),
       facetFilters: selectedFacetFilters,
-      numericFilters: state.selectedNumericFilters,
+      numericFilters: [...trendingWindowFilters, ...state.selectedNumericFilters],
       filters: state.presetFilters,
       hitsPerPage,
       cursor,
@@ -478,6 +493,10 @@ export default async function decorate(block) {
     excFacets: safeJsonParse(blockObj.excFacets, 'excFacets'),
     mimeTypeMappings,
     presetFilters: blockObj.presetFilters ? convertHtmlListToArray(blockObj.presetFilters) : [],
+    trendingWindowDays: parseInt(stripHtmlAndNewlines(blockObj.trendingWindowDays), 10) || 0,
+    hideControls: stripHtmlAndNewlines(blockObj.hideControls)?.toLowerCase() === 'true',
+    showRecentlyDownloadedTag: stripHtmlAndNewlines(blockObj.showRecentlyDownloadedTag)
+      ?.toLowerCase() === 'true',
     ...(window.SearchResultsConfig.externalParams || {}),
   };
 

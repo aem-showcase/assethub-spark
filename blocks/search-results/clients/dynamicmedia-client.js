@@ -88,15 +88,27 @@ export class DynamicMediaClient {
    */
   parseNumericFilters(numericFilters) {
     const ranges = {};
+    const dateFacetKeys = getDateFacets();
 
     numericFilters.forEach((filter) => {
-      // Parse filters like "repo-createDate >= 1756710000" or "repo:modifyDate >= 1756710000"
-      const match = filter.match(/^([a-zA-Z0-9:-]+)\s*(>=|<=|>|<)\s*(\d+)$/);
+      // Parse filters like "repo-createDate >= 1756710000" (facet key, epoch seconds) or
+      // "assetMetadata.download7Days > 0" (already-qualified ContentAI field, plain count)
+      const match = filter.match(/^([a-zA-Z0-9:.-]+)\s*(>=|<=|>|<)\s*(\d+)$/);
       if (match) {
         const [, field, operator, value] = match;
-        const contentAIField = this.getContentAIFieldPath(field);
-        const epochValue = parseInt(value, 10);
-        const isoDate = new Date(epochValue * 1000).toISOString();
+        // A field containing a dot is already a fully-qualified ContentAI path
+        // (e.g. assetMetadata.download7Days, assetMetadata.lastDownloadedAt);
+        // only facet keys need path resolution.
+        const isQualifiedField = field.includes('.');
+        const contentAIField = isQualifiedField ? field : this.getContentAIFieldPath(field);
+        // Date-valued fields carry epoch seconds and need ISO conversion; everything else
+        // (plain counts, etc.) is passed through as-is. Detected by name, since qualified
+        // fields aren't in the facet-key-based getDateFacets() list.
+        const isDateField = /date|At$/i.test(field) || dateFacetKeys.includes(field);
+        const numericValue = parseInt(value, 10);
+        const rangeValue = isDateField
+          ? new Date(numericValue * 1000).toISOString()
+          : numericValue;
 
         if (!ranges[contentAIField]) {
           ranges[contentAIField] = {};
@@ -104,16 +116,16 @@ export class DynamicMediaClient {
 
         switch (operator) {
           case '>=':
-            ranges[contentAIField].gte = isoDate;
+            ranges[contentAIField].gte = rangeValue;
             break;
           case '<=':
-            ranges[contentAIField].lte = isoDate;
+            ranges[contentAIField].lte = rangeValue;
             break;
           case '>':
-            ranges[contentAIField].gt = isoDate;
+            ranges[contentAIField].gt = rangeValue;
             break;
           case '<':
-            ranges[contentAIField].lt = isoDate;
+            ranges[contentAIField].lt = rangeValue;
             break;
           default:
             break;

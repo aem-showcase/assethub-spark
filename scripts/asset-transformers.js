@@ -356,6 +356,11 @@ export function populateAssetFromMetadata(metadata) {
       safeMetadataStringField(repoMeta, assetMeta, 'dc:title'),
     ),
     lastModified: safeMetadataDateField(repoMeta, assetMeta, 'repo:modifyDate'),
+    // Raw value (not pre-formatted) so the UI can render it as a relative date
+    // (e.g. "3 days ago") via formatRelativeDate.
+    lastDownloadedAt: assetMeta?.lastDownloadedAt || repoMeta?.lastDownloadedAt || '',
+    downloads7Days: Number(assetMeta?.download7Days) || 0,
+    downloads30Days: Number(assetMeta?.download30Days) || 0,
     modifyDate: safeMetadataDateField(repoMeta, assetMeta, 'repo:modifyDate'),
     name,
     orientation,
@@ -435,6 +440,11 @@ export function populateAssetFromContentAIHit(contentAIHit) {
     imageHeight: tiffImageLength ? String(tiffImageLength) : 'N/A',
     illustratorType: safeStringField(assetMetadata, 'illustrator:Type'),
     orientation: safeStringField(assetMetadata, 'tiff:Orientation'),
+
+    // Download activity
+    downloads7Days: Number(assetMetadata.download7Days) || 0,
+    downloads30Days: Number(assetMetadata.download30Days) || 0,
+    lastDownloadedAt: assetMetadata.lastDownloadedAt || '',
 
     // User tracking fields
     createdBy: safeStringField(repositoryMetadata, 'repo:createdBy'),

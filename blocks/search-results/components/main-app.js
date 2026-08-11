@@ -6,6 +6,7 @@
 import {
   subscribe,
   search,
+  getState,
   handleLoadMoreResults,
   handleFacetCheckbox,
   handleClearAllFacets,
@@ -28,15 +29,19 @@ export async function createMainApp(container) {
     getDaPlaceholders(),
   ]);
 
+  const hideControls = !!getState().externalParams?.hideControls;
+
   // Build the main structure (no extra container wrapper needed - block element is the container)
   container.innerHTML = `
     <div class="main-content">
       <div class="images-container">
         <div class="images-content-wrapper">
           <div class="images-content-row">
-            <div class="facet-filter-panel" id="facet-filter-panel">
-              <!-- Facets will be rendered here -->
-            </div>
+            ${hideControls ? '' : `
+              <div class="facet-filter-panel" id="facet-filter-panel">
+                <!-- Facets will be rendered here -->
+              </div>
+            `}
             <div class="images-main">
               <div class="image-gallery" id="image-gallery">
                 <!-- Gallery will be rendered here -->
@@ -63,12 +68,14 @@ export async function createMainApp(container) {
     onBulkAddToCart: handleBulkAddToCart,
   });
 
-  // Create facets panel
-  createFacetsPanel(facetsContainer, {
-    search,
-    onFacetCheckbox: handleFacetCheckbox,
-    onClearAllFacets: handleClearAllFacets,
-  });
+  // Create facets panel (skipped when hideControls is set, e.g. on the Trending page)
+  if (facetsContainer) {
+    createFacetsPanel(facetsContainer, {
+      search,
+      onFacetCheckbox: handleFacetCheckbox,
+      onClearAllFacets: handleClearAllFacets,
+    });
+  }
 
   // Subscribe to state changes for panels and mobile filter
   subscribe((currentState, prevState, updates) => {

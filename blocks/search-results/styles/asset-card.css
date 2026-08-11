@@ -101,6 +101,29 @@
   flex-shrink: 0;
 }
 
+/* Recently Downloaded label — plain text, no icon, no pill background.
+   Sits in normal document flow above the title, never overlaps the image
+   (hard requirement: badge must never sit on the photo). */
+.asset-card-view-grid .recently-downloaded-label,
+.asset-card-view-list .recently-downloaded-label {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 6px;
+  cursor: default;
+}
+
+.asset-card-view-grid .recently-downloaded-label svg,
+.asset-card-view-list .recently-downloaded-label svg {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
+  flex-shrink: 0;
+  fill: #ea580c;
+}
+
 /* Product title */
 .asset-card-view-grid .product-title,
 .asset-card-view-list .product-title {

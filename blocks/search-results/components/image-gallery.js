@@ -19,6 +19,7 @@ import { buildAssetDetailsUrl } from '../../../scripts/asset-id-utils.js';
 import showToast from '../../../scripts/toast/toast.js';
 import { getAppLabel } from '../../../scripts/locale-utils.js';
 import { getSearchPlaceholders, ph } from '../utils/placeholders.js';
+import { getPopularThreshold } from '../utils/popular-utils.js';
 
 let popstateHandler = null;
 let escapeHandler = null;
@@ -60,6 +61,8 @@ export async function createImageGallery(container, callbacks) {
   const t = await getAppLabel();
   const viewLargerImageLabel = t('viewLargerImage', 'Preview');
   const downloadLabel = ph(placeholders, 'download', 'Download');
+  const popularBadgeLabel = ph(placeholders, 'popularBadgeLabel', 'Popular');
+  const recentlyDownloadedLabel = ph(placeholders, 'recentlyDownloadedLabel', 'Recently Downloaded');
 
   let selectedCards = new Set();
   let previousImageCount = 0; // Track image count for Load More optimization
@@ -196,6 +199,7 @@ export async function createImageGallery(container, callbacks) {
     const fileExtLabel = ph(placeholders, 'fileExtension', 'FILE EXT');
 
     if (assetsGrid && visibleImages.length > 0) {
+      const popularThreshold = getPopularThreshold();
       visibleImages.forEach((image, index) => {
         const cardElement = createAssetCard({
           image,
@@ -208,6 +212,9 @@ export async function createImageGallery(container, callbacks) {
           fileExtLabel,
           viewLargerImageLabel,
           downloadLabel,
+          popularBadgeLabel,
+          recentlyDownloadedLabel,
+          popularThreshold,
           addToCartLabel,
           removeFromCartLabel,
           cartAssetItems,
@@ -252,6 +259,7 @@ export async function createImageGallery(container, callbacks) {
     if (!assetsGrid || newImages.length === 0) return;
 
     const currentCount = assetsGrid.children.length;
+    const popularThreshold = getPopularThreshold();
 
     newImages.forEach((image, index) => {
       const cardElement = createAssetCard({
@@ -265,6 +273,9 @@ export async function createImageGallery(container, callbacks) {
         fileExtLabel: ph(placeholders, 'fileExtension', 'FILE EXT'),
         viewLargerImageLabel,
         downloadLabel,
+        popularBadgeLabel,
+        recentlyDownloadedLabel,
+        popularThreshold,
         addToCartLabel: ph(placeholders, 'addToCart', 'Add To Cart'),
         removeFromCartLabel: ph(placeholders, 'removeFromCart', 'Remove From Cart'),
         cartAssetItems,
