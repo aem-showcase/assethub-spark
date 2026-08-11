@@ -985,4 +985,6 @@ export {
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
+  // IMS token (shared with coa.js — same DM S2S technical account, same x-api-key)
+  getIMSToken,
 };

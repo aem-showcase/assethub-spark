@@ -381,6 +381,17 @@ def build_my_notifications():
     )
 
 
+def build_renditions():
+    """AI-generated image renditions page (renditions block, COA feature)."""
+    build_report_page(
+        'renditions.docx',
+        'renditions',
+        'Generated Renditions',
+        'AI-generated image renditions from the Content Optimization Agent.',
+        'en/renditions',
+    )
+
+
 def build_welcome():
     """Login/welcome page: shown to unauthenticated users at /public/welcome.
 
@@ -468,6 +479,7 @@ def main():
     build_reports_searches()
     build_reports_asset_activity()
     build_my_notifications()
+    build_renditions()
     build_nav()
     build_footer()
     build_welcome()
