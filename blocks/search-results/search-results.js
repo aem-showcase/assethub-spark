@@ -64,7 +64,7 @@ const LOADING = {
 
 // ContentAI match modes; FULLTEXT is the API's own default (mirrors MatchMode.yaml)
 const DEFAULT_SEARCH_MODE = 'FULLTEXT';
-const VALID_SEARCH_MODES = ['FULLTEXT', 'HYBRID', 'NATURAL_LANGUAGE'];
+const VALID_SEARCH_MODES = ['FULLTEXT', 'HYBRID'];
 
 // Central state store
 const state = {
@@ -115,7 +115,7 @@ const state = {
   selectedSortType: DEFAULT_SORT_TYPE,
   selectedSortDirection: DEFAULT_SORT_DIRECTION,
 
-  // ContentAI match mode: FULLTEXT (default), HYBRID, or NATURAL_LANGUAGE
+  // ContentAI match mode: FULLTEXT (default) or HYBRID
   searchMode: DEFAULT_SEARCH_MODE,
 
   // Renditions cache

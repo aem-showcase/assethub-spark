@@ -195,7 +195,6 @@ def build_index():
     )
     add_block_table(doc, 'search-bar', [
         ('enableSemanticSearch', 'true'),
-        ('enableNaturalLanguageSearch', 'true'),
     ])
     add_section_metadata(doc, 'search-hero')
     add_hr(doc)
@@ -222,7 +221,6 @@ def build_search():
 
     add_block_table(doc, 'search-bar', [
         ('enableSemanticSearch', 'true'),
-        ('enableNaturalLanguageSearch', 'true'),
     ])
     add_hr(doc)
     add_block_table(doc, 'search-results', [

@@ -408,9 +408,9 @@ export class DynamicMediaClient {
         text,
         ...(mode !== 'FULLTEXT' && { mode }),
         // `fields` is only defined on FullTextMatchQuery in the API's discriminator-mapped
-        // schema (HybridMatchQuery/NaturalLanguageMatchQuery declare no extra properties) —
-        // sending it for HYBRID/NATURAL_LANGUAGE causes a strict-deserialization failure
-        // ("Error while deserializing And query") on the backend. Only include it for FULLTEXT.
+        // schema (HybridMatchQuery declares no extra properties) — sending it for HYBRID
+        // causes a strict-deserialization failure ("Error while deserializing And query")
+        // on the backend. Only include it for FULLTEXT.
         // TPTODO: remove once number/date fields are no longer searchable
         ...(mode === 'FULLTEXT' && {
           fields: [

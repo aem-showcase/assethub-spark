@@ -45,12 +45,6 @@ const SEARCH_MODES = [
     labelDefault: 'Semantic Search',
     configKey: 'enableSemanticSearch',
   },
-  {
-    id: 'NATURAL_LANGUAGE',
-    labelKey: 'searchModeNaturalLanguage',
-    labelDefault: 'Natural Language',
-    configKey: 'enableNaturalLanguageSearch',
-  },
 ];
 
 function saveSearchModePreference(searchMode) {
