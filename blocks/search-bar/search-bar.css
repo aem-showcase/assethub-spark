@@ -14,6 +14,7 @@
 }
 
 .query-input-container {
+  position: relative;
   background: var(--light-color);
   display: flex;
   justify-content: center;
@@ -46,6 +47,15 @@
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
+}
+
+/* Space out the action controls (Cancel/Generate/Search) from the input and
+   from each other — the type-selector+input pairing stays flush (divided
+   only by .type-selector-btn's border-right) to keep its fused-pill look. */
+.generate-mode-badge,
+.generate-mode-submit,
+.query-search-btn {
+  margin-left: 8px;
 }
 
 .query-search-icon {
@@ -192,7 +202,6 @@
   border: none;
   border-radius: 999px;
   padding: 0 28px;
-  margin-left: -8px;
   font-size: var(--font-size-02);
   font-weight: 700;
   cursor: pointer;
@@ -207,6 +216,85 @@
   background: var(--primary-color-hover);
 }
 
+/* [hidden] normally beats author display rules of equal specificity only via
+   source order, which is unreliable — force it explicitly wherever JS toggles
+   the `hidden` attribute on an element this file also gives a `display` value. */
+.query-search-btn[hidden],
+.generate-mode-badge[hidden],
+.generate-mode-submit[hidden],
+.generate-mode-suggestions[hidden] {
+  display: none !important;
+}
+
+/* Generate mode (COA) */
+.generate-mode-badge {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.generate-mode-cancel {
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 999px;
+  color: var(--text-color);
+  font-size: var(--font-size-02);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 18px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.generate-mode-cancel:hover {
+  background: #f5f5f5;
+}
+
+.generate-mode-submit {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0 28px;
+  font-size: var(--font-size-02);
+  font-weight: 700;
+  cursor: pointer;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.generate-mode-submit:hover {
+  background: var(--primary-color-hover);
+}
+
+.generate-mode-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 8px 0;
+  width: 100%;
+  max-width: 720px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  z-index: 50;
+}
+
+.generate-mode-suggestions .generate-mode-suggestion {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: var(--font-size-02);
+  color: var(--text-color);
+  font-family: var(--body-font-family), sans-serif;
+}
+
+.generate-mode-suggestions .generate-mode-suggestion:hover {
+  background: #f5f5f5;
+}
+
 @media (width <= 600px) {
   .query-input-bar {
     flex-direction: column;
@@ -215,8 +303,14 @@
     padding: 8px;
   }
 
-  .query-search-btn {
+  .query-search-btn,
+  .generate-mode-badge,
+  .generate-mode-submit {
     margin: 12px 0 0;
+    width: 100%;
+  }
+
+  .generate-mode-cancel {
     width: 100%;
   }
 }
