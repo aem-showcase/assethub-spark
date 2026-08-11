@@ -151,7 +151,7 @@ export async function createSession(request, env) {
   ];
 
   const host = request.headers.get('host') || '';
-  const liveHosts = ['localhost', 'spark-eds.adobe.workers.dev'];
+  const liveHosts = ['localhost', 'frescopamedia.com'];
   const isNonLiveHost = !liveHosts.some((h) => host === h || host.startsWith(`${h}:`));
   if (isNonLiveHost) {
     if (!permissions.includes('preview')) {
