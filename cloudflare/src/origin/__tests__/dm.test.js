@@ -789,29 +789,29 @@ describe('dm.js - ContentAI Authorization', () => {
       expect(clauses).toEqual([]);
     });
 
-    it('should add fpo deny clause for external users', async () => {
+    it('should add preview deny clause for external users', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
     });
 
-    it('should not add fpo deny clause for internal users', async () => {
+    it('should not add preview deny clause for internal users', async () => {
       const request = { user: { email: 'user@adobe.com', userType: 'internal' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).not.toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+      expect(clauses).not.toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
     });
 
-    it('should still apply the country filter alongside the fpo deny clause for external users', async () => {
+    it('should still apply the country filter alongside the preview deny clause for external users', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
       const clauses = await buildAssetAuthClauses(request, {});
       expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['us', 'global'] } });
-      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
     });
 
-    it('should add the fpo deny clause even when the country filter is skipped', async () => {
+    it('should add the preview deny clause even when the country filter is skipped', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).toEqual([{ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] }]);
+      expect(clauses).toEqual([{ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] }]);
     });
   });
 
