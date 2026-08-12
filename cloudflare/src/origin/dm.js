@@ -530,8 +530,10 @@ function forceContentAISearchFilter(search, authClauses) {
  *   - `custom:userType`  — who can see the asset: 'internal', 'external', or 'all'
  *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes
  *                          or the special sentinel 'global' (visible to all countries)
- *   - `internalStatus`     — external users only see 'approved' or untagged assets;
- *                          internal users see all values (e.g. 'preview', 'fpo')
+ *   - `internalStatus`     — external users only see 'approved' assets, or assets where the
+ *                          field is absent entirely (checked explicitly via an exists clause,
+ *                          not relied on as undocumented `term` behavior); internal users see
+ *                          all values (e.g. 'preview', 'fpo')
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -583,10 +585,17 @@ async function buildAssetAuthClauses(request, _env) {
   }
 
   // --- Internal status filter ---
-  // External users only see assets tagged internalStatus=approved, or untagged.
-  // Internal (adobe.com) users are unrestricted by this field.
+  // External users only see assets tagged internalStatus=approved, or where the
+  // field is absent entirely. Don't rely on term's undocumented behavior for
+  // missing fields — explicit exists-check avoids depending on backend semantics
+  // that aren't confirmed by the ContentAI/Content Hub API schema.
   if (user.userType !== USER_TYPE.INTERNAL) {
-    clauses.push({ term: { 'assetMetadata.internalStatus': ['approved'] } });
+    clauses.push({
+      or: [
+        { term: { 'assetMetadata.internalStatus': ['approved'] } },
+        { not: [{ exists: { field: 'assetMetadata.internalStatus' } }] },
+      ],
+    });
   }
 
   return clauses;
