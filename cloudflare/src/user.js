@@ -102,11 +102,18 @@ async function handleSudo(request, env, user) {
       return user;
     }
 
+    // Capture the complete real, pre-simulation identity — not just the fields this
+    // cookie set happens to override — so callers can fully restore it (e.g. to
+    // build a permission check as if simulation weren't active) rather than only
+    // being able to recover individual fields piecemeal.
     user.su = {
       name: user.name,
       email: user.email,
       country: user.country,
       employeeType: user.employeeType,
+      roles: user.roles,
+      userType: user.userType,
+      countries: user.countries,
     };
 
     user.name = request.cookies.SUDO_NAME || user.name;
@@ -121,6 +128,10 @@ async function handleSudo(request, env, user) {
       country: user.country,
       employeeType: user.employeeType,
     });
+    // The simulated identity is always treated as non-admin for asset filtering,
+    // even if the (possibly unchanged) email/domain would otherwise resolve to an
+    // admin role — simulating anything means testing as a regular user.
+    attributes.roles = attributes.roles.filter((role) => role !== ROLE.ADMIN);
     user = { ...user, domain: sudoDomain, ...attributes };
   }
 

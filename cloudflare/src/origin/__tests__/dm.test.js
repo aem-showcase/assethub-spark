@@ -791,6 +791,35 @@ describe('dm.js - ContentAI Authorization', () => {
 
       expect(search.query).toEqual([{ and: [] }]);
     });
+
+    it('should strip useRealPermissions from the body before forwarding upstream', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+      const search = { query: [{ and: [] }], useRealPermissions: true };
+
+      await searchContentAIAuthorization(request, {}, search);
+
+      expect(search.useRealPermissions).toBeUndefined();
+    });
+
+    it('should use the real country when useRealPermissions is set while simulating', async () => {
+      const request = {
+        user: {
+          email: 'user@example.com',
+          country: 'DE',
+          su: { email: 'user@example.com', country: 'US' },
+        },
+      };
+      const search = { query: [{ and: [] }], useRealPermissions: true };
+
+      await searchContentAIAuthorization(request, {}, search);
+
+      const authBlock = search.query[0].and.find((c) => c.and);
+      const countryClause = authBlock.and.find((c) => c.term?.['assetMetadata.allowedCountries']);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['US', 'usa', 'global']),
+      );
+    });
   });
 
   describe('buildAssetAuthClauses', () => {
@@ -845,6 +874,97 @@ describe('dm.js - ContentAI Authorization', () => {
       const clauses = await buildAssetAuthClauses(request, {});
 
       expect(clauses).toEqual([]);
+    });
+
+    it('should filter by the simulated (non-admin) identity while sudo-simulating', async () => {
+      // Real user is admin, but is currently simulating a non-admin identity in
+      // Germany — the simulated search results must be filtered as that identity.
+      const request = {
+        user: {
+          email: 'external-user@example.com',
+          roles: [],
+          country: 'DE',
+          su: { email: 'admin@example.com', roles: ['admin'], country: 'US' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause).toBeDefined();
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['DE', 'germany', 'global']),
+      );
+    });
+
+    it('should filter by the simulated country even when the simulated identity keeps the real admin email', async () => {
+      // handleSudo() always strips the admin role from the simulated identity's
+      // roles, even when only country/userType is overridden and the email is
+      // unchanged (so the sheet lookup would otherwise still resolve 'admin').
+      // This models that post-handleSudo() shape directly.
+      const request = {
+        user: {
+          email: 'admin@example.com',
+          roles: [],
+          country: 'IT',
+          su: { email: 'admin@example.com', roles: ['admin'], country: 'US' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause).toBeDefined();
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['IT', 'global']),
+      );
+    });
+
+    it('should restore the real identity in full (roles + country) when useRealPermissions is set', async () => {
+      // Real user is admin; currently simulating a non-admin identity. The country
+      // picker's own lookup asks for real permissions, so it must bypass entirely
+      // (admin sees everything) rather than filtering by either identity's country.
+      const request = {
+        user: {
+          email: 'external-user@example.com',
+          roles: [],
+          country: 'DE',
+          su: { email: 'admin@example.com', roles: ['admin'], country: 'US' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {}, { useRealPermissions: true });
+
+      expect(clauses).toEqual([]);
+    });
+
+    it('should use the real pre-simulation country when the real identity is not an admin', async () => {
+      const request = {
+        user: {
+          email: 'user@example.com',
+          country: 'DE',
+          su: { email: 'user@example.com', country: 'US' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {}, { useRealPermissions: true });
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['US', 'usa', 'global']),
+      );
+      expect(countryClause.term['assetMetadata.allowedCountries']).not.toContain('DE');
+    });
+
+    it('should ignore useRealPermissions when the user is not sudo-simulating', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+
+      const clauses = await buildAssetAuthClauses(request, {}, { useRealPermissions: true });
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['DE', 'germany', 'global']),
+      );
     });
   });
 

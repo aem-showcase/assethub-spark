@@ -16,6 +16,11 @@ let cachedCountryOptions = null;
  * facet request the search filter sidebar uses (buildFacetsArray → CATEGORY facet on
  * assetMetadata.allowedCountries), so the simulation dropdown always shows the same
  * values a user could actually filter search results by — no fixed list, no mapping.
+ *
+ * Uses `useRealPermissions` so this lookup reflects the real, underlying user's own
+ * permissions rather than whatever country is currently being simulated — otherwise,
+ * once simulating e.g. 'usa', this call would itself be scoped to 'usa'-visible
+ * assets, and the dropdown could never offer any other country again.
  * @returns {Promise<{value: string, label: string}[]>} Raw facet values, sorted by label
  */
 async function fetchSimulatableCountries() {
@@ -26,6 +31,9 @@ async function fetchSimulatableCountries() {
       facets: [ALLOWED_COUNTRIES_FACET_ID],
       skipFacetsRequest: false,
       hitsPerPage: 0,
+      // Always show every country the real, underlying user could see — not the
+      // subset visible under whatever country is currently being simulated.
+      useRealPermissions: true,
     });
     const facet = (response?.facets || []).find((f) => f.id === ALLOWED_COUNTRIES_FACET_ID);
     const values = facet?.values || [];

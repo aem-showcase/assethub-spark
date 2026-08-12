@@ -40,18 +40,22 @@ export const COUNTRY_NAME_TO_CODE = Object.freeze(
 );
 
 /**
- * Resolve all values that should match a given ISO country code in asset metadata —
- * the raw code itself plus its mapped lowercase name, if known, so the auth filter
- * matches assets tagged with either form.
- * @param {string} isoCode - ISO-3166-1 alpha-2 country code (any case)
+ * Resolve all values that should match a given country value in asset metadata —
+ * the raw value itself plus its mapped code/name counterpart, if known, so the auth
+ * filter matches assets tagged with either an ISO code or a full country name.
+ * Accepts either form as input (e.g. `user.country` can be an ISO code from the
+ * Entra ID `ctry` claim, or a full name from the simulation country picker).
+ * @param {string} country - ISO-3166-1 alpha-2 country code or full country name (any case)
  * @returns {string[]} Values to match against `assetMetadata.allowedCountries`
  */
-export function resolveCountryMatchValues(isoCode) {
-  if (!isoCode) return [];
-  const normalized = String(isoCode).trim().toLowerCase();
+export function resolveCountryMatchValues(country) {
+  if (!country) return [];
+  const normalized = String(country).trim().toLowerCase();
   if (!normalized) return [];
-  const values = [isoCode];
+  const values = [country];
   const name = COUNTRY_CODE_TO_NAME[normalized];
   if (name) values.push(name);
+  const code = COUNTRY_NAME_TO_CODE[normalized];
+  if (code) values.push(code);
   return values;
 }

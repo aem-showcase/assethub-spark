@@ -546,10 +546,21 @@ function forceContentAISearchFilter(search, authClauses) {
  *
  * @param {Request} request - Cloudflare request with `request.user` populated by auth middleware
  * @param {Object} _env - Cloudflare environment bindings (unused, reserved for future sheet lookups)
+ * @param {Object} [options]
+ * @param {boolean} [options.useRealPermissions=false] - Evaluate as the real, pre-simulation
+ *   identity (`request.user.su`) in its entirety — roles, country, userType, everything —
+ *   instead of whatever is currently simulated. No effect when not simulating.
  * @returns {Promise<Object[]>} ContentAI query clause array
  */
-async function buildAssetAuthClauses(request, _env) {
-  const user = request.user;
+async function buildAssetAuthClauses(request, _env, { useRealPermissions = false } = {}) {
+  // Callers that need to discover what's generally available (e.g. populating the
+  // country picker used to change simulation) evaluate as the real, pre-simulation
+  // identity rather than whichever attributes are currently simulated. Restoring the
+  // whole identity (not just individual fields) keeps this correct as new simulated
+  // attributes are added, and keeps every check below unchanged/unaware of simulation.
+  const user = (useRealPermissions && request.user.su)
+    ? { ...request.user, ...request.user.su }
+    : request.user;
 
   // Admins bypass all asset filters — they see everything in Content Hub.
   if (user.roles?.includes(ROLE.ADMIN)) {
@@ -590,13 +601,21 @@ async function buildAssetAuthClauses(request, _env) {
 /**
  * ContentAI Search: search authorization for assets
  * Mimics searchAuthorization logic but generates ContentAI query clauses
+ *
+ * A request body may set `useRealPermissions: true` (stripped before forwarding
+ * upstream) to build the filter from the real, pre-simulation identity rather than
+ * the currently-simulated one — used by the simulation country picker so it always
+ * offers every country the real user could see, not just the simulated subset.
  * @param {Object} request - Request object with user info
  * @param {Object} env - Environment object
  * @param {Object} search - ContentAI search object to modify
  */
 async function searchContentAIAuthorization(request, env, search) {
+  const useRealPermissions = search.useRealPermissions === true;
+  if (search.useRealPermissions !== undefined) delete search.useRealPermissions;
+
   // ContentAI search request. Enforce filters that ensure only authorized assets are returned
-  const authClauses = await buildAssetAuthClauses(request, env);
+  const authClauses = await buildAssetAuthClauses(request, env, { useRealPermissions });
 
   // Empty array means admin - no constraints needed (already logged in buildAssetAuthClauses)
   if (authClauses.length === 0) {
