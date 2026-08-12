@@ -1,17 +1,22 @@
-# catalyst-rebrand skill: design plan
+# Rebrand (Phase A): design plan
 
-This document is the design plan behind
-`.claude/skills/catalyst-rebrand/SKILL.md`. It records the reasoning and
-evidence that shaped the skill, so future changes can be checked against
-the same reasoning rather than re-derived from scratch.
+This document is the design plan behind **Phase A** of
+`.claude/skills/customer-migration/SKILL.md`. It records the reasoning and
+evidence that shaped that phase, so future changes can be checked against
+the same reasoning rather than re-derived from scratch. (Phase A and the
+backend-onboarding Phase B were originally two separate skills,
+`catalyst-rebrand` and `onboard-customer-portal`; they were merged into
+the single `customer-migration` skill — this doc covers the rebrand half.)
 
 ## Context
 
-This repo already has `onboard-customer-portal` for backend/Cloudflare/AEM
-identity onboarding, which deliberately excludes branding. This skill is
-the missing sibling: rebranding an already-migrated EDS site to a new
-brand identity via Catalyst, the editor customers use to edit this repo's
-content.
+Rebranding an already-migrated EDS site to a new brand identity via
+Catalyst, the editor customers use to edit this repo's content. It is
+deliberately independent of the backend/Cloudflare/AEM identity work,
+which is Phase B (see `local-run-plan.md` and `deploy-plan.md`). The entry
+flow that decides whether this phase runs at all — including the "the
+rebrand is already done, skip it" path — is documented in
+`entry-flow-plan.md`.
 
 ## How the plan got here
 
@@ -132,9 +137,9 @@ tools, provided Phase 2's request uses them as intended.
 
 ## Non-goals
 
-This skill does not touch Cloudflare/AEM identity or infrastructure
-config — that remains `onboard-customer-portal`'s job. The two skills are
-independent and cover different concerns.
+Phase A does not touch Cloudflare/AEM identity or infrastructure config —
+that is Phase B's job. The two phases are independent and cover different
+concerns.
 
 ## Corrections after a live end-to-end test run
 
