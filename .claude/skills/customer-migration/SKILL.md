@@ -17,10 +17,14 @@ done before touching either phase.
 These hold in both phases. Steps below reference them rather than
 repeating them:
 
-- **I1 — Outcomes only, never internal terms.** Never name this skill,
-  its file, its phases, step names, `scopeChoice`, or its enum values to
-  the customer. Say "the visual rebrand," "getting it running locally" —
-  never "Phase A," "tier," or "the skill says."
+- **I1 — Outcomes only, never internal terms.** Never expose this
+  skill's name, its file, its phases, step names, `scopeChoice`, or its
+  enum values to the customer — in prose **or** in any UI you render
+  (question headers, option labels, chips). Describe outcomes in plain
+  words: "give the site a fresh look," "update the content," "get it
+  running locally." Avoid jargon the customer didn't use — including
+  "rebrand," "scope," "phase," "tier," "onboarding" — and never "the
+  skill says."
 - **I2 — Never handle raw secrets in chat.** Never accept, echo, or read
   back a pasted token or secret value. Tell the customer where to put it
   themselves; read it only from the gitignored file at call time. If a
@@ -49,17 +53,27 @@ Do this before starting either phase:
    doesn't exist, create it with the schema below.
 
 2. **Ask what's wanted** (unless the request already makes it
-   unambiguous — e.g. "just get it running" is backend-only). Use this
-   exact customer-facing wording — no internal terms (I1):
+   unambiguous — e.g. "just get it running" is backend-only). Ask in
+   plain outcome language — **no internal terms** (I1): never the word
+   "rebrand," "scope," "phase," "frontend," or "backend" in anything the
+   customer sees, including a picker's header and option labels. In
+   conversation, wording like:
 
-   > "Want me to give the site a new look (restyle/rebrand it), or is
-   > that already done? Either way, I'll then get it running for you."
+   > "Want me to give the site a fresh look and update its content for
+   > the new brand, or is that already done? Either way, I'll then get
+   > it running for you."
+
+   If you render this as a multiple-choice picker, use a plain header
+   ("Getting started" / "What should I do") and outcome-worded options —
+   e.g. "New look + get it running" / "New look only" / "Already updated
+   — just get it running." Do **not** label options "Rebrand scope,"
+   "Rebrand only," "Already rebranded," etc.
 
    Map the answer to `intent` and the rebrand phase's status:
-   - "give it a new look" / yes → `intent` = `full`, rebrand runs.
-   - "already done" / "skip that" / "just get it running" → mark the
-     rebrand phase `done` (`intent` = `backend-only`), skip Phase A.
-   - "only the rebrand, nothing else" → `intent` = `frontend-only`; mark
+   - new look + running / yes → `intent` = `full`, rebrand runs.
+   - already done / skip that / just get it running → mark the rebrand
+     phase `done` (`intent` = `backend-only`), skip Phase A.
+   - new look only, nothing else → `intent` = `frontend-only`; mark
      backend `not-requested` after Phase A.
 
 3. **Route** to the first genuinely-pending phase — rebrand before
@@ -414,7 +428,7 @@ wording like:
 > "There are three ways I can get this running for you:
 >
 > **1. Just show me the new look** — I'll start it up so you can click
-> through your rebranded pages right away. Nothing needed from you.
+> through your updated pages right away. Nothing needed from you.
 > Search and sign-in won't work yet — it's a visual preview.
 >
 > **2. Get it actually working, skip sign-in for now** — real search,
