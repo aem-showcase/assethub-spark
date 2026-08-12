@@ -27,6 +27,7 @@ import {
   CollectionListSegment,
 } from '../../../scripts/collections/collection-search-constants.js';
 import { ROLE } from '../user.js';
+import { resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -528,8 +529,9 @@ function forceContentAISearchFilter(search, authClauses) {
  *
  * Asset visibility is controlled by two metadata fields tagged on Content Hub assets:
  *   - `custom:userType`  — who can see the asset: 'internal', 'external', or 'all'
- *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes
- *                          or the special sentinel 'global' (visible to all countries)
+ *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes,
+ *                          full lowercase country names (e.g. 'usa', 'india'), or the
+ *                          special sentinel 'global' (visible to all countries)
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -560,12 +562,17 @@ async function buildAssetAuthClauses(request, _env) {
   //   1. The user's own country from the Entra ID JWT claim (ctry).
   //   2. Any additional countries granted via the /config/access/users sheet.
   //   3. The 'global' sentinel always included so globally-tagged assets are never blocked.
+  // Assets may be tagged with either the ISO code or the full lowercase country name, so
+  // each resolved code is expanded to include its mapped name (see constants/countries.js).
   const authorisedCountries = [];
-  if (user.country) authorisedCountries.push(user.country);
-  if (Array.isArray(user.countries)) {
-    user.countries.forEach((c) => {
-      if (c && !authorisedCountries.includes(c)) authorisedCountries.push(c);
+  const addCountry = (c) => {
+    resolveCountryMatchValues(c).forEach((value) => {
+      if (value && !authorisedCountries.includes(value)) authorisedCountries.push(value);
     });
+  };
+  if (user.country) addCountry(user.country);
+  if (Array.isArray(user.countries)) {
+    user.countries.forEach(addCountry);
   }
   if (!authorisedCountries.includes('global')) authorisedCountries.push('global');
 
@@ -885,26 +892,6 @@ export async function originDynamicMedia(request, env, ctx) {
       'collection items',
     );
     if (authResponse) return authResponse;
-  }
-
-  const isSearchOrCollections = url.pathname.includes('/search') || url.pathname.includes('/collections');
-  const isArchive = url.pathname.includes('/archives');
-  if (isSearchOrCollections || isArchive) {
-    const debugHeaders = [
-      'authorization',
-      'x-api-key',
-      'x-ch-request',
-      'x-polaris-search-provider',
-      'x-adobe-accept-experimental',
-    ];
-    const curlHeaders = [...headers.entries()]
-      .filter(([k]) => debugHeaders.includes(k.toLowerCase()))
-      .map(([k, v]) => `-H '${k}: ${v}'`)
-      .join(' \\\n  ');
-    const curlBody = body ? `-d '${body.replace(/'/g, "\\'")}'` : '';
-    console.warn(
-      `[DM CURL] curl -X ${request.method} '${url}' \\\n  ${curlHeaders}${curlBody ? ` \\\n  ${curlBody}` : ''}`,
-    );
   }
 
   // The browser's Referer can be enormous (search URLs with many facet filters

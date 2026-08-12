@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildAssetAuthClauses,
   chunkIntoAnd,
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
@@ -789,6 +790,61 @@ describe('dm.js - ContentAI Authorization', () => {
       await searchContentAIAuthorization(request, {}, search);
 
       expect(search.query).toEqual([{ and: [] }]);
+    });
+  });
+
+  describe('buildAssetAuthClauses', () => {
+    function getCountryClause(clauses) {
+      return clauses.find((c) => c.term?.['assetMetadata.allowedCountries']);
+    }
+
+    it('should bypass all filters for admin users', async () => {
+      const request = { user: { email: 'admin@example.com', roles: ['admin'], country: 'US' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(clauses).toEqual([]);
+    });
+
+    it('should match both the ISO code and its mapped country name', async () => {
+      const request = { user: { email: 'user@example.com', country: 'IN' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['IN', 'india', 'global']),
+      );
+    });
+
+    it('should fall back to only the raw code when it has no known name mapping', async () => {
+      const request = { user: { email: 'user@example.com', country: 'ZZ' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(['ZZ', 'global']);
+    });
+
+    it('should expand additional sheet-granted countries alongside the primary country', async () => {
+      const request = {
+        user: { email: 'user@example.com', country: 'US', countries: ['DE'] },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryClause = getCountryClause(clauses);
+
+      expect(countryClause.term['assetMetadata.allowedCountries']).toEqual(
+        expect.arrayContaining(['US', 'usa', 'DE', 'germany', 'global']),
+      );
+    });
+
+    it('should skip the country filter when no country can be resolved', async () => {
+      const request = { user: { email: 'user@example.com' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(clauses).toEqual([]);
     });
   });
 
