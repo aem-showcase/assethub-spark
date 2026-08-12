@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAssetAuthClauses,
+  checkAssetMetadataAuthorization,
   chunkIntoAnd,
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
@@ -789,29 +790,43 @@ describe('dm.js - ContentAI Authorization', () => {
       expect(clauses).toEqual([]);
     });
 
-    it('should add preview deny clause for external users', async () => {
+    it('should add internalStatus allow clause for external users', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.internalStatus': ['approved'] } });
     });
 
-    it('should not add preview deny clause for internal users', async () => {
+    it('should not add internalStatus allow clause for internal users', async () => {
       const request = { user: { email: 'user@adobe.com', userType: 'internal' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).not.toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
+      expect(clauses).not.toContainEqual({ term: { 'assetMetadata.internalStatus': ['approved'] } });
     });
 
-    it('should still apply the country filter alongside the preview deny clause for external users', async () => {
+    it('should still apply the country filter alongside the internalStatus allow clause for external users', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
       const clauses = await buildAssetAuthClauses(request, {});
       expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['us', 'global'] } });
-      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.internalStatus': ['approved'] } });
     });
 
-    it('should add the preview deny clause even when the country filter is skipped', async () => {
+    it('should add the internalStatus allow clause even when the country filter is skipped', async () => {
       const request = { user: { email: 'user@example.com', userType: 'external' } };
       const clauses = await buildAssetAuthClauses(request, {});
-      expect(clauses).toEqual([{ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] }]);
+      expect(clauses).toEqual([{ term: { 'assetMetadata.internalStatus': ['approved'] } }]);
+    });
+
+    it('should not violate the internalStatus allow clause for an asset with no internalStatus set', () => {
+      const authClauses = [{ term: { 'assetMetadata.internalStatus': ['approved'] } }];
+      const assetMetadata = { 'custom:contentType': 'marketing' };
+      const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(false);
+    });
+
+    it('should violate the internalStatus allow clause for an asset tagged with a non-approved status', () => {
+      const authClauses = [{ term: { 'assetMetadata.internalStatus': ['approved'] } }];
+      const assetMetadata = { internalStatus: 'preview' };
+      const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(true);
     });
   });
 

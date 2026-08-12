@@ -530,7 +530,8 @@ function forceContentAISearchFilter(search, authClauses) {
  *   - `custom:userType`  — who can see the asset: 'internal', 'external', or 'all'
  *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes
  *                          or the special sentinel 'global' (visible to all countries)
- *   - `internalStatus`     — 'preview' assets are restricted to internal users
+ *   - `internalStatus`     — external users only see 'approved' or untagged assets;
+ *                          internal users see all values (e.g. 'preview', 'fpo')
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -581,10 +582,11 @@ async function buildAssetAuthClauses(request, _env) {
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
-  // --- Preview filter ---
-  // Assets tagged internalStatus=preview are visible only to internal (adobe.com) users.
+  // --- Internal status filter ---
+  // External users only see assets tagged internalStatus=approved, or untagged.
+  // Internal (adobe.com) users are unrestricted by this field.
   if (user.userType !== USER_TYPE.INTERNAL) {
-    clauses.push({ not: [{ term: { 'assetMetadata.internalStatus': ['preview'] } }] });
+    clauses.push({ term: { 'assetMetadata.internalStatus': ['approved'] } });
   }
 
   return clauses;
