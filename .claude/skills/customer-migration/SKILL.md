@@ -601,8 +601,25 @@ step `done`.
 
 ## B.11: Boot verification (`boot-verified`)
 
-Run `npm run dev` with the environment from B.9. Wait for both the AEM
-dev server and the Cloudflare worker dev server to report ready (watch
+**Before booting — offer to sync with `main` (ask, never auto).** The
+local `aem up` server serves the site's content from the fork's published
+`main` state (per I3, and the origin B.4 repointed), so the customer
+booting "to see their site" should be on the latest code first. Fetch and
+check whether the current branch is behind `origin/main`
+(`git fetch origin` then compare, e.g. `git rev-list --count HEAD..origin/main`):
+
+- If behind → tell the customer plainly ("your checkout is N commits
+  behind the latest — want me to update it so the preview reflects the
+  newest changes?") and, only if they agree, `git pull`/merge `origin/main`.
+  **Never auto-merge**: it can conflict or pull in changes they didn't
+  ask for — the customer decides, consistent with the agent-prepares /
+  customer-decides posture. If they decline, proceed on the current
+  checkout and note the preview may be stale.
+- If up to date (or a merge would conflict) → say so and continue; don't
+  force it.
+
+Then run `npm run dev` with the environment from B.9. Wait for both the
+AEM dev server and the Cloudflare worker dev server to report ready (watch
 for the script's own "Ready on http://localhost:{port}" line). Open the
 **worker** port in the browser (not the aem-up port) — that's the one
 that serves `/api/*`.
