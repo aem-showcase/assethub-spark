@@ -212,11 +212,10 @@ the IMS session above. Before the first such call:
 - Confirm `token.env` is gitignored. If `.gitignore` has no `token.env`
   entry, add one — don't rely on another pattern covering it.
 
-Known API quirk: a preview/publish call to the Helix Admin API
-(`admin.hlx.page`) can return `401` **even with a valid `DA_TOKEN`**,
-because the Admin API's server-side fetch back to Document Authoring needs
-that token forwarded via an `x-content-source-authorization` header. Add
-the header rather than assuming the token is wrong.
+Known quirk: a Helix Admin API (`admin.hlx.page`) preview/publish can
+`401` even with a valid `DA_TOKEN` — forward the token via an
+`x-content-source-authorization` header rather than assuming it's wrong
+(why: `rebrand-plan.md`).
 
 ### A.1.b: Content-source context
 
@@ -292,19 +291,13 @@ working tree or open branch.
 
 ### Asset-file color sweep (`asset-color-sweep-verified`)
 
-Grep the repo's SVG and image assets for hardcoded hex/color values that
-still match the *old* brand's palette — a generic visual-comparison
-check typically only compares computed CSS style values, so a stale
-background image would score as "matching" as long as its file path/URL
-didn't change; this sweep catches what that check structurally cannot.
-
-- Check icon SVGs for `fill="#..."` values.
-- Check background image/SVG assets referenced via `background-image`
-  for embedded raster art or hardcoded panel colors.
-- Not every hardcoded fill is wrong — a dark neutral resting-state icon
-  color that turns brand-colored on hover is a legitimate design
-  pattern. Take an actual screenshot of the pages/sections in question to
-  confirm visually whether a flagged file actually reads as off-brand.
+Grep SVG and image assets for hardcoded hex/color values still matching
+the *old* brand — visual-comparison tooling misses these (why:
+`rebrand-plan.md` Phase 3). Check icon SVGs for `fill="#..."` and
+`background-image` assets for embedded raster art / hardcoded panel
+colors. Not every hardcoded fill is wrong (a neutral icon that turns
+brand-colored on hover is legitimate) — screenshot the pages to confirm a
+flagged file actually reads off-brand.
 
 Report any real misses found, fix them, and re-check before considering
 Phase A complete. Set `phases["rebrand"].status` to `"done"`.
@@ -373,41 +366,20 @@ proceed the same way.
 
 ## B.3: AEM Code Sync verification (`code-sync-verified`)
 
-Using the org/repo from B.2, probe a path that actually has content —
-**not** the bare root. This template's real content lives under `/en/`,
-and a bare-root `/` almost always 404s even when Code Sync is perfectly
-installed (no document is published at `/index`). Probing `/` and
-reading its 404 as "not installed" is a false negative that will misfire
-for nearly every fork.
+Probe `https://main--{repo}--{org}.aem.page/en/` (a content path, **not**
+the bare `/`, which 404s even when Code Sync works — see `local-run-plan.md`
+for why). `curl -sI` for headers is enough. Judge by the response:
 
-```
-https://main--{repo}--{org}.aem.page/en/
-```
-
-Fetch it (a `curl -sI` for headers is enough). Determine the result:
-
-- **200** → Code Sync is installed and working. Mark step `done`.
-- **404 with an `x-error: Lambda: ...` response header** → Code Sync
-  **is** installed (the content-bus Lambda is running and answering),
-  but nothing is published at this path yet. Do not tell the customer to
-  install anything. Explain that content just needs to be published (a
-  Phase A publish, or their own DA publish) — the fork's plumbing is
-  fine. Mark step `done` (installation is verified; content is a
-  separate concern handled elsewhere).
-- **404 with no `x-error: Lambda:` header** (or a "site not found"
-  response) → Code Sync is genuinely not installed yet. Explain plainly
-  that this is a required one-time GitHub-side step the customer must do
-  themselves (the agent cannot install a GitHub App on their org):
-  install the AEM Code Sync GitHub App on their forked repository. Point
-  them to the aem.live documentation for exact steps (look it up, don't
-  guess the URL). Mark step `blocked`, explain you'll re-check once
-  they've done it, and stop here for this session if they need to go do
-  it now.
-
-The `x-error: Lambda:` header is the discriminator — it only appears when
-Code Sync is installed. Never judge from a bare `/` 404. Don't proceed
-past a genuine "not installed" state: that fork would silently serve the
-upstream template's demo content via the `aem up` fallback proxy.
+- **200** → installed and working. Mark `done`.
+- **404 with an `x-error: Lambda:` header** → installed, just nothing
+  published at this path yet. Don't tell them to install anything;
+  content publishes separately (Phase A or their own DA). Mark `done`.
+- **404 without that header** (or "site not found") → genuinely not
+  installed. The customer must install the AEM Code Sync GitHub App on
+  their fork themselves (the agent can't install a GitHub App on their
+  org) — point them to aem.live docs (look up the URL). Mark `blocked`
+  and stop; a fork without Code Sync silently serves the template's demo
+  content via the `aem up` fallback proxy.
 
 ## B.4: Helix URL and README correction (`helix-url-and-readme-corrected`)
 
@@ -548,34 +520,22 @@ Write only the non-secret `aemEnvId` into `customer.aemEnvId`. Mark step
 
 ## B.9: Auth mode — apply the customer's tier choice (`auth-mode-applied`)
 
-This step **acts** on the tier choice; it doesn't just report state. The
-`DISABLE_AUTHENTICATION` bypass block in `cloudflare/src/auth.js` (lines
-~161-172, inside `withAuthentication`) is a self-contained local seam:
-`withAuthentication` only validates a locally-signed session cookie and
-never contacts Microsoft (Entra calls live only in `/auth/login` and
-`/auth/callback`). Uncommenting it makes `withAuthentication` set a
-fabricated dev user and return — every route works with no Entra config.
-Re-commenting restores real login.
+This step **acts** on the tier choice (bypass mechanism + why it's safe
+locally: `local-run-plan.md`).
 
-**If `scopeChoice` is `"local-no-login"`:** edit `cloudflare/src/auth.js`
-to **uncomment** the `DISABLE_AUTHENTICATION` block (lines ~161-172) —
-uncomment exactly those lines, nothing else. Tell the customer plainly
-this makes everyone a local-only fake admin (`dev@localhost`, `admin`/
-`employee` roles), fine for local dev but a security hole if it ever
-ships — it must be re-commented before any deploy (the deploy stage
-enforces this). Restate the local limits from B.5. Set
+**If `scopeChoice` is `"local-no-login"`:** uncomment the
+`DISABLE_AUTHENTICATION` block in `cloudflare/src/auth.js` (~161-172,
+those lines only). Tell the customer this makes everyone a local-only
+fake admin — fine locally, must be re-commented before deploy (D.1
+enforces it). Restate the local limits from B.5. Set
 `customer.authBypassActive` to `true`.
 
-**If `scopeChoice` is `"local-login"`:** leave `auth.js` untouched
-(bypass stays commented, real login active). Walk the customer through a
-real Microsoft Entra app registration — reuse the exact steps in the
-deploy-readiness note (entra.microsoft.com → App registrations → New
-registration → **Single-page application** redirect URI → copy the
-Application (client) ID and Directory (tenant) ID) — and have them place
-the resulting `MICROSOFT_ENTRA_TENANT_ID`/`MICROSOFT_ENTRA_CLIENT_ID`
-into `wrangler.toml`'s `vars` (and `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET`
-into `cloudflare/.secrets` if they want SMTP). Set
-`customer.authBypassActive` to `false`.
+**If `scopeChoice` is `"local-login"`:** leave `auth.js` untouched. Walk
+the customer through their own Entra app registration (steps:
+`deploy-plan.md` Entra section) and have them place the resulting
+`MICROSOFT_ENTRA_TENANT_ID`/`CLIENT_ID` into `wrangler.toml`'s `vars`
+(and `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET` into `cloudflare/.secrets` for
+SMTP). Set `customer.authBypassActive` to `false`.
 
 Then set the local run environment for `npm run dev`, regardless of
 branch:
