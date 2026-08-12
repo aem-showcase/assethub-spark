@@ -26,7 +26,7 @@ import {
   CollectionCreatedByMeVisibility,
   CollectionListSegment,
 } from '../../../scripts/collections/collection-search-constants.js';
-import { ROLE } from '../user.js';
+import { ROLE, USER_TYPE } from '../user.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -526,10 +526,11 @@ function forceContentAISearchFilter(search, authClauses) {
 /**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
- * Asset visibility is controlled by two metadata fields tagged on Content Hub assets:
+ * Asset visibility is controlled by metadata fields tagged on Content Hub assets:
  *   - `custom:userType`  — who can see the asset: 'internal', 'external', or 'all'
  *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes
  *                          or the special sentinel 'global' (visible to all countries)
+ *   - `internalStatus`     — 'fpo' (for-placement-only) assets are restricted to internal users
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -555,6 +556,8 @@ async function buildAssetAuthClauses(request, _env) {
     return [];
   }
 
+  const clauses = [];
+
   // --- Country filter ---
   // Collect all country codes the user is authorised for:
   //   1. The user's own country from the Entra ID JWT claim (ctry).
@@ -573,11 +576,18 @@ async function buildAssetAuthClauses(request, _env) {
   // no point injecting a clause that only allows 'global' tagged assets.
   if (authorisedCountries.length === 1 && authorisedCountries[0] === 'global') {
     console.warn(`[${user.email}] no country resolved — skipping country filter`);
-    return [];
+  } else {
+    console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
-  console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
-  return [{ term: { 'assetMetadata.allowedCountries': authorisedCountries } }];
+  // --- FPO (for-placement-only) filter ---
+  // Assets tagged internalStatus=fpo are visible only to internal (adobe.com) users.
+  if (user.userType !== USER_TYPE.INTERNAL) {
+    clauses.push({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+  }
+
+  return clauses;
 }
 
 /**

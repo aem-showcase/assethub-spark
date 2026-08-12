@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildAssetAuthClauses,
   chunkIntoAnd,
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
@@ -31,6 +32,11 @@ vi.mock('../../util/helixutil', () => ({
 vi.mock('../../user', () => ({
   ROLE: {
     ADMIN: 'admin',
+  },
+  USER_TYPE: {
+    INTERNAL: 'internal',
+    EXTERNAL: 'external',
+    ALL: 'all',
   },
 }));
 
@@ -773,6 +779,39 @@ describe('dm.js - ContentAI Authorization', () => {
       forceContentAISearchFilter(search, authClauses);
 
       expect(search.query[0].and).toContainEqual({ and: authClauses });
+    });
+  });
+
+  describe('buildAssetAuthClauses', () => {
+    it('should return no constraints for admin users', async () => {
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('should add fpo deny clause for external users', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+    });
+
+    it('should not add fpo deny clause for internal users', async () => {
+      const request = { user: { email: 'user@adobe.com', userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).not.toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+    });
+
+    it('should still apply the country filter alongside the fpo deny clause for external users', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['us', 'global'] } });
+      expect(clauses).toContainEqual({ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] });
+    });
+
+    it('should add the fpo deny clause even when the country filter is skipped', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([{ not: [{ term: { 'assetMetadata.internalStatus': ['fpo'] } }] }]);
     });
   });
 
