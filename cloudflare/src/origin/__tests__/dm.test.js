@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAssetAuthClauses,
+  checkAssetMetadataAuthorization,
   chunkIntoAnd,
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
@@ -32,6 +33,11 @@ vi.mock('../../util/helixutil', () => ({
 vi.mock('../../user', () => ({
   ROLE: {
     ADMIN: 'admin',
+  },
+  USER_TYPE: {
+    INTERNAL: 'internal',
+    EXTERNAL: 'external',
+    ALL: 'all',
   },
 }));
 
@@ -777,6 +783,67 @@ describe('dm.js - ContentAI Authorization', () => {
     });
   });
 
+  describe('buildAssetAuthClauses', () => {
+    it('should return no constraints for admin users', async () => {
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    const internalStatusClause = {
+      or: [
+        { term: { 'assetMetadata.internalStatus': ['approved'] } },
+        { not: [{ exists: { field: 'assetMetadata.internalStatus' } }] },
+      ],
+    };
+
+    it('should add internalStatus allow clause for external users', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(internalStatusClause);
+    });
+
+    it('should not add internalStatus allow clause for internal users', async () => {
+      const request = { user: { email: 'user@adobe.com', userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).not.toContainEqual(internalStatusClause);
+    });
+
+    it('should still apply the country filter alongside the internalStatus allow clause for external users', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['us', 'usa', 'global'] } });
+      expect(clauses).toContainEqual(internalStatusClause);
+    });
+
+    it('should add the internalStatus allow clause even when the country filter is skipped', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([internalStatusClause]);
+    });
+
+    it('should not violate the internalStatus allow clause for an asset with no internalStatus set', () => {
+      const authClauses = [internalStatusClause];
+      const assetMetadata = { 'custom:contentType': 'marketing' };
+      const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(false);
+    });
+
+    it('should not violate the internalStatus allow clause for an asset tagged approved', () => {
+      const authClauses = [internalStatusClause];
+      const assetMetadata = { internalStatus: 'approved' };
+      const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(false);
+    });
+
+    it('should violate the internalStatus allow clause for an asset tagged with a non-approved status', () => {
+      const authClauses = [internalStatusClause];
+      const assetMetadata = { internalStatus: 'preview' };
+      const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(true);
+    });
+  });
+
   describe('searchContentAIAuthorization', () => {
     it('should not modify query (no-op — RBAC pending Phase 2g)', async () => {
       const request = {
@@ -873,7 +940,9 @@ describe('dm.js - ContentAI Authorization', () => {
 
       const clauses = await buildAssetAuthClauses(request, {});
 
-      expect(clauses).toEqual([]);
+      // No country clause is added, but the internalStatus allow clause still applies
+      // since this user has no userType (i.e. is not internal).
+      expect(getCountryClause(clauses)).toBeUndefined();
     });
 
     it('should filter by the simulated (non-admin) identity while sudo-simulating', async () => {
