@@ -185,14 +185,30 @@ locally. Not used by Phase A.
 
 # Phase A — Rebrand via Catalyst
 
-Rebrand the site's design/content to a new brand identity. Runs entirely
-inside Catalyst — design tokens, asset colors, content register rewrite,
-and publish all work independently of whether the fork's backend is set
-up yet. Do not defer this phase waiting on Phase B — it doesn't need it.
+Rebrand the site's design/content to a new brand identity. The design/CSS
+migration is done by the **Catalyst (excat) design skill**, not by hand —
+design tokens, asset colors, content register rewrite, and publish all
+work independently of whether the fork's backend is set up yet. Do not
+defer this phase waiting on Phase B — it doesn't need it.
 
-This is more than "run the design-tokens tool": that tool handles tokens,
-but the content-register rewrite and the hardcoded-asset-color sweep are
-this phase's own job, wrapped around it in one larger request (A.2).
+**Required tool — check first, before A.1.** This phase drives the excat
+design skill **`excat-complete-design-expert`** (from the Adobe Experience
+Catalyst / `aem-excat-plugin`). Confirm it is available in this session
+(it appears in the skills list; its own trigger phrases include "migrate
+design", "extract design tokens", "style the blocks").
+
+- **If it is available** → proceed; A.2 invokes it in Complete Migration
+  mode.
+- **If it is NOT available** → **stop and do not hand-roll the rebrand.**
+  Editing `styles.css` tokens / sweeping hex manually is not a substitute
+  for this skill and silently diverges from the supported path. Tell the
+  operator the excat plugin must be installed in this session first (the
+  `aem-excat-plugin` marketplace from the `aem-experience-catalyst` repo),
+  and pause Phase A until it is. Mark the rebrand phase `blocked`.
+
+This phase is more than tokens: the content-register rewrite and the
+hardcoded-asset-color sweep (A.3) are this phase's own job, wrapped around
+the excat skill in one larger request (A.2).
 
 ## A.1: Pre-requisites
 
@@ -257,12 +273,13 @@ Ask for:
 
 Once A.1 is confirmed, issue one comprehensive request covering all of
 the following. Do not split this into separate turns/requests — the goal
-is stating the full scope up front so the design-migration tool and your
-own judgment handle it correctly in one pass, rather than piecemeal.
+is stating the full scope up front so the excat design skill and your own
+judgment handle it correctly in one pass, rather than piecemeal.
 
 1. **Design tokens and typography** (`design-tokens-applied`) — invoke
-   the design-migration tool in its full/complete migration mode, naming
-   the source site if one was given.
+   **`excat-complete-design-expert`** in **Complete Migration** mode (site
+   design system + all blocks, site scope), naming the source site if one
+   was given. Do not substitute manual `styles.css` edits for this.
 2. **Hardcoded asset colors** (`asset-colors-swept`) — explicitly in
    scope, separate from step 1: check SVG icon files and background
    image assets for hardcoded fill colors and embedded raster art that

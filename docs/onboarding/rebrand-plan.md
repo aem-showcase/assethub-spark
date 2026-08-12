@@ -83,8 +83,12 @@ Not a sequence of separate asks — one request stating every piece of
 scope so the platform's own skill-selection handles it correctly in a
 single pass:
 
-1. Design tokens and typography, via the platform's complete
-   design-migration skill, in its full-migration mode.
+1. Design tokens and typography, via the excat design skill
+   `excat-complete-design-expert` (from `aem-excat-plugin`), in its
+   Complete Migration mode — not hand-edited `styles.css`. Phase A is
+   gated on this skill being available in the session; if it isn't, the
+   skill stops and asks for the excat plugin to be installed rather than
+   improvising a manual rebrand.
 2. Hardcoded asset colors, named explicitly and separately from step 1 —
    icon SVGs and background images can carry literal color values that no
    CSS change reaches, and the transcript shows exactly this being missed
