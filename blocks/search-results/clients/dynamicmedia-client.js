@@ -873,16 +873,26 @@ export class DynamicMediaClient {
    * @param {Object} options - Search options
    * @param {string} [options.collectionId] - Collection ID for searching within a collection
    * @param {boolean} [options.skipFacetsRequest=false] - Skip facets request (query only)
+   * @param {boolean} [options.useRealPermissions=false] - Build the country auth filter from
+   *   the real, pre-simulation identity instead of the currently-simulated one, when
+   *   sudo-simulating. No effect when not simulating.
    * @returns {Promise<Object>} Merged ContentAI response
    */
   async searchAssets(query, options = {}) {
-    const { collectionId, skipFacetsRequest = false } = options;
+    const { collectionId, skipFacetsRequest = false, useRealPermissions = false } = options;
     const queryRequest = this.buildQueryRequest(query, options);
 
     // Determine search URL - use collection-specific endpoint if collectionId provided
     const searchUrl = collectionId
       ? `/adobe/assets/contentai/collections/${collectionId}/search`
       : '/adobe/assets/contentai/search';
+
+    // Worker-side flag (stripped before forwarding upstream): build the country
+    // auth filter from the real, pre-simulation identity rather than whatever is
+    // currently simulated. Used by the simulation country picker's own lookup.
+    if (useRealPermissions) {
+      queryRequest.useRealPermissions = true;
+    }
 
     // Build parallel requests
     const requests = [
@@ -898,6 +908,9 @@ export class DynamicMediaClient {
       // Scope request: all facets with scope from other selections
       const facetsScopeRequest = this.buildFacetsScopeRequest(query, options);
       if (facetsScopeRequest) {
+        if (useRealPermissions) {
+          facetsScopeRequest.useRealPermissions = true;
+        }
         requests.push(
           this.makeRequest({
             url: searchUrl,
@@ -910,6 +923,9 @@ export class DynamicMediaClient {
       // Include request: only selected facets with includes for exact counts
       const facetsIncludeRequest = this.buildFacetsIncludeRequest(query, options);
       if (facetsIncludeRequest) {
+        if (useRealPermissions) {
+          facetsIncludeRequest.useRealPermissions = true;
+        }
         requests.push(
           this.makeRequest({
             url: searchUrl,
