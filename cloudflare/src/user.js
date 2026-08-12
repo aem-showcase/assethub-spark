@@ -95,6 +95,23 @@ async function getUserAttributes(request, env, user) {
   return attributes;
 }
 
+/**
+ * Resolve the permission list for an email from the /config/access/application
+ * sheet, merging the wildcard (`*`), the email domain, and the exact-email rows.
+ * Shared by login (createSession) and impersonation (handleSudo).
+ */
+async function resolvePermissions(request, env, email) {
+  const domain = getEmailDomain(email);
+  const access = await fetchHelixSheet(request, env, '/config/access/application', {
+    sheet: { key: 'email', arrays: ['permissions'] },
+  });
+  return [
+    ...(access?.['*']?.permissions || []),
+    ...(access?.[domain]?.permissions || []),
+    ...(access?.[email]?.permissions || []),
+  ];
+}
+
 async function handleSudo(request, env, user) {
   if (['SUDO_NAME', 'SUDO_EMAIL', 'SUDO_COUNTRY', 'SUDO_EMPLOYEE_TYPE'].some((c) => request.cookies[c])) {
     if (!hasPermission(user, PERMISSIONS.SUDO)) {
@@ -114,6 +131,7 @@ async function handleSudo(request, env, user) {
       roles: user.roles,
       userType: user.userType,
       countries: user.countries,
+      permissions: user.permissions,
     };
 
     user.name = request.cookies.SUDO_NAME || user.name;
@@ -132,7 +150,13 @@ async function handleSudo(request, env, user) {
     // even if the (possibly unchanged) email/domain would otherwise resolve to an
     // admin role — simulating anything means testing as a regular user.
     attributes.roles = attributes.roles.filter((role) => role !== ROLE.ADMIN);
-    user = { ...user, domain: sudoDomain, ...attributes };
+    // Re-resolve permissions for the impersonated target, minus `sudo` itself:
+    // impersonation must never let the simulated identity chain into another sudo.
+    // Without this, report/audit permission gates kept evaluating against the real
+    // admin's permissions no matter who was being simulated.
+    const sudoPermissions = (await resolvePermissions(request, env, user.email))
+      .filter((p) => p !== PERMISSIONS.SUDO);
+    user = { ...user, domain: sudoDomain, ...attributes, permissions: sudoPermissions };
   }
 
   return user;
@@ -151,15 +175,7 @@ export async function createSession(request, env) {
   const email = idToken.email?.toLowerCase();
   const domain = getEmailDomain(email);
 
-  const access = await fetchHelixSheet(request, env, '/config/access/application', {
-    sheet: { key: 'email', arrays: ['permissions'] },
-  });
-
-  const permissions = [
-    ...(access?.['*']?.permissions || []),
-    ...(access?.[domain]?.permissions || []),
-    ...(access?.[email]?.permissions || []),
-  ];
+  const permissions = await resolvePermissions(request, env, email);
 
   const host = request.headers.get('host') || '';
   const liveHosts = ['localhost', 'frescopamedia.com'];
