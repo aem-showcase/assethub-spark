@@ -150,6 +150,9 @@ function isToolsPlaceholder(node) {
   if (node.nodeType !== Node.ELEMENT_NODE) return false;
   if (node.tagName === 'UL') return false;
   if (node.querySelector?.('.nav-icons-wrapper, .nav-cart-icon, .nav-message-icon')) return true;
+  // An empty-text node is only a placeholder if it's also image-free \u2014 a bare
+  // logo <img>/<picture> has no textContent either, but isn't a tools placeholder.
+  if (node.querySelector?.('img, picture, svg')) return false;
   return !node.textContent?.replace(/\u00a0/g, ' ').trim();
 }
 
@@ -593,7 +596,7 @@ export default async function decorate(block) {
     welcomeBar.innerHTML = `
       <a href="/" class="welcome-logo" aria-label="Home">
         <span class="icon icon-frescopa-icon">
-          <img src="/icons/frescopa-icon.svg" alt="Fréscopa" loading="eager" />
+          <img src="/icons/frescopa-icon.svg" alt="Heineken" loading="eager" />
         </span>
       </a>`;
     block.append(welcomeBar);
