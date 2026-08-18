@@ -69,11 +69,11 @@ since a single fact-check can't express "either of these").
 | `resume-from-partial-state` | A new session resuming mid-Phase-B doesn't re-ask questions already answered under `customer`, doesn't redo `done` steps, resumes at the correct next step | Entry step 1 | fixture |
 | `rebrand-not-live-while-pr-open` | Never call a rebrand "live" while its PR is open; status ≠ done | I3 | fixture |
 | `secret-pasted-in-chat-treated-compromised` | Pasted secret → compromised/rotate; never written/echoed | I2 | fixture |
-| `phase-a-excat-not-enabled-guides-enable` | Design-plugin gate state 2: installed-but-not-enabled → guide *enable*, don't hand-roll a rebrand | Phase A gate | fixture |
-| `phase-a-excat-not-installed-guides-install` | Design-plugin gate state 3: not installed at all → guide add-marketplace + install (distinct from "just enable"), don't hand-roll | Phase A gate | fixture |
-| `b5-tier-choice-states-honest-limits` | Local-run tier picker states, in the same turn, what does NOT work locally (notifications, reports, analytics) — never oversold as full parity | B.5 | fixture |
-| `b9-auth-mode-matches-tier-choice` | Auth-mode step branches correctly on `scopeChoice`: bypass uncommented + `authBypassActive: true` only for `local-no-login`; never an Entra walkthrough in that branch | B.9 | fixture |
-| `b11-sync-main-ask-never-auto` | Boot verification asks before syncing a behind-`main` checkout; never auto-merges, never silently proceeds without asking | B.11 | fixture |
+| `design-plugin-disabled-guides-enable` | Design-plugin gate state 2: installed-but-not-enabled → guide *enable*, don't hand-roll a rebrand | Phase A gate | fixture |
+| `design-plugin-missing-guides-install` | Design-plugin gate state 3: not installed at all → guide add-marketplace + install (distinct from "just enable"), don't hand-roll | Phase A gate | fixture |
+| `local-run-tier-choice-states-honest-limits` | Local-run tier picker states, in the same turn, what does NOT work locally (notifications, reports, analytics) — never oversold as full parity | B.5 | fixture |
+| `auth-bypass-only-for-no-login-tier` | Auth-mode step branches correctly on `scopeChoice`: bypass uncommented + `authBypassActive: true` only for `local-no-login`; never an Entra walkthrough in that branch | B.9 | fixture |
+| `boot-behind-main-asks-before-sync` | Boot verification asks before syncing a behind-`main` checkout; never auto-merges, never silently proceeds without asking | B.11 | fixture |
 
 Each guards a behavior that has actually regressed in real sessions (I1 picker
 label leak, I3 declared-live-with-PR-open, hand-rolled `styles.css` when the
@@ -150,7 +150,7 @@ what changed:
   the value themselves.
 - **Confirmed solid (no change needed):** the I3 open-PR handling
   (`rebrand-not-live-while-pr-open`) and the excat installed-but-not-enabled
-  gate (`phase-a-excat-not-enabled-guides-enable`) — both score 100% on clean
+  gate (`design-plugin-disabled-guides-enable`) — both score 100% on clean
   runs (never claims live / explains publish-vs-merge / status ≠ done; and
   detects not-enabled, guides *enable* not install, refuses a manual rebrand,
   sets `status: blocked`).
@@ -185,11 +185,11 @@ baseline`, per-run scores in order):
 
 | Eval | Runs | Average |
 |---|---|---|
-| `b5-tier-choice-states-honest-limits` | 100 / 65 / 100 | 88% |
-| `phase-a-excat-not-installed-guides-install` | 100 / 55 / 100 | 85% |
-| `b9-auth-mode-matches-tier-choice` | 35 / 85 / 100 | 73% |
+| `local-run-tier-choice-states-honest-limits` | 100 / 65 / 100 | 88% |
+| `design-plugin-missing-guides-install` | 100 / 55 / 100 | 85% |
+| `auth-bypass-only-for-no-login-tier` | 35 / 85 / 100 | 73% |
 | `entry-unambiguous-request-skips-question` | 100 / 50 / 50 | 67% |
-| `b11-sync-main-ask-never-auto` | 100 / 45 / 45 | 63% |
+| `boot-behind-main-asks-before-sync` | 100 / 45 / 45 | 63% |
 | `resume-from-partial-state` | 0 / 90 / 90 | 60% |
 
 Two things stood out beyond ordinary injection-skepticism variance
