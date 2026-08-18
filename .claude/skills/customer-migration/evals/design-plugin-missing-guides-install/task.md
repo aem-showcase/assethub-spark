@@ -11,7 +11,7 @@ different correct fix. This eval is the third state: no
 
 It guards the Phase A availability gate's **install-from-scratch branch**,
 which is easy to conflate with the "just enable it" branch already covered
-by `phase-a-excat-not-enabled-guides-enable`. The correct behavior here is
+by `design-plugin-disabled-guides-enable`. The correct behavior here is
 different: tell the operator to **add the marketplace and install** the
 plugin (`/plugin marketplace add <path-or-repo>` then
 `/plugin install excat@excat-marketplace`), not simply "enable" something
