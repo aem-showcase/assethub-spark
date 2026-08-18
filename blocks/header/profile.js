@@ -1,8 +1,64 @@
 import { getAppLabel } from '../../scripts/locale-utils.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
+import { facetValueMatchesCountryCode } from '../../scripts/constants/countries.js';
+
+/** Facet key for the Country filter (matches assetMetadata.allowedCountries). */
+const ALLOWED_COUNTRIES_FACET_ID = 'allowedCountries';
 
 // Cached placeholder function
 let ph = null;
+
+// Cached country dropdown options (fetched once per page load)
+let cachedCountryOptions = null;
+
+/**
+ * Fetch the distinct countries actually tagged on assets today, via the exact same
+ * facet request the search filter sidebar uses (buildFacetsArray → CATEGORY facet on
+ * assetMetadata.allowedCountries), so the simulation dropdown always shows the same
+ * values a user could actually filter search results by — no fixed list, no mapping.
+ *
+ * Uses `useRealPermissions` so this lookup reflects the real, underlying user's own
+ * permissions rather than whatever country is currently being simulated — otherwise,
+ * once simulating e.g. 'usa', this call would itself be scoped to 'usa'-visible
+ * assets, and the dropdown could never offer any other country again.
+ * @returns {Promise<{value: string, label: string}[]>} Raw facet values, sorted by label
+ */
+async function fetchSimulatableCountries() {
+  if (cachedCountryOptions) return cachedCountryOptions;
+  try {
+    const { getContentAIClient } = await import('../search-results/clients/dynamicmedia-client.js');
+    const response = await getContentAIClient().searchAssets('', {
+      facets: [ALLOWED_COUNTRIES_FACET_ID],
+      skipFacetsRequest: false,
+      hitsPerPage: 0,
+      // Always show every country the real, underlying user could see — not the
+      // subset visible under whatever country is currently being simulated.
+      useRealPermissions: true,
+    });
+    const facet = (response?.facets || []).find((f) => f.id === ALLOWED_COUNTRIES_FACET_ID);
+    const values = facet?.values || [];
+
+    // Dedupe case-insensitively (e.g. 'usa' and 'USA' both appearing) while keeping
+    // the first-seen casing as the actual value sent to the server, since the
+    // country auth filter matches exact strings. Drop empty/blank values.
+    const seen = new Map();
+    values.forEach(({ value }) => {
+      const raw = typeof value === 'string' ? value.trim() : '';
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      if (!seen.has(key)) seen.set(key, raw);
+    });
+
+    cachedCountryOptions = [...seen.values()]
+      .map((value) => ({ value, label: value }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[Profile] Failed to load simulatable countries:', err);
+    cachedCountryOptions = [];
+  }
+  return cachedCountryOptions;
+}
 
 // Cookie utility functions
 function setCookie(name, value, days = 365) {
@@ -24,7 +80,8 @@ async function createProfileModal() {
   modal.id = 'profile-modal';
   modal.className = 'profile-modal';
 
-  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
+  // Gate on the real identity (su) while impersonating, so Reset stays available.
+  const canSudo = hasPermission(window.user?.su ?? window.user, PERMISSIONS.SUDO);
 
   // Add sudo-mode class if user can sudo
   if (canSudo) {
@@ -66,12 +123,12 @@ async function createProfileModal() {
            <div class="profile-field">
              <label>${ph('country', 'COUNTRY')}</label>
              <div class="profile-value" id="profile-country">${currentCountry}</div>
-             ${canSudo ? `<input type="text" class="profile-input" id="profile-country-input" value="${currentCountry}" placeholder="ISO code, e.g. us, es, gb" style="display: none;">` : ''}
+             ${canSudo ? '<select class="profile-input" id="profile-country-input" style="display: none;"></select>' : ''}
            </div>
          </div>
          ${canSudo ? `
          <div class="sudo-edit-note" id="sudo-edit-note" style="display: none;">
-           ${ph('sudoEditNote', 'Use an email from the users sheet. Country must be a lowercase ISO code (us, es, gb).')}
+           ${ph('sudoEditNote', 'Use an email from the users sheet. Country options reflect countries currently tagged on assets.')}
          </div>
          <div class="profile-buttons">
            <button class="edit-button" id="profile-edit-btn" type="button">
@@ -103,6 +160,39 @@ async function createProfileModal() {
   `;
 
   return modal;
+}
+
+/**
+ * Populate the sudo country <select> from the "Allowed Countries" facet, so
+ * simulated countries always match real, currently-tagged asset values.
+ * @param {string} currentCountry - The user's current (or simulated) ISO country code
+ */
+async function populateCountrySelect(currentCountry) {
+  const select = document.getElementById('profile-country-input');
+  if (!select || select.dataset.populated === 'true') return;
+  select.dataset.populated = 'true';
+
+  const options = await fetchSimulatableCountries();
+  select.innerHTML = '';
+
+  // The user's current country may be an ISO code (e.g. 'IN') while assets are
+  // tagged with the full name (e.g. 'india') — match on either before deciding
+  // whether to inject a separate option for it.
+  const matchingOption = currentCountry
+    ? options.find((opt) => facetValueMatchesCountryCode(opt.value, currentCountry))
+    : null;
+  if (currentCountry && !matchingOption) {
+    options.unshift({ value: currentCountry, label: currentCountry });
+  }
+
+  options.forEach(({ value, label }) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    select.append(opt);
+  });
+
+  select.value = matchingOption ? matchingOption.value : (currentCountry || '');
 }
 
 function hideProfileModal() {
@@ -191,6 +281,8 @@ ${window.user?.su ? ph('simulatingUser', 'Simulating User') : ph('simulateUser',
     document.getElementById('profile-name-input').style.display = 'block';
     document.getElementById('profile-email-input').style.display = 'block';
     document.getElementById('profile-country-input').style.display = 'block';
+
+    populateCountrySelect(window.user?.country || '');
   }
 }
 
@@ -206,7 +298,8 @@ function handleReset() {
 }
 
 function handleSave() {
-  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
+  // Gate on the real identity (su) while impersonating, so Reset stays available.
+  const canSudo = hasPermission(window.user?.su ?? window.user, PERMISSIONS.SUDO);
 
   if (canSudo) {
     // Get values from input fields
