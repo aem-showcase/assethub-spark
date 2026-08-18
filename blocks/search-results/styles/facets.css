@@ -155,7 +155,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: var(--line-height-02);
-  font-family: var(--heading-font-family, sans-serif) !important;
+  font-family: inherit;
   padding-right: 5px;
   cursor: pointer;
 }
@@ -402,7 +402,7 @@
   cursor: pointer;
   font-size: var(--font-size-02);
   font-style: normal;
-  font-family: var(--heading-font-family, sans-serif);
+  font-family: inherit;
   font-weight: 400;
   color: #666;
   transition: all 0.2s;
@@ -650,7 +650,7 @@
   font-size: var(--font-size-04);
   font-weight: 700;
   color: #333;
-  font-family: var(--heading-font-family, sans-serif);
+  font-family: inherit;
 }
 
 .facet-modal-header h2::after {
