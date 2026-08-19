@@ -277,7 +277,6 @@ function createMyAccount(t) {
     myAccountMenu.innerHTML = `
       <ul>
         <li><a href="#" id="my-profile-link">${t('myProfile', 'My Profile')}</a></li>
-        <li><a href="${localizePath('/search-collections')}">${t('myCollections', 'My Collections')}</a></li>
         <li><a href="/auth/logout">${t('logOut', 'Log Out')}</a></li>
       </ul>
     `;
