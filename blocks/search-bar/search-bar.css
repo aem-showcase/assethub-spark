@@ -96,6 +96,10 @@
   font-weight: 700;
 }
 
+.query-input:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #00647D);
+}
+
 .query-input.rounded-box {
   border-top-left-radius: 999px;
   border-bottom-left-radius: 999px;

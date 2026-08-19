@@ -200,6 +200,11 @@
   }
 }
 
+.carousel.tiles .carousel-navigation-buttons {
+    left: -20px;
+    right: -20px;
+}
+
 .carousel .carousel-navigation-buttons button {
     position: relative;
     width: 40px;
@@ -333,8 +338,8 @@
 /* Tiles variant: light card style matching main .section.category-tiles .cards */
 .carousel.tiles .carousel-slide {
     border: 1px solid rgb(88 24 29 / 8%);
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgb(88 24 29 / 6%);
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
 }
 
 .carousel.tiles .carousel-slide:hover {
@@ -343,21 +348,37 @@
 }
 
 .carousel.tiles .carousel-slide-image {
-    aspect-ratio: 4 / 3;
     height: auto;
+    aspect-ratio: auto;
+    padding-top: 30px;
     background: var(--background-color);
+}
+
+.carousel.tiles .carousel-slide-image picture {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel.tiles .carousel-slide-image picture > img {
+    width: auto;
+    height: auto;
+    max-width: 60%;
+    max-height: 100px;
+    object-fit: contain;
 }
 
 .carousel.tiles .carousel-slide-content {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 6px;
     min-height: 0;
     text-align: left;
     background: transparent;
     color: var(--text-color);
-    padding: 22px;
+    padding: 20px 22px 22px;
     border-radius: 0;
 }
 

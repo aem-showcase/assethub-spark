@@ -136,6 +136,10 @@ router
   .all('*', async (request, env) => {
     const response = await originHelix(request, env);
 
+    if (response.status === 404) {
+      return Response.redirect(`${new URL(request.url).origin}/404.html`, 302);
+    }
+
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html') || !request.user) {
       return response;
