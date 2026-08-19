@@ -22,6 +22,7 @@ import {
   saveSearchFiltersToUrl,
   loadSearchFiltersFromUrl,
 } from './utils/config.js';
+import { parseExcConfigBlock } from './utils/exc-config-parser.js';
 import { loadSearchExpandAllDetailsState } from './utils/toggle-state-storage.js';
 import {
   fetchAssetById,
@@ -447,6 +448,9 @@ export default async function decorate(block) {
   // Get block key-value pairs
   const blockObj = getBlockKeyValues(block);
 
+  // Parse table-format excFacets before clearing the DOM
+  const { config: tableConfig } = parseExcConfigBlock(block);
+
   // Get configs
   const configs = await fetchSpreadsheetData('configs');
 
@@ -478,13 +482,19 @@ export default async function decorate(block) {
 
   // Set external params
   window.SearchResultsConfig = window.SearchResultsConfig || {};
+
+  // Parse excFacets: try JSON blob first, fall back to table format embedded in this block
+  const jsonExcFacets = safeJsonParse(blockObj.excFacets, 'excFacets');
+  const hasJsonExcFacets = Object.keys(jsonExcFacets).length > 0;
+  const tableExcFacets = tableConfig.excFacets || {};
+
   window.SearchResultsConfig.externalParams = {
     isBlockIntegration: true,
     hitsPerPage: stripHtmlAndNewlines(blockObj.hitsPerPage) || '',
     sortType: stripHtmlAndNewlines(blockObj.sortType) || '',
     sortDirection: stripHtmlAndNewlines(blockObj.sortDirection) || '',
     searchMode: stripHtmlAndNewlines(blockObj.searchMode) || '',
-    excFacets: safeJsonParse(blockObj.excFacets, 'excFacets'),
+    excFacets: hasJsonExcFacets ? jsonExcFacets : tableExcFacets,
     mimeTypeMappings,
     presetFilters: blockObj.presetFilters ? convertHtmlListToArray(blockObj.presetFilters) : [],
     ...(window.SearchResultsConfig.externalParams || {}),
