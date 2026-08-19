@@ -694,6 +694,14 @@ header nav .nav-tools .nav-reports-icon button:focus {
   outline: none;
 }
 
+header nav .nav-tools .nav-cart-icon button:focus-visible,
+header nav .nav-tools .nav-download-icon button:focus-visible,
+header nav .nav-tools .nav-message-icon button:focus-visible,
+header nav .nav-tools .nav-reports-icon button:focus-visible {
+  box-shadow: var(--focus-ring, 0 0 0 3px #00647D);
+  border-radius: 6px;
+}
+
 header nav .nav-tools .nav-cart-icon button img,
 header nav .nav-tools .nav-download-icon button img,
 header nav .nav-tools .nav-message-icon button img,
