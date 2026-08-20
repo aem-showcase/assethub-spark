@@ -116,9 +116,7 @@ fetched at runtime by the Cloudflare Worker (`cloudflare/src/user.js`):
 | Spreadsheet | Path | Contents |
 |---|---|---|
 | Application permissions | `/config/access/application` | Email domain or specific email → API access |
-| Company roles | `/config/access/companies` | Email domain → role, country, brand |
 | User overrides | `/config/access/users` | Per-email role/country/brand overrides |
-| Restricted brands | `/config/access/restricted-brands` | Brands hidden from certain roles |
 
 NEVER hardcode role logic in the worker. Add a new column/row to the spreadsheet and fetch
 it via the existing config loading pattern in `cloudflare/src/user.js`.

@@ -46,19 +46,19 @@ files are listed as hints in Notes.
 
 | If your task touches… | Where to look | Notes |
 |-----------------------|---------------|-------|
-| **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system design, request lifecycle, all integrations |
-| **Auth** — OIDC login/callback, session JWT | `cloudflare/src/` | `auth.js`, `user.js` — **protected, read only** |
-| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` | `dm.js` (`searchContentAIAuthorization`); `scripts/scripts.js` (`checkPageAccess`) |
-| **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | `index.js` — middleware order is security-critical |
-| **Asset search** — ContentAI query, facets, filters | `blocks/search-results/` · `cloudflare/src/origin/` | `clients/dynamicmedia-client.js`, `dm.js` |
-| **EDS blocks** — new block, extending a block | `blocks/` | `{name}/{name}.js` — see Key Flows for the `decorate(block)` pattern |
-| **Page load pipeline** — EAGER/LAZY/DELAYED | `scripts/` | `scripts.js` — changes here affect every page |
-| **Cart** — cross-tab sync, localStorage | `scripts/` | `cart-state.js`, `utils/cart-service.js` |
-| **Collections** — create, share, ACL | `scripts/collections/` · `cloudflare/src/origin/` | `collections.js` |
-| **Notifications / rights requests** | `scripts/notifications/` · `cloudflare/src/origin/` | `notifications.js` |
+| **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) | |
+| **Auth** — OIDC login/callback, session JWT | `cloudflare/src/` | `auth.js`, `user.js` — read only |
+| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` · `scripts/` | See [CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) for the 7 AuthZ layers |
+| **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | Middleware order is security-critical |
+| **Asset search** — ContentAI query, facets, filters | `blocks/search-results/` · `cloudflare/src/origin/` | |
+| **EDS blocks** — new block, extending a block | `blocks/` | See Key Flows below for the `decorate(block)` pattern |
+| **Page load pipeline** — EAGER/LAZY/DELAYED | `scripts/` | Affects every page |
+| **Cart** — cross-tab sync, localStorage | `scripts/` | |
+| **Collections** — create, share, ACL | `scripts/collections/` · `cloudflare/src/origin/` | |
+| **Notifications / rights requests** | `scripts/notifications/` · `cloudflare/src/origin/` | |
 | **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) | |
 | **Block/JS conventions** | [docs/coding-rules.md](docs/coding-rules.md) | |
-| **Cloudflare Worker flows** deep dive | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) | Auth, AuthZ, IMS caching |
+| **Cloudflare Worker flows** | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) | Auth, AuthZ layers, IMS caching |
 | **Permission tiers + hard rules** | [`.agent-policy.yml`](.agent-policy.yml) · [INVARIANTS.md](INVARIANTS.md) | |
 
 When you change behavior, **update the matching doc in the same PR** so it stays accurate.

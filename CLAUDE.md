@@ -28,13 +28,6 @@ npm run test:integration:local      # integration tests (requires session cookie
 - `cloudflare/src/user.js` — role resolution; mistake = wrong permissions for all users
 - `secret.env`, `.env`, `.dev.vars`, `.secrets` — never read, never modify, never commit
 
-**Supervised (open a PR, human must approve before merge):**
-- `cloudflare/src/index.js` — middleware chain order is security-critical
-- `cloudflare/src/origin/dm.js` — contains authZ filter injection
-- `scripts/scripts.js` — page load pipeline, affects every page
-- `cloudflare/wrangler.jsonc` — worker routing and Cloudflare bindings
-- `.github/workflows/**`
-
 **Where config lives:**
 - Worker secrets → Cloudflare Secrets Store (never in code)
 - Worker static config (tenant IDs, env) → `cloudflare/src/config.js`
