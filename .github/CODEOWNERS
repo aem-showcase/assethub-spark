@@ -1,2 +1,16 @@
 # approvers for main branch after go live in March, 2026
-* @pkoch73 @inedoviesov1 alexkli jfait CCNehbansal hayatkha
+* @mohitar alexkli jfait CCNehbansal hayatkha
+
+# Security-critical & governance paths — require senior review.
+# Mirrors the protected/supervised tiers in .agent-policy.yml (see AGENTS.md § Guardrails, SECURITY.md).
+# Later matches win, so these override the catch-all above.
+/cloudflare/src/auth.js        @mohitar
+/cloudflare/src/user.js        @mohitar
+/cloudflare/src/index.js       @mohitar
+/cloudflare/src/origin/dm.js   @mohitar
+/cloudflare/src/config.js      @mohitar
+/cloudflare/wrangler.jsonc     @mohitar
+/scripts/scripts.js            @mohitar
+/.github/workflows/            @mohitar
+/.agent-policy.yml             @mohitar
+/SECURITY.md                   @mohitar

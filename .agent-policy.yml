@@ -1,0 +1,54 @@
+# .agent-policy.yml — machine-readable agent write-permission tiers for assethub-spark.
+#
+# Defines what an AI agent may autonomously write (autonomous), must have human approval
+# for (supervised), or must never touch (protected).
+# Human-readable summary: AGENTS.md § Guardrails
+# Non-negotiable rules: AGENTS.md § Guardrails
+# Security threats: SECURITY.md
+
+version: 1
+
+protected:
+  # Auth implementation — a bug here is a silent security breach
+  - "cloudflare/src/auth.js"           # OIDC login/callback/logout + nonce validation
+  - "cloudflare/src/user.js"           # Role and permission resolution → session JWT claims
+
+  # Credentials and local secrets
+  - "secret.env"
+  - ".env"
+  - ".dev.vars"
+  - ".secrets"
+  - "**/*.pem"
+  - "**/*.p12"
+
+  # The guardrails themselves — an agent must not weaken its own controls
+  - ".agent-policy.yml"                # this file
+  - "SECURITY.md"
+
+supervised:
+  # Cloudflare Worker routing — middleware chain order is security-critical
+  - "cloudflare/src/index.js"
+
+  # AuthZ filter injection — removing filters leaks restricted assets
+  - "cloudflare/src/origin/dm.js"
+
+  # Static tenant config (Entra tenant ID, AEM env ID, IMS endpoints)
+  - "cloudflare/src/config.js"
+
+  # Worker routing, KV/D1/Analytics bindings, Secrets Store references
+  - "cloudflare/wrangler.jsonc"
+  - "cloudflare/package.json"
+
+  # Page load pipeline — EAGER/LAZY/DELAYED, auth gate, role check; change affects every page
+  - "scripts/scripts.js"
+
+  # CI/CD pipelines and repo ownership
+  - ".github/workflows/**"
+  - ".github/CODEOWNERS"
+
+  # Root package — dep changes affect both root and postinstall (cloudflare/)
+  - "package.json"
+
+# autonomous: everything else
+# This includes: blocks/**, scripts/** (except scripts.js), shared/**,
+# tests/**, styles/**, docs/**, *.html, *.css, *.md (except governance files above)
