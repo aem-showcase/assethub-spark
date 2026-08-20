@@ -27,27 +27,39 @@ and i18n (English + Japanese).
 
 ---
 
-## Deep Documentation
+## Architecture
 
-Read these before changing code in an area — they will keep you from breaking a public
-contract or missing a critical flow.
+Three layers — every request flows through all three:
 
-| If your task touches… | Read first |
-|-----------------------|------------|
-| **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) — complete system design, request lifecycle, all integrations |
-| **Auth** — OIDC login/callback, session JWT, Entra, cookie | `cloudflare/src/auth.js`, `cloudflare/src/user.js` — **protected files, read only** |
-| **Authorization** — role checks, brand/country filters, page access | `cloudflare/src/origin/dm.js` (`searchContentAIAuthorization`), `scripts/scripts.js` (`checkPageAccess`) |
-| **Cloudflare Worker routing** — middleware chain, new routes, CORS | `cloudflare/src/index.js` — middleware order matters for security |
-| **Asset search** — ContentAI query, facets, filters, result mapping | `blocks/search-results/clients/dynamicmedia-client.js`, `cloudflare/src/origin/dm.js` |
-| **EDS blocks** — new block, extending a block, block pattern | Any `blocks/{name}/{name}.js` — see Key Flows below for the decoration pattern |
-| **Page load pipeline** — EAGER/LAZY/DELAYED tiers, auth gate | `scripts/scripts.js` — changes here affect every page |
-| **Cart** — cross-tab sync, localStorage, download | `scripts/cart-state.js`, `scripts/utils/cart-service.js` |
-| **Collections** — create, share, ACL | `scripts/collections/`, `cloudflare/src/origin/collections.js` |
-| **Notifications / rights requests** | `scripts/notifications/`, `cloudflare/src/origin/notifications.js` |
-| **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) |
-| **Block/JS conventions** | [docs/coding-rules.md](docs/coding-rules.md) |
-| **Cloudflare Worker flows** (auth, authZ, IMS caching) deep dive | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) |
-| **What an agent may write** (permission tiers) | [INVARIANTS.md](INVARIANTS.md) · [`.agent-policy.yml`](.agent-policy.yml) |
+- **Browser / EDS frontend** (`blocks/`, `scripts/`, `styles/`) — Vanilla JS + AEM Edge Delivery Services. No build step, no framework. Blocks are `<div class="{name}">` elements decorated by `blocks/{name}/{name}.js`.
+- **Cloudflare Worker gateway** (`cloudflare/src/`) — itty-router v5. Auth (OIDC), AuthZ filter injection, API proxy, KV/D1/Analytics writes. Every request to `frescopamedia.com` passes through it.
+- **Adobe backends** — Dynamic Media / ContentAI (asset search), IMS (OAuth tokens), AEM authoring environment (spreadsheets, content).
+
+Full design, request lifecycle, storage bindings, and deployment: **[ARCHITECTURE.md](ARCHITECTURE.md)**
+
+---
+
+## Documentation
+
+Read these before changing code in an area — directories are the stable addresses; specific
+files are listed as hints in Notes.
+
+| If your task touches… | Where to look | Notes |
+|-----------------------|---------------|-------|
+| **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system design, request lifecycle, all integrations |
+| **Auth** — OIDC login/callback, session JWT | `cloudflare/src/` | `auth.js`, `user.js` — **protected, read only** |
+| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` | `dm.js` (`searchContentAIAuthorization`); `scripts/scripts.js` (`checkPageAccess`) |
+| **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | `index.js` — middleware order is security-critical |
+| **Asset search** — ContentAI query, facets, filters | `blocks/search-results/` · `cloudflare/src/origin/` | `clients/dynamicmedia-client.js`, `dm.js` |
+| **EDS blocks** — new block, extending a block | `blocks/` | `{name}/{name}.js` — see Key Flows for the `decorate(block)` pattern |
+| **Page load pipeline** — EAGER/LAZY/DELAYED | `scripts/` | `scripts.js` — changes here affect every page |
+| **Cart** — cross-tab sync, localStorage | `scripts/` | `cart-state.js`, `utils/cart-service.js` |
+| **Collections** — create, share, ACL | `scripts/collections/` · `cloudflare/src/origin/` | `collections.js` |
+| **Notifications / rights requests** | `scripts/notifications/` · `cloudflare/src/origin/` | `notifications.js` |
+| **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) | |
+| **Block/JS conventions** | [docs/coding-rules.md](docs/coding-rules.md) | |
+| **Cloudflare Worker flows** deep dive | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) | Auth, AuthZ, IMS caching |
+| **Permission tiers + hard rules** | [`.agent-policy.yml`](.agent-policy.yml) · [INVARIANTS.md](INVARIANTS.md) | |
 
 When you change behavior, **update the matching doc in the same PR** so it stays accurate.
 
@@ -141,32 +153,6 @@ npm run dev
 - Update `styles/` CSS
 - Update documentation in `docs/`
 - Fix bugs in existing blocks and scripts
-
-## Boundaries and Safety Gates
-
-> The authoritative permission tiers live in [`.agent-policy.yml`](.agent-policy.yml) and
-> the enforceable invariants in [`INVARIANTS.md`](INVARIANTS.md). This is the in-context summary.
-
-- **Never modify `cloudflare/src/auth.js` or `cloudflare/src/user.js`** — OIDC implementation and role resolution are human-only. A mistake here silently breaks authentication or assigns wrong roles to all users.
-- **Never remove or weaken the authZ filters in `cloudflare/src/origin/dm.js`** (`searchContentAIAuthorization`) — removing brand/country/customer filter injection causes restricted assets to leak to unauthorized users.
-- **Never change the middleware chain order in `cloudflare/src/index.js`** — `withAuthentication` must remain after public routes and before all `/api/*` handlers.
-- **Never change existing `/api/*` endpoint paths** — these are consumed by EDS pages without versioning; a rename breaks live production.
-- **Never rename a `blocks/` folder** without a coordinated DA content change — the folder name is the block CSS class in authored documents.
-- **Never commit secrets** — `COOKIE_SECRET`, `DM_CLIENT_ID`, `DM_CLIENT_SECRET` live in Cloudflare Secrets Store. `secret.env`, `.env`, `.dev.vars`, `.secrets` are gitignored; keep them that way.
-- **Never disable `npm test` or `npm run lint`** in `.github/workflows/build.yaml`.
-- **Always use `ctx.waitUntil()`** for analytics writes — never block the response path.
-
----
-
-## Capturing Learnings
-
-Turn review findings and bugs into durable knowledge:
-
-- **Recurring review feedback / conventions** → [`docs/coding-rules.md`](docs/coding-rules.md) — curated, link provenance so stale rules can be retired
-- **Bugs fixed** → add a regression test in the same PR
-- **Cloudflare Worker flow changes** → update [`docs/architecture/CLOUDFLARE-FLOW.md`](docs/architecture/CLOUDFLARE-FLOW.md)
-
----
 
 ## Guardrails
 

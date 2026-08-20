@@ -36,62 +36,30 @@ import needed in JS.
 **Block co-location:** JS, CSS, and any block-specific sub-components live in the same folder.
 Do not put block-specific utilities in `scripts/`.
 
+**Never rename a `blocks/` folder** without a coordinated DA content update — the folder name is the CSS class applied to the block element in authored documents. A rename silently breaks every page using that block.
+
+**Import paths must include the `.js` extension** — airbnb-base ESLint (`import/extensions`) enforces this. `import { foo } from './utils.js'` not `'./utils'`.
+
 ---
 
 ## R2 — Vanilla JS State Management (Pub/Sub)
 
 No Redux, Zustand, Recoil, or any state library. State is a plain object with a custom
-pub/sub mechanism.
-
-```js
-// Canonical pattern (see blocks/search-results/search-results.js)
-const state = {
-  query: '',
-  results: null,
-  loading: false,
-};
-
-const listeners = new Set();
-
-export function getState() {
-  return { ...state }; // return a copy
-}
-
-export function setState(updates) {
-  Object.assign(state, updates);
-  listeners.forEach((fn) => fn(state));
-}
-
-export function subscribe(listener) {
-  listeners.add(listener);
-  return () => listeners.delete(listener); // returns unsubscribe fn
-}
-```
+pub/sub mechanism: `getState()`, `setState(updates)`, `subscribe(listener)`.
 
 State lives **in the block's JS module**. Blocks that need to share state import from each
-other (e.g., `asset-details` imports from `search-results`). Never use `window.*` for
-state — only for truly global singletons (e.g., `window.user`).
+other (e.g., `asset-details` imports from `search-results`). Only use `window.*` for
+truly global singletons (e.g., `window.user`).
+
+See canonical pattern in `blocks/search-results/search-results.js`.
 
 ---
 
 ## R3 — URL-Based Routing
 
-There is no SPA router. State that should survive page refresh or be shareable is stored
-in URL search params via `history.replaceState()`.
-
-```js
-// ✅ Store state in URL
-const params = new URLSearchParams(window.location.search);
-params.set('query', searchTerm);
-params.set('assetId', selectedId);
-window.history.replaceState({}, '', `?${params.toString()}`);
-
-// ✅ Read state from URL on init
-const query = new URLSearchParams(window.location.search).get('query') ?? '';
-```
-
-Never use `localStorage` or `sessionStorage` for state that should be deep-linkable.
-Use `localStorage` only for user preferences (e.g., sort order) and cart contents.
+No SPA router. State that should survive page refresh or be shareable lives in URL search
+params via `history.replaceState()`. Use `localStorage` only for user preferences (e.g.,
+sort order) and cart contents — never for deep-linkable state.
 
 ---
 
@@ -113,16 +81,15 @@ Nothing goes in EAGER unless it must be visible or complete before the user can 
 
 ## R5 — Fire-and-Forget Analytics in the Worker
 
-Analytics writes must never block the response. Always use `ctx.waitUntil()`.
+Analytics writes must never block the response. Always use `ctx.waitUntil()` where `ctx`
+is the third parameter passed to itty-router handlers — it is **not** `request.ctx`.
 
 ```js
-// ✅ Correct
-request.ctx.waitUntil(writeAnalyticsEvent({ ... }));
-return response;
-
-// ❌ Wrong — blocks response
-await writeAnalyticsEvent({ ... });
-return response;
+// ✅ Correct — ctx is the 3rd handler param
+export async function handleSearch(request, env, ctx) {
+  ctx.waitUntil(writeAnalyticsEvent({ ... }));
+  return response;
+}
 ```
 
 This applies to: search events, login events, download events, audit events.
@@ -131,26 +98,20 @@ This applies to: search events, login events, download events, audit events.
 
 ## R6 — Cross-Tab Cart Sync via BroadcastChannel
 
-The cart is synced across tabs using `BroadcastChannel`. This means:
-- Cart state lives in `localStorage` (`spark-cart` key)
-- On every `setState()`, the new state is broadcast to other tabs
-- There is no server-side cart — it is entirely client-side
+The cart is synced across tabs using `BroadcastChannel('cart-sync')`. Cart state lives in
+`localStorage` under keys `cartAssetItems` and `cartTemplateItems`. On every `setState()`,
+the new state is broadcast to other tabs. There is no server-side cart — it is entirely
+client-side.
 
-```js
-const broadcast = new BroadcastChannel('spark-cart');
-broadcast.onmessage = ({ data }) => {
-  if (data.type === 'cart-sync') syncLocalState(data.cart);
-};
-```
-
-Do not introduce a server-side cart without coordinating this architecture change.
+Do not introduce a server-side cart without coordinating this architecture change. Do not
+change the channel name or localStorage keys without updating all consumers in `scripts/cart-state.js`.
 
 ---
 
 ## R7 — Configuration Lives in EDS Spreadsheets
 
 Role permissions, brand restrictions, and company-to-role mappings live in EDS spreadsheets
-fetched at runtime by the Cloudflare Worker:
+fetched at runtime by the Cloudflare Worker (`cloudflare/src/user.js`):
 
 | Spreadsheet | Path | Contents |
 |---|---|---|
@@ -159,8 +120,8 @@ fetched at runtime by the Cloudflare Worker:
 | User overrides | `/config/access/users` | Per-email role/country/brand overrides |
 | Restricted brands | `/config/access/restricted-brands` | Brands hidden from certain roles |
 
-**Do not hardcode role logic in the worker.** Add a new column/row to the spreadsheet
-and fetch it via the existing config loading pattern in `cloudflare/src/user.js`.
+NEVER hardcode role logic in the worker. Add a new column/row to the spreadsheet and fetch
+it via the existing config loading pattern in `cloudflare/src/user.js`.
 
 ---
 
@@ -168,35 +129,15 @@ and fetch it via the existing config loading pattern in `cloudflare/src/user.js`
 
 Translations live in `scripts/locales/en.json` and `scripts/locales/ja.json`.
 The active locale is determined by the URL path prefix (`/ja/` = Japanese, otherwise English).
+Use `getAppLabel(key)` (async, from `scripts/locale-utils.js`) for all user-visible strings.
 
-```js
-// ✅ Get a localized label
-import { getLocaleLabel } from '../scripts/locale-utils.js';
-const label = getLocaleLabel('search.placeholder'); // → "Search assets" or "アセットを検索"
-
-// ❌ Never hardcode English strings in block JS
-button.textContent = 'Download'; // breaks Japanese users
-```
-
-When adding a new user-visible string:
-1. Add the key to `scripts/locales/en.json`
-2. Add the translated value to `scripts/locales/ja.json`
-3. Use `getLocaleLabel()` in the block
+NEVER hardcode English strings in block JS — this breaks Japanese users. When adding a
+new user-visible string: add the key to both locale files, then use `getAppLabel(key)` in the block.
 
 ---
 
 ## R9 — No innerHTML with Dynamic Data
 
-Never set `innerHTML` with user-supplied or API-returned strings — use `textContent` for
-text and `document.createElement` for structure.
-
-```js
-// ✅ Safe
-const title = document.createElement('h2');
-title.textContent = asset.title; // textContent escapes HTML
-
-// ❌ XSS risk
-card.innerHTML = `<h2>${asset.title}</h2>`;
-```
-
-Exception: static, developer-authored HTML strings with no interpolated data are acceptable.
+NEVER set `innerHTML` with user-supplied or API-returned strings — use `textContent` for
+text and `document.createElement` for structure. Static, developer-authored HTML strings
+with no interpolated data are acceptable (and widely used in this codebase for templates).

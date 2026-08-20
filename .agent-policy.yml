@@ -2,7 +2,7 @@
 #
 # Defines what an AI agent may autonomously write (autonomous), must have human approval
 # for (supervised), or must never touch (protected).
-# Human-readable summary: AGENTS.md § Boundaries and Safety Gates
+# Human-readable summary: AGENTS.md § Guardrails
 # Non-negotiable rules: INVARIANTS.md
 # Security threats: SECURITY.md
 
