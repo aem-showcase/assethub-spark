@@ -69,7 +69,7 @@ weakens the `searchContentAIAuthorization()` filters — for example:
 
 **Defense:**
 - `cloudflare/src/origin/dm.js` is `supervised` — any change requires human review
-- The 7-layer authZ model is documented in `docs/architecture/CLOUDFLARE-FLOW.md`
+- The layered authZ model (8 layers) is documented in [ARCHITECTURE.md §6](ARCHITECTURE.md#6-authorization)
 - AuthZ tests in `tests/authz/` validate filter behavior using 13 real user personas
 
 ---

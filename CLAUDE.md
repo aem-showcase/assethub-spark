@@ -17,4 +17,4 @@ cd cloudflare && npm test && npm run lint-ci
 npm run dev
 ```
 
-**Commit format:** `GH-NNN : brief description` (present tense, lowercase, ≤72 chars)
+**Commits:** Reference the issue ID (e.g. `#123`); PRs squash-merge with an imperative subject + `(#PR)`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).

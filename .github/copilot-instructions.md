@@ -26,7 +26,7 @@ export default async function decorate(block) {
 
 **State management:** Custom pub/sub only. No React, Redux, Zustand, or any framework.
 
-**Commit format:** `GH-NNN : brief description`
+**Commits:** Reference the issue ID (e.g. `#123`). See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 **Never:**
 - Call backend APIs directly from browser — route through `/api/*` (Cloudflare Worker handles auth)

@@ -48,7 +48,7 @@ files are listed as hints in Notes.
 |-----------------------|---------------|-------|
 | **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) | |
 | **Auth** — OIDC login/callback, session JWT | `cloudflare/src/` | `auth.js`, `user.js` — read only |
-| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` · `scripts/` | [ARCHITECTURE.md §6](ARCHITECTURE.md#6-authorization) — 7 AuthZ layers |
+| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` · `scripts/` | [ARCHITECTURE.md §6](ARCHITECTURE.md#6-authorization) — 8 AuthZ layers |
 | **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | [ARCHITECTURE.md §4](ARCHITECTURE.md#4-cloudflare-worker--edge-gateway) — middleware order is security-critical |
 | **Asset search** — ContentAI query, facets, filters | `blocks/search-results/` · `cloudflare/src/origin/` | |
 | **EDS blocks** — new block, extending a block | `blocks/` | See Key Flows below for the `decorate(block)` pattern |
@@ -140,6 +140,11 @@ npm run test:authz
 # Local dev (EDS proxy + Worker)
 npm run dev
 ```
+
+**Definition of done — verify before you stop.** Don't stop at "looks done": run `npm test && npm run lint`
+(and `cd cloudflare && npm test && npm run lint-ci` if you touched the Worker), then fix any failures.
+Show the command output as evidence. If you changed an API/auth path, also run the relevant
+`npm run test:integration:local` / `npm run test:authz`.
 
 ---
 

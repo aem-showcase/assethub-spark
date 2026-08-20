@@ -27,7 +27,14 @@
       "Bash(npm publish:*)"
     ],
     "deny": [
-      "Bash(curl * secret*:*)",
+      "Read(./secret.env)",
+      "Read(./.env)",
+      "Read(./.dev.vars)",
+      "Read(./.secrets)",
+      "Read(**/*.pem)",
+      "Read(**/*.p12)",
+      "Edit(./cloudflare/src/auth.js)",
+      "Edit(./cloudflare/src/user.js)",
       "Bash(cat secret.env:*)",
       "Bash(cat .env:*)",
       "Bash(cat .dev.vars:*)",
