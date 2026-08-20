@@ -48,8 +48,8 @@ files are listed as hints in Notes.
 |-----------------------|---------------|-------|
 | **Any non-trivial change** — orient first | [ARCHITECTURE.md](ARCHITECTURE.md) | |
 | **Auth** — OIDC login/callback, session JWT | `cloudflare/src/` | `auth.js`, `user.js` — read only |
-| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` · `scripts/` | See [CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) for the 7 AuthZ layers |
-| **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | Middleware order is security-critical |
+| **Authorization** — role checks, brand/country filters | `cloudflare/src/origin/` · `scripts/` | [ARCHITECTURE.md §6](ARCHITECTURE.md#6-authorization) — 7 AuthZ layers |
+| **Cloudflare Worker routing** — middleware, new routes | `cloudflare/src/` | [ARCHITECTURE.md §4](ARCHITECTURE.md#4-cloudflare-worker--edge-gateway) — middleware order is security-critical |
 | **Asset search** — ContentAI query, facets, filters | `blocks/search-results/` · `cloudflare/src/origin/` | |
 | **EDS blocks** — new block, extending a block | `blocks/` | See Key Flows below for the `decorate(block)` pattern |
 | **Page load pipeline** — EAGER/LAZY/DELAYED | `scripts/` | Affects every page |
@@ -57,8 +57,7 @@ files are listed as hints in Notes.
 | **Collections** — create, share, ACL | `scripts/collections/` · `cloudflare/src/origin/` | |
 | **Notifications / rights requests** | `scripts/notifications/` · `cloudflare/src/origin/` | |
 | **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) | |
-| **Block/JS conventions** | [docs/coding-rules.md](docs/coding-rules.md) | |
-| **Cloudflare Worker flows** | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) | Auth, AuthZ layers, IMS caching |
+| **Block/JS conventions** | [docs/conventions.md](docs/conventions.md) | |
 | **Permission tiers + hard rules** | [`.agent-policy.yml`](.agent-policy.yml) · [INVARIANTS.md](INVARIANTS.md) | |
 
 When you change behavior, **update the matching doc in the same PR** so it stays accurate.
@@ -144,15 +143,20 @@ npm run dev
 
 ---
 
-## What Agents May Do
+## Code Conventions
 
-- Add new EDS blocks in `blocks/` (new folder + JS + CSS, following decorate(block) pattern)
-- Add or extend utilities in `scripts/` (except `scripts/scripts.js` — supervised)
-- Add or extend tests in `tests/` and `scripts/__tests__/`
-- Update `shared/` content transforms
-- Update `styles/` CSS
-- Update documentation in `docs/`
-- Fix bugs in existing blocks and scripts
+- ALWAYS export `decorate(block)` as default from `blocks/{name}/{name}.js` — block folder name = CSS class in authored documents, never rename without a coordinated DA content update
+- ALWAYS include `.js` extension in import paths — airbnb-base ESLint enforces it
+- ALWAYS use `ctx.waitUntil()` for analytics writes in the Worker — never `await` on the response path
+- NEVER set `innerHTML` with API-returned or user-supplied data — use `textContent` or `createElement`
+- NEVER hardcode user-visible strings in block JS — use `getAppLabel(key)` from `scripts/locale-utils.js`
+- NEVER hardcode role logic in the Worker — add rows to EDS spreadsheets under `/config/access/*`
+- PREFER the custom pub/sub pattern (`getState/setState/subscribe`) over any state library — see `blocks/search-results/search-results.js`
+- PREFER URL search params for shareable state; use `localStorage` only for preferences and cart
+
+Full reference: [`docs/conventions.md`](docs/conventions.md)
+
+---
 
 ## Guardrails
 
