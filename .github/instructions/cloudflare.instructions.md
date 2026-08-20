@@ -4,7 +4,7 @@ applyTo: "cloudflare/**"
 
 # Cloudflare Worker — path-specific instructions
 
-Canonical guidance: [`AGENTS.md`](../../AGENTS.md) · [`SECURITY.md`](../../SECURITY.md) · [`INVARIANTS.md`](../../INVARIANTS.md).
+Canonical guidance: [`AGENTS.md`](../../AGENTS.md) · [`SECURITY.md`](../../SECURITY.md).
 
 - This is the **itty-router v5** edge gateway. Every request to `frescopamedia.com` flows through it.
 - **Middleware order is security-critical.** In `src/index.js`, public routes (`/auth/*`, `/public/*`,

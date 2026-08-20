@@ -4,8 +4,9 @@
 > `CLAUDE.md` and `.github/copilot-instructions.md` point here — update this file first
 > when conventions change, then sync the summaries in those files.
 >
-> **Tool-agnostic by design.** Any AGENTS.md-aware agent — Claude Code, GitHub Copilot
-> Workspace, OpenAI Codex, Cursor, Gemini, Windsurf, Aider — works from this single file.
+> **Tool-agnostic by design.** Claude Code (`CLAUDE.md`) and GitHub Copilot
+> (`.github/copilot-instructions.md`) read this today; any other AGENTS.md-aware agent
+> works from this single file too.
 
 ---
 
@@ -58,7 +59,7 @@ files are listed as hints in Notes.
 | **Notifications / rights requests** | `scripts/notifications/` · `cloudflare/src/origin/` | |
 | **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) | |
 | **Block/JS conventions** | [docs/conventions.md](docs/conventions.md) | |
-| **Permission tiers + hard rules** | [`.agent-policy.yml`](.agent-policy.yml) · [INVARIANTS.md](INVARIANTS.md) | |
+| **Permission tiers + hard rules** | [`.agent-policy.yml`](.agent-policy.yml) · [AGENTS.md § Guardrails](#guardrails) | |
 
 When you change behavior, **update the matching doc in the same PR** so it stays accurate.
 
@@ -165,11 +166,20 @@ Full reference: [`docs/conventions.md`](docs/conventions.md)
 
 ## Guardrails
 
-Three governance files define the hard rules:
+Two governance files define the enforcement mechanism:
 
-- [`INVARIANTS.md`](INVARIANTS.md) — non-negotiable rules (auth gates, endpoint paths, secrets, CI)
 - [`.agent-policy.yml`](.agent-policy.yml) — permission tiers (Protected / Supervised / Autonomous)
-- [`SECURITY.md`](SECURITY.md) — threat register for agent-assisted development
+- [`SECURITY.md`](SECURITY.md) — how to report a vulnerability + threat register for agent-assisted development
+
+### Invariants — non-negotiable
+
+These apply to everyone, humans and agents alike. Enforced by `.gitignore`, CI
+(`.github/workflows/build.yaml`), and CODEOWNERS. Never lower the bar; raise it.
+
+1. **Never commit secrets.** `COOKIE_SECRET`, `DM_CLIENT_ID`, and `DM_CLIENT_SECRET` live only in Cloudflare Secrets Store — never in source, `wrangler.jsonc`, or any committed file. `secret.env`, `.env`, `.dev.vars`, `.secrets` stay gitignored. `COOKIE_SECRET` signs session JWTs; a leak lets any user's session be forged.
+2. **Never bypass `withAuthentication`.** In `cloudflare/src/index.js` it must stay **after** the public routes (`/auth/*`, `/public/*`, `/scripts/*`, `/styles/*`, `/blocks/*`, `/icons/*`, `/fonts/*`) and **before** all `/api/*` handlers and the catch-all. No handler may skip it by moving above it or by adding a public-route pattern for an API endpoint.
+3. **Never disable CI checks.** `npm test`, `npm run lint`, `cd cloudflare && npm test`, and `cd cloudflare && npm run lint-ci` must stay active and passing in `.github/workflows/build.yaml` — no commenting out, no `continue-on-error: true`, no skip `if:` conditions.
+4. **Never remove AuthZ filters from `dm.js`.** `searchContentAIAuthorization()` injects brand, country, and customer filters into every ContentAI search — the primary guard against restricted assets leaking to unauthorized users. Don't weaken it even temporarily for debugging; use the SUDO impersonation mechanism in tests instead.
 
 **Most important direction:** the frontend must remain **vanilla JS — no React, Vue, or any SPA framework** in EDS blocks. The EDS/Helix architecture depends on static HTML + progressive JS enhancement.
 

@@ -1,13 +1,37 @@
-# SECURITY.md
+# Security Policy
 
-> **Security threat register for agent-assisted development on assethub-spark.**
-> This is not a vulnerability disclosure policy. It documents threats that are specific
-> to AI agents working in this codebase — where an agent acting in good faith could
-> inadvertently introduce a security regression.
+## Supported Versions
 
-For vulnerability reports, contact the repository maintainers via the CODEOWNERS file.
+assethub-spark is a continuously deployed application — there are no parallel released
+versions. Security fixes land on `main` and deploy to production ([frescopamedia.com](https://frescopamedia.com)).
+
+| Version | Supported |
+|---------|-----------|
+| `main` (production) | ✅ |
+| Feature / preview branches | ❌ |
+
+## Reporting a Vulnerability
+
+**Do not open a public GitHub issue for a security vulnerability.** Instead:
+
+- Use GitHub's **private vulnerability reporting**: the repository **Security** tab →
+  **Report a vulnerability**, or
+- Contact the maintainers listed in [`.github/CODEOWNERS`](.github/CODEOWNERS).
+
+Include reproduction steps, the affected endpoints/files, and the impact. Expect an initial
+response within a few business days. If a report involves `COOKIE_SECRET`,
+`DM_CLIENT_ID`/`DM_CLIENT_SECRET`, or any leaked credential, we rotate the affected secret in
+Cloudflare Secrets Store immediately.
 
 ---
+
+# Agent Threat Register
+
+> The rest of this document is a **threat register for AI-agent-assisted development**.
+> It documents threats specific to AI agents working in this codebase — where an agent acting
+> in good faith could inadvertently introduce a security regression. Human contributors should
+> read it too. Non-negotiable rules live in [AGENTS.md § Guardrails](AGENTS.md#guardrails);
+> permission tiers in [`.agent-policy.yml`](.agent-policy.yml).
 
 ## T1 — Secret Leakage via Commits
 
