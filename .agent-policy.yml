@@ -1,15 +1,10 @@
 # .agent-policy.yml — machine-readable agent write-permission tiers for assethub-spark.
 #
-# This is the tool-agnostic mirror of CONSTITUTION.md for agent write permissions.
-# Per-tool agent hooks (Claude Code, Cursor, Copilot, etc.) read THIS file and enforce
-# the mirrored tiers. It governs ONLY agent-specific write gating — universal rules
-# (secrets, CI checks) are enforced for everyone by .gitignore and GitHub Actions.
-#
-# Tiers:
-#   protected  → an agent must NEVER write these (hard block). Human-only.
-#   supervised → an agent MAY edit + open a PR, but a human must approve before merge.
-#   autonomous → everything not listed (agent works alone).
-# Patterns are gitignore/glob style, matched against the repo-relative path.
+# Defines what an AI agent may autonomously write (autonomous), must have human approval
+# for (supervised), or must never touch (protected).
+# Human-readable summary: AGENTS.md § Boundaries and Safety Gates
+# Non-negotiable rules: INVARIANTS.md
+# Security threats: SECURITY.md
 
 version: 1
 
@@ -29,7 +24,6 @@ protected:
   # The guardrails themselves — an agent must not weaken its own controls
   - ".agent-policy.yml"                # this file
   - "INVARIANTS.md"
-  - "CONSTITUTION.md"
   - "SECURITY.md"
 
 supervised:

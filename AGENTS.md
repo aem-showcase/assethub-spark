@@ -47,7 +47,7 @@ contract or missing a critical flow.
 | **Tests** — how to run, which type to add | [docs/testing/TESTING.md](docs/testing/TESTING.md) |
 | **Block/JS conventions** | [docs/coding-rules.md](docs/coding-rules.md) |
 | **Cloudflare Worker flows** (auth, authZ, IMS caching) deep dive | [docs/architecture/CLOUDFLARE-FLOW.md](docs/architecture/CLOUDFLARE-FLOW.md) |
-| **What an agent may write** (permission tiers) | [INVARIANTS.md](INVARIANTS.md) · [CONSTITUTION.md](CONSTITUTION.md) · [`.agent-policy.yml`](.agent-policy.yml) |
+| **What an agent may write** (permission tiers) | [INVARIANTS.md](INVARIANTS.md) · [`.agent-policy.yml`](.agent-policy.yml) |
 
 When you change behavior, **update the matching doc in the same PR** so it stays accurate.
 
@@ -144,9 +144,8 @@ npm run dev
 
 ## Boundaries and Safety Gates
 
-> The authoritative permission tiers live in [`CONSTITUTION.md`](CONSTITUTION.md) (machine
-> mirror: [`.agent-policy.yml`](.agent-policy.yml)) and enforceable invariants in
-> [`INVARIANTS.md`](INVARIANTS.md). This is the in-context summary.
+> The authoritative permission tiers live in [`.agent-policy.yml`](.agent-policy.yml) and
+> the enforceable invariants in [`INVARIANTS.md`](INVARIANTS.md). This is the in-context summary.
 
 - **Never modify `cloudflare/src/auth.js` or `cloudflare/src/user.js`** — OIDC implementation and role resolution are human-only. A mistake here silently breaks authentication or assigns wrong roles to all users.
 - **Never remove or weaken the authZ filters in `cloudflare/src/origin/dm.js`** (`searchContentAIAuthorization`) — removing brand/country/customer filter injection causes restricted assets to leak to unauthorized users.
@@ -174,7 +173,7 @@ Turn review findings and bugs into durable knowledge:
 Three governance files define the hard rules:
 
 - [`INVARIANTS.md`](INVARIANTS.md) — non-negotiable rules (auth gates, endpoint paths, secrets, CI)
-- [`CONSTITUTION.md`](CONSTITUTION.md) — permission tiers (Protected / Supervised / Autonomous) and development direction
+- [`.agent-policy.yml`](.agent-policy.yml) — permission tiers (Protected / Supervised / Autonomous)
 - [`SECURITY.md`](SECURITY.md) — threat register for agent-assisted development
 
 **Most important direction:** the frontend must remain **vanilla JS — no React, Vue, or any SPA framework** in EDS blocks. The EDS/Helix architecture depends on static HTML + progressive JS enhancement.
