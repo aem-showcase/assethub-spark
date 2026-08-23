@@ -64,7 +64,9 @@ afterEach(() => {
 describe('validateFacetRow', () => {
   it('returns no errors for a valid row', () => {
     const errors = validateFacetRow(
-      { key: 'brand', label: 'Brand', type: 'string', sortable: 'false', multiselect: 'true', filtertype: 'checkbox', mincount: '0' },
+      {
+        key: 'brand', label: 'Brand', type: 'string', sortable: 'false', multiselect: 'true', filtertype: 'checkbox', mincount: '0',
+      },
       3,
       new Set(),
     );

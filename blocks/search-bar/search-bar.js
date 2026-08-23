@@ -69,7 +69,7 @@ function loadSearchModePreference() {
 export default async function decorate(block) {
   const t = await getAppLabel();
 
-  let selectedImageAssets = [];
+  const selectedImageAssets = [];
   let isGenerateMode = false;
 
   const blockObj = getBlockKeyValues(block);

@@ -17,8 +17,9 @@
  * search-results.js.
  */
 
-export { FACET_SCHEMA, validateFacetRow, parseExcConfigBlock } from '../search-results/utils/exc-config-parser.js';
 import { parseExcConfigBlock } from '../search-results/utils/exc-config-parser.js';
+
+export { FACET_SCHEMA, validateFacetRow, parseExcConfigBlock } from '../search-results/utils/exc-config-parser.js';
 
 /**
  * Default export — EDS block decorator.

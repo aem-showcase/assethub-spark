@@ -96,7 +96,7 @@ export function parseExcConfigBlock(block) {
     // Section header: only the first cell is populated
     const isSection = cols[0] && cols.slice(1).every((c) => !c);
     if (isSection) {
-      currentSection = cols[0];
+      [currentSection] = cols;
       config[currentSection] = {};
       headers = null;
       existingKeys = new Set();
