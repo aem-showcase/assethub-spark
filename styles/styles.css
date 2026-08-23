@@ -82,8 +82,8 @@
   --heading-font-size-s: 24px;
   --heading-font-size-xs: 20px;
 
-  /* nav height (dual-tier header) */
-  --nav-height: 108px;
+  /* nav height (single-row header: brand, nav sections, icons, my account) */
+  --nav-height: 72px;
 
   /* button colors */
   --primary-color-disabled: var(--color-neutral-300);
@@ -100,6 +100,10 @@
   --status-completed-bg: rgb(127 176 120 / 12%);
   --status-cancelled: var(--color-red);
   --status-cancelled-bg: rgb(163 53 50 / 12%);
+
+  /* focus ring */
+  --focus-ring-color: var(--primary-color);
+  --focus-ring: 0 0 0 3px var(--focus-ring-color);
 
   /* semantic action colors */
   --color-destructive: var(--color-red);
@@ -158,7 +162,10 @@ html {
 
 /* Search blocks use rem; restore 16px root on search pages only */
 html:has(.search-results),
-html:has(.search-collection-results-wrapper) {
+html:has(.search-collection-results-wrapper),
+html:has(.my-notifications),
+html:has(.report-asset-activity),
+html:has(.report-searches) {
   font-size: 100%;
 }
 
@@ -178,98 +185,219 @@ body.appear {
   display: flex;
 }
 
-/* ------------------------------------------------------------------ */
+/* Global keyboard focus ring — applies to all interactive elements when
+   navigated via keyboard. Suppressed on mouse/touch via :focus-visible. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
 
-/* Welcome / sign-in page (Section Metadata style=welcome)            */
+/* Restore focus ring on high-contrast mode */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
+}
 
-/* ------------------------------------------------------------------ */
+/* ================================================================ */
 
-/* Warm cream backdrop from first paint (no flicker) */
+/* Welcome / Sign-In Page — Split-Screen Layout                     */
+
+/* ================================================================ */
+
+/* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  background-color: var(--light-color);
+  background-color: #2f2318;
+  overflow: hidden;
 }
 
-/* Center the welcome section in the viewport, below the slim header bar */
+/* Hide the slim nav bar — branding lives in the left brand panel */
+body:has(.section.welcome) > header {
+  display: none;
+}
+
+/* Hide footer for a focused sign-in experience */
+body:has(.section.welcome) > footer {
+  display: none;
+}
+
+/* Full-viewport two-column split */
 body:has(.section.welcome) > main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100dvh - var(--header-bar-height, 48px));
-  padding: var(--spacing-xbig) var(--spacing-medium);
+  display: grid;
+  grid-template-columns: 55% 45%;
+  min-height: 100dvh;
+  padding: 0;
+  position: relative;
+  align-items: stretch;
 }
 
-/* The card */
-.section.welcome {
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto;
-  padding: var(--spacing-xbig) var(--spacing-big);
-  background-color: var(--color-neutral-50);
-  border-radius: var(--shape-border-radius-2);
-  box-shadow: var(--shape-shadow-card);
+/* ── Left: Brand Panel ────────────────────────────────────────── */
+
+/* Dark coffee background with the gold beans icon as a large decorative mark */
+body:has(.section.welcome) > main::before {
+  content: '';
+  background-color: #2f2318;
+  background-image:
+    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(234 163 58 / 22%) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(234 163 58 / 10%) 0%, transparent 100%),
+    url('/icons/frescopa-beans.svg');
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-size: cover, cover, 42%;
+  background-position: bottom left, top right, center 40%;
+}
+
+/* Tagline + brand label stacked at the bottom of the brand panel */
+body:has(.section.welcome) > main::after {
+  content: '"The world\'s finest coffee,\Aat your fingertips."';
+  white-space: pre;
+  font-family: baskerville, serif;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  color: rgb(244 233 220 / 55%);
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  width: 55%;
   text-align: center;
+  pointer-events: none;
+}
+
+/* ── Right: Auth Panel ───────────────────────────────────────── */
+.section.welcome {
+  background-color: var(--light-color);
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  padding: 0 72px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .section.welcome > .default-content-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  max-width: 380px;
+  width: 100%;
+  margin: 0;
 }
 
-/* Coffee-bean brand mark (its own paragraph) */
+/* Coffee-bean brand mark — larger on the auth panel */
 .section.welcome p:has(.icon-frescopa-beans) {
-  margin: 0 0 var(--spacing-small);
+  margin: 0 0 var(--spacing-medium);
   max-width: none;
 }
 
 .section.welcome .icon-frescopa-beans {
   display: inline-flex;
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
 }
 
 .section.welcome .icon-frescopa-beans img,
 .section.welcome .icon-frescopa-beans svg {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
 }
 
 .section.welcome h1 {
   font-family: var(--heading-font-family);
-  font-size: var(--heading-font-size-m);
+  font-size: var(--heading-font-size-l);
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.15;
   color: var(--text-color);
   margin: 0 0 var(--spacing-small);
   padding: 0;
+  text-align: left;
 }
 
 .section.welcome p {
   font-family: var(--body-font-family);
   font-size: var(--body-font-size-s);
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-neutral-700);
   margin: 0 0 var(--spacing-big);
-  max-width: 32ch;
+  max-width: 36ch;
+  text-align: left;
 }
 
-/* Full-width primary Sign in button */
+/* CTA button — natural width, not forced full-width */
 .section.welcome .button-container {
-  width: 100%;
+  width: auto;
   margin: 0;
 }
 
 .section.welcome .button-container a.button {
-  display: block;
-  width: 100%;
+  display: inline-block;
+  width: auto;
+  min-width: 220px;
   margin: 0;
   box-sizing: border-box;
+  padding-left: var(--spacing-big);
+  padding-right: var(--spacing-big);
 }
 
-@media (width <= 480px) {
+/* ── Mobile: Stacked Layout ──────────────────────────────────── */
+@media (width < 768px) {
+  body:has(.section.welcome) {
+    overflow-y: auto;
+  }
+
+  body:has(.section.welcome) > main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 200px 1fr;
+    min-height: 100dvh;
+  }
+
+  body:has(.section.welcome) > main::before {
+    background-size: cover, cover, 38%;
+    background-position: bottom left, top right, center center;
+  }
+
+  body:has(.section.welcome) > main::after {
+    width: 100%;
+    bottom: auto;
+    top: 166px;
+    font-size: 0.7rem;
+  }
+
   .section.welcome {
-    padding: var(--spacing-big) var(--spacing-medium);
+    min-height: auto;
+    padding: 40px 24px 56px;
+    border-radius: 20px 20px 0 0;
+    margin-top: -20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .section.welcome > .default-content-wrapper {
+    align-items: center;
+    max-width: none;
+  }
+
+  .section.welcome h1,
+  .section.welcome p {
+    text-align: center;
+  }
+
+  .section.welcome .button-container {
+    width: 100%;
+  }
+
+  .section.welcome .button-container a.button {
+    display: block;
+    width: 100%;
+    min-width: unset;
   }
 }
 
@@ -879,7 +1007,8 @@ main .section.search-hero .query-input-bar {
 
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
-  padding: 48px 0 16px;
+  padding: 56px 72px 40px;
+  background: rgb(235 164 57 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
   text-align: center;
 }
 
@@ -894,8 +1023,20 @@ main .section.category-tiles h2 {
   font-size: clamp(1.6rem, 2.6vw, 2.1rem);
 }
 
+/* "search-hero" and "category-tiles" are two styles on ONE combined
+   section (see Section Metadata), not two separate stacked sections —
+   padding on .section can't create a gap between content that's inside
+   the same box. The real separation has to come from margin on the
+   first heading in the section (the one right after the search bar),
+   targeted via :first-of-type since the exact wrapper-div nesting around
+   the search-bar block isn't reliable to select through. */
+main .section.category-tiles h2:first-of-type {
+  margin-top: 72px;
+}
+
 main .section.category-tiles .cards > ul {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 224px));
+  justify-content: center;
 }
 
 main .section.category-tiles .cards > ul > li {
@@ -904,8 +1045,8 @@ main .section.category-tiles .cards > ul > li {
   text-align: left;
   background: var(--color-neutral-50);
   border: 1px solid rgb(88 24 29 / 8%);
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgb(88 24 29 / 6%);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -914,11 +1055,37 @@ main .section.category-tiles .cards > ul > li:hover {
   box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
 }
 
+/* Icon/logo art (e.g. "Top Brands") only — real photo tiles like
+   "Browse by channel" on brand pages must keep the base cards.css
+   aspect-ratio/cover treatment untouched (see cards.js .icon-tiles). */
+main .section.category-tiles .cards.icon-tiles .cards-card-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Fixed height matches the carousel.tiles image area so all cards
+     in the section have a consistent visual weight */
+  height: 132px;
+  padding: 24px 20px 8px;
+  box-sizing: border-box;
+  flex: none;
+}
+
+main .section.category-tiles .cards.icon-tiles .cards-card-image img {
+  /* Match the "Browse by category" carousel icon size for a consistent look */
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100px;
+  object-fit: contain;
+}
+
 main .section.category-tiles .cards .cards-card-body,
 main .section.category-tiles .cards > ul > li:hover .cards-card-body {
   background: transparent;
-  padding: 22px;
+  padding: 18px;
   gap: 8px;
+  min-height: 60px;
 }
 
 main .section.category-tiles .cards .cards-card-body h3 {
@@ -958,13 +1125,23 @@ main .section.category-tiles .cards a.button:hover {
   text-decoration: underline;
 }
 
-@media (width < 1200px) {
-  main .section.category-tiles .cards > ul {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* Carousel variant of the same tiles: match the .cards shape/spacing above
+   and give the absolutely-positioned nav arrows (offset -60px) clearance
+   from the viewport edge via the section's own side padding. */
+main .section.category-tiles .carousel {
+  text-align: left;
+}
+
+main .section.category-tiles .carousel-slide-indicators-nav {
+  margin-top: 8px;
 }
 
 @media (width < 600px) {
+  main .section.category-tiles {
+    padding-right: var(--spacing-medium);
+    padding-left: var(--spacing-medium);
+  }
+
   main .section.category-tiles .cards > ul {
     grid-template-columns: 1fr;
   }

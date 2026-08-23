@@ -21,6 +21,7 @@
 }
 
 .my-notifications-title {
+  font-family: var(--body-font-family);
   font-size: 2.5rem;
   font-weight: 400;
   color: var(--color-neutral-800);
@@ -156,6 +157,7 @@
 }
 
 .notifications-empty-state h3 {
+  font-family: var(--body-font-family);
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--color-neutral-700);
@@ -436,6 +438,7 @@
 }
 
 .modal-title {
+  font-family: var(--body-font-family);
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--color-neutral-800);
@@ -524,6 +527,7 @@
 }
 
 .notifications-error h2 {
+  font-family: var(--body-font-family);
   font-size: 2rem;
   color: var(--color-neutral-700);
   margin-bottom: 1rem;
