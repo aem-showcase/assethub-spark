@@ -6,7 +6,6 @@ import {
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
 import { setCoaState } from '../../scripts/coa-state.js';
 import { COA_MAX_ASSETS } from '../search-results/clients/coa-client.js';
-import { isImageMimeType } from '../search-results/utils/mime-type-converter.js';
 import {
   loadSortPreference,
   SORT_TYPE,
@@ -368,15 +367,6 @@ export default async function decorate(block) {
       ? t('generatePromptPlaceholder', 'Describe the renditions you want…')
       : t('searchPlaceholder', 'What are you looking for?');
   }
-
-  function handleAssetSelectionChanged(selectedAssets) {
-    selectedImageAssets = (selectedAssets ?? []).filter((a) => isImageMimeType(a.format));
-    setGenerateMode(selectedImageAssets.length > 0);
-  }
-
-  window.addEventListener('assetSelectionChanged', (e) => {
-    handleAssetSelectionChanged(e.detail?.selectedAssets);
-  });
 
   generateCancelBtn.addEventListener('click', () => {
     setGenerateMode(false);

@@ -1033,7 +1033,7 @@ main .section.category-tiles h2:first-of-type {
 }
 
 main .section.category-tiles .cards > ul {
-  grid-template-columns: repeat(auto-fit, minmax(240px, calc((100% - 72px) / 4)));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 224px));
   justify-content: center;
 }
 
@@ -1043,7 +1043,7 @@ main .section.category-tiles .cards > ul > li {
   text-align: left;
   background: var(--color-neutral-50);
   border: 1px solid rgb(88 24 29 / 8%);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1062,28 +1062,27 @@ main .section.category-tiles .cards.icon-tiles .cards-card-image {
   justify-content: center;
   /* Fixed height matches the carousel.tiles image area so all cards
      in the section have a consistent visual weight */
-  height: 140px;
-  padding-top: 30px;
-  padding-bottom: 10px;
+  height: 132px;
+  padding: 24px 20px 8px;
   box-sizing: border-box;
   flex: none;
 }
 
 main .section.category-tiles .cards.icon-tiles .cards-card-image img {
-  /* Use an explicit height so small-intrinsic-dimension SVGs scale
-     up to match the Browse by Category icon size */
+  /* Match the "Browse by category" carousel icon size for a consistent look */
   width: auto;
-  height: 80px;
-  max-width: 70%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100px;
   object-fit: contain;
 }
 
 main .section.category-tiles .cards .cards-card-body,
 main .section.category-tiles .cards > ul > li:hover .cards-card-body {
   background: transparent;
-  padding: 22px;
+  padding: 18px;
   gap: 8px;
-  min-height: 90px;
+  min-height: 60px;
 }
 
 main .section.category-tiles .cards .cards-card-body h3 {
