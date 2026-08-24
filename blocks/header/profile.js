@@ -80,7 +80,8 @@ async function createProfileModal() {
   modal.id = 'profile-modal';
   modal.className = 'profile-modal';
 
-  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
+  // Gate on the real identity (su) while impersonating, so Reset stays available.
+  const canSudo = hasPermission(window.user?.su ?? window.user, PERMISSIONS.SUDO);
 
   // Add sudo-mode class if user can sudo
   if (canSudo) {
@@ -297,7 +298,8 @@ function handleReset() {
 }
 
 function handleSave() {
-  const canSudo = hasPermission(window.user, PERMISSIONS.SUDO);
+  // Gate on the real identity (su) while impersonating, so Reset stays available.
+  const canSudo = hasPermission(window.user?.su ?? window.user, PERMISSIONS.SUDO);
 
   if (canSudo) {
     // Get values from input fields

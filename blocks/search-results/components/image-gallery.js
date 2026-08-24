@@ -151,8 +151,16 @@ export async function createImageGallery(container, callbacks) {
       
       <div class="image-grid-wrapper">
         ${isLoading && visibleImages.length === 0 ? `
-          <div class="loading-container" role="status" aria-live="polite">
-            <div class="loading-spinner loading-spinner-lg" aria-hidden="true"></div>
+          <div class="skeleton-grid" role="status" aria-label="Loading assets" aria-live="polite">
+            ${Array.from({ length: 8 }, () => `
+              <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-image"></div>
+                <div class="skeleton-card-body">
+                  <div class="skeleton-line skeleton-line-medium"></div>
+                  <div class="skeleton-line skeleton-line-short"></div>
+                </div>
+              </div>
+            `).join('')}
           </div>
         ` : ''}
         ${isLoading && visibleImages.length > 0 ? '<div class="search-overlay"></div>' : ''}
