@@ -26,7 +26,7 @@ import {
   CollectionCreatedByMeVisibility,
   CollectionListSegment,
 } from '../../../scripts/collections/collection-search-constants.js';
-import { ROLE } from '../user.js';
+import { ROLE, USER_TYPE } from '../user.js';
 import { resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
@@ -527,11 +527,15 @@ function forceContentAISearchFilter(search, authClauses) {
 /**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
- * Asset visibility is controlled by two metadata fields tagged on Content Hub assets:
+ * Asset visibility is controlled by metadata fields tagged on Content Hub assets:
  *   - `custom:userType`  — who can see the asset: 'internal', 'external', or 'all'
  *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes,
  *                          full lowercase country names (e.g. 'usa', 'india'), or the
  *                          special sentinel 'global' (visible to all countries)
+ *   - `internalStatus`     — external users only see 'approved' assets, or assets where the
+ *                          field is absent entirely (checked explicitly via an exists clause,
+ *                          not relied on as undocumented `term` behavior); internal users see
+ *                          all values (e.g. 'preview', 'fpo')
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -568,6 +572,8 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
     return [];
   }
 
+  const clauses = [];
+
   // --- Country filter ---
   // Collect all country codes the user is authorised for:
   //   1. The user's own country from the Entra ID JWT claim (ctry).
@@ -591,11 +597,26 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   // no point injecting a clause that only allows 'global' tagged assets.
   if (authorisedCountries.length === 1 && authorisedCountries[0] === 'global') {
     console.warn(`[${user.email}] no country resolved — skipping country filter`);
-    return [];
+  } else {
+    console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
-  console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
-  return [{ term: { 'assetMetadata.allowedCountries': authorisedCountries } }];
+  // --- Internal status filter ---
+  // External users only see assets tagged internalStatus=approved, or where the
+  // field is absent entirely. Don't rely on term's undocumented behavior for
+  // missing fields — explicit exists-check avoids depending on backend semantics
+  // that aren't confirmed by the ContentAI/Content Hub API schema.
+  if (user.userType !== USER_TYPE.INTERNAL) {
+    clauses.push({
+      or: [
+        { term: { 'assetMetadata.internalStatus': ['approved'] } },
+        { not: [{ exists: { field: 'assetMetadata.internalStatus' } }] },
+      ],
+    });
+  }
+
+  return clauses;
 }
 
 /**
