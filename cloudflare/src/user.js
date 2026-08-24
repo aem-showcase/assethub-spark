@@ -136,22 +136,17 @@ async function handleSudo(request, env, user) {
 
     user.name = request.cookies.SUDO_NAME || user.name;
     user.email = request.cookies.SUDO_EMAIL || user.email;
-    // Country is optional: if the dropdown picked one (SUDO_COUNTRY) use it,
-    // otherwise fall back to the simulated user's own sheet country (resolved
-    // below), never the real admin's country.
-    user.country = request.cookies.SUDO_COUNTRY || '';
     user.employeeType = request.cookies.SUDO_EMPLOYEE_TYPE || user.employeeType;
 
     const sudoDomain = getEmailDomain(user.email);
     const attributes = await getUserAttributes(request, env, {
       email: user.email,
       domain: sudoDomain,
-      country: user.country,
       employeeType: user.employeeType,
     });
-    // Dropdown country wins; else use the simulated user's own sheet country
-    // (first of the users-sheet countries) so it is both applied and displayed.
-    // Always lowercased for consistent matching/display.
+    // Country is optional: dropdown pick (SUDO_COUNTRY) wins; else fall back to the
+    // simulated user's own sheet country (first of the users-sheet countries),
+    // never the real admin's country. Lowercased for consistent matching/display.
     user.country = (request.cookies.SUDO_COUNTRY || attributes.countries?.[0] || '').toLowerCase();
     // The simulated identity is always treated as non-admin for asset filtering,
     // even if the (possibly unchanged) email/domain would otherwise resolve to an
