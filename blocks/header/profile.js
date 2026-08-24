@@ -127,7 +127,7 @@ async function createProfileModal() {
          </div>
          ${canSudo ? `
          <div class="sudo-edit-note" id="sudo-edit-note" style="display: none;">
-           ${ph('sudoEditNote', 'Use an email from the users sheet. Country is optional — leave it blank to simulate by email only. Country options reflect countries currently tagged on assets.')}
+           ${ph('sudoEditNote', 'Use an email from the users sheet. Country is optional — leave it blank to simulate by email only.')}
          </div>
          <div class="profile-buttons">
            <button class="edit-button" id="profile-edit-btn" type="button">
