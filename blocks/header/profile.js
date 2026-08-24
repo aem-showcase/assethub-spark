@@ -1,6 +1,5 @@
 import { getAppLabel } from '../../scripts/locale-utils.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
-import { facetValueMatchesCountryCode } from '../../scripts/constants/countries.js';
 
 /** Facet key for the Country filter (matches assetMetadata.allowedCountries). */
 const ALLOWED_COUNTRIES_FACET_ID = 'allowedCountries';
@@ -128,7 +127,7 @@ async function createProfileModal() {
          </div>
          ${canSudo ? `
          <div class="sudo-edit-note" id="sudo-edit-note" style="display: none;">
-           ${ph('sudoEditNote', 'Use an email from the users sheet. Country options reflect countries currently tagged on assets.')}
+           ${ph('sudoEditNote', 'Use an email from the users sheet. Country is optional — leave it blank to simulate by email only.')}
          </div>
          <div class="profile-buttons">
            <button class="edit-button" id="profile-edit-btn" type="button">
@@ -167,7 +166,7 @@ async function createProfileModal() {
  * simulated countries always match real, currently-tagged asset values.
  * @param {string} currentCountry - The user's current (or simulated) ISO country code
  */
-async function populateCountrySelect(currentCountry) {
+async function populateCountrySelect() {
   const select = document.getElementById('profile-country-input');
   if (!select || select.dataset.populated === 'true') return;
   select.dataset.populated = 'true';
@@ -175,15 +174,12 @@ async function populateCountrySelect(currentCountry) {
   const options = await fetchSimulatableCountries();
   select.innerHTML = '';
 
-  // The user's current country may be an ISO code (e.g. 'IN') while assets are
-  // tagged with the full name (e.g. 'india') — match on either before deciding
-  // whether to inject a separate option for it.
-  const matchingOption = currentCountry
-    ? options.find((opt) => facetValueMatchesCountryCode(opt.value, currentCountry))
-    : null;
-  if (currentCountry && !matchingOption) {
-    options.unshift({ value: currentCountry, label: currentCountry });
-  }
+  // Blank default: country is optional and always starts empty, so opening the
+  // form to simulate another user never carries the previous user's country over.
+  const blankOption = document.createElement('option');
+  blankOption.value = '';
+  blankOption.textContent = ph('countryOptional', '— None (optional) —');
+  select.append(blankOption);
 
   options.forEach(({ value, label }) => {
     const opt = document.createElement('option');
@@ -192,7 +188,7 @@ async function populateCountrySelect(currentCountry) {
     select.append(opt);
   });
 
-  select.value = matchingOption ? matchingOption.value : (currentCountry || '');
+  select.value = '';
 }
 
 function hideProfileModal() {
@@ -282,7 +278,7 @@ ${window.user?.su ? ph('simulatingUser', 'Simulating User') : ph('simulateUser',
     document.getElementById('profile-email-input').style.display = 'block';
     document.getElementById('profile-country-input').style.display = 'block';
 
-    populateCountrySelect(window.user?.country || '');
+    populateCountrySelect();
   }
 }
 
@@ -308,31 +304,16 @@ function handleSave() {
     const countryInput = document.getElementById('profile-country-input');
 
     if (nameInput && emailInput && countryInput) {
-      let needsReload = false;
-
-      // Only set cookies if values are different from current user values
-      if (nameInput.value !== (window.user?.name || '')) {
-        setCookie('SUDO_NAME', nameInput.value);
-        needsReload = true;
-      }
-
-      if (emailInput.value !== (window.user?.email || '')) {
-        setCookie('SUDO_EMAIL', emailInput.value);
-        needsReload = true;
-      }
-
-      if (countryInput.value !== (window.user?.country || '')) {
+      setCookie('SUDO_NAME', nameInput.value);
+      setCookie('SUDO_EMAIL', emailInput.value);
+      // Country is optional: a blank selection removes SUDO_COUNTRY so the backend
+      // falls back to the simulated user's own sheet country.
+      if (countryInput.value) {
         setCookie('SUDO_COUNTRY', countryInput.value);
-        needsReload = true;
-      }
-
-      // Only reload if we actually set any cookies
-      if (needsReload) {
-        window.location.reload();
       } else {
-        // Just exit edit mode if no changes were made
-        toggleEditMode();
+        removeCookie('SUDO_COUNTRY');
       }
+      window.location.reload();
     }
   }
 }

@@ -61,6 +61,51 @@ describe('getUser (sudo/simulation)', () => {
     expect(user.su.roles).toContain(ROLE.ADMIN);
   });
 
+  it('falls back to the simulated users own sheet country when no dropdown country is picked', async () => {
+    fetchHelixSheet.mockResolvedValue({
+      'target@example.com': { roles: [], countries: ['india'] },
+    });
+
+    const session = {
+      email: 'admin@example.com',
+      domain: 'example.com',
+      country: 'US',
+      roles: ['admin'],
+      permissions: [PERMISSIONS.SUDO],
+    };
+    const request = makeRequest({ SUDO_EMAIL: 'target@example.com' });
+
+    const user = await getUser(request, {}, session);
+
+    expect(user.email).toBe('target@example.com');
+    // Country must not fall back to the admin's real country.
+    expect(user.country).not.toBe('US');
+    // No dropdown country picked -> use the simulated user's own sheet country.
+    expect(user.country).toBe('india');
+    expect(user.countries).toContain('india');
+    // The real admin country is still preserved for restoration.
+    expect(user.su.country).toBe('US');
+  });
+
+  it('uses the dropdown SUDO_COUNTRY over the sheet country when both exist', async () => {
+    fetchHelixSheet.mockResolvedValue({
+      'target@example.com': { roles: [], countries: ['india'] },
+    });
+
+    const session = {
+      email: 'admin@example.com',
+      domain: 'example.com',
+      country: 'US',
+      roles: ['admin'],
+      permissions: [PERMISSIONS.SUDO],
+    };
+    const request = makeRequest({ SUDO_EMAIL: 'target@example.com', SUDO_COUNTRY: 'Germany' });
+
+    const user = await getUser(request, {}, session);
+
+    expect(user.country).toBe('germany');
+  });
+
   it('does not simulate anything when no SUDO_* cookies are set', async () => {
     const session = {
       email: 'admin@example.com',
