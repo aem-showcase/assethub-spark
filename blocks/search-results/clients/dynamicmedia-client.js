@@ -1322,8 +1322,6 @@ export class DynamicMediaClient {
         })),
       };
 
-      // eslint-disable-next-line no-console
-      console.warn('[createAssetsArchive] payload:', JSON.stringify(payload));
       const responseData = await this.makeRequest({
         url: '/adobe/assets/archives',
         method: 'POST',
@@ -1331,8 +1329,6 @@ export class DynamicMediaClient {
         allowUndefinedResponse: true,
       });
 
-      // eslint-disable-next-line no-console
-      console.warn('[createAssetsArchive] response:', JSON.stringify(responseData));
       if (!responseData) {
         return null;
       }
@@ -1340,7 +1336,7 @@ export class DynamicMediaClient {
       return responseData.id;
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('[createAssetsArchive] error:', error);
+      console.error('[createAssetsArchive] Failed to create assets archive:', error);
       return null;
     }
   }
