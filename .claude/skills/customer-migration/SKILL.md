@@ -1,20 +1,22 @@
 ---
 name: customer-migration
-description: Full customer migration for a forked Assets Hub Spark repo — rebrand the site's design/content via Catalyst, then get the backend (Cloudflare, Content Hub, local dev) running. Use when a customer forks this repo and asks to rebrand/restyle the site, or asks to get the portal/site running locally, or asks for a full migration/onboarding — any of these trigger the same one skill, run in order (rebrand first, backend second). Not for initial site migration into EDS (a different, prior step).
+description: Full customer migration for a forked Assets Hub Spark repo — rebrand the site's design/content via Catalyst, get the backend (Cloudflare, Content Hub, local dev) running, then populate the site with the customer's own assets and make them searchable/filterable. Use when a customer forks this repo and asks to rebrand/restyle the site, or asks to get the portal/site running locally, or asks to populate/bring in the customer's assets, fill the portal with their content, tag their assets, or make the assets searchable, or asks for a full migration/onboarding — any of these trigger the same one skill, run in order (rebrand first, backend second, assets third). Not for initial site migration into EDS (a different, prior step).
 ---
 
 # Customer Migration
 
-One skill, two phases: **Phase A — rebrand via Catalyst**, then **Phase B
-— backend onboarding**. A full migration runs A then B, but either can be
-skipped: the customer may only want the rebrand, only want the backend
-running, or have the rebrand already done. Start every invocation with
+One skill, three phases: **Phase A — rebrand via Catalyst**, then **Phase B
+— backend onboarding**, then **Phase C — asset population** (bring in the
+customer's own assets and make them searchable). A full migration runs
+A then B then C, but any can be skipped: the customer may only want the
+rebrand, only want the backend running, only want their assets populated,
+or have earlier phases already done. Start every invocation with
 the entry flow below, which resolves what's wanted and what's already
-done before touching either phase.
+done before touching any phase.
 
 ## Invariants (apply throughout — never restated per step)
 
-These hold in both phases. Steps below reference them rather than
+These hold in all three phases. Steps below reference them rather than
 repeating them:
 
 - **I1 — Outcomes only, never internal terms.** Never expose this
@@ -67,7 +69,8 @@ readiness note, a blocker, or setup mechanics. Availability checks belong
 
    > "Want me to give the site a fresh look and update its content for
    > the new brand, or is that already done? Either way, I'll then get
-   > it running for you."
+   > it running for you — and fill it with your own assets so they're
+   > easy to find by searching and filtering on what's in each one."
 
    If you render this as a multiple-choice picker, use a plain header
    ("Getting started" / "What should I do") and outcome-worded options —
@@ -75,28 +78,38 @@ readiness note, a blocker, or setup mechanics. Availability checks belong
    — just get it running." Do **not** label options "Rebrand scope,"
    "Rebrand only," "Already rebranded," etc.
 
-   Map the answer to `intent` and the rebrand phase's status:
-   - new look + running / yes → `intent` = `full`, rebrand runs.
+   Map the answer to `intent` and the phase statuses:
+   - new look + running / yes → `intent` = `full`, rebrand runs; Phase A
+     → B → C all run.
    - already done / skip that / just get it running → mark the rebrand
-     phase `done` (`intent` = `backend-only`), skip Phase A.
+     phase `done` (`intent` = `backend-only`), skip Phase A; B → C run.
    - new look only, nothing else → `intent` = `frontend-only`; mark
-     backend `not-requested` after Phase A.
+     backend and asset-population `not-requested` after Phase A.
+   - just populate/bring in the assets, make them searchable, fill the
+     portal with their content (rebrand + backend already done) →
+     `intent` = `assets-only`; route straight to Phase C. Its early
+     steps (C.1–C.2) re-derive the customer key and credentials from the
+     repo/state at run time, so entering C directly is safe (same pattern
+     as Phase B's B.1–B.4). If C finds no Content Hub creds or `aemEnvId`,
+     it drops into B.7 to collect them first, then continues.
 
 3. **Route** to the first genuinely-pending phase — rebrand before
-   backend when both are pending. Entering Phase B directly is safe: its
-   early steps (B.1–B.4) re-derive everything they need from the repo at
-   run time, independent of whether Phase A ran.
+   backend before asset-population when more than one is pending.
+   Entering Phase B or Phase C directly is safe: their early steps
+   (B.1–B.4 / C.1–C.2) re-derive everything they need from the repo at
+   run time, independent of whether earlier phases ran.
 
 ## Shared state file
 
-Both phases read and write the same `.internal/onboarding-state.json`
+All three phases read and write the same `.internal/onboarding-state.json`
 (gitignored via the existing `.internal` entry — do not add a new ignore
 rule). It is the resumability mechanism (see entry flow, step 1) and the
 record of what the customer asked for.
 
 `intent` records the customer's answer to the entry question
-(`full` / `frontend-only` / `backend-only`); it's revisitable — a
-customer who chose `backend-only` can ask for the rebrand later. A
+(`full` / `frontend-only` / `backend-only` / `assets-only`); it's
+revisitable — a customer who chose `backend-only` can ask for the rebrand
+or asset population later. A
 phase's `status` may be `in_progress`, `done`, or `not-requested`
 (the customer explicitly didn't want it — a valid end state, distinct
 from an unfinished `in_progress`).
@@ -150,6 +163,25 @@ Schema:
         "ci-token-set": "pending",
         "deployed-via-merge": "pending"
       }
+    },
+    "asset-population": {
+      "status": "in_progress",
+      "lastUpdated": null,
+      "lane": null,
+      "customerKey": null,
+      "assetSourceUrl": null,
+      "steps": {
+        "customer-key-resolved": "pending",
+        "author-access-verified": "pending",
+        "assets-resolved": "pending",
+        "metadata-generated": "pending",
+        "metadata-written": "pending",
+        "assets-published": "pending",
+        "scope-config-written": "pending",
+        "scope-applied-locally": "pending",
+        "search-scope-verified": "pending",
+        "scope-deployed": "not-requested"
+      }
     }
   }
 }
@@ -178,6 +210,23 @@ for the chosen tier are done (a `"preview"` tier needs fewer than a
 revisitable mutable state, not a completion marker — a customer can pick
 `"preview"` now and ask for more later. It lives alongside `status`, not
 inside `steps`. See B.5 for its use. Internal only (I1).
+
+The `asset-population` steps also split along two axes:
+
+- **Local steps** (`customer-key-resolved` through
+  `search-scope-verified`) — bringing in / labelling the customer's
+  assets and scoping the *local* portal to them. These are the whole
+  outcome for a local demo (no deploy needed — see Phase C).
+- **Deploy-only step** (`scope-deployed`) — only relevant if the customer
+  wants the scoped demo on a hosted URL; it defaults to `not-requested`
+  (I4) and only becomes active via Phase B's opt-in deploy stage.
+
+`asset-population.lane` (`null` / `"enrich-existing"` / `"bring-in"`)
+records which discovery path ran; `customerKey` is the slug of
+`customer.name`; `assetSourceUrl` is set only for the bring-in (website)
+path. All three live alongside `status`, not inside `steps`. Internal
+only (I1). Set `phases["asset-population"].status` to `"done"` once the
+local steps for the chosen lane are done.
 
 ## Companion file: customer-config intake (Phase B only)
 
@@ -709,3 +758,163 @@ every identity value renamed and where, and that the auth bypass is
 re-commented; the true auth state; the known PDF-preview gap
 (`adobe-pdf-viewer.js`); any intake fields left blank; the update paths
 from D.8; and the state/intake file locations.
+
+---
+
+# Phase C — Asset population (make the customer's assets searchable)
+
+The final phase makes the demo coherent: after the site looks like the
+customer (A) and is running (B), fill it with the customer's **own
+assets** and make them **findable** — searchable by what's written about
+each asset and filterable by facets like Category, Campaign, Channel and
+Keywords — and scope the portal so it shows **only** this customer's
+assets. Two lanes:
+
+- **Enrich-existing (default)** — the customer's assets are already sitting
+  in their AEM folder (from an earlier migration or manual load); this lane
+  labels them so they surface in search and facets.
+- **Bring-in (opt-in cherry)** — the customer named a source website; this
+  lane pulls sample images from it into the folder first, then labels them
+  the same way.
+
+Customer-facing wording stays outcomes-only (I1) — never "enrich,"
+"metadata," "scope," "facet," "company field," or "Phase C." Speak of
+"bringing in <customer>'s assets and making them easy to find — searching
+and filtering by what's in each image."
+
+## Preconditions — runs after B.7
+
+Phase C needs a working backend context, so it is offered after the
+run-tier steps and **hard-requires B.7** (Content Hub creds in
+`cloudflare/.secrets` + `customer.aemEnvId`). If a Phase-C-only invocation
+finds no DM creds or no `aemEnvId`, drop into **B.7** to collect them
+first (don't re-implement collection), then return here. Everything else
+Phase C needs is reused from A/B — it asks for **nothing new**:
+
+| Phase C needs | Source | New ask? |
+|---|---|---|
+| `customerKey` (folder + scope value) | `customer.name` (A.1.c), slugified | No |
+| author token creds | `SPARK_DM_CLIENT_ID/SECRET` in `cloudflare/.secrets` (B.7) → binding `DM_CLIENT_ID/SECRET` | No |
+| `aemEnvId` | `customer.aemEnvId` (B.7) | No |
+| DAM folder `/content/dam/<customerKey>` | convention; bring-in auto-creates it | No |
+| source website URL | operator, **only** for the bring-in cherry | Only for cherry |
+| scope value (`DEMO_COMPANY`) | = `customerKey` (this phase writes it) | No |
+
+## C.1: Resolve the customer key (`customer-key-resolved`)
+
+Read `customer.name` from state (set in A.1.c) and slugify it (e.g.
+Santander → `santander`). This single key drives **both** the folder
+`/content/dam/<customerKey>` and the `company` scope value — they are the
+same value by construction. Record it in
+`asset-population.customerKey`. If `customer.name` is absent (a
+Phase-C-only invocation with no prior state), ask the customer which
+brand these assets are for — in plain words — and set both `customer.name`
+and the key.
+
+## C.2: Verify author access (`author-access-verified`)
+
+Confirm the DM creds from B.7 actually reach the author APIs before doing
+per-asset work: acquire a token and make one read probe. Never read the
+secret values in chat (I2) — the agent script reads them from the
+gitignored file at call time. If the probe fails, the likely cause is the
+same short list as B.11 search failures (wrong/missing
+`SPARK_DM_CLIENT_ID/SECRET`, wrong `aemEnvId`, or the technical account
+lacking access). This step also closes the startup checks the script
+performs (host/header + approval-key acceptance + folder search).
+
+## C.3: Resolve the asset set (`assets-resolved`)
+
+- **Enrich-existing lane:** the script enumerates
+  `/content/dam/<customerKey>`. If it finds assets, that's the set
+  (`lane = "enrich-existing"`). If it finds **none**, the folder is empty
+  or absent — operationally identical: *nothing to enrich.* Tell the
+  customer plainly and offer to bring assets in from their website
+  instead; don't silently succeed.
+- **Bring-in lane (cherry):** when the customer named a source website,
+  set `assetSourceUrl`, `lane = "bring-in"`, and the script pulls sample
+  images from it into the folder (auto-creating the folder), then treats
+  the new assets as the set. This lane may delegate the scrape to the
+  `scrape-webpage` skill for the source page.
+
+## C.4–C.6: Label, save and publish
+
+The script does the heavy lifting per asset (bounded concurrency,
+idempotent — re-runs skip already-labelled assets unless forced):
+
+- **`metadata-generated`** — for each asset it looks at a small preview of
+  the image and produces a title, description, keywords and — where it can
+  tell — a category, campaign and channel, normalised to the facets the
+  portal already shows. It also stamps the customer scope value and marks
+  each asset approved so it's demo-ready.
+- **`metadata-written`** — saves those onto the assets (bulk where
+  possible, per-asset otherwise), retrying safely on conflicts.
+- **`assets-published`** — publishes the assets in batches so they appear
+  in the portal's search index.
+
+Run the script in **dry-run first** for review, then live. It returns a
+per-asset report (labelled / skipped / failed) that these steps record.
+
+## C.7: Scope the portal to this customer (`scope-config-written`,
+`scope-applied-locally`)
+
+So the demo shows **only** this customer's assets, set the scope value
+once in local config: `config.DEMO_COMPANY = '<customerKey>'` in
+`cloudflare/src/config.js` (default `null` = unchanged upstream
+behaviour). The worker reads it at runtime and injects a
+`company = <customerKey>` filter into every search — exactly "hard-code
+customer = X in the query." This is a **local edit**: it takes effect on
+the next `npm run dev` restart (miniflare simulates the binding — the same
+basis on which Phase B treats placeholder `wrangler.toml` ids as fine for
+local dev). Restart to apply.
+
+**No deployment is required for the demo.** The label-and-publish work
+calls AEM APIs directly (nothing to do with Cloudflare), and the scope
+change is a local config edit applied by a local restart — no merge, no
+CI, no `wrangler deploy`. `scope-deployed` stays `not-requested` (I4)
+unless the customer explicitly wants the scoped demo on a **hosted**
+`.aem.live` URL — then it follows Phase B's opt-in deploy stage
+(`deploy.md`), live on merge (I3).
+
+## C.8: Verify (`search-scope-verified`)
+
+In the running portal confirm the outcome: searching words from an
+asset's generated title/description returns it; the Category / Keywords /
+Campaign / Channel facets show buckets and filter correctly; and only this
+customer's assets appear. Mark the phase `done` once verified (I4: the
+local outcome is a complete end state; a hosted deploy is optional extra).
+
+## Delegation — the script does the API work
+
+The steps above are thin orchestration; the author API calls live in the
+agent controller **`scripts/agent/enrich-assets.js`** (run from the repo
+root with Node ≥ 18). The skill invokes it, passing the resolved key and
+letting it read creds from the gitignored file at call time:
+
+```
+node scripts/agent/enrich-assets.js \
+  --customer-key <customerKey> \
+  [--dam-path /content/dam/<customerKey>] \
+  [--bring-in --source-url <url>] \
+  [--dry-run] [--force] [--no-publish] \
+  [--secrets-file cloudflare/.secrets]
+```
+
+- Default lane is enrich-existing; `--bring-in --source-url <url>` selects
+  the cherry lane. `--dry-run` performs enumerate→read→generate→normalize
+  and emits the intended writes **without** writing or publishing — always
+  do this first. `--force` re-labels already-labelled assets;
+  `--no-publish` stops before publish. Creds resolve from env →
+  `cloudflare/.secrets` (B.7) → root `secret.env`; **no new secret**.
+- See `scripts/agent/README.md` for the full flag list, the offline
+  `--fixture` mode, and the report format.
+
+## Phase C completion report (outcomes-only)
+
+Summarize plainly: which of the customer's assets are now in the portal
+and searchable; that filtering by what's in each image works (name the
+facets that lit up); that the local demo shows only this customer's
+assets; and any per-asset items that couldn't be brought in or labelled.
+Deployment is not part of this — the demo runs locally; mention a hosted
+deploy only if the customer explicitly asked for one (then it's the
+opt-in Phase B deploy stage, live on merge). Never surface internal terms
+(I1) or secret values (I2).
