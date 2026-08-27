@@ -142,6 +142,23 @@ mid-phase surprise.
      running and load Disney's assets in a later step" (frontend-only)
    - "Something else" (free text)
 
+   **The "get it up and running" phrase means something different
+   depending on `deployTarget`** — say the right one, don't reuse the
+   same words for both:
+
+   - **`"shared"` (demo)**: "get it up and running" = merge the rebrand
+     into the existing shared preview environment, which is already
+     deployed and live — nothing to set up, no local step at all. Once
+     merged, it's simply visible there.
+   - **`"dedicated"` (real portal)**: "get it up and running" = get it
+     working on your own machine first so you (or the customer) can
+     verify it before it goes live, then walk through setting up their
+     real environment so it can actually go live. Do **not** say or imply
+     it'll be "live"/"deployed" immediately — going live is a distinct,
+     later step (real sign-in setup + merge, `deploy.md` D.6.5/D.7) that
+     the customer explicitly decides to do when ready, not an automatic
+     consequence of this choice.
+
    **On a resumed request** where the state file already shows
    `rebrand.status: done` (verified via the spot-check in entry step 1,
    not just trusted blindly), instead offer:
@@ -154,6 +171,9 @@ mid-phase surprise.
    - "Just load in Disney's own assets so they're searchable — it's
      already up and running" (assets-only)
    - "Something else" (free text)
+
+   The same `deployTarget`-dependent meaning of "get it up and running"
+   above applies here too.
 
    Do **not** label options "Rebrand scope," "Rebrand only," "Already
    rebranded," "boot locally," "get it running" alone with no outcome
@@ -258,6 +278,7 @@ Schema:
         "remote-secrets-pushed": "pending",
         "remote-d1-migrated": "pending",
         "ci-token-set": "pending",
+        "real-auth-configured": "pending",
         "deployed-via-merge": "pending"
       }
     },
@@ -271,6 +292,7 @@ Schema:
         "customer-key-resolved": "pending",
         "author-access-verified": "pending",
         "assets-resolved": "pending",
+        "category-vocab-resolved": "pending",
         "metadata-generated": "pending",
         "metadata-written": "pending",
         "assets-published": "pending",
@@ -302,11 +324,29 @@ Per I4, a customer who only runs locally leaves every deploy-only step
 for the chosen tier are done (a `"preview"` tier needs fewer than a
 `"local-login"` tier — see B.5).
 
+For `deployTarget == "shared"` (demo): B.5 skips straight to marking
+every run-tier step (`tier-selected` through `boot-verified`)
+`"not-requested"` and the phase `"done"` — there is no local run to do,
+so these are not left `pending`/unfinished, they were never applicable.
+`scopeChoice` stays `null` in this case (see below). Deploy-only steps
+stay `pending`/`not-requested` too unless the customer separately asks
+to deploy the demo (rare).
+
+For `deployTarget == "dedicated"` (real migration): B.5 sets
+`scopeChoice` to `"local-no-login"` directly, without asking — it's the
+only valid tier for a real migration, so this is not a customer choice
+to record as "revisitable" in the usual sense. `real-auth-configured`
+(new, set by `deploy.md` D.6.5) is dedicated-only and always `pending`
+until deploy time — for `"shared"` it stays `pending` too but is simply
+never reached, since deploy for a demo doesn't need real auth.
+
 `backend-onboarding.scopeChoice`
 (`null` / `"preview"` / `"local-no-login"` / `"local-login"`) is
 revisitable mutable state, not a completion marker — a customer can pick
 `"preview"` now and ask for more later. It lives alongside `status`, not
-inside `steps`. See B.5 for its use. Internal only (I1).
+inside `steps`. See B.5 for its use. Internal only (I1). It stays `null`
+for a `"shared"` customer, since a demo never picks a local-run tier at
+all.
 
 The `asset-population` steps also split along two axes:
 
@@ -733,6 +773,36 @@ mark step `done`.
 
 ## B.5: Local-run tier choice (`tier-selected`, sets `scopeChoice`)
 
+**First, branch on `customer.deployTarget`** (set at entry, step 2 —
+never re-ask it here):
+
+- **`"shared"` (demo)** — skip this step, and all of B.7–B.11, entirely.
+  There is no local run for a demo: the shared environment is already
+  deployed and running persistently. Once Phase A's rebrand is published
+  and its PR merged (I3 — code needs a merge to take effect), the
+  already-live shared deployment serves the new look on its own. Set
+  `phases["backend-onboarding"].status` to `"done"`, mark every step from
+  `tier-selected` through `boot-verified` as `"not-requested"` (I4 — this
+  was never asked for, not left unfinished), and leave `scopeChoice`
+  `null` (see the schema note in "Shared state file" for why). Do not
+  ask the customer anything else about running it — proceed straight to
+  the Phase B completion report, or to Phase C if asset population was
+  also requested.
+- **`"dedicated"` (real portal)** — skip the three-way menu below
+  entirely. There is only one valid local-setup tier for a real
+  migration: `"local-no-login"` (real search/assets against the
+  customer's real, dedicated Content Hub credentials, deliberately
+  without setting up real sign-in yet). Set `scopeChoice` to
+  `"local-no-login"` directly — do not ask the customer to choose;
+  proceed straight to the `"local-no-login"` branch below. Real sign-in
+  (Entra) setup is deferred to the deploy stage (see `deploy.md`'s D.6.5)
+  — it never appears as a local-run choice for a dedicated customer.
+
+The three-way menu below is now unreachable in normal operation — every
+customer's `deployTarget` is resolved before B.5 runs (entry flow step
+2). It's kept only as a **compatibility fallback**, if `deployTarget` is
+somehow still `null` here (should not happen in a normal session):
+
 There are three genuinely different ways to run this locally, at very
 different setup cost. Offer all three in plain outcome language (I1). Use
 wording like:
@@ -792,8 +862,11 @@ bindings).
 
 ### If `"local-login"`
 
-Proceed: B.7 (Content Hub creds) → B.9 (real Entra, bypass left off) →
-B.11 (boot & verify). Same skip of the deploy stage.
+**Fallback-path option only** — never reachable for a normal dedicated
+customer under the branch above, since that branch always resolves to
+`"local-no-login"` directly. Proceed: B.7 (Content Hub creds) → B.9 (real
+Entra, bypass left off) → B.11 (boot & verify). Same skip of the deploy
+stage.
 
 ### Re-entry / changing the choice later
 
@@ -878,6 +951,12 @@ Write only the non-secret `aemEnvId` into `customer.aemEnvId`. Mark step
 
 This step **acts** on the tier choice (bypass mechanism + why it's safe
 locally: `local-run-plan.md`).
+
+**Note:** under the normal branch resolved in B.5, `scopeChoice` is
+always `"local-no-login"` for a dedicated customer — the `"local-login"`
+case below is a fallback-menu-only path (see B.5) and shouldn't occur in
+practice. Real Microsoft/Entra sign-in for a dedicated customer is set up
+later, at deploy time (`deploy.md` D.6.5), not here.
 
 **If `scopeChoice` is `"local-no-login"`:** uncomment the
 `DISABLE_AUTHENTICATION` block in `cloudflare/src/auth.js` (~161-172,
@@ -1053,6 +1132,57 @@ performs (host/header + approval-key acceptance + folder search).
   images from it into the folder (auto-creating the folder), then treats
   the new assets as the set. This lane may delegate the scrape to the
   `scrape-webpage` skill for the source page.
+  - **Target at least 20 assets for a credible demo** (`--limit 25`, the
+    script's max). After the bring-in step reports how many images it
+    actually downloaded, check that count against this floor **before**
+    moving on to labelling:
+    - If it's below 20, don't silently proceed with a thin demo. Try, in
+      order: (1) a deeper source page on the same site with more imagery
+      (e.g. a full product-listing/collection page instead of a single
+      product page — most single pages only expose a handful of
+      `<img>`/`og:image` URLs), (2) a second source URL from the same
+      brand if the customer has one, (3) re-run with a higher `--limit`
+      once a richer source page is found. Only after those don't yield
+      enough should the agent tell the customer plainly it could only
+      find N usable images at that address and ask for another page/URL
+      — never claim success on a thin set without saying so.
+    - The count that matters is what the scraper actually **downloaded**
+      (post filename/size/thumbnail filtering), not the raw candidate URLs
+      found in the page — a page can have 100 `<img>` tags and still
+      yield only 3 real assets if most are icons, thumbnails, or below
+      the minimum size.
+
+## C.3b: Decide free-text vs strict category/channel (`category-vocab-resolved`)
+
+**Category and Channel are free-text facets, not a fixed enum** — the
+portal's search config (`docs/da-content/search.docx`'s `excFacets`)
+declares `productCategory`/`channel` as plain `{"type": "string"}`
+buckets: whatever distinct values exist on assets become the filter
+options shown. There is no built-in curated list to conform to, and the
+enrichment agent's default behavior (`scripts/agent/normalize.js`) is to
+keep whatever category/channel value it generates for each asset,
+clamped to a sane length — **not** to silently drop values that don't
+match some list. (An earlier version of this agent forced a match
+against a hardcoded banking-demo vocabulary — `accounts, cards, loans,
+mortgages...` — and silently discarded anything that didn't match,
+which is why an earlier Disney run wrote titles/descriptions fine but
+Category/Channel came back empty. That vocabulary is no longer applied
+by default.)
+
+Before running C.4, decide which mode applies:
+
+- **Free text (default, no ask needed)** — just proceed; the generator's
+  own category/channel guesses for each asset are kept as-is. Good for
+  most demos, including a from-scratch bring-in with no prior taxonomy.
+- **Strict list (opt-in)** — only if the customer has *told you* they
+  want a small, fixed set of categories/channels (e.g. "we only use
+  Characters, Parks, Cruise Line, Movies"), pass that list explicitly to
+  the agent's `--product-category-vocab`/`--channel-vocab` flags (or the
+  `normalizeGenerated(raw, { productCategoryVocab, channelVocab })`
+  options if invoking the module directly) so values are mapped-or-dropped
+  against exactly that list. Never invent a curated list yourself and
+  silently apply it — that reproduces the original bug for a different
+  vocabulary.
 
 ## C.4–C.6: Label, save and publish
 
@@ -1061,16 +1191,18 @@ idempotent — re-runs skip already-labelled assets unless forced):
 
 - **`metadata-generated`** — for each asset it looks at a small preview of
   the image and produces a title, description, keywords and — where it can
-  tell — a category, campaign and channel, normalised to the facets the
-  portal already shows. It also stamps the customer scope value and marks
-  each asset approved so it's demo-ready.
+  tell — a category, campaign and channel. Category/Channel are kept as
+  free text per C.3b unless a strict vocab was explicitly opted into. It
+  also stamps the customer scope value and marks each asset approved so
+  it's demo-ready.
 - **`metadata-written`** — saves those onto the assets (bulk where
   possible, per-asset otherwise), retrying safely on conflicts.
 - **`assets-published`** — publishes the assets in batches so they appear
   in the portal's search index.
 
-Run the script in **dry-run first** for review, then live. It returns a
-per-asset report (labelled / skipped / failed) that these steps record.
+Run the script in **dry-run first** for review — check that the printed
+category/channel values look right — then live. It returns a per-asset
+report (labelled / skipped / failed) that these steps record.
 
 ## C.7: Scope the portal to this customer (`scope-config-written`,
 `scope-applied-locally`)
@@ -1095,11 +1227,26 @@ unless the customer explicitly wants the scoped demo on a **hosted**
 
 ## C.8: Verify (`search-scope-verified`)
 
-In the running portal confirm the outcome: searching words from an
-asset's generated title/description returns it; the Category / Keywords /
-Campaign / Channel facets show buckets and filter correctly; and only this
-customer's assets appear. Mark the phase `done` once verified (I4: the
-local outcome is a complete end state; a hosted deploy is optional extra).
+Don't just confirm the write/publish calls returned success — confirm the
+**visible outcome** in the running portal, the same way an end user would
+see it:
+
+1. Searching words from an asset's generated title/description returns it.
+2. Open the Category filter panel (and Campaign/Channel/Keywords if
+   configured) and confirm buckets exist for the values just written, with
+   **non-zero counts** — e.g. after enriching Disney assets tagged
+   `Movies & Shows`, the Category panel must show `Movies & Shows (N)`
+   with `N >= 1`, not `(0)`. A bucket showing but stuck at `(0)` after
+   labelling/publishing is the signature of this phase's known failure
+   mode (values written but silently dropped or not indexed yet) — treat
+   it as **not verified**, re-check C.3b (was a stale vocab applied?) and
+   confirm publish actually completed (`assets-published`, not just
+   `metadata-written`) before retrying.
+3. Filtering by one of those buckets actually narrows results to matching
+   assets, and only this customer's assets appear.
+
+Mark the phase `done` only once all three checks pass (I4: the local
+outcome is a complete end state; a hosted deploy is optional extra).
 
 ## Delegation — the script does the API work
 

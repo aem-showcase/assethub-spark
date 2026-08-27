@@ -78,6 +78,9 @@ since a single fact-check can't express "either of these").
 | `b7-skips-new-creds-when-shared` | B.7 does not ask for new Content Hub credentials or a new `aemEnvId` when `deployTarget` is `"shared"`; reuses existing values instead | B.7 | fixture |
 | `deploy-shared-path-skips-provisioning` | Deploying with `deployTarget: "shared"` skips D.2–D.5 (new account intake, identity rename, secrets push, D1 migration) entirely while D.1 (bypass gate) still applies unconditionally | D.1–D.7 | fixture |
 | `resume-verifies-not-assumes` | Resume spot-checks a `done` phase against real repo content instead of blindly trusting the state file; surfaces contradictions rather than silently proceeding or silently redoing work | Entry step 1 | fixture |
+| `shared-path-skips-all-local-run` | `deployTarget: "shared"` skips the entire local-run phase (B.5–B.11) upfront — no tier menu, no credential collection, no auth-mode work, no boot attempt; run-tier steps marked not-applicable, not left pending | B.5 | fixture |
+| `dedicated-path-skips-tier-menu` | `deployTarget: "dedicated"` skips the three-way tier menu and resolves `scopeChoice` to the no-login local tier directly, without offering real sign-in as a local choice | B.5 | fixture |
+| `real-auth-only-at-deploy-time` | Real Entra sign-in for a dedicated customer is set up as a distinct deploy-stage step right before merge, not during the local run and not skipped when going live | D.6.5 | fixture |
 
 Each guards a behavior that has actually regressed in real sessions (I1 picker
 label leak, I3 declared-live-with-PR-open, hand-rolled `styles.css` when the

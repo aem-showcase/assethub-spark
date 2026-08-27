@@ -49,20 +49,37 @@ describe('normalize', () => {
         title: 'x'.repeat(200),
         description: '',
         keywords: ['a', 'b', 'c'],
-        productCategory: 'Loans',
-        channel: 'unknown-channel',
+        productCategory: 'Movies & Shows',
+        channel: 'social',
         campaign: 'Spring Sale',
       });
       expect(out.title).toHaveLength(80);
       expect(out.description).toBeUndefined();
       expect(out.keywords).toEqual(['a', 'b', 'c']);
-      expect(out.productCategory).toBe('loans');
-      expect(out.channel).toBeUndefined(); // no vocab match => dropped
+      // Free text by default — kept as-is (clamped), not forced through an enum.
+      expect(out.productCategory).toBe('Movies & Shows');
+      expect(out.channel).toBe('social');
       expect(out.campaign).toBe('Spring Sale');
     });
-    it('never invents a one-off bucket for category/channel', () => {
-      const out = normalizeGenerated({ title: 'T', productCategory: 'nonsense', channel: 'nonsense' });
+    it('keeps productCategory/channel as free text when no vocab is given', () => {
+      const out = normalizeGenerated({ title: 'T', productCategory: 'anything-goes', channel: 'anything-goes' });
+      expect(out.productCategory).toBe('anything-goes');
+      expect(out.channel).toBe('anything-goes');
+    });
+    it('never invents a one-off bucket when a strict vocab is opted into', () => {
+      const out = normalizeGenerated(
+        { title: 'T', productCategory: 'nonsense', channel: 'nonsense' },
+        { productCategoryVocab: DEFAULT_PRODUCT_CATEGORY_VOCAB, channelVocab: DEFAULT_CHANNEL_VOCAB },
+      );
       expect(out.productCategory).toBeUndefined();
+      expect(out.channel).toBeUndefined();
+    });
+    it('maps to the canonical vocab entry when a strict vocab is opted into', () => {
+      const out = normalizeGenerated(
+        { title: 'T', productCategory: 'Loans', channel: 'unknown-channel' },
+        { productCategoryVocab: DEFAULT_PRODUCT_CATEGORY_VOCAB, channelVocab: DEFAULT_CHANNEL_VOCAB },
+      );
+      expect(out.productCategory).toBe('loans');
       expect(out.channel).toBeUndefined();
     });
   });

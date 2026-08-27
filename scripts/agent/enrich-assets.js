@@ -56,7 +56,7 @@ function toCsvRow(asset, fields, scope) {
  * normalize. Returns { asset, skip } or { asset, etag, fields }.
  */
 async function planAsset({
-  client, asset, generator, customerKey, force,
+  client, asset, generator, customerKey, force, productCategoryVocab, channelVocab,
 }) {
   const meta = await getAssetMetadata(client, asset.assetId);
   if (!force && isAlreadyEnriched(meta.assetMetadata, customerKey)) {
@@ -76,7 +76,7 @@ async function planAsset({
   const raw = await generator({
     assetId: asset.assetId, repoName: asset.repoName, hints, renditionBytes,
   });
-  const fields = normalizeGenerated(raw, {});
+  const fields = normalizeGenerated(raw, { productCategoryVocab, channelVocab });
   return { asset, etag: meta.etag, fields };
 }
 
@@ -123,7 +123,13 @@ export async function enrichAssets({
     async (asset) => {
       try {
         return await planAsset({
-          client, asset, generator, customerKey, force: options.force,
+          client,
+          asset,
+          generator,
+          customerKey,
+          force: options.force,
+          productCategoryVocab: options.productCategoryVocab,
+          channelVocab: options.channelVocab,
         });
       } catch (err) {
         report.record(asset.assetId, OUTCOME.FAILED, { stage: 'plan', error: String(err.message || err) });

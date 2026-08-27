@@ -2,18 +2,33 @@
  * Normalize + validate model-generated metadata into the portal's facet vocabulary.
  *
  * The vision/LLM step (generate.js) returns a loose object; this module repairs it into
- * a strict, portal-ready shape (plan §2.7): clamps lengths, maps productCategory/channel
- * to the live facet vocabulary (null when there is no confident match — never invent a
- * one-off bucket), and cleans the keyword array. `company` and `dam:status` are stamped
- * by the controller, never by the model, so they are not handled here.
+ * a strict, portal-ready shape (plan §2.7): clamps lengths and cleans the keyword array.
+ * `company` and `dam:status` are stamped by the controller, never by the model, so they
+ * are not handled here.
+ *
+ * IMPORTANT — productCategory/channel are FREE TEXT by default, not a fixed enum. The
+ * portal's `excFacets` config (docs/da-content/search.docx) declares these as
+ * `{ "type": "string" }` CATEGORY facets — the facet UI buckets on whatever distinct
+ * values exist on assets, there is no curated list to match against. Silently mapping
+ * to a hardcoded vocabulary (as this module used to do) means any customer whose real
+ * values aren't in that list gets silently dropped to `null` — metadata never lands,
+ * search/facets stay empty, and nothing in the run tells you why (this exact bug
+ * happened during the Disney demo: `productCategory` values like "Movies & Shows" were
+ * dropped because they didn't match a leftover banking-demo vocabulary).
+ *
+ * A caller MAY pass `productCategoryVocab`/`channelVocab` to opt into strict-enum
+ * behavior (map-or-drop) when a customer genuinely has a fixed, curated set of
+ * categories/channels they've told you about. Without that, values are clamped and
+ * kept as free text — never silently discarded.
  */
 
 import {
   TITLE_MAX, DESCRIPTION_MAX, KEYWORDS_MIN, KEYWORDS_MAX,
 } from './constants.js';
 
-// Default controlled vocabularies. Overridable per fork if the customer's facet buckets
-// differ; keep these as the safe baseline drawn from the demo portal's excFacets.
+// Optional strict vocabularies — NOT applied by default (see module header). Pass one
+// explicitly via `normalizeGenerated(raw, { productCategoryVocab })` only when a
+// customer has confirmed a fixed, curated category/channel list.
 export const DEFAULT_PRODUCT_CATEGORY_VOCAB = [
   'accounts', 'cards', 'loans', 'mortgages', 'insurance', 'investments',
   'payments', 'savings', 'business', 'wealth',
@@ -52,7 +67,8 @@ export function normalizeKeywords(input) {
 
 /**
  * Map a loose value onto a controlled vocabulary, case-insensitively. Returns the
- * canonical vocab entry, or null when there is no confident match.
+ * canonical vocab entry, or null when there is no confident match. Only used when the
+ * caller opts into strict-enum behavior by passing a vocab.
  */
 export function mapToVocabulary(value, vocab) {
   if (typeof value !== 'string') return null;
@@ -87,10 +103,13 @@ export function validateGeneratedShape(raw) {
  * Repair + normalize raw model output into portal-ready fields. Empty/undefined fields
  * are omitted (never written as empty strings). Returns a plain object holding only the
  * fields that survived normalization.
+ *
+ * `productCategory`/`channel` are free text by default (clamped to TITLE_MAX) — pass
+ * `options.productCategoryVocab`/`options.channelVocab` to restrict to a strict,
+ * confirmed-with-the-customer enum instead (map-or-drop, never invents a bucket).
  */
 export function normalizeGenerated(raw, options = {}) {
-  const productCategoryVocab = options.productCategoryVocab || DEFAULT_PRODUCT_CATEGORY_VOCAB;
-  const channelVocab = options.channelVocab || DEFAULT_CHANNEL_VOCAB;
+  const { productCategoryVocab = null, channelVocab = null } = options;
   const out = {};
 
   const title = clampString(raw?.title, TITLE_MAX);
@@ -107,11 +126,21 @@ export function normalizeGenerated(raw, options = {}) {
     out.keywords = keywords;
   }
 
-  const productCategory = mapToVocabulary(raw?.productCategory, productCategoryVocab);
-  if (productCategory) out.productCategory = productCategory;
+  if (productCategoryVocab) {
+    const productCategory = mapToVocabulary(raw?.productCategory, productCategoryVocab);
+    if (productCategory) out.productCategory = productCategory;
+  } else {
+    const productCategory = clampString(raw?.productCategory, TITLE_MAX);
+    if (productCategory) out.productCategory = productCategory;
+  }
 
-  const channel = mapToVocabulary(raw?.channel, channelVocab);
-  if (channel) out.channel = channel;
+  if (channelVocab) {
+    const channel = mapToVocabulary(raw?.channel, channelVocab);
+    if (channel) out.channel = channel;
+  } else {
+    const channel = clampString(raw?.channel, TITLE_MAX);
+    if (channel) out.channel = channel;
+  }
 
   const campaign = clampString(raw?.campaign, TITLE_MAX);
   if (campaign) out.campaign = campaign;

@@ -67,6 +67,7 @@ node scripts/agent/enrich-assets.js \
   [--limit <n>] \
   [--secrets-file cloudflare/.secrets] \
   [--aem-env-id pNNN-eNNN] \
+  [--product-category-vocab "A,B,C"] [--channel-vocab "A,B,C"] \
   [--report-file <path.json>]
 ```
 
@@ -91,6 +92,8 @@ writing or publishing anything.
 | `--limit` | value | — | Cap the number of assets processed. |
 | `--secrets-file` | value | `cloudflare/.secrets` | Where to read DM creds. |
 | `--aem-env-id` | value | from `cloudflare/src/config.js` | AEM env id (`pNNN-eNNN`) → author host. |
+| `--product-category-vocab` | value (CSV) | — (free text) | **Opt-in only.** If set, Category is mapped to the closest match in this list, or dropped if none matches. Only use if the customer has confirmed a fixed category list; otherwise Category is written as free text (matching the portal's `excFacets` string-type facet). |
+| `--channel-vocab` | value (CSV) | — (free text) | Same opt-in behavior as `--product-category-vocab`, for Channel. |
 | `--report-file` | value | — | Write the JSON report to this path. |
 | `--fixture` | value | — | Offline preview from a fixture file (forces `--dry-run`). |
 
@@ -100,14 +103,24 @@ Passing `--source-url <url>` turns on the **bring-in** lane (E3): the agent
 pulls the customer's own images off their website and lands them in the
 customer folder, then the normal enrich → publish flow runs over them.
 
+For a credible demo, target **at least 20 downloaded images**
+(`BRING_IN_MIN_TARGET_IMAGES`, default 20; hard cap `BRING_IN_MAX_IMAGES`,
+default 25). A single product/detail page often only exposes a handful of
+usable image URLs (most `<img>` tags on such pages are icons/thumbnails that
+get filtered out) — prefer a **collection/listing page** with many product
+tiles as the source URL, or pass a second `--source-url` from the same site,
+if the first pass returns too few. If the live run logs a warning that fewer
+than the target were found, don't treat the run as done — try a richer
+source page (and/or raise `--limit`) before moving on to labelling.
+
 ```bash
 # Preview: scrape + download only (nothing is uploaded or written)
 node scripts/agent/enrich-assets.js --customer-key acme \
-  --source-url https://www.santander.com/en/home --limit 5 --dry-run
+  --source-url https://www.santander.com/en/collections/all --limit 25 --dry-run
 
 # Live: scrape -> ensure folder -> upload -> enumerate -> enrich -> publish
 node scripts/agent/enrich-assets.js --customer-key acme \
-  --source-url https://www.santander.com/en/home --limit 5
+  --source-url https://www.santander.com/en/collections/all --limit 25
 ```
 
 What happens on a live run:

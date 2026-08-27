@@ -105,6 +105,9 @@ export const DAM_ROOT = '/content/dam';
 // --- Bring-in (E3: scrape a site -> upload) limits ---
 // Sensible demo-scale bounds so a scrape can't run away or pull a huge binary.
 export const BRING_IN_MAX_IMAGES = 25;
+// Below this many downloaded images, the bring-in result is too thin for a credible demo;
+// the controller warns loudly (see enrich-classic.js) instead of silently proceeding.
+export const BRING_IN_MIN_TARGET_IMAGES = 20;
 export const BRING_IN_MAX_BYTES = 15 * 1024 * 1024;
 // Skip images smaller than this — typically icons, flags, or tiny renditions.
 export const BRING_IN_MIN_BYTES = 10 * 1024;

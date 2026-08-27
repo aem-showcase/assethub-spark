@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'secrets-file', 'limit',
   'publish-target', 'write-mode', 'concurrency', 'report-file', 'fixture',
-  'aem-env-id',
+  'aem-env-id', 'product-category-vocab', 'channel-vocab',
 ]);
 
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'no-publish', 'bring-in']);
@@ -166,6 +166,8 @@ export function parseArgs(argv) {
     secretsFile: null,
     fixture: null,
     aemEnvId: null,
+    productCategoryVocab: null,
+    channelVocab: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -194,6 +196,12 @@ export function parseArgs(argv) {
         case 'report-file': opts.reportFile = value; break;
         case 'fixture': opts.fixture = value; break;
         case 'aem-env-id': opts.aemEnvId = value; break;
+        case 'product-category-vocab':
+          opts.productCategoryVocab = value.split(',').map((v) => v.trim()).filter(Boolean);
+          break;
+        case 'channel-vocab':
+          opts.channelVocab = value.split(',').map((v) => v.trim()).filter(Boolean);
+          break;
         default: break;
       }
     }

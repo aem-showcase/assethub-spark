@@ -18,7 +18,7 @@ import { isAlreadyEnriched } from './metadata.js';
 import { normalizeGenerated } from './normalize.js';
 import { Report, OUTCOME } from './report.js';
 import { mapWithConcurrency } from './concurrency.js';
-import { STATUS_APPROVED, FIELD } from './constants.js';
+import { STATUS_APPROVED, FIELD, BRING_IN_MIN_TARGET_IMAGES } from './constants.js';
 
 /** Map normalized generated fields + fork scope onto the AEM metadata property set. */
 export function fieldsToProperties(fields, scope) {
@@ -37,7 +37,7 @@ export function fieldsToProperties(fields, scope) {
 
 /** Read metadata, skip if already enriched, else generate + normalize. */
 async function planAssetClassic({
-  client, asset, generator, customerKey, force,
+  client, asset, generator, customerKey, force, productCategoryVocab, channelVocab,
 }) {
   const props = await getAssetMetadataClassic({ client, repoPath: asset.repoPath });
   if (!force && isAlreadyEnriched(props, customerKey)) {
@@ -51,7 +51,7 @@ async function planAssetClassic({
   const raw = await generator({
     assetId: asset.assetId, repoName: asset.repoName, hints, renditionBytes: null,
   });
-  const fields = normalizeGenerated(raw, {});
+  const fields = normalizeGenerated(raw, { productCategoryVocab, channelVocab });
   return { asset, fields };
 }
 
@@ -73,6 +73,9 @@ async function bringInFromSite({
   if (images.length === 0) {
     log.warn?.(`[agent] bring-in: no downloadable images found at ${options.sourceUrl} (from ${candidates} candidates)`);
     return { uploaded: [] };
+  }
+  if (images.length < BRING_IN_MIN_TARGET_IMAGES) {
+    log.warn?.(`[agent] bring-in: only ${images.length} downloadable image(s) found at ${options.sourceUrl} (target >= ${BRING_IN_MIN_TARGET_IMAGES}) — consider a deeper source page (e.g. a collection/listing page) or a second source URL for a fuller demo.`);
   }
 
   if (options.dryRun) {
@@ -159,7 +162,13 @@ export async function enrichAssetsClassic({
     async (asset) => {
       try {
         return await planAssetClassic({
-          client, asset, generator, customerKey, force: options.force,
+          client,
+          asset,
+          generator,
+          customerKey,
+          force: options.force,
+          productCategoryVocab: options.productCategoryVocab,
+          channelVocab: options.channelVocab,
         });
       } catch (err) {
         report.record(asset.assetId, OUTCOME.FAILED, { stage: 'plan', error: String(err.message || err) });
