@@ -10,6 +10,7 @@ import { createSearchPanel } from './search-panel.js';
 import { updateDropdownSelection } from './action-dropdown.js';
 import { createAssetPreview, closeAssetPreview } from './asset-preview.js';
 import { createAssetDetails, closeAssetDetails } from './asset-details/index.js';
+import { saveSearchMobileFilterOpenState } from '../utils/toggle-state-storage.js';
 import {
   pushModalState,
   handleModalClose,
@@ -414,7 +415,9 @@ export async function createImageGallery(container, callbacks) {
 
   function handleToggleMobileFilter() {
     const state = getState();
-    setState({ isMobileFilterOpen: !state.isMobileFilterOpen });
+    const nextIsMobileFilterOpen = !state.isMobileFilterOpen;
+    setState({ isMobileFilterOpen: nextIsMobileFilterOpen });
+    saveSearchMobileFilterOpenState(nextIsMobileFilterOpen);
   }
 
   function handleCardDetailClick(image, event) {
