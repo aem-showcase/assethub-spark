@@ -34,7 +34,7 @@ export const COUNTRY_CODE_TO_NAME = Object.freeze({
   ae: 'uae',
 });
 
-/** Inverse of COUNTRY_CODE_TO_NAME, for resolving a name back to its ISO code.*/
+/** Inverse of COUNTRY_CODE_TO_NAME, for resolving a name back to its ISO code. */
 export const COUNTRY_NAME_TO_CODE = Object.freeze(
   Object.fromEntries(Object.entries(COUNTRY_CODE_TO_NAME).map(([code, name]) => [name, code])),
 );
