@@ -48,24 +48,73 @@ repeating them:
 
 ## Entry flow — run first, every invocation
 
-Do this **before starting either phase and before any tool, environment, or
-plugin availability check** (including the Phase A design-plugin gate below).
+Do this **before asking the customer anything or doing any rebrand work**.
 The very first thing the customer sees is the entry question — never a
-readiness note, a blocker, or setup mechanics. Availability checks belong
-*inside* the phase they gate, reached only after routing (step 3).
+readiness note or setup mechanics. But the moment routing (step 3) resolves
+to a rebrand (`intent` is `full` or `frontend-only`), the excat tool
+pre-requisite (below) runs immediately, before A.1 and before anything else
+in Phase A — it is a pre-requisite *of entering Phase A at all*, not a
+mid-phase surprise.
 
 1. **Load state.** If `.internal/onboarding-state.json` exists, read it.
-   Any phase it marks `done` is authoritative — never re-run it. Resume
-   at the first non-`done` step of any phase still in progress, and don't
-   re-ask questions already answered under `customer`. If the file
-   doesn't exist, create it with the schema below.
+   Before trusting a phase marked `done`, spot-check **one concrete fact**
+   against the actual repo, not just the file — e.g. rebrand `done` →
+   does `styles.css` actually contain the new brand's tokens; backend
+   `done` → does `cloudflare/.secrets` actually exist. A state file can be
+   stale or inherited from an unrelated branch/customer (this happened in
+   a real prior session: a fork's state file still showed a previous,
+   different customer's rebrand as `done`). If the spot-check disagrees
+   with the file, say so plainly and treat that phase as needing
+   confirmation, not as authoritative. Otherwise, resume at the first
+   non-`done` step of any phase still in progress, and don't re-ask
+   questions already answered under `customer`. If the file doesn't
+   exist, create it with the schema below.
 
-2. **Ask what's wanted** (unless the request already makes it
-   unambiguous — e.g. "just get it running" is backend-only). Ask in
-   plain outcome language — **no internal terms** (I1): never the word
-   "rebrand," "scope," "phase," "frontend," or "backend" in anything the
-   customer sees, including a picker's header and option labels. In
-   conversation, wording like:
+2. **Ask two things in the same turn, in this order.**
+
+   **First, and always explicitly** — this decides which backend
+   everything downstream uses, so it leads:
+
+   > "Is this going to become [customer]'s own real portal — the one
+   > they'll actually run and manage going forward, with their own
+   > content environment set up specifically for them — or is this so
+   > we can show them a demo of what a rebrand would look like, using
+   > the environment we already use for these previews?"
+
+   The concrete, technical difference this question is resolving —
+   state it plainly if the customer asks "what's the difference" or
+   seems unsure, but don't over-explain unprompted:
+   - **"Real portal"** → a brand-new, dedicated AEM content environment
+     (a new AEM Program+Environment, new Content Hub credentials) is
+     provisioned specifically for this customer. Nothing is shared with
+     any other customer or demo. This is what an actual customer
+     migration requires — their assets, their content, their environment.
+   - **"Demo"** → this fork reuses the same AEM content environment
+     already used for other demo previews. Nothing new is provisioned;
+     it's for showing what the rebrand looks like, not for the customer's
+     real content going forward.
+
+   Map straight to `customer.deployTarget`: "real portal" → `"dedicated"`,
+   "demo" → `"shared"`. Never frame this as a speed/effort tradeoff
+   ("faster" vs "takes longer") — that biases the answer toward whichever
+   sounds easier instead of reflecting what they actually need.
+
+   Never skip this on a keyword match, even an apparently unambiguous
+   one — the word "migrate" alone is not reliable (a real prior session
+   had a customer ask to "migrate this portal" while actually meaning a
+   demo). If the answer is still vague after asking ("whatever's
+   easiest," "just get it going"), don't guess silently: state a default
+   out loud and let them correct it — *"I'll treat this as a demo for
+   now — say the word if it's actually their real portal"* — then
+   proceed with `deployTarget = "shared"` as a stated, correctable
+   assumption, not a silent guess.
+
+   **Second** (unless the request already makes it unambiguous — e.g.
+   "just get it running" is backend-only). Ask in plain outcome language
+   — **no internal terms** (I1): never the word "rebrand," "scope,"
+   "phase," "frontend," or "backend" in anything the customer sees,
+   including a picker's header and option labels. In conversation,
+   wording like:
 
    > "Want me to give the site a fresh look and update its content for
    > the new brand, or is that already done? Either way, I'll then get
@@ -73,10 +122,45 @@ readiness note, a blocker, or setup mechanics. Availability checks belong
    > easy to find by searching and filtering on what's in each one."
 
    If you render this as a multiple-choice picker, use a plain header
-   ("Getting started" / "What should I do") and outcome-worded options —
-   e.g. "New look + get it running" / "New look only" / "Already updated
-   — just get it running." Do **not** label options "Rebrand scope,"
-   "Rebrand only," "Already rebranded," etc.
+   ("Getting started" / "What should I do") and only offer choices that
+   make sense given what you already know from the state file — don't
+   blindly present "already done" options on a genuinely first-ever
+   request, since a customer asking for the first time has no "already
+   done" state to report; that's nonsensical to ask them. Each option
+   states a concrete, checkable end result — something the customer
+   could verify by looking at it, never a vague state like "fully
+   working," and never phrased as an apology/disclaimer ("I won't set up
+   ... yet").
+
+   **On a fresh request** (no prior state, or `rebrand.status` is not yet
+   `done`), offer only:
+
+   - "Give it Disney's look and content, get it up and running so you
+     can open it and click through it, and load in Disney's own assets
+     so they're searchable" (full)
+   - "Just give it Disney's look and content for now — I'll get it
+     running and load Disney's assets in a later step" (frontend-only)
+   - "Something else" (free text)
+
+   **On a resumed request** where the state file already shows
+   `rebrand.status: done` (verified via the spot-check in entry step 1,
+   not just trusted blindly), instead offer:
+
+   - "Get it up and running so you can open it and click through it,
+     then load in Disney's own assets so they're searchable" (backend-only)
+   - "Just get it up and running so you can open it and click through
+     it — I'll load Disney's assets in a later step" (backend-only,
+     defer assets)
+   - "Just load in Disney's own assets so they're searchable — it's
+     already up and running" (assets-only)
+   - "Something else" (free text)
+
+   Do **not** label options "Rebrand scope," "Rebrand only," "Already
+   rebranded," "boot locally," "get it running" alone with no outcome
+   attached, or any other internal step/phase name — every option must
+   state what the customer will concretely be able to do or see
+   afterward, with no follow-up question needed to decode it, and never
+   read like a disclaimer about what won't happen.
 
    Map the answer to `intent` and the phase statuses:
    - new look + running / yes → `intent` = `full`, rebrand runs; Phase A
@@ -114,6 +198,18 @@ phase's `status` may be `in_progress`, `done`, or `not-requested`
 (the customer explicitly didn't want it — a valid end state, distinct
 from an unfinished `in_progress`).
 
+`customer.deployTarget` (`null` / `"shared"` / `"dedicated"`) records the
+entry flow's other question — whether this is a demo (reuses the same
+shared AEM environment and Cloudflare account already used for other
+demos) or the customer's own real, separate portal (its own AEM
+environment and Cloudflare account, fully provisioned). Set once at
+entry (see entry flow step 2), read by B.7 (which credentials to
+collect), Phase C (which environment assets land in), and the deploy
+stage (which of the two paths applies) — never re-derived or re-asked
+downstream. Revisitable the same way `intent` is: if the customer
+corrects it later, update it and re-evaluate any step that already ran
+under the old value.
+
 Schema:
 
 ```json
@@ -125,7 +221,8 @@ Schema:
     "githubOrg": null,
     "githubRepo": null,
     "aemEnvId": null,
-    "authBypassActive": null
+    "authBypassActive": null,
+    "deployTarget": null
   },
   "phases": {
     "rebrand": {
@@ -240,13 +337,13 @@ locally. Not used by Phase A.
 
 # Phase A — Rebrand via Catalyst
 
-**Precondition — do not enter Phase A (including the excat check below)
-until the entry flow has run:** you must have already posed the entry
-question and recorded `intent` in the state file. If `intent` is still
-`null`, you are not in Phase A yet — go back and do the entry flow's step 2
-(pose the plain-language entry question) first, and stop there until the
-customer answers. The excat availability check is the *first thing inside*
-Phase A, not the first thing the customer sees.
+**Precondition — this tool check is a pre-requisite of Phase A, run
+immediately by the entry flow the instant routing resolves to a rebrand
+(`intent` = `full` or `frontend-only`) — never deep inside A.1, and never
+discovered only after A.2 tries to invoke the skill and fails.** If
+`intent` is still `null`, the entry question hasn't been answered yet — do
+that first (entry flow step 2), then come straight here before anything
+else in Phase A.
 
 Rebrand the site's design/content to a new brand identity. The design/CSS
 migration is done by the **Catalyst (excat) design skill**, not by hand —
@@ -254,46 +351,76 @@ design tokens, asset colors, content register rewrite, and publish all
 work independently of whether the fork's backend is set up yet. Do not
 defer this phase waiting on Phase B — it doesn't need it.
 
-**Required tool — check on entering Phase A, before A.1** (i.e. only after
-the entry flow has run and routed here — never as the first thing the
-customer sees; see the entry flow's ordering rule). This phase drives the
-excat design skill **`excat-complete-design-expert`** (plugin `excat`, from
-the `excat-marketplace` shipped by the Adobe Experience Catalyst
-`aem-excat-plugin`). Don't assume it's missing and don't assume it's
-present — actually determine which of three states you're in, because
-"installed globally" and "enabled for this project" are different things:
+**Required tool.** This phase drives the excat design skill
+**`excat-complete-design-expert`**, shipped from the `excat-marketplace`
+(source: the Adobe Experience Catalyst `aem-excat-plugin` repo's
+`excat-marketplace` directory) as the `excat` plugin. Don't assume it's
+missing and don't assume it's present — determine actual state with the
+live CLI, never with a cached/static config file, since that can be stale
+relative to a session that already fixed it, or relative to a *different*
+CLI's config entirely (Claude Code and Copilot CLI each keep their own,
+separate plugin registrations — a plugin enabled in one is invisible to
+the other).
 
-The plugin/enable mechanics below (skill names, `/plugin`, marketplace) are
-**operator-facing** setup, addressed to whoever runs this session — not
-customer-facing prose. That's the one place naming `excat`/the plugin is
-fine; I1 still forbids it in anything an end customer reads (e.g. the entry
-question, run-tier choices, completion reports). Never let this tooling
-handoff bleed into a customer-facing message.
+The plugin/marketplace mechanics below are **operator-facing** setup,
+addressed to whoever runs this session — not customer-facing prose. I1
+still forbids naming `excat`/the plugin in anything an end customer reads
+(the entry question, run-tier choices, completion reports). Never let this
+tooling handoff bleed into a customer-facing message.
 
-1. **Skill invokable now** — `excat-complete-design-expert` appears in
-   this session's available-skills list. → Proceed; A.2 invokes it in
-   Complete Migration mode.
+**Detect which CLI is running this session** (its command name — `claude`
+or `copilot` — determines which commands below to use; do not run both
+commands for state that's foreign to the CLI in use, since it will report
+a false "not found").
 
-2. **Plugin installed but not enabled for this project** — it's in
-   `~/.claude/plugins/installed_plugins.json` (look for
-   `excat@excat-marketplace`) but the skill isn't in the session list.
-   This is the common case. → **Guide the operator to enable it**, don't
-   tell them to install: have them run `/plugin` (Manage plugins →
-   `excat-marketplace` → `excat` → Enable) for this project, or add
-   `excat@excat-marketplace` to `enabledPlugins` for this project, then
-   restart the session so the skill loads. To check install state you may
-   read `installed_plugins.json` and `known_marketplaces.json`.
+1. **Skill invokable now** — `excat-complete-design-expert` already
+   appears in this session's available-skills list (check with
+   `copilot skill list` or `claude plugin list` per the active CLI,
+   looking for it enabled/loaded). → Proceed; A.2 invokes it in Complete
+   Migration mode.
 
-3. **Not installed at all** — no `excat@excat-marketplace` entry. → Have
-   the operator add the marketplace and install: `/plugin marketplace add
-   <path-or-repo of aem-excat-plugin/excat-marketplace>` then
-   `/plugin install excat@excat-marketplace`, then enable per state 2.
+2. **Marketplace not registered for this CLI.** Check with
+   `copilot plugin marketplace list` / `claude plugin marketplace list`.
+   If `excat-marketplace` is absent, this CLI has simply never been told
+   about it — it may well be fully set up in the *other* CLI already,
+   which does not carry over. → Ask the operator once, in one sentence,
+   for permission to register it and install (state the marketplace path
+   you'll use — the local `aem-excat-plugin/excat-marketplace` directory,
+   or its git remote if the local path isn't present on this machine).
+   On yes, if you have shell access to run commands yourself, run them;
+   if you don't (or the run fails/needs interactive confirmation), print
+   the **exact commands for the operator's actual CLI** — never a
+   generic "run /plugin install" — as two literal, copy-pasteable lines:
+   - Copilot CLI:
+     `copilot plugin marketplace add <path-or-repo-of-excat-marketplace>`
+     `copilot plugin install excat@excat-marketplace`
+   - Claude Code:
+     `claude plugin marketplace add <path-or-repo-of-excat-marketplace>`
+     `claude plugin install excat@excat-marketplace`
+   (then continue to state 3 for Claude Code to confirm/enable for this
+   project — Copilot CLI has no separate step).
+   Either way — whether you ran it or the operator did — re-check
+   afterward (`copilot skill list` / `claude plugin list`) that the skill
+   now actually loaded; an install can still require a restart, in which
+   case say so plainly and wait; don't assume it's live yet.
 
-In states 2 and 3, **stop and do not hand-roll the rebrand** — editing
-`styles.css` / sweeping hex manually is not a substitute for this skill
-and silently misses the content rewrite and asset-color sweep. Mark the
-rebrand phase `blocked`, tell the operator exactly which state they're in
-and the one action to fix it, and pause Phase A until the skill loads.
+3. **Installed but not enabled for this project** (Claude Code only —
+   Copilot CLI has no separate per-project enable step once installed).
+   `claude plugin list` shows `excat@excat-marketplace` installed but not
+   enabled for this project/scope. → Ask the operator once for
+   permission. If you have shell access, run
+   `claude plugin enable excat@excat-marketplace --project` (or the
+   matching scope flag) yourself; otherwise give them that exact command
+   to run. Either way, re-verify with `claude plugin list` afterward. If
+   a restart is required for the skill to load, say so and wait.
+
+In all cases, **never hand-roll the rebrand instead of fixing the tool** —
+editing `styles.css` / sweeping hex manually is not a substitute for this
+skill and silently misses the content rewrite and asset-color sweep. If
+the operator declines permission to install/enable, mark the rebrand phase
+`blocked`, tell them exactly which state they're in and the one command
+needed, and pause Phase A until it's resolved — don't guess or proceed
+without the skill.
 
 This phase is more than tokens: the content-register rewrite and the
 hardcoded-asset-color sweep (A.3) are this phase's own job, wrapped around
@@ -304,32 +431,72 @@ the excat skill in one larger request (A.2).
 Do these before touching any file. Ask the customer directly — these
 cannot be discovered mid-task without risking a stalled rebrand.
 
-### A.1.a: Permissions checklist (`permissions-checked`)
+### A.1.a: Content-authoring access (`permissions-checked`, `token.env`)
 
-Tell the customer to confirm both of these are enabled in Settings → LLM
-Permissions before starting:
+The only access setup needed for this phase is a gitignored `token.env`
+file at the repo root with exactly two lines, `KEY=value` format, no
+quotes:
 
-- **Admin access** — covers Helix admin preview/publish AND, via the same
-  Adobe IMS session, Document Authoring read/write. If DA still returns a
-  401 right after enabling this, that's expected IMS-session propagation
-  lag or an Adobe sign-in prompt — not a missing separate toggle.
-- **Git access** — required for committing/pushing/opening a PR.
+- **`DA_TOKEN`** — lets this session read/write Document Authoring
+  content for the rebrand's content-register rewrite and publish.
+- **`HLX_ADMIN_TOKEN`** — lets this session call Helix Admin (preview,
+  publish, status).
 
-The never-paste-secrets rule (I2) covers the IMS session here and the
-`DA_TOKEN`/`HLX_ADMIN_TOKEN` below equally.
+Ask the customer to create this file and fill in both values themselves
+(I2 — never accept either token typed into chat; read them from the file
+at call time only). Confirm `token.env` is gitignored — if `.gitignore`
+has no `token.env` entry, add one, don't rely on another pattern covering
+it.
 
-### A.1.d: DA / Helix Admin tokens (`token.env`)
+Never tell the customer to look for a "Settings → LLM Permissions" screen
+or any in-product admin-access toggle — no such setting exists for this
+flow. There is no web app or Settings panel in any real invocation of
+this skill; it always runs as a CLI operating directly on a locally
+cloned repo. These two tokens are the entire access requirement.
 
-Any Document Authoring or Helix Admin API call this phase makes (preview,
-publish, status) authenticates with two customer-supplied tokens — not
-the IMS session above. Before the first such call:
+**How the customer actually gets each value** (give them these exact
+steps if they ask "how do I get one" — don't just name the env var and
+leave them to figure it out):
 
-- Ask the customer to create a gitignored `token.env` at the repo root
-  with exactly two lines, `KEY=value` format, no quotes:
-  `DA_TOKEN=...` and `HLX_ADMIN_TOKEN=...` (I2 — customer fills the
-  values; read at call time, never from chat).
-- Confirm `token.env` is gitignored. If `.gitignore` has no `token.env`
-  entry, add one — don't rely on another pattern covering it.
+- **`DA_TOKEN`** (Document Authoring / Adobe IMS access token):
+  1. Sign in at `https://da.live` with the Adobe account that has access
+     to this project's DA content.
+  2. Open browser DevTools → Application/Storage → Local Storage →
+     `https://da.live`, and copy the value of the IMS access token
+     stored there (commonly under a key containing `accessToken` /
+     `access_token`) — this is what the DA admin API accepts as the
+     bearer token.
+  3. This token is short-lived (session-based) — if calls start
+     returning `401`, it likely expired; have them re-open da.live,
+     re-authenticate, and grab a fresh value.
+  (If a technical/OAuth Server-to-Server integration is set up in Adobe
+  Developer Console for automation instead of a human login, the IMS
+  `access_token` from that flow can be used instead — but for a single
+  rebrand session, the da.live browser-session token above is the
+  simpler path most customers can do themselves.)
+
+- **`HLX_ADMIN_TOKEN`** (Helix/EDS Admin API key — NOT the same as a
+  `.aem.page`/`.aem.live` site-access token):
+  1. Determine `{org}` and `{site}` from the project's Helix URL, shaped
+     `https://main--{site}--{org}.aem.page`: `{org}` is the last
+     hostname segment, `{site}` is the middle segment (e.g. for
+     `https://main--myportal--acme.aem.page`, `org=acme`,
+     `site=myportal`). These usually match the GitHub org/repo.
+  2. Sign in at `https://admin.hlx.page/login/{org}/{site}/main` with an
+     Adobe account that has admin/config_admin rights on that org/site.
+  3. In DevTools → Application → Cookies for `admin.hlx.page`, copy the
+     `auth_token` cookie value — a temporary admin session token.
+  4. Use that session token to mint a real, reusable API key:
+     ```
+     curl -s -X POST \
+       -H "x-auth-token: <auth_token from step 3>" \
+       -H "Content-Type: application/json" \
+       -d '{ "description": "customer-migration rebrand", "roles": ["admin"] }' \
+       https://admin.hlx.page/config/{org}/sites/{site}/apiKeys.json
+     ```
+     The `value` field in the response is the real API key — that's
+     `HLX_ADMIN_TOKEN`. It's shown once; have them save it into
+     `token.env` immediately.
 
 Known quirk: a Helix Admin API (`admin.hlx.page`) preview/publish can
 `401` even with a valid `DA_TOKEN` — forward the token via an
@@ -344,6 +511,24 @@ have zero effect on the hosted `.aem.page`/`.aem.live` site — the real
 source of truth is the Document Authoring document (which is why "publish"
 is a real, separate step later). Per I3, DA content goes live on publish
 but code goes live only on merge — keep the two straight throughout.
+
+**Derive the DA source and Helix URLs, never guess or trust stale docs.**
+`README.md` can be wrong (it may still show the upstream template's own
+org/repo rather than this fork's) and there may be no `fstab.yaml` in the
+repo — neither of those is grounds to conclude "there's no content to
+rewrite." Instead:
+
+1. Get the fork's real org/repo the same way B.2 does:
+   `git remote get-url origin`, parsed as `{org}/{repo}`.
+2. Build the DA source directly: `https://da.live/#/{org}/{repo}`.
+3. Build the Helix preview/live URLs the same way B.4 does:
+   `https://{branch}--{repo}--{org}.aem.page` /
+   `https://main--{repo}--{org}.aem.live`.
+4. Actually probe the DA source (e.g. `GET
+   https://admin.da.live/list/{org}/{repo}`) before concluding there's no
+   content register. Only treat it as "nothing to rewrite" on a genuine
+   empty/404 result from this probe — never on the absence of a config
+   file or on not immediately finding brand copy in the repo's own files.
 
 ### A.1.c: Brand inputs — confirm full scope (`brand-inputs-collected`)
 
@@ -411,16 +596,37 @@ working tree or open branch.
 
 ### Asset-file color sweep (`asset-color-sweep-verified`)
 
-Grep SVG and image assets for hardcoded hex/color values still matching
-the *old* brand — visual-comparison tooling misses these (why:
-`rebrand-plan.md` Phase 3). Check icon SVGs for `fill="#..."` and
-`background-image` assets for embedded raster art / hardcoded panel
-colors. Not every hardcoded fill is wrong (a neutral icon that turns
-brand-colored on hover is legitimate) — screenshot the pages to confirm a
-flagged file actually reads off-brand.
+Run this as a **fixed checklist, not an ad hoc grep** — a manual
+grep-and-eyeball pass has, in practice, missed real misses (a leftover
+old-brand CSS class selector, and a linter auto-fix silently riding along
+in the same diff). Every item below is mandatory, and the whole checklist
+runs **twice**: once right after A.2 step 1–2's edits, and again after
+merge, against the live site — not just once, and not just against the
+local working tree.
 
-Report any real misses found, fix them, and re-check before considering
-Phase A complete. Set `phases["rebrand"].status` to `"done"`.
+1. **Build the old→new hex map** from A.2 step 1's token diff — every
+   color value that changed, old and new side by side.
+2. **Grep every value in that map**, case-insensitive, across every
+   `*.svg`, `*.css`, and `*.scss` file in the repo — report *every* hit,
+   not a sample. Check icon SVGs for `fill="#..."` /
+   `background-image` assets for embedded raster art / hardcoded panel
+   colors, per the map, not just visually.
+3. **Grep the old brand's name itself** across CSS/SCSS selector names
+   (class/id selectors specifically, not prose) — this is what catches a
+   miss like a renamed icon file whose CSS class (e.g.
+   `.icon-<oldbrand>-mark`) still carries the old name.
+4. **Diff every file touched in A.2** against its pre-A.2 version and
+   flag any changed line **not** explained by the intended token/color/
+   name swap — this is what catches an unrelated linter auto-fix (e.g. a
+   hex-length shorthand) silently riding along in the same commit.
+
+Not every hardcoded fill is wrong (a neutral icon that turns
+brand-colored on hover is legitimate) — screenshot the pages to confirm a
+flagged file actually reads off-brand before "fixing" it.
+
+Report any real misses found, fix them, and re-run the full checklist
+(both passes) clean before considering Phase A complete. Set
+`phases["rebrand"].status` to `"done"`.
 
 ## Phase A completion report
 
@@ -608,6 +814,18 @@ Cloudflare account, the intake file, or the identity rename — those are
 deploy-only (the separate stage further below).
 
 ## B.7: Content Hub credential collection (`content-hub-creds-collected`)
+
+**First, branch on `customer.deployTarget`** (set at entry, step 2 — never
+re-ask it here):
+
+- **`"shared"` (demo)** — skip the rest of this step's collection
+  entirely. Confirm the values already present in `cloudflare/.secrets`
+  and `customer.aemEnvId` (the same shared environment other demo forks
+  already use) still work — a quick probe (C.2's read check is enough,
+  called early) rather than a fresh ask. Mark step `done` once confirmed.
+- **`"dedicated"` (real portal)** — proceed with the rest of this step
+  exactly as below: real, new credentials for this customer's own
+  environment.
 
 As mentioned at the tier choice, real search needs two values from the
 customer's Content Hub — collect them now. Ask for:
@@ -914,7 +1132,12 @@ Summarize plainly: which of the customer's assets are now in the portal
 and searchable; that filtering by what's in each image works (name the
 facets that lit up); that the local demo shows only this customer's
 assets; and any per-asset items that couldn't be brought in or labelled.
-Deployment is not part of this — the demo runs locally; mention a hosted
-deploy only if the customer explicitly asked for one (then it's the
-opt-in Phase B deploy stage, live on merge). Never surface internal terms
-(I1) or secret values (I2).
+
+**Always ask, plainly, whether they want this at a real address they can
+share now** — never only if the customer happens to ask first. Something
+like: "Want me to put this on a real link you can send people, instead of
+just running here?" If yes, this routes into the deploy stage
+(`deploy.md`), which reads the already-recorded `customer.deployTarget`
+and proceeds on the matching path without asking again. If they say no,
+that's a valid, complete end state (I4) — don't push further. Never
+surface internal terms (I1) or secret values (I2).
