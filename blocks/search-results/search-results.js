@@ -23,7 +23,10 @@ import {
   loadSearchFiltersFromUrl,
 } from './utils/config.js';
 import { parseExcConfigBlock } from './utils/exc-config-parser.js';
-import { loadSearchExpandAllDetailsState } from './utils/toggle-state-storage.js';
+import {
+  loadSearchExpandAllDetailsState,
+  loadSearchMobileFilterOpenState,
+} from './utils/toggle-state-storage.js';
 import {
   fetchAssetById,
   populateAssetFromContentAIHit,
@@ -516,6 +519,7 @@ export default async function decorate(block) {
     excFacets,
     presetFilters: externalParams.presetFilters || [],
     expandAllDetails: loadSearchExpandAllDetailsState(true),
+    isMobileFilterOpen: loadSearchMobileFilterOpenState(false),
   });
 
   // Initialize the renditions fetcher with state accessors (after dynamicMediaClient is set)

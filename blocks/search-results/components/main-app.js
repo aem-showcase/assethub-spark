@@ -13,6 +13,7 @@ import {
   handleAddToCart,
   handleRemoveFromCart,
   handleBulkAddToCart,
+  getState,
 } from '../search-results.js';
 import { createImageGallery } from './image-gallery.js';
 import { createFacetsPanel } from './facets/index.js';
@@ -34,7 +35,7 @@ export async function createMainApp(container) {
       <div class="images-container">
         <div class="images-content-wrapper">
           <div class="images-content-row">
-            <div class="facet-filter-panel" id="facet-filter-panel">
+            <div class="facet-filter-panel${getState().isMobileFilterOpen ? ' mobile-open' : ''}" id="facet-filter-panel">
               <!-- Facets will be rendered here -->
             </div>
             <div class="images-main">

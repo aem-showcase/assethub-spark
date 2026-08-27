@@ -115,7 +115,7 @@ export async function createSearchPanel(container, callbacks) {
           
           <button class="filter-button" type="button" aria-label="${filterLabel}">
             <span class="icon-mask icon-mask-filter-search filter-icon" aria-hidden="true"></span>
-            ${isMobileFilterOpen ? hideFilterLabel : showFilterLabel}
+            <span class="filter-button-label">${isMobileFilterOpen ? hideFilterLabel : showFilterLabel}</span>
           </button>
         </div>
       </div>
@@ -280,7 +280,16 @@ function bindEvents(container, callbacks) {
   // Filter button
   const filterBtn = container.querySelector('.filter-button');
   if (filterBtn) {
-    filterBtn.addEventListener('click', onToggleMobileFilter);
+    filterBtn.addEventListener('click', () => {
+      onToggleMobileFilter();
+      const { isMobileFilterOpen } = getState();
+      const showFilterLabel = ph(placeholders, 'showFilter', 'Show Filter');
+      const hideFilterLabel = ph(placeholders, 'hideFilter', 'Hide Filter');
+      const labelEl = filterBtn.querySelector('.filter-button-label');
+      if (labelEl) {
+        labelEl.textContent = isMobileFilterOpen ? hideFilterLabel : showFilterLabel;
+      }
+    });
   }
 
   // Select all checkbox
