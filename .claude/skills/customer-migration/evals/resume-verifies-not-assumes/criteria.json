@@ -5,7 +5,7 @@
     {
       "name": "Does not blindly proceed on the stale 'done' claim",
       "max_score": 30,
-      "description": "The agent does not silently jump into backend-onboarding work while treating rebrand as genuinely finished purely because the state file says so."
+      "description": "The agent does not silently jump into the assets step while treating rebrand as genuinely finished purely because the state file says so."
     },
     {
       "name": "Performs a concrete verification",

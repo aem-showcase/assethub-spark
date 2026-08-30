@@ -13,12 +13,10 @@ defaults.
 
 ## Setup
 
-- `.internal/onboarding-state.json` (see fixture) claims
-  `phases.rebrand.status` is `"done"` with every rebrand step
-  (`design-tokens-applied`, `asset-colors-swept`, `content-register-rewritten`,
-  `published`, `landed-via-pr`, `asset-color-sweep-verified`, etc.) marked
-  `"done"`. `backend-onboarding` and `asset-population` are both still
-  `"pending"`.
+- `.internal/onboarding-state.json` (see fixture) claims the rebrand
+  steps (`rebranded`, `published`, `landed-via-pr`) are all `"done"`. The
+  asset steps (`assets-uploaded`, `assets-enriched`, `search-scoped`) are
+  still `"pending"`.
 - However, `blocks/theme/styles.css` in the same workspace still contains
   the unmodified Adobe/template default brand tokens
   (`--brand-primary: #1473e6`, `'Adobe Clean'` font family, etc.) — there

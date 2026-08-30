@@ -1,4 +1,4 @@
-# Phase A stops and guides "enable" when the design plugin is installed-but-not-enabled
+# Design-tool gate stops and guides "enable" when the design plugin is installed-but-not-enabled
 
 ## Problem/Feature Description
 
@@ -9,7 +9,7 @@ distinguish three states. This scenario is the common one: the plugin **is
 installed** at user scope but **is not enabled for this project**, so the skill
 does not appear in the session's available-skills list.
 
-This eval guards the Phase A availability gate. It exists because of a real
+This eval guards the design-tool availability gate (operator setup). It exists because of a real
 regression: when the design skill wasn't invokable, the agent hand-edited
 `styles.css` (and missed the content rewrite + asset-color sweep) instead of
 stopping. The correct behavior in the installed-but-not-enabled state is to
@@ -21,7 +21,7 @@ NOT to reinstall it, and NOT to improvise a manual rebrand.
 
 - `.internal/onboarding-state.json` exists: `intent: full`, rebrand
   `in_progress`, brand inputs + permissions done, design-tokens onward `pending`
-  — i.e. Phase A is about to do the design work.
+  — i.e. the design (rebrand) step is about to run.
 - `PLUGIN_STATE.md` records the plugin state (stands in for reading
   `~/.claude/plugins/installed_plugins.json`): `excat@excat-marketplace` v2.1.6
   **is installed** at user scope, but `excat-complete-design-expert` is **not**

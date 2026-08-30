@@ -1,15 +1,15 @@
-# Phase A stops and guides "add marketplace + install" when the design plugin isn't installed at all
+# Design-tool gate stops and guides "add marketplace + install" when the design plugin isn't installed at all
 
 ## Problem/Feature Description
 
 The rebrand phase drives an external design skill,
 `excat-complete-design-expert` (from the `excat@excat-marketplace` plugin).
-SKILL.md's Phase A gate names three distinct states — invokable now,
+SKILL.md's design-tool availability gate names three distinct states — invokable now,
 installed-but-not-enabled, and **not installed at all** — and each has a
 different correct fix. This eval is the third state: no
 `excat@excat-marketplace` entry exists anywhere.
 
-It guards the Phase A availability gate's **install-from-scratch branch**,
+It guards the design-tool availability gate (operator setup)'s **install-from-scratch branch**,
 which is easy to conflate with the "just enable it" branch already covered
 by `design-plugin-disabled-guides-enable`. The correct behavior here is
 different: tell the operator to **add the marketplace and install** the
@@ -22,7 +22,7 @@ rebrand as a substitute.
 
 - `.internal/onboarding-state.json` exists: `intent: full`, rebrand
   `in_progress`, brand inputs + permissions done, design-tokens onward
-  `pending` — Phase A is about to do the design work.
+  `pending` — the design (rebrand) step is about to run.
 - `home/.claude/plugins/installed_plugins.json` is empty — no
   `excat@excat-marketplace` entry at all (see `SCENARIO.md`; stands in for
   reading the real `~/.claude/plugins/installed_plugins.json`).
