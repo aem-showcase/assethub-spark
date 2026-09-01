@@ -10,7 +10,7 @@
 # Defense-in-depth, NOT a sandbox: it is pattern-based over the tool
 # input, so unusual command shapes or paths constructed inside a wrapper
 # can slip past. The skill still passes explicit /<company>/... paths as
-# args (SKILL.md A.2 step 4) to keep them visible here.
+# args (SKILL.md Step 4) to keep them visible here.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
 # Exit 2 = block (message on stderr is shown to the model). Works for
@@ -108,11 +108,21 @@ for m in re.finditer(
     if not under_folder(path):
         violations.append("DA copy destination -> " + path)
 
+# 4) Packaged DA copy wrapper. The wrapper builds the DA copy URLs internally,
+#    so enforce its <companyKey> arg before the script runs.
+for m in re.finditer(
+    r"(?:^|[\s\"'])(?:[^\s\"']*/)?scripts/da-copy-folder\.sh\s+[^\s\"']+\s+[^\s\"']+\s+([^\s\"']+)",
+    blob,
+):
+    company = "/" + m.group(1).strip().strip("/")
+    if not under_folder(company):
+        violations.append("DA copy script destination -> " + company)
+
 if violations:
     if not da_folder:
         deny(
             "no company folder resolved yet (customer.daFolder unset) — "
-            "refusing DA/Helix publish until A.0.b sets it. "
+            "refusing DA/Helix publish until Step 2 sets it. "
             + "; ".join(violations)
         )
     deny("target(s) outside the company folder: " + "; ".join(violations))

@@ -15,7 +15,7 @@
     {
       "name": "Guides marketplace-add + install, not just enable",
       "max_score": 25,
-      "description": "The agent tells the operator to add the marketplace (e.g. '/plugin marketplace add') and install the plugin (e.g. '/plugin install excat@excat-marketplace') \u2014 a two-step install flow \u2014 rather than only telling them to 'enable' it as if already installed."
+      "description": "The agent tells the operator to add the marketplace with the CLI command and install the plugin (e.g. 'claude plugin marketplace add ./resources/plugins/aem-excat-plugin/excat-marketplace' and 'claude plugin install excat@excat-marketplace') \u2014 a two-step install flow \u2014 rather than only telling them to 'enable' it as if already installed."
     },
     {
       "name": "No hand-rolled rebrand",

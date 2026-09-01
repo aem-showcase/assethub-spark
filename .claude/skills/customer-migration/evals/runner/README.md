@@ -25,7 +25,7 @@ cd .claude/skills/customer-migration/evals/runner
 node run.mjs --eval entry-language-plain-not-internal-terms --label baseline
 
 # repeat N times (scores are averaged)
-node run.mjs --eval rebrand-not-live-while-pr-open --n 3 --label baseline
+node run.mjs --eval pr-preview-is-deliverable-no-merge --n 3 --label baseline
 
 # keep the seeded workspace for inspection
 node run.mjs --eval resume-verifies-not-assumes --keep

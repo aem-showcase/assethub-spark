@@ -4,7 +4,7 @@
 #
 # The demo rebrands a *copy* of the site's existing Document Authoring (DA)
 # content placed under /<companyKey>, leaving the shared original untouched
-# (SKILL.md A.0.b). This script performs that copy deterministically via the
+# (SKILL.md Step 2). This script performs that copy deterministically via the
 # DA Admin Copy API — including the 206 / continuation-token paging that a
 # hand-rolled curl call almost always forgets, which is how partial copies
 # happen.
@@ -33,11 +33,43 @@
 set -euo pipefail
 
 ADMIN="${DA_ADMIN_BASE:-https://admin.da.live}"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 [ $# -ge 3 ] || die "usage: da-copy-folder.sh <org> <repo> <companyKey> [--token-file <path>]"
 ORG="$1"; REPO="$2"; COMPANY="${3#/}"; shift 3
+
+case "$COMPANY" in
+  ""|*/*|*..*|.*|*[^a-z0-9-]*)
+    die "companyKey must be a lowercase slug like acme-demo (got: $COMPANY)"
+    ;;
+esac
+
+RESERVED_COMPANY_KEYS="api auth blocks config en fonts icons ja media public scripts styles tools"
+for key in $RESERVED_COMPANY_KEYS; do
+  [ "$COMPANY" = "$key" ] && die "companyKey '$COMPANY' is reserved; use a specific company slug like ${COMPANY}-demo"
+done
+
+STATE_FILE="$ROOT/.internal/onboarding-state.json"
+if [ -f "$STATE_FILE" ]; then
+  STATE_DA_FOLDER="$(python3 -c '
+import json, sys
+try:
+    state = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+folder = (state.get("customer") or {}).get("daFolder")
+if isinstance(folder, str):
+    folder = "/" + folder.strip().strip("/")
+    if folder != "/":
+        print(folder)
+' "$STATE_FILE" || true)"
+  if [ -n "$STATE_DA_FOLDER" ] && [ "$STATE_DA_FOLDER" != "/$COMPANY" ]; then
+    die "companyKey '$COMPANY' does not match state company folder $STATE_DA_FOLDER"
+  fi
+fi
+
 TOKEN_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -47,7 +79,6 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$TOKEN_FILE" ]; then
-  ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
   TOKEN_FILE="$ROOT/token.env"
 fi
 [ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (create it with DA_TOKEN=...)"

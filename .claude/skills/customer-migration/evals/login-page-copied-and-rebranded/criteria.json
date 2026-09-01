@@ -5,12 +5,21 @@
     {
       "name": "Login page in the rebrand list",
       "max_score": 30,
-      "description": "The agent includes /acme/public/welcome in the content-rewrite page list, rebranding its logo/copy — not only the main page tree."
+      "description": "The agent includes /acme/public/welcome in the content-rewrite page list, rebranding its logo/copy — not only the main page tree.",
+      "check": {
+        "type": "transcriptContains",
+        "value": "/acme/public/welcome"
+      }
     },
     {
       "name": "Login page + config published under the company folder",
       "max_score": 30,
-      "description": "The publish list includes /acme/public/welcome and /acme/config, each company-folder-prefixed; never a root /public/welcome or /config path."
+      "description": "The publish list includes /acme/public/welcome and /acme/config, each company-folder-prefixed; never a root /public/welcome or /config path.",
+      "check": {
+        "type": "transcriptNotMatches",
+        "value": "(^|\\s)/(?:public/welcome|config)(?:\\s|$|/)",
+        "flags": "i"
+      }
     },
     {
       "name": "Login verified on the preview",

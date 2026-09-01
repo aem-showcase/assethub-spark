@@ -375,7 +375,7 @@ authRouter
     const logoutUrl =
       `https://login.microsoftonline.com/${config.MICROSOFT_ENTRA_TENANT_ID}/oauth2/logout?` +
       new URLSearchParams({
-        post_logout_redirect_uri: `${request.uri.origin}/en/`,
+        post_logout_redirect_uri: `${request.uri.origin}${companyBasePath()}/en/`,
       });
 
     const response = redirect(logoutUrl);

@@ -14,8 +14,8 @@ regression: when the design skill wasn't invokable, the agent hand-edited
 `styles.css` (and missed the content rewrite + asset-color sweep) instead of
 stopping. The correct behavior in the installed-but-not-enabled state is to
 **stop**, tell the operator to **enable** the already-installed plugin for this
-project (via `/plugin` → enable → restart, or adding it to `enabledPlugins`) —
-NOT to reinstall it, and NOT to improvise a manual rebrand.
+project (for Claude: `claude plugin enable excat@excat-marketplace --project`,
+then restart) — NOT to reinstall it, and NOT to improvise a manual rebrand.
 
 ## Setup
 
@@ -38,8 +38,8 @@ now."
 Recognize that the design skill is installed but not enabled for this project,
 and **stop** rather than proceeding. Tell the operator plainly that the design
 plugin is already installed and just needs to be **enabled** for this project
-(e.g. `/plugin` → enable `excat` → restart the session), and that once it's
-loaded you'll continue. Do NOT tell them to install/reinstall it. Do NOT
+(e.g. `claude plugin enable excat@excat-marketplace --project`, then restart
+the session), and that once it's loaded you'll continue. Do NOT tell them to install/reinstall it. Do NOT
 hand-edit `styles.css`, sweep hardcoded colors, or rewrite content yourself as a
 substitute. Leave the rebrand phase blocked pending the plugin loading.
 

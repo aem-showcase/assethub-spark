@@ -1,14 +1,13 @@
-# Demo Flow — design notes (authoritative)
+# Demo Flow — design notes
 
-The demo is **one linear sequence** (see `SKILL.md`). Every request is a
+`SKILL.md` is authoritative. The demo is **one linear sequence**. Every request is a
 demo; it **reuses the existing environment** and never provisions anything.
 A dedicated real portal (new env + Cloudflare + deploy) is a different,
 **disabled** path preserved in `NON-DEMO-DISABLED.md`.
 
-## The sequence (single source of truth)
+## The sequence
 
-The ordered `steps` in the state file IS the workflow. Stated once, never
-duplicated:
+The ordered `steps` in `SKILL.md` are the workflow:
 
 1. **demo-confirmed** — one plain sentence: it's a demo copy under the
    company name (I1).
@@ -60,9 +59,8 @@ non-demo and lives disabled in `NON-DEMO-DISABLED.md`.
 
 ## What was removed to keep this simple/deterministic
 
-- SKILL.md collapsed from a 3-phase, 1580-line file to a single demo flow
-  (~570 lines): one sequence, one small state schema (agent can reproduce
-  it), one hard gate — no restating the sequence in 5 places.
+- SKILL.md collapsed from a 3-phase file to a single demo flow: one
+  sequence, one small state schema, one hard gate.
 - Backend (Phase B) + deploy stage + `deploy.md` + the customer-config
   intake moved into `NON-DEMO-DISABLED.md` (kept, disabled, out of the
   path).

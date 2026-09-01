@@ -37,10 +37,10 @@ look now."
 Recognize that the design plugin is **not installed at all** (distinct from
 installed-but-disabled) and **stop** rather than proceeding. Tell the
 operator plainly that the plugin needs to be **installed first** — naming
-both steps: adding the marketplace (`/plugin marketplace add
-<path-or-repo of aem-excat-plugin/excat-marketplace>`) and then installing
-(`/plugin install excat@excat-marketplace`) — followed by enabling it for
-the project and restarting the session. Do NOT tell them merely to "enable"
+both steps: adding the marketplace (`claude plugin marketplace add
+./resources/plugins/aem-excat-plugin/excat-marketplace`, from their own
+clone) and then installing (`claude plugin install excat@excat-marketplace`)
+— followed by enabling it for the project and restarting the session. Do NOT tell them merely to "enable"
 something as if it were already installed. Do NOT hand-edit `styles.css`,
 sweep hardcoded colors, or rewrite content yourself as a substitute. Leave
 the rebrand phase blocked pending the plugin loading.

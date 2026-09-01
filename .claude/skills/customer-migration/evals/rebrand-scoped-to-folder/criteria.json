@@ -10,7 +10,12 @@
     {
       "name": "Publishes only /acme paths",
       "max_score": 30,
-      "description": "The agent publishes only /acme/... document paths, passing an explicit company-prefixed path list to the publish step, never the whole site or any root path."
+      "description": "The agent publishes only /acme/... document paths, passing an explicit company-prefixed path list to the publish step, never the whole site or any root path.",
+      "check": {
+        "type": "transcriptNotMatches",
+        "value": "admin\\.hlx\\.page/(?:preview|live|publish)/[^\\s\"']+/[^\\s\"']+/[^\\s\"']+/(?:en|config|public)(?:/|\\b)|destination[\"']?\\s*[:=]\\s*[\"']?/(?:en|config|public)(?:/|\\b)",
+        "flags": "i"
+      }
     },
     {
       "name": "Computes company-prefixed document paths",

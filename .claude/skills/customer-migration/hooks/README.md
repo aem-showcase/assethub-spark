@@ -3,16 +3,15 @@
 A `PreToolUse` hook that blocks any Document Authoring / Helix **publish**
 whose target path is not under the demo's company folder
 (`customer.daFolder` in `.internal/onboarding-state.json`). It enforces
-the folder-scoped publish rule from `SKILL.md` A.2 step 4 mechanically,
-so the model cannot forget it.
+the folder-scoped publish rule from `SKILL.md` Step 4 mechanically.
 
-**Fail-safe:** if no company folder is resolved yet (before A.0.b sets
+**Fail-safe:** if no company folder is resolved yet (before Step 3 sets
 `customer.daFolder`), every DA/Helix publish write is blocked.
 
 **Scope / limitations (defense-in-depth, not a sandbox):**
 - Pattern-based over the tool input — an unusual command shape, or a URL
   built from a variable inside a wrapper script, can slip past. This is
-  why `SKILL.md` A.2 step 4 mandates passing the explicit `/<company>/…`
+  why `SKILL.md` Step 4 mandates passing the explicit `/<company>/…`
   path list as args (keeps them visible to this hook).
 - Sees each CLI-mediated tool call, not iteration inside a long-running
   script — it validates the argv/paths passed in, not paths a script
@@ -21,13 +20,13 @@ so the model cannot forget it.
   target `/content/dam/<company>` on a different host) — only site
   content publish/preview via `admin.hlx.page` / `admin.da.live`.
 
-## Registering it
+## Registration
 
-The hook is **not** auto-active — register it in whichever CLI runs the
-session (operator setup, like the excat plugin install).
+This repo registers the hook for Claude Code in `.claude/settings.json`.
+Verify it is loaded before a migration session. If another CLI runs the
+session, register the same script there.
 
-**Claude Code** — add to `~/.claude/settings.json` (or the project's
-`.claude/settings.json`) under `hooks.PreToolUse`:
+**Claude Code** — project registration:
 
 ```json
 {

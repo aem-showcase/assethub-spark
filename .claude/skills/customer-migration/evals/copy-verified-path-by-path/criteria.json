@@ -5,7 +5,11 @@
     {
       "name": "Uses the packaged copy script, not hand-rolled curl",
       "max_score": 20,
-      "description": "The agent runs scripts/da-copy-folder.sh (org/repo from git remote, companyKey acme) rather than composing its own curl copy calls."
+      "description": "The agent runs scripts/da-copy-folder.sh (org/repo from git remote, companyKey acme) rather than composing its own curl copy calls.",
+      "check": {
+        "type": "transcriptContains",
+        "value": "scripts/da-copy-folder.sh"
+      }
     },
     {
       "name": "Full-tree copy including public and config",
@@ -20,7 +24,13 @@
     {
       "name": "Only a verified copy advances the step",
       "max_score": 15,
-      "description": "Only exit 0 (copied and verified) marks da-content-copied done; a verification mismatch (exit 4) is treated as a failure to re-copy, not 'good enough'."
+      "description": "Only exit 0 (copied and verified) marks da-content-copied done; a verification mismatch (exit 4) is treated as a failure to re-copy, not 'good enough'.",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.da-content-copied",
+        "equals": "done"
+      }
     },
     {
       "name": "Plain language, no internal terms",

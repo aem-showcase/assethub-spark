@@ -51,6 +51,12 @@ into the demo path.
   open PR is the deliverable (I3). If the customer wants to start over,
   **ask first**, then create a **new** branch and a **new** PR, leaving
   the existing one untouched.
+- **I6 — Company key must not collide with site/runtime paths.**
+  `customer.companyKey` becomes both the DA folder (`/<companyKey>`) and
+  the asset folder (`/content/dam/<companyKey>`). Reject empty slugs and
+  reserved route names such as `en`, `ja`, `config`, `public`, `api`,
+  `auth`, `tools`, `scripts`, `styles`, `blocks`, `icons`, and `fonts`.
+  Use a specific slug instead, e.g. `acme-demo`.
 
 ## The demo — one sequence (the single source of truth)
 
@@ -203,7 +209,8 @@ the content rewrite and asset-color sweep. If the operator declines, mark
 **Publish guard hook.** `hooks/guard-da-publish.sh` is a `PreToolUse` hook
 that blocks any DA/Helix publish whose target path is not under
 `customer.daFolder`. It's defense-in-depth for Step 4's folder-scope rule.
-Not auto-active — see `hooks/README.md` for per-CLI registration.
+This repo registers it for Claude Code in `.claude/settings.json`; Copilot
+CLI still needs explicit hook registration. See `hooks/README.md`.
 
 ---
 
@@ -221,7 +228,9 @@ original is never changed (I1, no internal terms). Mark `demo-confirmed`
 
 **Resolve the company name → `customer.name`**, and its slug →
 `customer.companyKey` (e.g. Disney → `disney`). If the entry answer named
-a brand, use it; otherwise ask now.
+a brand, use it; otherwise ask now. Apply I6 here: if the slug is empty or
+reserved, pick a non-colliding company slug such as `<brand>-demo` before
+creating any branch, DA folder, or AEM asset folder.
 
 Resolve `{org}/{repo}` from `git remote get-url origin` — this shared
 showcase repo itself, not a fork. The demo branch is `demo/<companyKey>`.
@@ -334,8 +343,9 @@ Each row's `ext` must be `json` (e.g. `application.json`). If you see an
 `.xlsx`, the source itself is broken — an `.xlsx` in DA is an opaque *media*
 asset (opens in the media viewer, served as `application/octet-stream`) and
 is **never published as `/config/access/application.json`**, so the portal's
-auth/permission lookups (`fetchHelixSheet('/config/access/application')`)
-will `404` and login/gating breaks. A correct sheet is a `.json` in the EDS
+auth/permission lookups (the worker reads the company-scoped
+`fetchHelixSheet(companyBasePath()+'/config/access/application')`) will
+`404` and login/gating breaks. A correct sheet is a `.json` in the EDS
 sheet shape `{"total":N,"limit":N,"offset":0,"data":[…],":type":"sheet"}`
 that opens in DA's **sheet** editor. Do **not** "fix" this by copying an
 `.xlsx` — fix the *source* `config/access/*` to be `.json` sheets (the copy
@@ -434,6 +444,23 @@ split it across turns:
    those backgrounds survive off-brand. Name the base brand slug present
    in the copied content (here `frescopa`) so the agent knows exactly what
    to replace.
+   **Name the exact base surface tokens/assets that MUST change (not just
+   `--primary-color`)** — verified still-cream live:
+   - `--light-color` (`#F4E9DC`, `styles/styles.css`) — the cream surface
+     behind the search hero (`blocks/search-bar/search-bar.css`), the
+     **filter/facets panel**, and section backgrounds. This is the single
+     token behind gap "filter background is off-brand"; if it is not
+     rebranded the whole portal stays cream.
+   - the `.frescopa-background-*` section-style classes and
+     `styles/backgrounds/big.svg` (the decorative bean).
+   - **Login/welcome split-screen tokens.** The left brand panel is themed
+     by CSS variables with frescopa defaults — set them in the brand theme
+     so the login rebrands: `--welcome-panel-bg` (panel colour, base
+     `#2f2318`), `--welcome-panel-accent-rgb` (glow, base `234 163 58`),
+     `--welcome-panel-mark-image` (→ `url('/icons/<companyKey>-beans.svg')`),
+     and `--welcome-tagline` (the panel tagline string). Leaving them
+     unset keeps the frescopa coffee panel + "world's finest coffee"
+     tagline on the customer's login.
 2. **Brand assets + hardcoded colors** — separately in scope, and the
    most-missed step:
    - **Logo/wordmark swap (all instances) — MANDATORY, and the single
@@ -446,9 +473,13 @@ split it across turns:
         site's own logo/favicon (fetch it from the `--source-url` given for
         the look); if none is available, generate a minimal wordmark SVG
         from the brand name. Register it in the repo as
-        `/icons/<companyKey>-icon.svg` (and a matching mark variant, e.g.
-        `/icons/<companyKey>-beans.svg`, if the base uses more than one
-        shortcode). Never leave a shortcode that resolves to a missing icon.
+        `/icons/<companyKey>-icon.svg`. **The base uses TWO marks —
+        `frescopa-icon` (nav/wordmark) AND `frescopa-beans` (the large
+        login-panel mark) — so you MUST create BOTH `/icons/<companyKey>-icon.svg`
+        AND `/icons/<companyKey>-beans.svg`.** A shortcode with no matching
+        SVG renders an empty circle / broken image (verified live on the
+        login page — two broken marks). Never leave a shortcode that
+        resolves to a missing icon; confirm both files exist before publish.
      2. **Swap the icon shortcode in EVERY DA doc that carries it** — the
         base brand's logo appears in **multiple** places: the DA `nav` doc,
         the DA **`footer`** doc, AND the login/`welcome` page, as EDS icon
@@ -497,6 +528,19 @@ split it across turns:
    in each. (Only the **shared root** nav/footer are off-limits; the
    `/<companyKey>` copies are in scope.) Never hand it "the whole site" or
    an un-prefixed path.
+
+   **Preserve the login page's `welcome` section style — never flatten it.**
+   The split-screen login (left brand panel / right sign-in) is driven
+   purely by the `.section.welcome` section style (a `Section Metadata`
+   `Style: welcome` on `/<companyKey>/public/welcome`) plus the
+   `--welcome-panel-*` tokens from step 1. The rewrite MUST keep the
+   `welcome` **section wrapper and its Section Metadata** intact and swap
+   BOTH marks (`:<companyKey>-icon:` and `:<companyKey>-beans:`) — it must
+   NOT collapse the page to plain paragraphs. A rewrite that drops the
+   section style renders the login as a single off-brand column with broken
+   marks (verified live). After rewrite, the published
+   `/<companyKey>/public/welcome.plain.html` must still contain
+   `<div class="welcome">` (i.e. `.section.welcome`).
    (The site-wide design tokens from step 1 are the deliberate global
    exception; this per-page content step stays scoped.)
 
@@ -510,8 +554,14 @@ split it across turns:
      block stays `/en/…`, lands **outside** `/<companyKey>/`, and 404s.
      Rewrite every internal link in the copied `nav`/`footer`/`welcome` to
      drop any `file:` scheme and prefix the company folder: `/en/…` →
-     `/<companyKey>/en/…` (the logo/brand link included). After rewrite, no
-     copied doc may contain a `file:` link or a bare `/en/…` link.
+     `/<companyKey>/en/…` (the logo/brand link included). Do this for
+     **every copied page, not just nav/footer/welcome** — the home page's
+     category cards, "Browse" links, and hero CTAs also carry bare `/en/…`
+     links that drop the company folder. After rewrite, **no** copied doc
+     may contain a `file:` link or a bare `/en/…` link. (The worker now
+     also self-heals a stray root-locale link — `/en/*`→`/<companyKey>/en/*`
+     — so navigation no longer falls out of the folder, but scoping the
+     links avoids a redirect flash and keeps the content correct.)
    - **Filter/facet slugs → the enrichment vocabulary.** The home "Browse
      by category" cards (and any curated filter links) encode the filter in
      the href as `…/search?facetFilters={"productCategory":{"<slug>":true}}`.
@@ -527,9 +577,16 @@ split it across turns:
 4. **Publish** — publish **only `/<companyKey>/...` paths** via Helix
    Admin (`admin.hlx.page` preview+publish with `HLX_ADMIN_TOKEN`), over
    exactly the documents copied in Step 3 and rewritten in step 3 above —
-   **including the login page `/<companyKey>/public/welcome` and
-   `/<companyKey>/config`** (without these the foldered portal's login is
-   broken/unbranded). This is **ours**, not excat's. It is **never**
+   **including the login page `/<companyKey>/public/welcome` and the
+   `/<companyKey>/config` tree — which MUST include
+   `/<companyKey>/config/access/application` and
+   `/<companyKey>/config/access/users`** (without these the foldered
+   portal's login is broken/unbranded). **The worker reads the
+   COMPANY-scoped access sheets** (`companyBasePath()/config/access/*`, not
+   the root ones) for login and permission gating, so if those sheets are
+   missing/unpublished under `/<companyKey>` — or landed as `.xlsx` media
+   instead of a `.json` sheet — login fails with "User not allowed to
+   access this application" (verified live). This is **ours**, not excat's. It is **never**
    `not-applicable` — Step 3 already proved content exists. Build the
    publish list from the copied `/<companyKey>/...` paths — never "the
    whole site," never a root path. **Guard:** before publishing, assert
@@ -589,8 +646,13 @@ once right after the step 1–2 edits, and again against the preview URL.
    hero/section CSS, AND the search-results **facets/filter panel** CSS.
    A rebrand that changes only the primary/accent leaves the home hero and
    the filter panel on the base cream surface (verified live) — that is a
-   FAIL, not a pass. Every base surface token and decorative base-brand
-   background must be gone.
+   FAIL, not a pass. **Explicitly grep these exact base surface names — all
+   verified still-cream live:** `--light-color` and its hex `#F4E9DC`
+   (case-insensitive), `frescopa-background` (the `.frescopa-background-*`
+   section classes), and `backgrounds/big.svg`. Any of these still present
+   with the frescopa cream value is the "filter background off-brand" gap.
+   Every base surface token and decorative base-brand background must be
+   gone. Also confirm the welcome-panel tokens were set (see item 5).
 3. **Grep the base brand slug** (`frescopa`) — case-insensitive, across
    the whole repo (`icons/`, `styles/`, `blocks/`, `head.html`) — catching
    a renamed icon whose class still reads `.icon-<baseSlug>-mark`, a CSS
@@ -599,6 +661,14 @@ once right after the step 1–2 edits, and again against the preview URL.
 4. **Diff every file touched** against its pre-edit version and flag any
    changed line not explained by the intended token/color/name swap
    (catches a linter auto-fix riding along).
+
+5. **Welcome-panel token check.** Confirm the brand theme sets
+   `--welcome-panel-bg`, `--welcome-panel-accent-rgb`,
+   `--welcome-panel-mark-image` (→ `/icons/<companyKey>-beans.svg`), and
+   `--welcome-tagline`; otherwise the login's left panel keeps the frescopa
+   coffee colour, bean mark, and "world's finest coffee" tagline (the CSS
+   defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
+   `/icons/<companyKey>-beans.svg` exist.
 
 Not every hardcoded fill is wrong (a neutral icon that turns brand-colored
 on hover is fine) — screenshot to confirm a flagged file reads off-brand
@@ -621,7 +691,13 @@ Then **screenshot the footer, the login page, AND a search/hero page** at
 the preview and confirm the logo (header + login), footer, and section
 backgrounds all read as the NEW brand (this is what catches a surviving
 cream/coffee background, a stale footer/welcome logo, or an empty-circle
-header that a grep of the repo alone will not).
+header that a grep of the repo alone will not). **On the login screenshot,
+assert the two-panel split layout** (left brand panel + right sign-in) with
+BOTH marks rendered (left large mark + the panel logo — no empty circle or
+broken image) and the panel in the NEW brand colour; a single off-brand
+column means the `welcome` section style was flattened (fix the rewrite).
+Also fetch `/<companyKey>/public/welcome.plain.html` and assert it still
+contains `<div class="welcome">`.
 
 **Link-scope check (the logo-404 guard).** Fetch the copied
 `/<companyKey>/en/nav` doc and assert the logo/brand link href starts with
@@ -630,6 +706,28 @@ in the copied nav/footer/welcome is under `/<companyKey>/` (no bare
 `/en/…`). Then click the logo on the preview and confirm it lands on
 `/<companyKey>/en/`, **not** `/404.html` (verified-broken live: an
 un-rescoped `/en/` logo link 404s).
+
+**Auth verification (the login-gating guard).** The worker resolves login
+and permissions from the **company-scoped** access sheets
+(`companyBasePath()/config/access/application` and `.../users`), not the
+root ones. After publish: (a) GET
+`<preview>/<companyKey>/config/access/application.json` and confirm **200 +
+an EDS sheet shape** (`{":type":"sheet",…}`) — a `404` or an `.xlsx`/media
+response means the sheet wasn't published under `/<companyKey>` (or landed
+as media, not a `.json` sheet); (b) sign in on the preview as a known demo
+user and confirm you **reach the portal**, NOT "User not allowed to access
+this application". Either failure means Step 3/4 didn't get the company
+`config/access/*` sheets published as `.json` — fix and republish before
+declaring the rebrand done.
+
+**Navigation-scope check (the folder-drop guard).** Beyond the logo, click
+through the preview and confirm **every** hop stays under `/<companyKey>/`:
+a home **category card**, the cart's **"Go to Homepage"**, the **404 "Go
+home"** (hit a bad `/<companyKey>/...` URL to trigger it), and **sign-out**.
+None may land on a bare `/en/…`, `/`, or `/404.html` outside the folder
+(all verified-broken live). The worker's `/en/*`→`/<companyKey>/en/*`
+redirect should catch strays, so a landing outside `/<companyKey>/` means
+both the link and the redirect are wrong — investigate.
 
 **Folder-scope checks.** Confirm: the rebranded pages render at the branch
 preview under `/<companyKey>/`; only `/<companyKey>/...` paths were
@@ -657,7 +755,8 @@ searching and filtering on what's in each one." Two lanes:
 - **Enrich-existing (default)** — the assets already sit in the company's
   AEM folder; this labels them so they surface in search and facets.
 - **Bring-in (opt-in)** — the customer named a source website; pull sample
-  images from it into the folder first, then label them the same way.
+  images and linked documents from it into the folder first, then label them
+  the same way.
 
 ## Existing environment — no collection, no provisioning
 
@@ -690,7 +789,9 @@ node scripts/agent/enrich-assets.js \
 
 - `<companyKey>` is the same slug as Steps 2–4 (`customer.companyKey`) —
   it drives both the DAM folder `/content/dam/<companyKey>` and the
-  `company` scope value; they are the same value by construction.
+  `company` scope value; they are the same value by construction. The
+  controller rejects reserved route keys and any `--dam-path` outside
+  `/content/dam/<companyKey>`.
 - Default lane is enrich-existing; `--bring-in --source-url <url>` selects
   the cherry lane (auto-creates the folder). **Always `--dry-run` first**
   (enumerate → read → generate → normalize, emitting intended writes
@@ -791,5 +892,6 @@ blocked. It is **defense-in-depth, not a sandbox** — pattern-based over
 each tool call's explicit path args (which is why Step 4 mandates passing
 the `/<companyKey>/…` path list), so it can miss unusual command shapes or
 paths a wrapper builds internally. It does not touch Step 5's AEM asset
-publishes (different host). **Not auto-active** — see `hooks/README.md`
-for per-CLI registration (operator setup, like the excat plugin).
+publishes (different host). It is registered for Claude Code by
+`.claude/settings.json`; Copilot CLI still needs explicit hook registration
+(operator setup, like the excat plugin).
