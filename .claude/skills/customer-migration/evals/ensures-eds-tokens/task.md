@@ -20,7 +20,7 @@ to `token.env`, and verifies Helix status before publish.
 
 ## Output Specification
 
-- The agent runs `.claude/skills/customer-migration/scripts/ensure-eds-tokens.sh`.
+- The agent runs `.claude/skills/customer-migration/scripts/da/ensure-eds-tokens.sh`.
 - The agent does not ask the user for `HLX_ADMIN_TOKEN`.
 - The agent does not ask the user for browser `x-auth-token`.
 - The agent treats token-script failure as a hard stop with a DA-token permission message.

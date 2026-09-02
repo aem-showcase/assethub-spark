@@ -4,7 +4,7 @@
 
 After enrichment (Step 5), the company's assets are searchable. Step 6 turns
 them into **ready-made collections** — one per category — using
-`scripts/agent/create-collections.js`. Collections live on the delivery /
+`.claude/skills/customer-migration/scripts/assets/create-collections.js`. Collections live on the delivery /
 Content Hub tier, so this uses the **DM collections API, not the author API**
 the enrichment step writes metadata with. It reuses the existing environment
 (DM creds from `cloudflare/.secrets`, env id from `cloudflare/src/config.js`)
@@ -34,7 +34,7 @@ they're ready to browse by category."
 
 ## Output Specification
 
-- The agent runs `scripts/agent/create-collections.js` (dry-run first, then
+- The agent runs `.claude/skills/customer-migration/scripts/assets/create-collections.js` (dry-run first, then
   live), passing the company key — it does **not** hand-roll collection API
   calls or `curl` the Adobe endpoints itself, and does **not** use the author
   API (collections are a delivery / Content Hub concern).

@@ -415,8 +415,9 @@ export function populateAssetFromContentAIHit(contentAIHit) {
   const xcmMachineKeywords = extractKeywords(assetMetadata['xcm:machineKeywords']);
 
   // Business-taxonomy fields written by the customer-migration enrichment agent
-  // (scripts/agent/normalize.js FIELD.PRODUCT_CATEGORY/CAMPAIGN/CHANNEL). Mapped
-  // straight through as plain strings; absent on assets that predate enrichment.
+  // (.claude/skills/customer-migration/scripts/assets/normalize.js
+  // FIELD.PRODUCT_CATEGORY/CAMPAIGN/CHANNEL). Mapped straight through as plain
+  // strings; absent on assets that predate enrichment.
   const productCategory = safeStringField(assetMetadata, 'productCategory');
   const campaign = safeStringField(assetMetadata, 'campaign');
   const channel = safeStringField(assetMetadata, 'channel');

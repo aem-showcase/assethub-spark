@@ -10,10 +10,10 @@
     {
       "name": "Runs create-collections.js automatically",
       "max_score": 35,
-      "description": "The agent invokes scripts/agent/create-collections.js without requiring the user to ask separately.",
+      "description": "The agent invokes .claude/skills/customer-migration/scripts/assets/create-collections.js without requiring the user to ask separately.",
       "check": {
         "type": "transcriptContains",
-        "value": "scripts/agent/create-collections.js"
+        "value": ".claude/skills/customer-migration/scripts/assets/create-collections.js"
       }
     },
     {

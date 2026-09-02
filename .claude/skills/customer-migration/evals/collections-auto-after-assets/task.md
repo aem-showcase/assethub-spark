@@ -21,7 +21,7 @@ for collections as a separate follow-up.
 ## Output Specification
 
 - The agent does not stop at search/facet verification.
-- The agent runs `scripts/agent/create-collections.js` after assets are searchable.
+- The agent runs `.claude/skills/customer-migration/scripts/assets/create-collections.js` after assets are searchable.
 - The agent creates company-scoped collections only.
 - The agent marks `collections-created` done only after visible collection verification.
 - `frontend-only` remains the only flow where collections are not requested.

@@ -1,14 +1,14 @@
 {
-  "context": "Tests Step 6 (build collections from the now-searchable assets). The agent must drive scripts/agent/create-collections.js (dry-run then live) rather than hand-rolling collection API calls or using the author API, must create company-scoped collections (stamped with the company key so the worker's DEMO_COMPANY collections filter can show/hide them), must not create an uncategorized/global collection, and must reuse the existing environment (no credential collection, no backend boot/deploy).",
+  "context": "Tests Step 6 (build collections from the now-searchable assets). The agent must drive .claude/skills/customer-migration/scripts/assets/create-collections.js (dry-run then live) rather than hand-rolling collection API calls or using the author API, must create company-scoped collections (stamped with the company key so the worker's DEMO_COMPANY collections filter can show/hide them), must not create an uncategorized/global collection, and must reuse the existing environment (no credential collection, no backend boot/deploy).",
   "type": "weighted_checklist",
   "checklist": [
     {
       "name": "Runs create-collections.js (not hand-rolled API calls)",
       "max_score": 35,
-      "description": "The agent invokes scripts/agent/create-collections.js (dry-run then live) with the company key; it does not curl/hand-roll the Adobe collection endpoints and does not use the author API for collections.",
+      "description": "The agent invokes .claude/skills/customer-migration/scripts/assets/create-collections.js (dry-run then live) with the company key; it does not curl/hand-roll the Adobe collection endpoints and does not use the author API for collections.",
       "check": {
         "type": "transcriptContains",
-        "value": "scripts/agent/create-collections.js"
+        "value": ".claude/skills/customer-migration/scripts/assets/create-collections.js"
       }
     },
     {

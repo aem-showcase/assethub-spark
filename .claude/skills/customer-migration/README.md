@@ -15,7 +15,7 @@
 - Open the architecture view:
 
 ```text
-/Users/mohitar/Downloads/customer-migration-architecture.html
+customer-migration-architecture.html
 ```
 
 ## What You Provide

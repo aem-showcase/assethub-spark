@@ -5,7 +5,7 @@
     {
       "name": "Runs ensure-eds-tokens.sh",
       "max_score": 35,
-      "description": "The agent invokes .claude/skills/customer-migration/scripts/ensure-eds-tokens.sh before copy/publish work.",
+      "description": "The agent invokes .claude/skills/customer-migration/scripts/da/ensure-eds-tokens.sh before copy/publish work.",
       "check": {
         "type": "transcriptContains",
         "value": "ensure-eds-tokens.sh"

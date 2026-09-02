@@ -320,7 +320,7 @@ This needs `DA_TOKEN` in `token.env` — run Step 4a's token setup now if
 **Use the packaged script — do not hand-roll `curl`:**
 
 ```
-scripts/da-copy-folder.sh <org> <repo> <companyKey>
+.claude/skills/customer-migration/scripts/da/copy-folder.sh <org> <repo> <companyKey>
 ```
 
 `<org>/<repo>` from `git remote get-url origin`; `<companyKey>` the slug
@@ -442,7 +442,7 @@ ask the customer for any other token or send them to another setup screen.
 After `token.env` exists, run the packaged token script:
 
 ```
-.claude/skills/customer-migration/scripts/ensure-eds-tokens.sh \
+.claude/skills/customer-migration/scripts/da/ensure-eds-tokens.sh \
   <org> <repo> \
   --token-file token.env
 ```
@@ -640,7 +640,7 @@ split it across turns:
    committed to the PR** — the per-PR worker (I3) is built from this file,
    so it is what makes the preview's company filter, `/<company>` routing,
    and `/<company>/public/welcome` login actually work.
-   `scripts/agent/enrich-assets.js` also writes both keys in Step 5, but
+   `.claude/skills/customer-migration/scripts/assets/enrich-assets.js` also writes both keys in Step 5, but
    do it here too so a frontend-only demo (no assets) still gets a scoped,
    working preview. Mark `demo-company-set` `done`.
 6. **Land as one PR** — on `customer.demoBranch`. Finish tokens, assets,
@@ -659,7 +659,7 @@ Mark `rebranded`, `demo-company-set`, `published`, and `landed-via-pr`
 ## Step 4g — Verification (before declaring the rebrand done)
 
 This section is a **hard gate before Step 5**, not optional cleanup. Do not
-invoke `scripts/agent/enrich-assets.js`, create collections, or mark asset
+invoke `.claude/skills/customer-migration/scripts/assets/enrich-assets.js`, create collections, or mark asset
 steps `done` until every Step 4g check passes against the deployed PR
 worker in the current session. If a resumed state claims rebrand is done
 but any Step 4g check fails, leave `assets-*` pending, fix Step 4, and only
@@ -855,7 +855,7 @@ searching and filtering on what's in each one." Two lanes:
 ## Existing environment — no collection, no provisioning
 
 Step 5 **reuses the existing environment**. The asset controller
-`scripts/agent/enrich-assets.js` resolves everything itself at call time:
+`.claude/skills/customer-migration/scripts/assets/enrich-assets.js` resolves everything itself at call time:
 
 - **Credentials** from `cloudflare/.secrets` (`SPARK_DM_CLIENT_ID`,
   `SPARK_DM_CLIENT_SECRET`)
@@ -873,7 +873,7 @@ disabled dedicated path.
 ## Run the controller
 
 ```
-node scripts/agent/enrich-assets.js \
+node .claude/skills/customer-migration/scripts/assets/enrich-assets.js \
   --customer-key <companyKey> \
   [--dam-path /content/dam/<companyKey>] \
   [--source-url <url>] \
@@ -898,7 +898,7 @@ node scripts/agent/enrich-assets.js \
   Sling metadata writes, without writing) — review `categoryCoverage` and
   `representatives.items` — then run live. `--force` reprocesses already
   enriched assets but still never overwrites existing metadata. See
-  `scripts/agent/README.md` for the full flag list and offline `--fixture`
+  `.claude/skills/customer-migration/docs/asset-enrichment.md` for the full flag list and offline `--fixture`
   mode.
 
 **Do not give up on an EDS/AEM site after a plain `<img>` scrape.** The
@@ -981,7 +981,7 @@ site.
 So the demo shows **only** this company's assets, the scope lives in
 `cloudflare/src/config.js`: `DEMO_COMPANY: '<companyKey>'` (search filter)
 and `DEMO_BASE_PATH: '/<companyKey>'` (routing/login base) — default
-`null`/`''` = unchanged. `scripts/agent/enrich-assets.js` writes both keys
+`null`/`''` = unchanged. `.claude/skills/customer-migration/scripts/assets/enrich-assets.js` writes both keys
 automatically during enrichment; if Step 4 already set them (it should),
 confirm they equal `<companyKey>`. The worker injects a
 `company = <companyKey>` filter into every search. **This edit must be in
@@ -1053,7 +1053,7 @@ can be collected. Leave `collections-created` `not-requested` only when
 ## Existing environment — no provisioning
 
 Like Step 5, Step 6 **reuses the existing environment**. The controller
-`scripts/agent/create-collections.js` resolves everything itself: DM
+`.claude/skills/customer-migration/scripts/assets/create-collections.js` resolves everything itself: DM
 technical-account creds from `cloudflare/.secrets` (`SPARK_DM_CLIENT_ID`/
 `SPARK_DM_CLIENT_SECRET`) and the AEM env id from `cloudflare/src/config.js`
 (`AEM_ENV_ID`). Collections live on the **delivery / Content Hub tier**, so
@@ -1067,7 +1067,7 @@ credential, no provisioning, no author writes.**
 ## Run the controller
 
 ```
-node scripts/agent/create-collections.js \
+node .claude/skills/customer-migration/scripts/assets/create-collections.js \
   --customer-key <companyKey> \
   [--group-by productCategory|campaign|channel] \
   [--limit 200] [--min-assets 1] [--access-level public] \

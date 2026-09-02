@@ -38,7 +38,7 @@
       "description": "The agent does not invoke the enrichment command in the same turn while the color verification gate is still being repaired/verified.",
       "check": {
         "type": "transcriptNotMatches",
-        "value": "(^|[\\n`$ ])node\\s+scripts/agent/enrich-assets\\.js",
+        "value": "(^|[\\n`$ ])node\\s+\\.claude/skills/customer-migration/scripts/assets/enrich-assets\\.js",
         "flags": "i"
       }
     },

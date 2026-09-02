@@ -34,7 +34,7 @@ with Disney's asset enrichment."
 ## Output Specification
 
 - The agent treats color verification as a hard preflight before assets. It
-  does not run `scripts/agent/enrich-assets.js` until the stale color state is
+  does not run `.claude/skills/customer-migration/scripts/assets/enrich-assets.js` until the stale color state is
   fixed and verified.
 - It fixes the known stale color surfaces: root `--light-color`, the facets
   panel's winning `background-color`, search-results `theme.css` red aliases,
