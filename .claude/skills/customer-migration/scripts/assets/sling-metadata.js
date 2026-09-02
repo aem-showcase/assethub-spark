@@ -9,7 +9,11 @@
  * when missing, and multi-value fields use Sling's @Patch append syntax when present.
  */
 
-import { DAM_ROOT, FIELD, STATUS_APPROVED } from './constants.js';
+import {
+  DAM_ROOT, FIELD, STATUS_APPROVED,
+  AUTOGEN_FIELD, ASSET_STATE_PROCESSED,
+  ASSET_PROCESSED_POLL_INTERVAL_MS, ASSET_PROCESSED_POLL_TIMEOUT_MS,
+} from './constants.js';
 
 export const SLING_FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded;charset=UTF-8';
 
@@ -226,6 +230,33 @@ export async function getSlingAssetMetadata(client, repoPath) {
     repositoryMetadata: { 'dc:format': json?.['dc:format'] },
     etag: res.headers?.get?.('ETag') || res.headers?.get?.('etag') || null,
   };
+}
+
+/**
+ * Poll Sling metadata until AEM's asset-processing pipeline reports
+ * dam:assetState === "processed" (or the timeout elapses). Enrichment must not read
+ * autogen:* fields before this — they may be missing or stale mid-processing, and reading
+ * early is exactly what forces a silent fallback to weaker filename-based evidence.
+ *
+ * @returns {Promise<{ processed: boolean, meta: Object }>} `meta` is the last read
+ *   (whether or not it reached processed) so the caller always has metadata to work with —
+ *   including in the timeout case, where `processed: false` tells the caller to treat
+ *   autogen:* fields as unreliable and record the timeout rather than guess.
+ */
+export async function waitForAssetProcessed(client, repoPath, {
+  timeoutMs = ASSET_PROCESSED_POLL_TIMEOUT_MS,
+  intervalMs = ASSET_PROCESSED_POLL_INTERVAL_MS,
+  sleepFn = (ms) => new Promise((r) => { setTimeout(r, ms); }),
+  now = () => Date.now(),
+} = {}) {
+  const deadline = now() + timeoutMs;
+  let meta = await getSlingAssetMetadata(client, repoPath);
+  while (meta.assetMetadata[AUTOGEN_FIELD.ASSET_STATE] !== ASSET_STATE_PROCESSED) {
+    if (now() >= deadline) return { processed: false, meta };
+    await sleepFn(intervalMs);
+    meta = await getSlingAssetMetadata(client, repoPath);
+  }
+  return { processed: true, meta };
 }
 
 export async function writeSlingAssetMetadata(client, repoPath, updatePlan) {

@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'secrets-file', 'limit',
-  'concurrency', 'report-file', 'fixture', 'aem-env-id', 'metadata-mode',
+  'concurrency', 'report-file', 'fixture', 'aem-env-id',
 ]);
 
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'bring-in']);
@@ -125,7 +125,6 @@ export function parseArgs(argv) {
     secretsFile: null,
     fixture: null,
     aemEnvId: null,
-    metadataMode: 'filename',
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -151,7 +150,6 @@ export function parseArgs(argv) {
         case 'report-file': opts.reportFile = value; break;
         case 'fixture': opts.fixture = value; break;
         case 'aem-env-id': opts.aemEnvId = value; break;
-        case 'metadata-mode': opts.metadataMode = value; break;
         default: break;
       }
     }
@@ -176,9 +174,6 @@ export function validateOptions(opts) {
     if (opts.damPath !== expected && !opts.damPath.startsWith(`${expected}/`)) {
       errors.push(`--dam-path must stay under ${expected} (got ${opts.damPath})`);
     }
-  }
-  if (opts.metadataMode && !['filename', 'vision'].includes(opts.metadataMode)) {
-    errors.push(`--metadata-mode must be filename|vision (got ${opts.metadataMode})`);
   }
   return errors;
 }

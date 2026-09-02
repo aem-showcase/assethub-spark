@@ -1270,6 +1270,23 @@ describe('dm.js - ContentAI Authorization', () => {
         expect(getAllClauses(search)).toContainEqual(companyClause);
       });
 
+      it('also requires the company field to exist, so collections with no company tag at all are excluded', () => {
+        // A `term` match alone already excludes a missing field, but that's an implicit
+        // property of the ContentAI backend's term semantics, not something this filter
+        // enforces by construction. Collections created before company-scoping existed (or
+        // written by any path that skips stampCollectionCompany) have no company field —
+        // the explicit `exists` clause closes that gap regardless of term-matching quirks.
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: 'user@example.com' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
+
+        expect(getAllClauses(search)).toContainEqual({
+          exists: { field: 'collectionMetadata.custom:metadata.company' },
+        });
+      });
+
       it('applies the company scope even for the no-user block path', () => {
         config.DEMO_COMPANY = 'santander';
         const request = { user: { email: null } };

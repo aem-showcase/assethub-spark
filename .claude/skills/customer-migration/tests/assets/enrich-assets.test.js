@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { enrichAssets, mapWithConcurrency } from '../../scripts/assets/enrich-assets.js';
+import { createAssetMetadataGenerator } from '../../scripts/assets/generate.js';
 import { makeRes, makeClient } from './helpers.js';
 
 const silent = { info: () => {}, warn: () => {} };
@@ -13,7 +14,6 @@ function baseOptions(overrides = {}) {
     bringIn: false,
     concurrency: 1,
     limit: null,
-    metadataMode: 'filename',
     ...overrides,
   };
 }
@@ -33,9 +33,13 @@ const generator = async () => ({
   keywords: ['product', 'hero', 'launch'],
 });
 
+// Defaults to already-processed: waitForAssetProcessed polls this same GET until
+// dam:assetState reaches "processed", so every fixture needs that field set (or every
+// test would poll for real, which is what a `metadata({ 'dam:assetState': 'not-yet' })`
+// override is for — see the "waits for asset processing" tests below).
 function metadata(assetMetadata = {}, repositoryMetadata = { 'dc:format': 'application/octet-stream' }) {
   return makeRes({
-    body: { ...assetMetadata, 'dc:format': repositoryMetadata['dc:format'] },
+    body: { 'dam:assetState': 'processed', ...assetMetadata, 'dc:format': repositoryMetadata['dc:format'] },
     headers: { ETag: '"v1"' },
   });
 }
@@ -222,6 +226,93 @@ describe('enrichAssets controller', () => {
     });
     const postCall = client.calls.find((c) => c.op === 'sling' && c.opts.method === 'POST');
     expect(postCall.opts.body).not.toContain('.%2Fdc%3Atitle=');
+  });
+
+  // Fast, deterministic polling for tests: no real sleeping, and `now()` advances by
+  // `intervalMs` on every call so a fixed timeoutMs still bounds how many polls happen.
+  function fastPoll({ timeoutMs, intervalMs = 1 } = {}) {
+    let clock = 0;
+    return {
+      timeoutMs,
+      intervalMs,
+      sleepFn: () => Promise.resolve(),
+      now: () => {
+        const t = clock;
+        clock += intervalMs;
+        return t;
+      },
+    };
+  }
+
+  it('waits for dam:assetState=processed, polling until it flips before reading metadata', async () => {
+    const client = makeClient([
+      searchPage(oneAsset),
+      metadata({ 'dam:assetState': 'processing' }),
+      metadata({ 'dam:assetState': 'processing' }),
+      metadata(),
+      makeRes({ status: 200 }),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Product Hero',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+        productCategory: 'products',
+      }),
+    ]);
+    const out = await enrichAssets({
+      options: baseOptions({ assetProcessedPoll: fastPoll({ timeoutMs: 1000 }) }),
+      client,
+      generator,
+      log: silent,
+    });
+    expect(out.report.counts().enriched).toBe(1);
+    // 3 polling GETs (processing, processing, processed) + 1 post-write verify GET.
+    const slingGets = client.calls.filter((c) => c.op === 'sling' && c.opts.method === 'GET');
+    expect(slingGets).toHaveLength(4);
+  });
+
+  it('fails the asset (does not write) when it never reaches processed before the poll timeout', async () => {
+    const client = makeClient([
+      searchPage(oneAsset),
+      metadata({ 'dam:assetState': 'processing' }),
+    ]);
+    const out = await enrichAssets({
+      options: baseOptions({ assetProcessedPoll: fastPoll({ timeoutMs: 0 }) }),
+      client,
+      generator,
+      log: silent,
+    });
+    expect(out.report.counts().failed).toBe(1);
+    expect(client.calls.some((c) => c.op === 'sling' && c.opts.method === 'POST')).toBe(false);
+    const [failed] = out.report.assets.filter((a) => a.outcome === 'failed');
+    expect(failed.stage).toBe('plan');
+    expect(failed.error).toMatch(/dam:assetState=processed/);
+  });
+
+  it('uses autogen:* fields as primary evidence over filename tokens once processed', async () => {
+    const client = makeClient([
+      searchPage(oneAsset),
+      metadata({
+        'autogen:title': 'Braided USB-C Cable',
+        'autogen:description': 'A durable braided USB-C charging cable.',
+        'autogen:subject': ['cable', 'usb-c'],
+      }),
+      makeRes({ status: 200 }),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Braided USB-C Cable',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+        productCategory: 'accessories',
+      }),
+    ]);
+    const realGenerator = createAssetMetadataGenerator();
+    const out = await enrichAssets({
+      options: baseOptions(), client, generator: realGenerator, log: silent,
+    });
+    expect(out.report.counts().enriched).toBe(1);
+    const postCall = client.calls.find((c) => c.op === 'sling' && c.opts.method === 'POST');
+    expect(postCall.opts.body).toContain(encodeURIComponent('Braided USB-C Cable').replace(/%20/g, '+'));
   });
 
   it('does not call asset publish after writing approved metadata', async () => {

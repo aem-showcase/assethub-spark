@@ -112,6 +112,34 @@ export const FIELD = {
   ALLOWED_COUNTRIES: 'allowedCountries',
 };
 
+// --- Metadata keys we only ever READ (AEM's own asset-processing output) ---
+// Written by AEM's asset microservices (thumbnail rendition, metadata extraction, smart
+// tagging) once an upload finishes processing — never written by this agent. Read as the
+// primary evidence source for generated metadata (generate.js) and category assignment
+// (category-plan.js), ahead of filename-token guessing.
+//
+// Deliberately excludes dam:roles — rights/licensing metadata, never a classification or
+// title/description signal, and never to be read or referenced by this skill.
+export const AUTOGEN_FIELD = {
+  ASSET_STATE: 'dam:assetState',
+  TITLE: 'autogen:title',
+  DESCRIPTION: 'autogen:description',
+  SUBJECT: 'autogen:subject',
+};
+
+// The only dam:assetState value that means "AEM's asset-processing microservices have
+// finished and autogen:* fields are populated." Anything else (or absent) means processing
+// hasn't completed yet — autogen:* fields may be missing or stale.
+export const ASSET_STATE_PROCESSED = 'processed';
+
+// --- Wait-for-processed polling (upload -> dam:assetState=processed) ---
+// AEM's asset processing (thumbnail, metadata extraction, smart tagging) runs
+// asynchronously after upload. Enrichment must not read autogen:* fields before this
+// completes, or it silently falls back to weaker evidence with no warning. Bounded so a
+// stuck/failed processing pipeline can't hang the run indefinitely.
+export const ASSET_PROCESSED_POLL_INTERVAL_MS = 2000;
+export const ASSET_PROCESSED_POLL_TIMEOUT_MS = 60 * 1000;
+
 export const STATUS_APPROVED = 'approved';
 
 // The DAM content root. The Assets HTTP API mirrors this tree under /api/assets.

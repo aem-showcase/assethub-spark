@@ -34,6 +34,10 @@ describe('create-collections controller', () => {
         customerKey: 'acme', groupBy: 'campaign', limit: 50, minAssets: 2, dryRun: true, force: true,
       });
     });
+    it('parses an explicit display name, defaulting to null', () => {
+      expect(parseArgs(['--customer-key', 'acme']).displayName).toBeNull();
+      expect(parseArgs(['--customer-key', 'urbn', '--display-name', 'URBN']).displayName).toBe('URBN');
+    });
   });
 
   describe('validateOptions', () => {
@@ -70,6 +74,38 @@ describe('create-collections controller', () => {
       client.createCollection.mock.calls.forEach(([arg]) => {
         expect(arg.company).toBe('acme');
       });
+    });
+
+    it('uses --display-name verbatim in titles instead of title-casing the slug', async () => {
+      const client = {
+        searchCompanyAssets: vi.fn(async () => ASSETS),
+        createCollection: vi.fn(async () => ({ collectionId: 'col' })),
+      };
+      const { report } = await createCollectionsRun({
+        options: parseArgs(['--customer-key', 'urbn', '--display-name', 'URBN']),
+        client,
+        assets: ASSETS,
+        log: silentLog(),
+      });
+      expect(report.collections.map((c) => c.title)).toEqual([
+        'URBN — Coffee', 'URBN — Tea',
+      ]);
+    });
+
+    it('falls back to title-casing the customer key when no display name is given', async () => {
+      const client = {
+        searchCompanyAssets: vi.fn(async () => ASSETS),
+        createCollection: vi.fn(async () => ({ collectionId: 'col' })),
+      };
+      const { report } = await createCollectionsRun({
+        options: parseArgs(['--customer-key', 'urbn']),
+        client,
+        assets: ASSETS,
+        log: silentLog(),
+      });
+      expect(report.collections.map((c) => c.title)).toEqual([
+        'Urbn — Coffee', 'Urbn — Tea',
+      ]);
     });
 
     it('dry-run plans without creating', async () => {

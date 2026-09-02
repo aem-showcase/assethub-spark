@@ -1,14 +1,18 @@
 /**
- * Metadata generation — the AI value-add.
+ * Metadata generation — the single generator every enrichment run uses.
  *
- * The generator is a pluggable function `({ assetId, repoName, hints, renditionBytes })
- * => rawFields`. Two are provided:
- *   - createDryRunGenerator(): deterministic, network-free; used for --dry-run and tests.
- *   - createVisionGenerator({ invokeModel }): wraps a caller-supplied vision/LLM call.
+ * Primary evidence is AEM's own asset-processing output (autogen:title,
+ * autogen:description, autogen:subject — populated once dam:assetState reaches
+ * "processed", see sling-metadata.js's waitForAssetProcessed). Filename tokens are
+ * last-resort only, used per-field when the corresponding autogen:* value is still empty
+ * after processing completes (never as a competing mode — there is no --metadata-mode
+ * flag to choose between "filename" and something else).
  *
- * A real vision model requires operator credentials at run time and cannot be exercised
- * from this environment, so `invokeModel` is injected rather than hard-wired.
+ * dam:roles is a rights/licensing field, never a title/description/classification signal —
+ * deliberately never read here or anywhere else in this skill.
  */
+
+import { AUTOGEN_FIELD } from './constants.js';
 
 function humanizeName(repoName) {
   if (!repoName || typeof repoName !== 'string') return 'Asset';
@@ -26,50 +30,45 @@ function tokensFromName(repoName) {
   return base.split(/[-_\s]+/).map((t) => t.toLowerCase()).filter((t) => t.length > 2);
 }
 
+function cleanString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function stringArray(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
 /**
- * Deterministic, offline generator. Produces a stable preview from the asset's file name
- * and any keyword hints — enough to review the enrichment shape before a live run.
+ * The one generator every enrichment run uses. Reads AEM's autogen:* fields (present once
+ * the caller has confirmed dam:assetState === "processed") as the primary source for
+ * title/description/keywords, falling back to filename tokens + xcm:machineKeywords hints
+ * only for whichever fields autogen left empty.
  */
-export function createFilenameGenerator() {
-  return async function filenameGenerate({ repoName, hints = {} }) {
-    const title = humanizeName(repoName);
+export function createAssetMetadataGenerator() {
+  return async function assetMetadataGenerate({ repoName, hints = {}, existingAssetMetadata = {} }) {
+    const autogenTitle = cleanString(existingAssetMetadata[AUTOGEN_FIELD.TITLE]);
+    const autogenDescription = cleanString(existingAssetMetadata[AUTOGEN_FIELD.DESCRIPTION]);
+    const autogenSubject = stringArray(existingAssetMetadata[AUTOGEN_FIELD.SUBJECT]);
+
+    const fallbackTitle = humanizeName(repoName);
+    const title = autogenTitle || fallbackTitle;
+
+    const description = autogenDescription
+      || `${fallbackTitle} - auto-generated preview description for demo enrichment.`;
+
     const nameTokens = tokensFromName(repoName);
     const hintKeywords = Array.isArray(hints.machineKeywords) ? hints.machineKeywords : [];
-    const keywords = [...nameTokens, ...hintKeywords].map((k) => String(k).toLowerCase());
+    const keywords = (autogenSubject.length > 0 ? autogenSubject : [...nameTokens, ...hintKeywords])
+      .map((k) => String(k).toLowerCase());
+
     return {
       title,
-      description: `${title} - auto-generated preview description for demo enrichment.`,
+      description,
       keywords,
       campaign: null,
       channel: null,
     };
-  };
-}
-
-export const createDryRunGenerator = createFilenameGenerator;
-
-/**
- * Wrap a caller-supplied model invocation. `invokeModel(input) => rawFields|JSON string`.
- * The controller passes rendition bytes + grounding hints; this normalizes the return
- * into a plain object (parsing/repairing a JSON string if the model returns text).
- */
-export function createVisionGenerator({ invokeModel }) {
-  if (typeof invokeModel !== 'function') {
-    throw new Error('createVisionGenerator: an invokeModel(input) function is required');
-  }
-  return async function visionGenerate(input) {
-    const result = await invokeModel(input);
-    if (result && typeof result === 'object') return result;
-    if (typeof result === 'string') {
-      try {
-        return JSON.parse(result);
-      } catch {
-        // Try to salvage a JSON object embedded in a larger text response.
-        const match = result.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]);
-        throw new Error('vision model returned unparseable output');
-      }
-    }
-    throw new Error('vision model returned no usable output');
   };
 }

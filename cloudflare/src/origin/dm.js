@@ -709,8 +709,16 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   // === DEMO_COMPANY. Injected BEFORE all ACL/visibility branches below (and before the
   // early returns) so it holds on every path — including admins, so the demo never leaks
   // another company's collections. create-collections.js stamps this tag at creation time.
+  //
+  // The explicit `exists` clause matters on its own: a `term` match on a missing field is
+  // normally excluded, but collections created before this company-scoping code existed (or
+  // written by any path that skips stampCollectionCompany) have no company field at all —
+  // without a hard exists check, any relaxation of the term match (or a backend quirk in how
+  // missing fields are scored) can let untagged legacy collections leak into every company's
+  // demo. Requiring existence closes that off by construction, independent of term semantics.
   if (config.DEMO_COMPANY) {
     forceContentAISearchFilter(search, [
+      { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
       { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
     ]);
   }

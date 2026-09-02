@@ -9,6 +9,8 @@
 - Shares the result as a portal link.
 - Does not change the shared original site.
 - Does not require a production merge for the demo.
+- Requires the operator machine to have the design-matching tool ready before
+  visual matching starts.
 
 ## Architecture
 

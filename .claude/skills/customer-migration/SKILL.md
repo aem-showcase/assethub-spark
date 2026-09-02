@@ -211,42 +211,45 @@ collections after assets are searchable.
 These are for whoever runs the session, not the customer — I1 still
 forbids naming any of this in customer-facing prose.
 
-**excat design plugin.** Step 4 drives `excat-complete-design-expert` from
-the `excat` plugin (`excat-marketplace`), published from the internal Adobe
-repo **`Adobe-AEM-Foundation/aem-experience-catalyst`** (the marketplace is
-`confidential: true`; there is no public remote-marketplace source). Treat
-excat as a **pre-installed operator-environment dependency** — a machine's
-own local clone. **Detect it; never invent, hardcode, or `marketplace add`
-a filesystem path.** A path like
-`/Users/<someone>/…/aem-excat-plugin/excat-marketplace` is valid only on the
-machine it came from — it must **never** be written into this skill, the
-repo, a fork, an eval, or a customer-facing message. Determine excat's
-actual state with the live CLI, never a cached config — Claude Code and
-Copilot CLI keep separate plugin registrations, so a plugin enabled in one
-is invisible to the other. Detect which CLI is running (`claude` vs
-`copilot`) and use its commands:
+**Experience Catalyst plugin.** Step 4 drives
+`excat-complete-design-expert` from the `excat` plugin
+(`excat-marketplace`), published from the internal Adobe repo
+**`Adobe-AEM-Foundation/aem-experience-catalyst`**. Treat Catalyst as an
+operator-environment dependency. The agent should install/enable it when
+possible; a human can follow the same steps if confirmation or local access
+is required. Full setup: `docs/excat-setup.md`.
 
-- **Skill invokable** (`copilot skill list` / `claude plugin list` shows
-  it loaded) → proceed. This is the expected state; do nothing else.
-- **Not registered** → do **not** guess a path or add one yourself. Ask the
-  operator once for permission, then hand them the **official** setup for
-  **their own clone** (never a `/Users/...` path you fabricated): clone
-  `https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst`, then
-  from inside that clone run, for their CLI:
-  - Copilot: `copilot plugin marketplace add ./resources/plugins/aem-excat-plugin/excat-marketplace`
-    then `copilot plugin install excat@excat-marketplace`
-  - Claude: `claude plugin marketplace add ./resources/plugins/aem-excat-plugin/excat-marketplace`
-    then `claude plugin install excat@excat-marketplace`
-  (The `./resources/...` path is **relative to the operator's own clone**,
-  the only portable form — not an absolute machine path.)
-- **Installed but not enabled** (Claude only) →
+Before Step 4 design work, determine the live session state, not a stale
+cache. Claude Code and Copilot CLI keep separate plugin registrations.
+Check the active CLI:
+
+```
+claude plugin list
+claude skill list
+```
+
+- **Skill invokable** — if `excat-complete-design-expert` is available in
+  the current session, proceed directly.
+- **Installed but not enabled** — enable the existing plugin, restart if
+  needed, and recheck:
   `claude plugin enable excat@excat-marketplace --project`.
+- **Not installed** — use an existing local
+  `aem-experience-catalyst` clone if present; otherwise clone
+  `https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst.git`.
+  From that clone, run `npm run install:all` inside
+  `resources/plugins/aem-excat-plugin/excat-marketplace`, smoke-check
+  `excat/tools/excatops-mcp` with `npx .`, then install with Claude Code
+  using the **absolute** marketplace path:
+  `/plugin marketplace add <absolute-clone-path>/resources/plugins/aem-excat-plugin/excat-marketplace`
+  and `/plugin install excat@excat-marketplace`.
 
-Re-verify it actually loaded afterward (an install may need a restart —
-say so and wait). **Never hand-roll the rebrand instead of fixing the
-tool** — manual `styles.css` edits are not a substitute and silently miss
-the content rewrite and asset-color sweep. If the operator declines, mark
-`rebranded` `blocked`, state the one command needed, and pause.
+Never write a machine-specific `/Users/...` plugin path into the repo, a
+fork, or customer-facing text. Re-verify with `/plugin list` and
+`claude skill list` after install/enable. If Catalyst still is not
+invokable, mark `rebranded` `blocked`, state the setup action needed, and
+pause. **Never hand-roll the rebrand instead of fixing the tool** — manual
+`styles.css` edits are not a substitute and silently miss the content
+rewrite and asset-color sweep.
 
 **Publish guard hook.** `hooks/guard-da-publish.sh` is a `PreToolUse` hook
 that blocks any DA/Helix publish whose target path is not under
@@ -413,6 +416,26 @@ nav/footer before treating this step done.
 `customer.daFolder` are set** (Steps 2 and 3 `done`). Do not invoke
 `excat-complete-design-expert` or touch any file until both are set.
 
+## Step 4 preflight — Experience Catalyst availability
+
+Before any design/rebrand work, verify `excat-complete-design-expert` is
+invokable in the current session. Run the operator setup check above
+(`claude plugin list`, `claude skill list`, or the equivalent in the active
+CLI). If it is not invokable, follow `docs/excat-setup.md` and block here
+until the plugin is loaded.
+
+If a source website URL is present, that URL is the design source. Invoke
+`excat-complete-design-expert` directly in Complete Migration mode with the
+source URL and the copied `/<companyKey>/...` verification targets.
+
+**Do not ask how to source the look when a source URL is already present.**
+Do not ask the user for colors or a palette while Catalyst is available.
+A generic `WebFetch` failure is not a blocker and is not a reason to ask
+for manual colors; Catalyst performs its own source extraction. Do not
+route this work to DesignSync or any generic design tool. If Catalyst
+itself fails to extract the source after it is invoked, then report that
+specific Catalyst failure and ask for a better source URL or brand inputs.
+
 ## Step 4a — Content-authoring access (`token.env` — the only setup)
 
 The only customer-provided access setup is a gitignored `token.env` at the
@@ -498,9 +521,16 @@ split it across turns:
      so the login rebrands: `--welcome-panel-bg` (panel colour, base
      `#2f2318`), `--welcome-panel-accent-rgb` (glow, base `234 163 58`),
      `--welcome-panel-mark-image` (→ `url('/icons/<companyKey>-beans.svg')`),
-     and `--welcome-tagline` (the panel tagline string). Leaving them
-     unset keeps the frescopa coffee panel + "world's finest coffee"
-     tagline on the customer's login.
+     and the tagline — set as **two separate line properties**,
+     `--welcome-tagline-line1` and `--welcome-tagline-line2` (each a quoted
+     CSS string, no line-break escapes inside them — the stylesheet inserts
+     the break between the two). Do not reintroduce a single
+     `--welcome-tagline` property with a `\A` escape baked into its value:
+     a line-break escape only renders when parsed directly in a stylesheet
+     content string, not when it's stored inside a custom property and
+     substituted via `var()` — that was a real bug in an earlier revision.
+     Leaving these unset keeps the frescopa coffee panel + "world's finest
+     coffee" tagline on the customer's login.
 2. **Brand assets + hardcoded colors** — separately in scope, and the
    most-missed step:
    - **Logo/wordmark swap (all instances) — MANDATORY, and the single
@@ -584,6 +614,25 @@ split it across turns:
    (The site-wide design tokens from step 1 are the deliberate global
    exception; this per-page content step stays scoped.)
 
+   **Source-derived category contract — mandatory handoff to assets.**
+   Before rewriting any Browse/category cards, derive one category contract
+   from the source site. It is the only vocabulary shared by homepage cards,
+   facet links, asset `productCategory`, and collections. Derive it from
+   source-site navigation, product/category sections, URL paths, headings,
+   nearby product text, and asset/page context. Do **not** hardcode
+   brand-specific category examples in the skill, and do not choose a
+   generic category set when source-site categories are clear. Normalize
+   labels to stable lowercase slugs and keep `{slug, label, evidence}` for
+   each category in the working notes handed to Step 5.
+
+   Ask the customer to choose categories only when the source site is
+   genuinely ambiguous after inspection. Otherwise state the decision
+   plainly: "I found these usable categories from the source site: <derived
+   categories>. I'll use them for cards, filters, asset metadata, and
+   collections." Do not mix that answer with lint output, CSS details,
+   copied-content bugs, branch mechanics, script names, or any other
+   operator/debug narrative.
+
    **Also rewrite two things INSIDE those docs that a label-only rewrite
    misses (both verified broken live):**
    - **Internal links → company-scoped.** The copied docs carry links that
@@ -609,11 +658,9 @@ split it across turns:
      left the **base slugs** (`coffee`, `machine`, `accessory`, `lifestyle`)
      in the href — so clicking a card filters on a value no asset carries
      and returns **0** results. Rewrite each card's `productCategory` (and
-     campaign/channel) slug to the company's real category slug, and make
-     that same list the **single source of truth** the enrichment step uses
-     as its `--product-category-vocab` (Step 5), so the cards and the tagged
-     assets agree by construction. Record the chosen category slug list to
-     hand to Step 5.
+     campaign/channel) slug from the source-derived category contract, then
+     hand that exact contract to Step 5 so the cards and tagged assets agree
+     by construction. Never publish a card whose slug is not in the contract.
 4. **Publish** — publish **only `/<companyKey>/...` paths** via Helix
    Admin (`admin.hlx.page` preview+publish with `HLX_ADMIN_TOKEN`), over
    exactly the documents copied in Step 3 and rewritten in step 3 above —
@@ -738,8 +785,9 @@ once right after the step 1–2 edits, and again against the preview URL.
 5. **Welcome-panel token check.** Confirm the brand theme sets
    `--welcome-panel-bg`, `--welcome-panel-accent-rgb`,
    `--welcome-panel-mark-image` (→ `/icons/<companyKey>-beans.svg`), and
-   `--welcome-tagline`; otherwise the login's left panel keeps the frescopa
-   coffee colour, bean mark, and "world's finest coffee" tagline (the CSS
+   `--welcome-tagline-line1` + `--welcome-tagline-line2`; otherwise the
+   login's left panel keeps the frescopa coffee colour, bean mark, and
+   "world's finest coffee" tagline (the CSS
    defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
    `/icons/<companyKey>-beans.svg` exist.
 
@@ -878,7 +926,6 @@ node .claude/skills/customer-migration/scripts/assets/enrich-assets.js \
   [--dam-path /content/dam/<companyKey>] \
   [--source-url <url>] \
   [--dry-run] [--force] \
-  [--metadata-mode filename|vision] \
   [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
 ```
@@ -912,15 +959,27 @@ download, tiny/thumbnail-only, non-image response). Ask for a different
 source URL only after that diagnosis; do not stop at "try more URLs" when
 the current page exposes direct image asset links.
 
-**Metadata mode is explicit.** Default `--metadata-mode filename` is
-deterministic filename/hint-derived metadata, not AI/vision output:
-`dc:title`, `dc:description`, `dc:subject` keywords, `campaign`,
-`channel`, and `brand`. `productCategory` is assigned separately from
-existing metadata and source-site evidence. `company`,
-`dam:status=approved`, and `allowedCountries=["global"]` are stamped by
-the controller only when missing. `--metadata-mode vision` is reserved for a real
-model integration and fails fast until it is wired; do not claim a live run
-used AI/vision unless that mode is implemented and selected.
+**There is one enrichment path — no mode flag to choose between.** Before
+reading any asset's metadata, the controller waits for AEM's own
+asset-processing pipeline (thumbnail rendition, metadata extraction, smart
+tagging) to finish: it polls Sling metadata until `dam:assetState` reaches
+`processed` (bounded — a stuck pipeline fails that asset with a clear
+`stage: plan` error rather than hanging or silently guessing from
+incomplete data). Once processed, the primary evidence for `dc:title`,
+`dc:description`, and `dc:subject` keywords is AEM's own generated
+`autogen:title`/`autogen:description`/`autogen:subject` fields — real
+signal from AEM's asset processing, not a guess. Filename tokens and
+`xcm:machineKeywords` hints are last-resort only, used per-field when the
+corresponding `autogen:*` value is still empty after processing.
+`productCategory` is assigned separately from existing metadata and
+source-site evidence, now including `autogen:subject` as a high-confidence
+signal (see `docs/asset-enrichment.md`). `company`, `dam:status=approved`,
+and `allowedCountries=["global"]` are stamped by the controller only when
+missing.
+
+**Never read or write `dam:roles`.** It is rights/licensing metadata, not
+a classification or title/description signal — do not reference it in
+generated metadata, category assignment, or this skill's own docs.
 
 The controller does the per-asset work (bounded concurrency, idempotent):
 **`assets-uploaded`/`assets-enriched`** — for each asset it generates a
@@ -940,12 +999,16 @@ doesn't include the viewer's country, so an untagged asset returns **0
 results** for a country-scoped user (verified-broken live). Every enriched
 asset is tagged `global` so it is visible regardless of country.
 
-**Category is source-site driven.** Do not invent a hardcoded
-customer-specific category list and do not pass strict vocab flags. The
-controller derives `productCategory` from existing metadata, source page
-category, URL path, title/heading, alt text, nearby text, and filename/
-keyword fallback evidence. If it cannot defend a category, it leaves that
-asset without a `productCategory` write and reports `stage=category`.
+**Category consumes the Step 4 contract.** Do not invent a second category
+list, do not use a hardcoded customer-specific list, and do not pass strict
+vocab flags. The source-derived category contract from Step 4 is the shared
+evidence set for enrichment: homepage cards, facet links, asset
+`productCategory`, and collections must all use the same slugs. The
+controller derives each asset's `productCategory` from existing metadata,
+source page category, URL path, title/heading, alt text, nearby text, and
+filename/keyword fallback evidence. If it cannot defend a category for an
+asset against the contract, it leaves that asset without a
+`productCategory` write and reports `stage=category`.
 
 ## Use the enrichment report to replace copied placeholder visuals
 
@@ -957,7 +1020,13 @@ immediately after the dry-run/live run to update the copied DA docs under
 `/<companyKey>/...`:
 
 - Build Browse-by-category cards from `categoryCoverage.categories` only:
-  every card slug must have `assetCount > 0`.
+  every published card slug must come from the Step 4 category contract and
+  have `assetCount > 0`.
+- Compare the Step 4 category contract to `categoryCoverage.categories`.
+  If a source-derived category has zero assets, continue source discovery,
+  upload more matching assets, inspect filenames/page context, re-run
+  enrichment, and block Step 5 until the published card set is covered.
+  Do not silently shrink to an accidental one-card homepage.
 - Replace placeholder/base imagery in Browse-by-category cards with a
   representative asset for the same `productCategory` slug.
 - Replace top-model/product cards with representative assets whose title,
@@ -966,10 +1035,6 @@ immediately after the dry-run/live run to update the copied DA docs under
   product-specific image as a follow-up.
 - Keep the card href facet slug and the asset's `productCategory` equal;
   never rewrite the visible label only.
-- If the intended card set has a missing/zero category, do not publish that
-  category card and do not fallback to a broad search link. Continue source
-  discovery, upload more customer assets, re-run enrichment, and block Step
-  5 until each published category card has coverage.
 
 Publish the updated company-scoped DA docs after replacing the visuals.
 The visible outcome is real customer imagery/icons on the home/category
@@ -1069,6 +1134,7 @@ credential, no provisioning, no author writes.**
 ```
 node .claude/skills/customer-migration/scripts/assets/create-collections.js \
   --customer-key <companyKey> \
+  [--display-name "<Company Display Name>"] \
   [--group-by productCategory|campaign|channel] \
   [--limit 200] [--min-assets 1] [--access-level public] \
   [--dry-run] [--report-file <path>] \
@@ -1082,6 +1148,11 @@ node .claude/skills/customer-migration/scripts/assets/create-collections.js \
   distinct value titled `"<Company> — <Category>"`. **Always `--dry-run`
   first** — it enumerates the assets and prints the intended collections
   (title + asset count) without creating anything — then run live.
+- `--display-name` sets the exact text used in place of `<Company>` in the
+  title (e.g. `"URBN"`). Without it, the title falls back to title-casing
+  `<companyKey>` (`urbn` → `"Urbn"`), which is usually wrong for
+  all-caps/stylized brand names — pass `--display-name` whenever the
+  company's real name doesn't title-case cleanly from its slug.
 - Each collection is created `public` (every demo user sees it, not just
   the creator) and stamped `custom:metadata.company = <companyKey>`. That
   tag is what the company filter keys on (below). Assets with no

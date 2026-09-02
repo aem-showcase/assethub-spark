@@ -28,7 +28,7 @@ import {
 
 const FLAGS_WITH_VALUE = new Set([
   'customer-key', 'group-by', 'limit', 'min-assets', 'secrets-file',
-  'aem-env-id', 'report-file', 'fixture', 'access-level',
+  'aem-env-id', 'report-file', 'fixture', 'access-level', 'display-name',
 ]);
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force']);
 
@@ -46,6 +46,7 @@ export function parseArgs(argv) {
     aemEnvId: null,
     reportFile: null,
     fixture: null,
+    displayName: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -69,6 +70,7 @@ export function parseArgs(argv) {
         case 'aem-env-id': opts.aemEnvId = value; break;
         case 'report-file': opts.reportFile = value; break;
         case 'fixture': opts.fixture = value; break;
+        case 'display-name': opts.displayName = value; break;
         default: break;
       }
     }
@@ -105,7 +107,7 @@ export async function createCollectionsRun({
   options, client, assets: seededAssets = null, log = console,
 }) {
   const {
-    customerKey, groupBy, limit, minAssets, accessLevel, dryRun,
+    customerKey, groupBy, limit, minAssets, accessLevel, dryRun, displayName,
   } = options;
 
   const assets = seededAssets
@@ -133,7 +135,7 @@ export async function createCollectionsRun({
   }
 
   const specs = planCollections(assets, {
-    company: customerKey, facet: groupBy, minAssets,
+    company: customerKey, facet: groupBy, minAssets, titlePrefix: displayName || undefined,
   });
 
   if (specs.length === 0) {

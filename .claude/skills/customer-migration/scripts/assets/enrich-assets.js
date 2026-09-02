@@ -17,10 +17,11 @@ import { normalizeGenerated } from './normalize.js';
 import {
   buildSlingMetadataUpdate,
   getSlingAssetMetadata,
+  waitForAssetProcessed,
   writeSlingAssetMetadata,
 } from './sling-metadata.js';
 import { Report, OUTCOME } from './report.js';
-import { createFilenameGenerator } from './generate.js';
+import { createAssetMetadataGenerator } from './generate.js';
 import { buildProductCategoryRepresentatives } from './representatives.js';
 import { applyCategoryPlan, buildCategoryCoverage } from './category-plan.js';
 import { scrapeSiteImages } from './scrape-site.js';
@@ -43,15 +44,30 @@ export { mapWithConcurrency };
  * normalize. Returns { asset, skip } or { asset, fields }.
  */
 async function planAsset({
-  client, asset, generator, customerKey, force,
+  client, asset, generator, customerKey, force, assetProcessedPoll,
 }) {
-  const meta = asset.dryRunSourceAsset
-    ? {
+  let meta;
+  if (asset.dryRunSourceAsset) {
+    meta = {
       assetMetadata: {},
       repositoryMetadata: { 'dc:format': asset.contentType || 'application/octet-stream' },
       etag: null,
+    };
+  } else {
+    // Wait for AEM's asset-processing pipeline (thumbnail, metadata extraction, smart
+    // tagging) to finish before reading metadata — otherwise autogen:* fields may be
+    // missing or stale, and generate.js/category-plan.js would silently fall back to
+    // weaker filename/alt-text evidence with no indication anything was incomplete.
+    const { processed, meta: polled } = await waitForAssetProcessed(
+      client,
+      asset.repoPath,
+      assetProcessedPoll,
+    );
+    meta = polled;
+    if (!processed) {
+      throw new Error('asset did not reach dam:assetState=processed before the poll timeout');
     }
-    : await getSlingAssetMetadata(client, asset.repoPath);
+  }
   if (!force && isAlreadyEnriched(meta.assetMetadata, customerKey)) {
     return {
       asset,
@@ -216,7 +232,6 @@ export async function enrichAssets({
   report.setContext({
     customerKey,
     damPath: folderPath,
-    metadataMode: options.metadataMode || 'filename',
     metadataWrite: 'sling-post',
   });
 
@@ -247,6 +262,7 @@ export async function enrichAssets({
           generator,
           customerKey,
           force: options.force,
+          assetProcessedPoll: options.assetProcessedPoll,
         });
       } catch (err) {
         report.record(asset.assetId, OUTCOME.FAILED, { stage: 'plan', error: String(err.message || err) });
@@ -398,13 +414,7 @@ export async function main(argv = process.argv.slice(2)) {
     process.exit(2);
   }
 
-  if (options.metadataMode === 'vision') {
-    throw new Error(
-      '--metadata-mode vision requires a real invokeModel integration; use --metadata-mode filename for filename/hint-derived metadata',
-    );
-  }
-  const generator = createFilenameGenerator();
-  console.warn(`[agent] metadata mode=${options.metadataMode || 'filename'}`);
+  const generator = createAssetMetadataGenerator();
 
   // Dispatch:
   //  - --fixture: fully offline preview, forced dry-run.

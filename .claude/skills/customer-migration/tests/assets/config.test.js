@@ -50,9 +50,9 @@ describe('config', () => {
       expect(opts.productCategoryVocab).toBeUndefined();
     });
 
-    it('parses metadata mode explicitly', () => {
-      expect(parseArgs(['--customer-key', 'x']).metadataMode).toBe('filename');
-      expect(parseArgs(['--customer-key', 'x', '--metadata-mode', 'vision']).metadataMode).toBe('vision');
+    it('ignores a removed metadata-mode flag — there is one enrichment path, no mode to select', () => {
+      expect(parseArgs(['--customer-key', 'x']).metadataMode).toBeUndefined();
+      expect(parseArgs(['--customer-key', 'x', '--metadata-mode', 'vision']).metadataMode).toBeUndefined();
     });
   });
 
@@ -72,11 +72,6 @@ describe('config', () => {
         '--dam-path', '/content/dam/other',
       ]));
       expect(errs.some((e) => e.includes('/content/dam/acme'))).toBe(true);
-    });
-
-    it('rejects an unknown metadata mode', () => {
-      const errs = validateOptions(parseArgs(['--customer-key', 'x', '--metadata-mode', 'robot']));
-      expect(errs.some((e) => e.includes('metadata-mode'))).toBe(true);
     });
 
     it('passes for a valid set', () => {

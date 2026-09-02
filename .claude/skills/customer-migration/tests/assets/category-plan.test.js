@@ -12,14 +12,25 @@ describe('category-plan', () => {
     expect(plan.categoryAssignment.reason).toBe('existing-metadata');
   });
 
-  it('uses explicit source category when discovery provides one', () => {
+  it('gives high confidence to a rule match sourced from AEM\'s own autogen:subject tags', () => {
     const [plan] = applyCategoryPlan([{
-      asset: { assetId: 'a1', sourceCategory: 'Product Galleries', heading: 'Foo' },
+      asset: { assetId: 'a1', repoName: 'hero.jpg' },
+      fields: { title: 'Foo' },
+      existingMetadata: { 'autogen:subject': ['product', 'lifestyle shot'] },
+    }]);
+    expect(plan.fields.productCategory).toBe('products');
+    expect(plan.categoryAssignment.confidence).toBe('high');
+    expect(plan.categoryAssignment.evidence[0]).toMatch(/^autogen:subject=/);
+  });
+
+  it('falls back to medium confidence when the same rule only matches page/heading text', () => {
+    const [plan] = applyCategoryPlan([{
+      asset: { assetId: 'a1', repoName: 'hero.jpg', heading: 'Product range' },
       fields: { title: 'Foo' },
       existingMetadata: {},
     }]);
-    expect(plan.fields.productCategory).toBe('product-galleries');
-    expect(plan.categoryAssignment.confidence).toBe('high');
+    expect(plan.fields.productCategory).toBe('products');
+    expect(plan.categoryAssignment.confidence).toBe('medium');
   });
 
   it('infers generic categories from source evidence', () => {
@@ -49,7 +60,7 @@ describe('category-plan', () => {
   it('builds coverage only from categories with assets', () => {
     const plans = applyCategoryPlan([
       {
-        asset: { assetId: 'a1', sourceCategory: 'Products', sourcePage: 'https://x/products' },
+        asset: { assetId: 'a1', sourcePage: 'https://x/products' },
         fields: { title: 'A' },
         existingMetadata: {},
       },

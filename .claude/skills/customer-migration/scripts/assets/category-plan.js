@@ -3,9 +3,15 @@
  *
  * The category contract is generated from assets we actually found. It is not an
  * operator-provided strict vocabulary and it is never used to drop values.
+ *
+ * Evidence is AEM's own autogen:subject smart tags (populated once dam:assetState reaches
+ * "processed" — see sling-metadata.js's waitForAssetProcessed) plus scrape-time hints
+ * (page/heading/alt text, filename). autogen:subject is real signal from AEM's asset
+ * processing, not a guess, so it is checked first; the page/filename evidence below is the
+ * fallback for assets with no smart tags yet (or none that matched a rule).
  */
 
-import { FIELD } from './constants.js';
+import { FIELD, AUTOGEN_FIELD } from './constants.js';
 
 const CATEGORY_RULES = [
   {
@@ -61,10 +67,14 @@ export function humanizeCategorySlug(slug) {
     .join(' ');
 }
 
+function autogenSubjectTerms(metadata = {}) {
+  const value = metadata[AUTOGEN_FIELD.SUBJECT];
+  const list = Array.isArray(value) ? value : (typeof value === 'string' && value.trim() ? [value] : []);
+  return list.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+}
+
 function evidenceText(asset = {}, metadata = {}, fields = {}) {
   return [
-    asset.sourceCategory,
-    asset.categoryLabel,
     asset.sourcePage,
     asset.pageTitle,
     asset.heading,
@@ -76,31 +86,22 @@ function evidenceText(asset = {}, metadata = {}, fields = {}) {
     fields.description,
     ...(Array.isArray(fields.keywords) ? fields.keywords : []),
     ...(Array.isArray(metadata[FIELD.SUBJECT]) ? metadata[FIELD.SUBJECT] : []),
+    ...autogenSubjectTerms(metadata),
   ]
     .map((v) => String(v || '').toLowerCase())
     .join(' ');
 }
 
-function evidenceSnippets(asset = {}, fields = {}) {
+function evidenceSnippets(asset = {}, fields = {}, metadata = {}) {
+  const autogenSubject = autogenSubjectTerms(metadata);
   return [
+    autogenSubject.length > 0 && `autogen:subject=${autogenSubject.join(',')}`,
     asset.sourcePage && `sourcePage=${asset.sourcePage}`,
     asset.heading && `heading=${asset.heading}`,
     asset.altText && `altText=${asset.altText}`,
     (asset.fileName || asset.repoName) && `fileName=${asset.fileName || asset.repoName}`,
     fields.title && `title=${fields.title}`,
   ].filter(Boolean).slice(0, 4);
-}
-
-function categoryFromExplicit(asset) {
-  const explicit = cleanString(asset?.sourceCategory) || cleanString(asset?.categorySlug);
-  const slug = slugifyCategory(explicit);
-  if (!slug) return null;
-  return {
-    slug,
-    label: cleanString(asset.categoryLabel) || humanizeCategorySlug(slug),
-    confidence: 'high',
-    reason: 'source-category',
-  };
 }
 
 function categoryFromEvidence(asset, metadata, fields) {
@@ -110,7 +111,12 @@ function categoryFromEvidence(asset, metadata, fields) {
       return {
         slug: rule.slug,
         label: rule.label,
-        confidence: 'medium',
+        // autogen:subject is AEM's own asset-processing output, not a guess — a match
+        // sourced from it is higher confidence than the same rule matching only on
+        // page/heading/filename text.
+        confidence: rule.terms.some((term) => autogenSubjectTerms(metadata).some((t) => t.includes(term)))
+          ? 'high'
+          : 'medium',
         reason: 'source-evidence',
       };
     }
@@ -146,16 +152,12 @@ export function applyCategoryPlan(planned = []) {
         evidence: [`existingMetadata.${FIELD.PRODUCT_CATEGORY}=${existing}`],
       };
     } else if (!cleanString(fields.productCategory)) {
-      const inferred = categoryFromExplicit(plan.asset) || categoryFromEvidence(
-        plan.asset,
-        plan.existingMetadata || {},
-        fields,
-      );
+      const inferred = categoryFromEvidence(plan.asset, plan.existingMetadata || {}, fields);
       if (inferred) {
         fields.productCategory = inferred.slug;
         assignment = {
           ...inferred,
-          evidence: evidenceSnippets(plan.asset, fields),
+          evidence: evidenceSnippets(plan.asset, fields, plan.existingMetadata || {}),
         };
       }
     } else {
@@ -166,7 +168,7 @@ export function applyCategoryPlan(planned = []) {
         label: humanizeCategorySlug(fields.productCategory),
         confidence: 'generated',
         reason: 'generated-field',
-        evidence: evidenceSnippets(plan.asset, fields),
+        evidence: evidenceSnippets(plan.asset, fields, plan.existingMetadata || {}),
       };
     }
 
