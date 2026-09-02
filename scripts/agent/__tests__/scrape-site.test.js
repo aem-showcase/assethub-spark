@@ -4,6 +4,7 @@ import {
 import {
   parseSrcset, resolveUrl, urlExtension, extractImageUrls,
   fileNameFromUrl, extFromContentType, scrapeSiteImages, resolveOriginalUrl,
+  extractPageEvidence, extractImageEvidence,
 } from '../scrape-site.js';
 
 function htmlRes(html) {
@@ -58,13 +59,14 @@ describe('urlExtension', () => {
 describe('extractImageUrls', () => {
   it('pulls img src, data-src, srcset, source srcset, and og/twitter meta', () => {
     const html = `
-      <img src="/a.jpg">
-      <img data-src="/b.png">
-      <img srcset="/c-480.webp 480w, /c-800.webp 800w">
-      <picture><source srcset="/d.avif"></picture>
-      <meta property="og:image" content="https://x.com/og.jpg">
-      <meta name="twitter:image" content="/tw.png">
-    `;
+        <img src="/a.jpg">
+        <img data-src="/b.png">
+        <img srcset="/c-480.webp 480w, /c-800.webp 800w">
+        <picture><source srcset="/d.avif"></picture>
+        <meta property="og:image" content="https://x.com/og.jpg">
+        <meta name="twitter:image" content="/tw.png">
+        <a href="/linked-image.jpg">Linked image</a>
+      `;
     const urls = extractImageUrls(html, 'https://x.com/page');
     expect(urls).toContain('https://x.com/a.jpg');
     expect(urls).toContain('https://x.com/b.png');
@@ -73,6 +75,7 @@ describe('extractImageUrls', () => {
     expect(urls).toContain('https://x.com/d.avif');
     expect(urls).toContain('https://x.com/og.jpg');
     expect(urls).toContain('https://x.com/tw.png');
+    expect(urls).toContain('https://x.com/linked-image.jpg');
   });
 
   it('og:image and twitter:image appear before img src URLs', () => {
@@ -124,12 +127,42 @@ describe('extractImageUrls', () => {
     ]);
   });
 
+  it('pulls EDS raw/pre-decoration image links from anchors after embedded images', () => {
+    const html = `
+        <main>
+          <div><a href="/adobe/assets/urn:aaid:aem:hero.jpg">Hero</a></div>
+          <div><a href="/content/dam/models/brezza.webp">Brezza</a></div>
+          <div><a href="/content/dam/docs/spec.pdf">Spec</a></div>
+        </main>
+      `;
+    expect(extractImageUrls(html, 'https://x.com/en/')).toEqual([
+      'https://x.com/adobe/assets/urn:aaid:aem:hero.jpg',
+      'https://x.com/content/dam/models/brezza.webp',
+    ]);
+  });
+
   it('skips non-image extensions but keeps extension-less URLs', () => {
     const html = '<img src="/a.jpg"><img src="/script.js"><img src="/cdn/dyn-image">';
     const urls = extractImageUrls(html, 'https://x.com');
     expect(urls).toContain('https://x.com/a.jpg');
     expect(urls).toContain('https://x.com/cdn/dyn-image');
     expect(urls).not.toContain('https://x.com/script.js');
+  });
+});
+
+describe('asset evidence extraction', () => {
+  it('extracts page title, heading, and image alt text', () => {
+    const html = `
+      <title>Brand Models</title>
+      <h1>Model Range</h1>
+      <img src="/hero.jpg" alt="Hero exterior">
+    `;
+    expect(extractPageEvidence(html)).toEqual({
+      pageTitle: 'Brand Models',
+      heading: 'Model Range',
+    });
+    expect(extractImageEvidence(html, 'https://x.com').get('https://x.com/hero.jpg'))
+      .toEqual({ altText: 'Hero exterior' });
   });
 });
 
@@ -196,6 +229,48 @@ describe('scrapeSiteImages', () => {
     expect(out.images).toHaveLength(2);
     expect(out.images[0]).toMatchObject({ fileName: 'a.png', contentType: 'image/png' });
     expect(out.images[0].bytes.byteLength).toBe(4);
+  });
+
+  it('carries source evidence into downloaded assets', async () => {
+    const fetchFn = vi.fn(async (url) => {
+      if (url === 'https://x.com/page') {
+        return htmlRes(`
+          <title>Brand Products</title>
+          <h1>Product Gallery</h1>
+          <img src="/a.png" alt="Product hero">
+        `);
+      }
+      return imgRes(png);
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0,
+    });
+    expect(out.images[0]).toMatchObject({
+      sourcePage: 'https://x.com/page',
+      pageTitle: 'Brand Products',
+      heading: 'Product Gallery',
+      altText: 'Product hero',
+      assetUrl: 'https://x.com/a.png',
+    });
+  });
+
+  it('downloads EDS raw image links authored as anchors', async () => {
+    const fetchFn = vi.fn(async (url) => {
+      if (url === 'https://x.com/page') {
+        return htmlRes('<div><a href="/content/dam/swift.jpg">Swift</a></div>');
+      }
+      return imgRes(png, 'image/jpeg');
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0,
+    });
+    expect(out.candidates).toBe(1);
+    expect(out.images).toHaveLength(1);
+    expect(out.images[0]).toMatchObject({
+      fileName: 'swift.jpg',
+      contentType: 'image/jpeg',
+      sourceUrl: 'https://x.com/content/dam/swift.jpg',
+    });
   });
 
   it('honors maxImages', async () => {

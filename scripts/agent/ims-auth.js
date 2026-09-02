@@ -69,23 +69,3 @@ export class ImsTokenProvider {
     return this.getToken({ force: true });
   }
 }
-
-/**
- * A token provider backed by a fixed, pre-issued token (AUTHOR_SPARK_IMS_TOKEN).
- * No IMS grant is performed. `refresh()` cannot mint a new token, so it returns the
- * same value — an expired/invalid supplied token surfaces as a 401/403 from the API.
- */
-export class StaticTokenProvider {
-  constructor({ token }) {
-    if (!token) throw new Error('StaticTokenProvider: token is required');
-    this.token = token;
-  }
-
-  async getToken() {
-    return this.token;
-  }
-
-  async refresh() {
-    return this.token;
-  }
-}

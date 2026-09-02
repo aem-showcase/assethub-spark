@@ -19,10 +19,19 @@ The ordered `steps` in `SKILL.md` are the workflow:
    `/<company>` via `scripts/da-copy-folder.sh`. Only exit code `3` means
    genuinely empty; `404/403` is a real failure, never "empty."
 4. **rebranded → published → landed-via-pr** — excat rebrands the
-   `/<company>` page-URL list + repo design tokens; our asset-color sweep;
+   `/<company>` page-URL list + repo design tokens from the required source
+   site; our asset-color sweep;
    we publish `/<company>` only; one PR. Merge NOT required (I3).
 5. **assets-uploaded → assets-enriched → search-scoped** — upload/enrich
-   the company's assets and scope the portal to the company.
+   the company's assets and scope the portal to the company. This step is
+   gated by Step 4g: stale background/filter colours on the portal link
+   block asset enrichment until fixed and verified.
+6. **collections-created** — group the now-searchable assets into
+   company-scoped collections (one per category) via
+   `scripts/agent/create-collections.js`; the worker's collections company
+   filter shows/hides them per `DEMO_COMPANY`. Runs automatically after
+   assets for `full` and `assets-only` demos; it is `not-requested` only for
+   `frontend-only`.
 
 **One hard gate:** no design tool / no styling edits until
 `branch-resolved` AND `da-content-copied` are `done`.
@@ -39,18 +48,27 @@ The ordered `steps` in `SKILL.md` are the workflow:
   root/nav/footer/templates/shared blocks; identify files first; report
   modified files). Global design tokens/CSS from a source URL are the
   deliberate site-wide exception.
-- **We publish** `/<company>` (Helix Admin, `HLX_ADMIN_TOKEN`), scoped —
-  enforced by `hooks/guard-da-publish.sh`.
+- **We ensure tokens** from one user-provided DA token via
+  `.claude/skills/customer-migration/scripts/ensure-eds-tokens.sh`: validate
+  DA access, reuse a valid `HLX_ADMIN_TOKEN`, or mint one from `DA_TOKEN`.
+- **We publish** `/<company>` (Helix Admin, generated/reused
+  `HLX_ADMIN_TOKEN`), scoped — enforced by `hooks/guard-da-publish.sh`.
+- **We gate assets on rebrand verification** — before Step 5, the deployed
+  portal link must pass the Step 4g sweep for base-brand residue, background/
+  surface tokens, facets panel computed colour, old action reds, scoped
+  links, login/auth, and category-card slugs.
 
 ## Existing environment — what each step reuses (no provisioning)
 
 | Step | Uses | Source |
 |---|---|---|
 | branch | existing repo | `git remote origin` |
+| token setup | `DA_TOKEN` → `HLX_ADMIN_TOKEN` | user provides `DA_TOKEN`; `ensure-eds-tokens.sh` reuses/mints `HLX_ADMIN_TOKEN` |
 | copy DA | `DA_TOKEN` | `token.env` + `da-copy-folder.sh` |
-| publish | `HLX_ADMIN_TOKEN` | `token.env` |
+| publish | generated/reused `HLX_ADMIN_TOKEN` | `token.env` |
 | rebrand design | `excat-complete-design-expert` | excat plugin |
 | assets | `scripts/agent/enrich-assets.js` | creds from `cloudflare/.secrets`; env id from `cloudflare/src/config.js` (`AEM_ENV_ID`) |
+| collections | `scripts/agent/create-collections.js` | same DM creds + env id; DM collections API (delivery tier) |
 
 Step 5 needs **zero** credential collection — the controller resolves creds
 from `cloudflare/.secrets` and the env id from existing config. That is why
@@ -64,8 +82,9 @@ non-demo and lives disabled in `NON-DEMO-DISABLED.md`.
 - Backend (Phase B) + deploy stage + `deploy.md` + the customer-config
   intake moved into `NON-DEMO-DISABLED.md` (kept, disabled, out of the
   path).
-- Removed the "Settings / LLM Permissions" concept entirely — access is
-  only the two `token.env` tokens; there is no settings/permissions screen.
+- Removed the "Settings / LLM Permissions" concept entirely — the customer
+  provides only `DA_TOKEN`; there is no settings/permissions screen and no
+  manual `HLX_ADMIN_TOKEN` ask.
 - Consolidated 5 overlapping plan docs into this one file.
 - Removed the duplicate `.agents/skills/customer-migration` tree; single
   source under `.claude/skills`.

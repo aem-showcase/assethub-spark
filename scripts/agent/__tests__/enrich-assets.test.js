@@ -10,12 +10,10 @@ function baseOptions(overrides = {}) {
     damPath: '/content/dam/santander',
     dryRun: false,
     force: false,
-    noPublish: true,
     bringIn: false,
-    writeMode: 'bulk',
     concurrency: 1,
-    publishTarget: 'AEM_PUBLISH',
     limit: null,
+    metadataMode: 'filename',
     ...overrides,
   };
 }
@@ -26,12 +24,40 @@ function searchPage(assets) {
 
 const oneAsset = [{
   assetId: 'a1',
-  repositoryMetadata: { 'repo:path': '/content/dam/santander/a.jpg', 'repo:name': 'a.jpg' },
+  repositoryMetadata: { 'repo:path': '/content/dam/santander/product-hero.bin', 'repo:name': 'product-hero.bin' },
 }];
 
 const generator = async () => ({
-  title: 'Doc A', description: 'desc', keywords: ['x', 'y', 'z'], productCategory: 'cards',
+  title: 'Product Hero',
+  description: 'desc',
+  keywords: ['product', 'hero', 'launch'],
 });
+
+function metadata(assetMetadata = {}, repositoryMetadata = { 'dc:format': 'application/octet-stream' }) {
+  return makeRes({
+    body: { ...assetMetadata, 'dc:format': repositoryMetadata['dc:format'] },
+    headers: { ETag: '"v1"' },
+  });
+}
+
+function htmlRes(html) {
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => 'text/html' },
+    text: async () => html,
+  };
+}
+
+function assetRes(bytes, contentType = 'image/png') {
+  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: (key) => (key.toLowerCase() === 'content-type' ? contentType : null) },
+    arrayBuffer: async () => buf,
+  };
+}
 
 describe('mapWithConcurrency', () => {
   it('preserves order and processes every item', async () => {
@@ -41,20 +67,52 @@ describe('mapWithConcurrency', () => {
 });
 
 describe('enrichAssets controller', () => {
-  it('dry-run: generates + previews without writing', async () => {
-    const meta = makeRes({
-      body: { assetMetadata: {}, repositoryMetadata: { 'dc:format': 'application/pdf' } },
-      headers: { ETag: '"v1"' },
-    });
-    const client = makeClient([searchPage(oneAsset), meta]);
+  it('dry-run: generates a Sling metadata preview without writing', async () => {
+    const client = makeClient([searchPage(oneAsset), metadata()]);
     const out = await enrichAssets({
       options: baseOptions({ dryRun: true }), client, generator, log: silent,
     });
     expect(out.dryRun).toBe(true);
     expect(out.report.counts().enriched).toBe(1);
-    expect(out.csvPreview).toContain('dc:title[string]');
-    // Only enumerate + read happened — no write/publish calls.
-    expect(client.calls.map((c) => c.op)).toEqual(['search', 'metadata']);
+    expect(out.metadataPreview).toContain('./productCategory');
+    expect(out.metadataPreview).toContain('./company');
+    expect(out.report.toJSON().representatives.items.products).toMatchObject({
+      assetId: 'a1',
+      assetPath: '/content/dam/santander/product-hero.bin',
+      productCategory: 'products',
+      title: 'Product Hero',
+    });
+    expect(client.calls.map((c) => c.op)).toEqual(['search', 'sling']);
+  });
+
+  it('source-url dry-run builds category coverage from scraped assets without AEM writes', async () => {
+    const fetchFn = async (url) => {
+      if (url === 'https://brand.example/products') {
+        return htmlRes(`
+          <title>Brand Products</title>
+          <h1>Product Gallery</h1>
+          <img src="/hero.png" alt="Product hero">
+        `);
+      }
+      return assetRes(new Uint8Array(12 * 1024).fill(1));
+    };
+    const client = makeClient([]);
+    const out = await enrichAssets({
+      options: baseOptions({
+        dryRun: true,
+        sourceUrl: 'https://brand.example/products',
+        fetchFn,
+      }),
+      client,
+      generator,
+      log: silent,
+    });
+    expect(client.calls).toHaveLength(0);
+    expect(out.report.counts().enriched).toBe(1);
+    expect(out.report.toJSON().categoryCoverage.categories).toMatchObject([
+      { slug: 'products', assetCount: 1 },
+    ]);
+    expect(out.metadataPreview).toContain('/content/dam/santander/hero.png');
   });
 
   it('stops cleanly when the folder has no assets', async () => {
@@ -65,46 +123,124 @@ describe('enrichAssets controller', () => {
     expect(out.report.assets).toHaveLength(0);
   });
 
-  it('skips assets already enriched for this customer', async () => {
-    const meta = makeRes({
-      body: { assetMetadata: { company: 'santander', 'dc:title': 'Existing' }, repositoryMetadata: {} },
-      headers: { ETag: '"v1"' },
-    });
-    const client = makeClient([searchPage(oneAsset), meta]);
+  it('skips assets already enriched for this customer and category', async () => {
+    const client = makeClient([searchPage(oneAsset), metadata({
+      company: 'santander',
+      'dc:title': 'Existing',
+      'dam:status': 'approved',
+      allowedCountries: 'global',
+      productCategory: 'products',
+    })]);
     const out = await enrichAssets({
       options: baseOptions(), client, generator, log: silent,
     });
     expect(out.report.counts().skipped).toBe(1);
     expect(out.report.counts().enriched).toBeUndefined();
+    expect(out.report.toJSON().representatives.items.products).toMatchObject({
+      title: 'Existing',
+      source: 'already-enriched',
+    });
   });
 
-  it('live patch mode writes each asset and reports enriched', async () => {
-    const meta = makeRes({
-      body: { assetMetadata: {}, repositoryMetadata: { 'dc:format': 'application/pdf' } },
-      headers: { ETag: '"v1"' },
-    });
-    const client = makeClient([searchPage(oneAsset), meta, makeRes({ status: 200 })]);
+  it('does not skip an asset that is missing productCategory', async () => {
+    const client = makeClient([
+      searchPage(oneAsset),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Existing',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+      }),
+      makeRes({ status: 200 }),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Existing',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+        productCategory: 'products',
+      }),
+    ]);
     const out = await enrichAssets({
-      options: baseOptions({ writeMode: 'patch' }), client, generator, log: silent,
+      options: baseOptions(), client, generator, log: silent,
+    });
+    expect(out.report.counts().enriched).toBe(1);
+    const postCall = client.calls.find((c) => c.op === 'sling' && c.opts.method === 'POST');
+    expect(postCall.opts.body).toContain('.%2FproductCategory=products');
+  });
+
+  it('fails category planning when no productCategory can be inferred', async () => {
+    const asset = [{
+      assetId: 'a1',
+      repositoryMetadata: { 'repo:path': '/content/dam/santander/asset.bin', 'repo:name': 'asset.bin' },
+    }];
+    const client = makeClient([searchPage(asset), metadata()]);
+    const out = await enrichAssets({
+      options: baseOptions(), client, generator: async () => ({ title: 'Asset' }), log: silent,
+    });
+    expect(out.report.counts().failed).toBe(1);
+    expect(client.calls.some((c) => c.op === 'sling' && c.opts.method === 'POST')).toBe(false);
+    expect(out.report.toJSON().categoryCoverage.unclassified).toEqual(['a1']);
+  });
+
+  it('live mode writes each asset through Sling POST and reports enriched', async () => {
+    const client = makeClient([
+      searchPage(oneAsset),
+      metadata(),
+      makeRes({ status: 200 }),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Product Hero',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+        productCategory: 'products',
+      }),
+    ]);
+    const out = await enrichAssets({
+      options: baseOptions(), client, generator, log: silent,
     });
     expect(out.report.counts().enriched).toBe(1);
     expect(out.report.exitCode()).toBe(0);
-    const patchCall = client.calls.find((c) => c.opts.method === 'PATCH');
-    expect(patchCall).toBeTruthy();
+    const postCall = client.calls.find((c) => c.op === 'sling' && c.opts.method === 'POST');
+    expect(postCall).toBeTruthy();
+    expect(postCall.op).toBe('sling');
+    expect(postCall.opts.includeApiKey).toBe(false);
+    expect(postCall.opts.body).toContain('.%2Fdam%3Astatus=approved');
   });
 
-  it('publishes enriched assets when publishing is enabled', async () => {
-    const meta = makeRes({
-      body: { assetMetadata: {}, repositoryMetadata: { 'dc:format': 'application/pdf' } },
-      headers: { ETag: '"v1"' },
+  it('never overwrites existing metadata values', async () => {
+    const client = makeClient([searchPage(oneAsset), metadata({
+      'dc:title': 'Existing Title',
+    }), makeRes({ status: 200 }), metadata({
+      company: 'santander',
+      'dc:title': 'Existing Title',
+      'dam:status': 'approved',
+      allowedCountries: 'global',
+      productCategory: 'products',
+    })]);
+    await enrichAssets({
+      options: baseOptions(), client, generator, log: silent,
     });
+    const postCall = client.calls.find((c) => c.op === 'sling' && c.opts.method === 'POST');
+    expect(postCall.opts.body).not.toContain('.%2Fdc%3Atitle=');
+  });
+
+  it('does not call asset publish after writing approved metadata', async () => {
     const client = makeClient([
-      searchPage(oneAsset), meta, makeRes({ status: 200 }), makeRes({ status: 200 }),
+      searchPage(oneAsset),
+      metadata(),
+      makeRes({ status: 200 }),
+      metadata({
+        company: 'santander',
+        'dc:title': 'Product Hero',
+        'dam:status': 'approved',
+        allowedCountries: 'global',
+        productCategory: 'products',
+      }),
     ]);
     const out = await enrichAssets({
-      options: baseOptions({ writeMode: 'patch', noPublish: false }), client, generator, log: silent,
+      options: baseOptions(), client, generator, log: silent,
     });
     expect(out.report.counts().enriched).toBe(1);
-    expect(client.calls.some((c) => c.op === 'publish')).toBe(true);
+    expect(client.calls.some((c) => c.op === 'publish')).toBe(false);
   });
 });

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  mkdtempSync, writeFileSync, rmSync,
+  mkdtempSync, writeFileSync, rmSync, mkdirSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  slugify, parseEnvFile, parseArgs, validateOptions, resolveCreds, resolveImsToken,
+  slugify, parseEnvFile, parseArgs, validateOptions, resolveCreds, resolveAemEnvId,
 } from '../config.js';
 
 describe('config', () => {
@@ -25,11 +25,13 @@ describe('config', () => {
 
   describe('parseArgs', () => {
     it('derives damPath from customerKey and parses flags', () => {
-      const opts = parseArgs(['--customer-key', 'Santander', '--dry-run', '--write-mode', 'patch']);
+      const opts = parseArgs(['--customer-key', 'Santander', '--dry-run', '--concurrency', '2']);
       expect(opts.customerKey).toBe('santander');
       expect(opts.damPath).toBe('/content/dam/santander');
       expect(opts.dryRun).toBe(true);
-      expect(opts.writeMode).toBe('patch');
+      expect(opts.concurrency).toBe(2);
+      expect(opts.writeMode).toBeUndefined();
+      expect(opts.productCategoryVocab).toBeUndefined();
     });
 
     it('turns on bring-in when a source URL is given', () => {
@@ -37,16 +39,46 @@ describe('config', () => {
       expect(opts.bringIn).toBe(true);
       expect(opts.sourceUrl).toBe('https://x.com');
     });
+
+    it('ignores removed write-mode and vocab flags', () => {
+      const opts = parseArgs([
+        '--customer-key', 'x',
+        '--write-mode', 'bulk',
+        '--product-category-vocab', 'a,b',
+      ]);
+      expect(opts.writeMode).toBeUndefined();
+      expect(opts.productCategoryVocab).toBeUndefined();
+    });
+
+    it('parses metadata mode explicitly', () => {
+      expect(parseArgs(['--customer-key', 'x']).metadataMode).toBe('filename');
+      expect(parseArgs(['--customer-key', 'x', '--metadata-mode', 'vision']).metadataMode).toBe('vision');
+    });
   });
 
   describe('validateOptions', () => {
     it('requires a customer key', () => {
       expect(validateOptions(parseArgs([]))).toContain('--customer-key is required');
     });
-    it('rejects an unknown write mode', () => {
-      const errs = validateOptions(parseArgs(['--customer-key', 'x', '--write-mode', 'nope']));
-      expect(errs.some((e) => e.includes('write-mode'))).toBe(true);
+
+    it('rejects reserved customer keys', () => {
+      const errs = validateOptions(parseArgs(['--customer-key', 'api']));
+      expect(errs.some((e) => e.includes('reserved'))).toBe(true);
     });
+
+    it('rejects DAM paths outside the customer folder', () => {
+      const errs = validateOptions(parseArgs([
+        '--customer-key', 'acme',
+        '--dam-path', '/content/dam/other',
+      ]));
+      expect(errs.some((e) => e.includes('/content/dam/acme'))).toBe(true);
+    });
+
+    it('rejects an unknown metadata mode', () => {
+      const errs = validateOptions(parseArgs(['--customer-key', 'x', '--metadata-mode', 'robot']));
+      expect(errs.some((e) => e.includes('metadata-mode'))).toBe(true);
+    });
+
     it('passes for a valid set', () => {
       expect(validateOptions(parseArgs(['--customer-key', 'x']))).toEqual([]);
     });
@@ -70,10 +102,10 @@ describe('config', () => {
     it('reads SPARK_DM_* from a secrets file', () => {
       const dir = mkdtempSync(join(tmpdir(), 'agent-creds-'));
       const file = join(dir, '.secrets');
-      writeFileSync(file, 'SPARK_DM_CLIENT_ID=abc\nSPARK_DM_CLIENT_SECRET=xyz\n');
       try {
+        writeFileSync(file, 'SPARK_DM_CLIENT_ID=abc\nSPARK_DM_CLIENT_SECRET=xyz\n');
         const out = resolveCreds({ secretsFile: file, env: {} });
-        expect(out).toMatchObject({ clientId: 'abc', clientSecret: 'xyz' });
+        expect(out).toMatchObject({ clientId: 'abc', clientSecret: 'xyz', source: file });
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
@@ -91,53 +123,21 @@ describe('config', () => {
     });
   });
 
-  describe('resolveImsToken', () => {
-    it('prefers the env token + api key and strips a Bearer prefix', () => {
-      const dir = mkdtempSync(join(tmpdir(), 'agent-envtok-'));
-      try {
-        const out = resolveImsToken({
-          env: { AUTHOR_SPARK_IMS_TOKEN: 'Bearer  eyJ.abc', AUTHOR_SPARK_IMS_API_KEY: 'key123' },
-          secretsFile: join(dir, 'missing'),
-          repoRoot: dir,
-        });
-        expect(out).toEqual({ token: 'eyJ.abc', apiKey: 'key123', source: 'env' });
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
+  describe('resolveAemEnvId', () => {
+    it('prefers the explicit option', () => {
+      expect(resolveAemEnvId({ aemEnvId: 'p1-e2', env: {} })).toBe('p1-e2');
     });
 
-    it('returns apiKey null when the token is set but no api key is', () => {
-      const dir = mkdtempSync(join(tmpdir(), 'agent-envtok2-'));
-      try {
-        const out = resolveImsToken({
-          env: { AUTHOR_SPARK_IMS_TOKEN: 'eyJ.abc' },
-          secretsFile: join(dir, 'missing'),
-          repoRoot: dir,
-        });
-        expect(out).toEqual({ token: 'eyJ.abc', apiKey: null, source: 'env' });
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
+    it('reads AEM_ENV_ID from the environment', () => {
+      expect(resolveAemEnvId({ env: { AEM_ENV_ID: 'p3-e4' } })).toBe('p3-e4');
     });
 
-    it('reads token + api key from a secrets file', () => {
-      const dir = mkdtempSync(join(tmpdir(), 'agent-tok-'));
-      const file = join(dir, '.secrets');
-      writeFileSync(file, 'AUTHOR_SPARK_IMS_TOKEN=eyJ.file\nAUTHOR_SPARK_IMS_API_KEY=filekey\n');
+    it('reads AEM_ENV_ID from worker config', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'agent-aemenv-'));
       try {
-        const out = resolveImsToken({ secretsFile: file, env: {}, repoRoot: dir });
-        expect(out).toMatchObject({ token: 'eyJ.file', apiKey: 'filekey', source: file });
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
-    });
-
-    it('returns null when no token is present', () => {
-      const dir = mkdtempSync(join(tmpdir(), 'agent-notok-'));
-      try {
-        expect(resolveImsToken({
-          secretsFile: join(dir, 'missing'), repoRoot: dir, env: {},
-        })).toBeNull();
+        mkdirSync(join(dir, 'cloudflare/src'), { recursive: true });
+        writeFileSync(join(dir, 'cloudflare/src/config.js'), "export default { AEM_ENV_ID: 'p5-e6' };\n");
+        expect(resolveAemEnvId({ repoRoot: dir, env: {} })).toBe('p5-e6');
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }

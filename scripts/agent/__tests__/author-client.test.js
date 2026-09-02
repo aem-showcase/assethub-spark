@@ -82,6 +82,18 @@ describe('author-client', () => {
     expect(fetchFn.mock.calls[0][1].headers['x-gw-ims-org-id']).toBe('ORG@AdobeOrg');
   });
 
+  it('can omit x-api-key for Sling requests', async () => {
+    const fetchFn = vi.fn(async () => makeRes({}));
+    const client = new AuthorClient({
+      tokenProvider: stubTokenProvider(), clientId: 'k', fetchFn, hosts: HOSTS,
+    });
+    await client.request('sling', { path: '/content/dam/acme/a.jpg/jcr:content/metadata.json', includeApiKey: false });
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe('https://author-p203220-e2129061.adobeaemcloud.com/content/dam/acme/a.jpg/jcr:content/metadata.json');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['x-api-key']).toBeUndefined();
+  });
+
   it('throws when constructed without a hosts map', () => {
     expect(() => new AuthorClient({ tokenProvider: stubTokenProvider(), clientId: 'k' }))
       .toThrow(/hosts map is required/);

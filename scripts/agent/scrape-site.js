@@ -9,7 +9,8 @@
  *      resolve the original asset URL (strips AEM .transform/ and CDN resize params), download
  *      the full-res bytes, and skip tiny images below minBytes.
  *
- * Output items are shaped for the classic uploader: { fileName, bytes, contentType, sourceUrl }.
+ * Output items are shaped for upload + enrichment:
+ * { fileName, bytes, contentType, sourceUrl, sourcePage, pageTitle, heading, altText }.
  */
 
 import {
@@ -43,6 +44,32 @@ function getAttr(tag, name) {
   const m = tag.match(ATTR_RE(name));
   if (!m) return null;
   return (m[2] ?? m[3] ?? m[4] ?? '').trim();
+}
+
+function decodeEntities(value) {
+  return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function textContent(value) {
+  return decodeEntities(String(value || '').replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function extractPageEvidence(html) {
+  const title = textContent((html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i) || [])[1]);
+  const heading = textContent((html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)
+    || html.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i)
+    || [])[1]);
+  return {
+    pageTitle: title || null,
+    heading: heading || null,
+  };
 }
 
 /**
@@ -167,6 +194,7 @@ export function resolveOriginalUrl(url) {
  *   2. <img src> / <img data-src>          (direct embeds)
  *   3. <img srcset> URLs                   (largest width descriptor first)
  *   4. <source srcset> URLs                (largest width descriptor first)
+ *   5. <a href> URLs with image extensions (EDS raw/pre-decoration markup)
  *
  * Thumbnail/rendition URLs and <img> tags with explicit tiny dimensions are filtered out.
  * Duplicates are removed (first bucket wins).
@@ -178,6 +206,7 @@ export function extractImageUrls(html, baseUrl) {
   const srcUrls = [];
   const srcsetUrls = [];
   const sourceUrls = [];
+  const anchorUrls = [];
 
   const addTo = (bucket, raw) => {
     const abs = resolveUrl(raw, baseUrl);
@@ -210,7 +239,38 @@ export function extractImageUrls(html, baseUrl) {
     parseSrcsetBest(getAttr(tag, 'srcset')).forEach((u) => addTo(sourceUrls, u));
   }
 
-  return [...metaUrls, ...srcUrls, ...srcsetUrls, ...sourceUrls];
+  // [4] Direct image links. EDS raw content commonly stores authored images as
+  // anchors before block decoration turns them into pictures, so <img>-only
+  // extraction misses real customer assets.
+  for (const tag of html.match(A_TAG_RE) || []) {
+    const href = getAttr(tag, 'href');
+    const abs = resolveUrl(href, baseUrl);
+    if (abs && BRING_IN_IMAGE_EXTENSIONS.includes(urlExtension(abs))) {
+      addTo(anchorUrls, href);
+    }
+  }
+
+  return [...metaUrls, ...srcUrls, ...srcsetUrls, ...sourceUrls, ...anchorUrls];
+}
+
+export function extractImageEvidence(html, baseUrl) {
+  const evidence = new Map();
+  const put = (raw, entry) => {
+    const abs = resolveUrl(raw, baseUrl);
+    if (!abs) return;
+    const current = evidence.get(abs) || {};
+    evidence.set(abs, { ...current, ...entry });
+  };
+
+  for (const tag of html.match(IMG_TAG_RE) || []) {
+    const altText = textContent(getAttr(tag, 'alt') || getAttr(tag, 'title') || getAttr(tag, 'aria-label'));
+    const entry = altText ? { altText } : {};
+    put(getAttr(tag, 'src'), entry);
+    put(getAttr(tag, 'data-src'), entry);
+    parseSrcset(getAttr(tag, 'srcset')).forEach((url) => put(url, entry));
+  }
+
+  return evidence;
 }
 
 export function extractDocumentUrls(html, baseUrl) {
@@ -328,6 +388,8 @@ export async function scrapeSiteImages({
     throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
   }
   const html = await pageRes.text();
+  const pageEvidence = extractPageEvidence(html);
+  const imageEvidence = extractImageEvidence(html, pageUrl);
   const candidateUrls = extractAssetUrls(html, pageUrl);
   log.info?.(`[agent] scraped ${candidateUrls.length} candidate asset URL(s) from ${pageUrl}`);
 
@@ -368,7 +430,14 @@ export async function scrapeSiteImages({
       // Use the original candidate URL for the filename so we get the meaningful name.
       const fileName = fileNameFromUrl(candidateUrl, usedNames, contentType);
       images.push({
-        fileName, bytes: buf, contentType, sourceUrl: url,
+        fileName,
+        bytes: buf,
+        contentType,
+        sourceUrl: url,
+        assetUrl: candidateUrl,
+        sourcePage: pageUrl,
+        ...pageEvidence,
+        ...(imageEvidence.get(candidateUrl) || {}),
       });
     } catch (err) {
       log.warn?.(`[agent] skip ${url} -> ${String(err.message || err)}`);

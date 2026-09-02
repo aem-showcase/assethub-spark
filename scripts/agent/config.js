@@ -9,11 +9,10 @@ import { resolve } from 'node:path';
 
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'secrets-file', 'limit',
-  'publish-target', 'write-mode', 'concurrency', 'report-file', 'fixture',
-  'aem-env-id', 'product-category-vocab', 'channel-vocab',
+  'concurrency', 'report-file', 'fixture', 'aem-env-id', 'metadata-mode',
 ]);
 
-const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'no-publish', 'bring-in']);
+const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'bring-in']);
 
 export const RESERVED_CUSTOMER_KEYS = new Set([
   'api',
@@ -88,59 +87,6 @@ export function resolveCreds({ secretsFile, repoRoot = process.cwd(), env = proc
 }
 
 /**
- * Resolve a pre-issued author IMS bearer token (AUTHOR_SPARK_IMS_TOKEN) and its paired
- * API key (AUTHOR_SPARK_IMS_API_KEY). When the token is present it is used verbatim and NO
- * client_credentials grant is performed; the paired API key is sent as `x-api-key` (the
- * author metadata endpoint validates x-api-key against the token's own client, so the DM
- * client id does not work with a Content-Hub-issued token). Order: env ->
- * cloudflare/.secrets -> root secret.env. Returns { token, apiKey, source } or null when
- * no token is set. A leading "Bearer " on the token is stripped.
- */
-export function resolveImsToken({ secretsFile, repoRoot = process.cwd(), env = process.env } = {}) {
-  const clean = (v) => v.replace(/^Bearer\s+/i, '').trim();
-
-  const candidates = [
-    secretsFile || resolve(repoRoot, 'cloudflare/.secrets'),
-    resolve(repoRoot, 'secret.env'),
-  ];
-
-  // The API key may be supplied in the environment even when the token comes from a file
-  // (and vice versa), so resolve it independently: env wins, then the first file that has it.
-  const resolveApiKey = (fileParsed) => {
-    if (env.AUTHOR_SPARK_IMS_API_KEY) return env.AUTHOR_SPARK_IMS_API_KEY.trim();
-    if (fileParsed?.AUTHOR_SPARK_IMS_API_KEY) return fileParsed.AUTHOR_SPARK_IMS_API_KEY.trim();
-    for (const file of candidates) {
-      if (!existsSync(file)) continue;
-      const parsed = parseEnvFile(readFileSync(file, 'utf8'));
-      if (parsed.AUTHOR_SPARK_IMS_API_KEY) return parsed.AUTHOR_SPARK_IMS_API_KEY.trim();
-    }
-    return null;
-  };
-
-  if (env.AUTHOR_SPARK_IMS_TOKEN) {
-    return {
-      token: clean(env.AUTHOR_SPARK_IMS_TOKEN),
-      apiKey: resolveApiKey(null),
-      source: 'env',
-    };
-  }
-
-  for (const file of candidates) {
-    if (!existsSync(file)) continue;
-    const parsed = parseEnvFile(readFileSync(file, 'utf8'));
-    if (parsed.AUTHOR_SPARK_IMS_TOKEN) {
-      return {
-        token: clean(parsed.AUTHOR_SPARK_IMS_TOKEN),
-        apiKey: resolveApiKey(parsed),
-        source: file,
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
  * Resolve the AEM environment id (pNNN-eNNN), used to build the author host
  * (author-<aemEnvId>.adobeaemcloud.com). Order: explicit opt -> env AEM_ENV_ID ->
  * cloudflare/src/config.js (the worker's own AEM_ENV_ID). Throws when none resolve.
@@ -169,11 +115,8 @@ export function parseArgs(argv) {
   const opts = {
     dryRun: false,
     force: false,
-    noPublish: false,
     bringIn: false,
-    writeMode: 'bulk',
     concurrency: 4,
-    publishTarget: 'AEM_PUBLISH',
     limit: null,
     sourceUrl: null,
     reportFile: null,
@@ -182,8 +125,7 @@ export function parseArgs(argv) {
     secretsFile: null,
     fixture: null,
     aemEnvId: null,
-    productCategoryVocab: null,
-    channelVocab: null,
+    metadataMode: 'filename',
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -193,7 +135,6 @@ export function parseArgs(argv) {
     if (BOOLEAN_FLAGS.has(name)) {
       if (name === 'dry-run') opts.dryRun = true;
       else if (name === 'force') opts.force = true;
-      else if (name === 'no-publish') opts.noPublish = true;
       else if (name === 'bring-in') opts.bringIn = true;
       continue;
     }
@@ -206,18 +147,11 @@ export function parseArgs(argv) {
         case 'source-url': opts.sourceUrl = value; break;
         case 'secrets-file': opts.secretsFile = value; break;
         case 'limit': opts.limit = Number(value); break;
-        case 'publish-target': opts.publishTarget = value; break;
-        case 'write-mode': opts.writeMode = value; break;
         case 'concurrency': opts.concurrency = Number(value); break;
         case 'report-file': opts.reportFile = value; break;
         case 'fixture': opts.fixture = value; break;
         case 'aem-env-id': opts.aemEnvId = value; break;
-        case 'product-category-vocab':
-          opts.productCategoryVocab = value.split(',').map((v) => v.trim()).filter(Boolean);
-          break;
-        case 'channel-vocab':
-          opts.channelVocab = value.split(',').map((v) => v.trim()).filter(Boolean);
-          break;
+        case 'metadata-mode': opts.metadataMode = value; break;
         default: break;
       }
     }
@@ -243,11 +177,8 @@ export function validateOptions(opts) {
       errors.push(`--dam-path must stay under ${expected} (got ${opts.damPath})`);
     }
   }
-  if (opts.writeMode && !['bulk', 'patch'].includes(opts.writeMode)) {
-    errors.push(`--write-mode must be bulk|patch (got ${opts.writeMode})`);
-  }
-  if (opts.publishTarget && !['AEM_PUBLISH', 'DYNAMIC_MEDIA'].includes(opts.publishTarget)) {
-    errors.push(`--publish-target must be AEM_PUBLISH|DYNAMIC_MEDIA (got ${opts.publishTarget})`);
+  if (opts.metadataMode && !['filename', 'vision'].includes(opts.metadataMode)) {
+    errors.push(`--metadata-mode must be filename|vision (got ${opts.metadataMode})`);
   }
   return errors;
 }

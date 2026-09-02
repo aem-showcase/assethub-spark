@@ -57,6 +57,7 @@ export class AuthorClient {
     maxRetries = 4,
     baseBackoffMs = 500,
     imsOrgId = null,
+    authorHost = null,
   }) {
     if (!hosts) throw new Error('AuthorClient: hosts map is required (build via buildHosts(aemEnvId))');
     this.tokenProvider = tokenProvider;
@@ -67,6 +68,7 @@ export class AuthorClient {
     this.maxRetries = maxRetries;
     this.baseBackoffMs = baseBackoffMs;
     this.imsOrgId = imsOrgId;
+    this.authorHost = authorHost;
   }
 
   resolveUrl(op, path) {
@@ -76,14 +78,16 @@ export class AuthorClient {
     return `${host}${path}`;
   }
 
-  async buildHeaders(extra = {}) {
+  async buildHeaders(extra = {}, { includeApiKey = true } = {}) {
     const token = await this.tokenProvider.getToken();
     const headers = {
       [HEADER_AUTHORIZATION]: `Bearer ${token}`,
       [HEADER_EXPERIMENTAL]: EXPERIMENTAL_VALUE,
       ...extra,
     };
-    if (this.clientId) headers[HEADER_API_KEY] = this.clientId;
+    if (includeApiKey && this.clientId && !headers[HEADER_API_KEY]) {
+      headers[HEADER_API_KEY] = this.clientId;
+    }
     if (this.imsOrgId) headers['x-gw-ims-org-id'] = this.imsOrgId;
     return headers;
   }
@@ -94,14 +98,14 @@ export class AuthorClient {
    * (ETag, Location) themselves.
    */
   async request(op, {
-    method = 'GET', path, headers = {}, body,
+    method = 'GET', path, headers = {}, body, includeApiKey = true,
   }) {
     let refreshed = false;
     let attempt = 0;
 
     for (;;) {
       const url = this.resolveUrl(op, path);
-      const reqHeaders = await this.buildHeaders(headers);
+      const reqHeaders = await this.buildHeaders(headers, { includeApiKey });
       if (process.env.AGENT_DEBUG) {
         console.error(`[agent:curl] ${toCurl({
           method, url, headers: reqHeaders, body,

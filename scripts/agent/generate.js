@@ -30,22 +30,23 @@ function tokensFromName(repoName) {
  * Deterministic, offline generator. Produces a stable preview from the asset's file name
  * and any keyword hints — enough to review the enrichment shape before a live run.
  */
-export function createDryRunGenerator() {
-  return async function dryRunGenerate({ repoName, hints = {} }) {
+export function createFilenameGenerator() {
+  return async function filenameGenerate({ repoName, hints = {} }) {
     const title = humanizeName(repoName);
     const nameTokens = tokensFromName(repoName);
     const hintKeywords = Array.isArray(hints.machineKeywords) ? hints.machineKeywords : [];
     const keywords = [...nameTokens, ...hintKeywords].map((k) => String(k).toLowerCase());
     return {
       title,
-      description: `${title} — auto-generated preview description for demo enrichment.`,
+      description: `${title} - auto-generated preview description for demo enrichment.`,
       keywords,
-      productCategory: nameTokens.find((t) => t) || null,
       campaign: null,
       channel: null,
     };
   };
 }
+
+export const createDryRunGenerator = createFilenameGenerator;
 
 /**
  * Wrap a caller-supplied model invocation. `invokeModel(input) => rawFields|JSON string`.

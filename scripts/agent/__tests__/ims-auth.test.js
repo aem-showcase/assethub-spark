@@ -1,7 +1,7 @@
 import {
   describe, it, expect, vi,
 } from 'vitest';
-import { createImsToken, ImsTokenProvider, StaticTokenProvider } from '../ims-auth.js';
+import { createImsToken, ImsTokenProvider } from '../ims-auth.js';
 import { makeRes } from './helpers.js';
 
 describe('ims-auth', () => {
@@ -45,22 +45,6 @@ describe('ims-auth', () => {
       await provider.getToken();
       await provider.refresh();
       expect(fetchFn).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('StaticTokenProvider', () => {
-    it('returns the supplied token without any grant', async () => {
-      const provider = new StaticTokenProvider({ token: 'PRE_ISSUED' });
-      expect(await provider.getToken()).toBe('PRE_ISSUED');
-    });
-
-    it('refresh() returns the same static token', async () => {
-      const provider = new StaticTokenProvider({ token: 'PRE_ISSUED' });
-      expect(await provider.refresh()).toBe('PRE_ISSUED');
-    });
-
-    it('throws when no token is supplied', () => {
-      expect(() => new StaticTokenProvider({})).toThrow(/token is required/);
     });
   });
 });

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { FIELD, STATUS_APPROVED } from '../constants.js';
-import { fieldsToProperties } from '../enrich-classic.js';
+import { buildSlingMetadataUpdate } from '../sling-metadata.js';
 import { isAlreadyEnriched } from '../metadata.js';
 import { parseArgs, validateOptions } from '../config.js';
 import {
@@ -49,15 +49,19 @@ function runGuard(projectDir, event) {
 }
 
 describe('customer migration asset metadata guardrails', () => {
-  it('stamps global country visibility on classic metadata writes', () => {
-    const props = fieldsToProperties(
-      { title: 'Hero', keywords: ['hero'] },
-      { company: 'acme', status: STATUS_APPROVED, allowedCountries: 'global' },
+  it('stamps global country visibility on add-only Sling metadata writes', () => {
+    const plan = buildSlingMetadataUpdate(
+      { title: 'Hero', keywords: ['hero'], productCategory: 'products' },
+      { company: 'acme', status: STATUS_APPROVED, allowedCountries: ['global'] },
+      {},
     );
 
-    expect(props[FIELD.COMPANY]).toBe('acme');
-    expect(props[FIELD.STATUS]).toBe(STATUS_APPROVED);
-    expect(props[FIELD.ALLOWED_COUNTRIES]).toBe('global');
+    expect(plan.entries).toContainEqual({ name: `./${FIELD.COMPANY}`, value: 'acme' });
+    expect(plan.entries).toContainEqual({ name: `./${FIELD.STATUS}`, value: STATUS_APPROVED });
+    expect(plan.entries).toContainEqual({
+      name: `./${FIELD.ALLOWED_COUNTRIES}`,
+      value: 'global',
+    });
   });
 
   it('does not skip assets missing required visibility metadata', () => {
@@ -72,6 +76,7 @@ describe('customer migration asset metadata guardrails', () => {
       [FIELD.TITLE]: 'Hero',
       [FIELD.STATUS]: STATUS_APPROVED,
       [FIELD.ALLOWED_COUNTRIES]: ['global'],
+      [FIELD.PRODUCT_CATEGORY]: 'products',
     }, 'acme')).toBe(true);
   });
 });

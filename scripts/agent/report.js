@@ -8,17 +8,31 @@ export const OUTCOME = {
   ENRICHED: 'enriched',
   SKIPPED: 'skipped',
   FAILED: 'failed',
-  PUBLISHED: 'published',
 };
 
 export class Report {
   constructor() {
     this.assets = [];
     this.startedAt = new Date().toISOString();
+    this.context = {};
+    this.representatives = null;
+    this.categoryCoverage = null;
   }
 
   record(assetId, outcome, detail = {}) {
     this.assets.push({ assetId, outcome, ...detail });
+  }
+
+  setRepresentatives(representatives) {
+    this.representatives = representatives;
+  }
+
+  setCategoryCoverage(categoryCoverage) {
+    this.categoryCoverage = categoryCoverage;
+  }
+
+  setContext(context = {}) {
+    this.context = { ...this.context, ...context };
   }
 
   counts() {
@@ -37,12 +51,16 @@ export class Report {
   }
 
   toJSON() {
-    return {
+    const json = {
       startedAt: this.startedAt,
       finishedAt: new Date().toISOString(),
       counts: this.counts(),
       assets: this.assets,
     };
+    if (Object.keys(this.context).length > 0) json.context = this.context;
+    if (this.representatives) json.representatives = this.representatives;
+    if (this.categoryCoverage) json.categoryCoverage = this.categoryCoverage;
+    return json;
   }
 
   summaryLine() {

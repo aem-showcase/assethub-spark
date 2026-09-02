@@ -1,3 +1,8 @@
+---
+name: customer-migration
+description: Produce a demo copy of the AEM Edge Delivery asset portal for a company, rebrand it, enrich company assets, and create scoped collections using the existing environment.
+---
+
 # Customer Migration — Demo
 
 This skill produces a **demo**: a copy of an existing AEM Edge Delivery
@@ -79,6 +84,9 @@ re-plan, or reorder it — run it and mark each step `done` as you go.
 5. **`assets-uploaded` → `assets-enriched` → `search-scoped`** — upload
    and enrich the company's assets so they're searchable, scoped to the
    company (Step 5).
+6. **`collections-created`** — once the company's assets are searchable,
+   group them into ready-made collections (one per category), each scoped
+   to the company so it shows/hides with the demo company filter (Step 6).
 
 > **⛔ The one hard gate.** You may NOT invoke the design tool
 > (`excat-complete-design-expert`) or edit any styling file until both
@@ -96,7 +104,7 @@ shape from memory:**
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "intent": "full | frontend-only | assets-only",
   "customer": {
     "name": null,
@@ -114,16 +122,26 @@ shape from memory:**
     "landed-via-pr": "pending",
     "assets-uploaded": "pending",
     "assets-enriched": "pending",
-    "search-scoped": "pending"
+    "search-scoped": "pending",
+    "collections-created": "pending"
   }
 }
 ```
 
 Step values are `pending`, `done`, `blocked`, or `not-requested`
-(assets steps are `not-requested` when `intent` is `frontend-only`).
+(assets steps and `collections-created` are `not-requested` when `intent`
+is `frontend-only`).
 `customer.companyKey` is the slug of `customer.name` (lowercase, hyphens);
 `daFolder` is `/<companyKey>`. Asset credentials and the AEM env id are
 **not** in state — they live in the existing environment (Step 5).
+
+## Skill source of truth
+
+Only **`.claude/skills/customer-migration`** is maintained. This repo's
+skill discovery reads `.claude/skills`, so do **not** keep a second
+`.agents/skills/customer-migration` copy. If that duplicate appears, remove
+it before editing or running the workflow; a stale duplicate can bypass
+new gates such as Step 4g's color verification before assets.
 
 ## Entry flow — run first, every invocation
 
@@ -135,6 +153,11 @@ Step values are `pending`, `done`, `blocked`, or `not-requested`
    that step as needing confirmation, not authoritative. Otherwise resume
    at the first non-`done` step and don't re-ask answered questions. If
    the file is absent, create it with the schema above.
+   **Step 5 resume guard:** if the next runnable step is asset enrichment
+   but Step 4g was not verified in the current session, run Step 4g first.
+   A `done` state value is not enough to start assets when live CSS,
+   copied docs, PR scope, or the facets panel can still carry stale base
+   branding.
 
 2. **Ask one customer-facing question** (unless the request already makes
    it unambiguous). Plain outcome language, no internal terms (I1). Never
@@ -145,17 +168,20 @@ Step values are `pending`, `done`, `blocked`, or `not-requested`
    copy of the site under their company name — then proceed.
 
    Offer only outcomes the state supports. On a fresh request:
-   - "Set up <Brand>'s own copy of the site under its name, give it
-     <Brand>'s look and content, and load in <Brand>'s own assets so
-     they're easy to find by searching and filtering" → `intent` = `full`.
-   - "Just set up <Brand>'s copy with <Brand>'s look and content for now —
-     I'll load <Brand>'s assets in a later step" → `intent` =
-     `frontend-only` (assets steps → `not-requested`).
+   - "Set up <Brand>'s own copy of the site under its name, match the look
+     and content direction from <Brand>'s website, and load in <Brand>'s own
+     assets so they're easy to find by searching, filtering, and browsing
+     collections" → `intent` = `full`.
+   - "Just set up <Brand>'s copy with <Brand>'s look and content direction
+     from <Brand>'s website for now — I'll load <Brand>'s assets and
+     collections in a later step" → `intent` = `frontend-only` (assets steps
+     and `collections-created` → `not-requested`).
    - "Something else" (free text).
 
    On a resumed request where the rebrand is already verified `done`,
-   offer instead: "Load in <Brand>'s own assets so they're searchable" →
-   `intent` = `assets-only` (route straight to Step 5).
+   offer instead: "Load in <Brand>'s own assets so they're searchable and
+   grouped into collections" → `intent` = `assets-only` (route straight to
+   Step 5, then Step 6).
 
    Never label an option with a step/phase name or a bare mechanic
    ("rebrand only," "publish"); every option states a concrete result the
@@ -163,6 +189,22 @@ Step values are `pending`, `done`, `blocked`, or `not-requested`
 
 3. **Run the sequence** above from the first non-`done` step. Honor the
    hard gate. Do not narrate the step list back to the customer.
+
+## Agent invocation examples (operator-facing)
+
+Use these to route user prompts; do not recite this table to the customer.
+
+| User says | Route |
+|---|---|
+| "Create a demo portal for Acme using `https://www.acme.com` for the visual style and content direction. The assets are already in Adobe." | `full`; source site present; enrich existing assets; automatically create collections after assets verify. |
+| "Create a demo portal for Acme using `https://www.acme.com` for the visual style and content direction. Pull sample assets from `https://www.acme.com/products`." | `full`; source site present; bring in sample assets from the named asset source; enrich; automatically create collections after assets verify. |
+| "Create Acme's demo portal using `https://www.acme.com` for the visual style and content direction, but stop before loading assets." | `frontend-only`; source site present; assets and collections are `not-requested`. |
+| "Now load Acme's assets from Adobe and create the collections." | `assets-only`; resume at Step 5; enrich existing assets; automatically run Step 6 after assets verify. |
+| "Rebrand this for Acme." | Missing required source site; ask for Acme's source site so the look and content direction can be matched. |
+
+Every full/assets route ends with collections unless the state says
+`intent` is `frontend-only`. Do not wait for the customer to ask for
+collections after assets are searchable.
 
 ## Operator setup (not customer-facing)
 
@@ -218,7 +260,7 @@ CLI still needs explicit hook registration. See `hooks/README.md`.
 
 Before anything mechanical, tell the customer in one plain sentence what
 will happen: you'll make a copy of the site under their company's name,
-give it their look and content, and share it as a preview link — the
+give it their look and content, and share it as a portal link — the
 original is never changed (I1, no internal terms). Mark `demo-confirmed`
 `done`.
 
@@ -270,8 +312,10 @@ prevents: assuming DA is empty (because the checkout has no `fstab.yaml`,
 or "it's just a demo") and skipping the copy. **You may conclude DA is
 empty only from a real authenticated `list` that returned zero documents.**
 
-This needs `DA_TOKEN` in `token.env` — collect it now (Step 4a) if it
-isn't there yet.
+This needs `DA_TOKEN` in `token.env` — run Step 4a's token setup now if
+`token.env` is absent or unverified. That setup asks the customer for only
+`DA_TOKEN`, then runs `ensure-eds-tokens.sh`; the generated/reused
+`HLX_ADMIN_TOKEN` is used later for publish.
 
 **Use the packaged script — do not hand-roll `curl`:**
 
@@ -371,60 +415,56 @@ nav/footer before treating this step done.
 
 ## Step 4a — Content-authoring access (`token.env` — the only setup)
 
-The only access setup is a gitignored `token.env` at the repo root, two
-lines, `KEY=value`, no quotes:
+The only customer-provided access setup is a gitignored `token.env` at the
+repo root with **one** line, `KEY=value`, no quotes:
 
-- **`DA_TOKEN`** — read/write Document Authoring content (Step 3 copy,
-  Step 4 rewrite/publish).
-- **`HLX_ADMIN_TOKEN`** — call Helix Admin (preview, publish, status).
+- **`DA_TOKEN`** — read/write Document Authoring content, and mint the
+  Helix Admin API key used for preview/publish.
 
 Send this exact message (don't paraphrase, don't add any settings/toggle/
 permissions step — none exists for this flow):
 
 > "Before I start, create a file called `token.env` in the project root
-> with these two lines (I'll never ask you to paste these in chat):
-> `DA_TOKEN=<your Document Authoring access token>`
-> `HLX_ADMIN_TOKEN=<your Helix Admin token>`
+> with this one line (I'll never ask you to paste this in chat):
+> `DA_TOKEN=<token copied from da.live>`
+> To get it: open `https://da.live/#/{org}/{site}`, sign in, open browser
+> DevTools → Network, click a request like
+> `https://admin.da.live/config/{org}/...`, copy the
+> `Authorization: Bearer ...` request header, and paste only the token
+> value after `DA_TOKEN=`.
 > Let me know once it's there."
 
 Then check the file exists (never read/log its contents — I2) and confirm
 it's gitignored; if `.gitignore` lacks a `token.env` entry, add one.
-Access is exactly these two tokens — there is no web app, settings screen,
-or permissions/admin toggle to ask about. Never send the customer looking
-for one.
+Access is exactly this DA token from the customer. The active flow does not
+ask the customer for any other token or send them to another setup screen.
 
-**How the customer gets each value** (give these steps if asked):
+After `token.env` exists, run the packaged token script:
 
-- **`DA_TOKEN`** (Document Authoring / Adobe IMS token): sign in at
-  `https://da.live`; DevTools → Application → Local Storage →
-  `https://da.live`; copy the IMS access token (key containing
-  `accessToken`/`access_token`). Short-lived — on `401`, re-auth and grab
-  a fresh value.
-- **`HLX_ADMIN_TOKEN`** (Helix Admin API key — not a site-access token):
-  1. Get `{org}`/`{site}` from the Helix URL
-     `https://main--{site}--{org}.aem.page`.
-  2. Sign in at `https://admin.hlx.page/login/{org}/{site}/main` with an
-     admin/config_admin account.
-  3. DevTools → Cookies for `admin.hlx.page` → copy `auth_token`.
-  4. Mint a reusable key:
-     ```
-     curl -s -X POST \
-       -H "x-auth-token: <auth_token>" \
-       -H "Content-Type: application/json" \
-       -d '{ "description": "customer-migration rebrand", "roles": ["admin"] }' \
-       https://admin.hlx.page/config/{org}/sites/{site}/apiKeys.json
-     ```
-     The response `value` is `HLX_ADMIN_TOKEN` (shown once — save it now).
+```
+.claude/skills/customer-migration/scripts/ensure-eds-tokens.sh \
+  <org> <repo> \
+  --token-file token.env
+```
 
-Known quirk: a `admin.hlx.page` preview/publish can `401` even with a
-valid `DA_TOKEN` — forward the token via an
-`x-content-source-authorization` header rather than assuming it's wrong.
+The script verifies `DA_TOKEN`, reuses an existing valid `HLX_ADMIN_TOKEN`
+if present, otherwise mints a new Helix Admin API key from `DA_TOKEN`,
+writes it back to `token.env`, and verifies Helix Admin status. It never
+prints token values. If DA validation fails, stop and say the DA token is
+expired or does not have access to this site. If minting fails or returns no
+token value, stop and say the DA token works for DA but the user cannot mint
+the publish token for this site; ask for a DA token from a user with the
+required site admin/config rights. Do not offer fallback token paths.
+
+Known quirk: a `admin.hlx.page` preview/publish can `401` even with valid
+tokens — forward the DA token via an `x-content-source-authorization`
+header rather than assuming it's wrong.
 
 Also confirm the brand inputs before the delegation: the new brand name
-(`customer.name`), the source site to extract the look from (if any), and
-that the customer wants the full scope — design tokens AND asset colors
-AND content-register rewrite AND publish AND landing via PR. Don't proceed
-on a vague "update the styles."
+(`customer.name`), the source site to extract the look from, and that the
+customer wants the full scope — design tokens AND asset colors AND
+content-register rewrite AND publish AND landing via PR. Don't proceed
+without a source site, or on a vague "update the styles."
 
 ## Step 4b–4f — The delegation (`rebranded`, `published`, `landed-via-pr`)
 
@@ -618,6 +658,13 @@ Mark `rebranded`, `demo-company-set`, `published`, and `landed-via-pr`
 
 ## Step 4g — Verification (before declaring the rebrand done)
 
+This section is a **hard gate before Step 5**, not optional cleanup. Do not
+invoke `scripts/agent/enrich-assets.js`, create collections, or mark asset
+steps `done` until every Step 4g check passes against the deployed PR
+worker in the current session. If a resumed state claims rebrand is done
+but any Step 4g check fails, leave `assets-*` pending, fix Step 4, and only
+then continue.
+
 Completion is the **open PR + its verified branch-preview URL** (I3), not
 a merge. The preview URL is the **per-PR worker**
 (`https://<branch>.dev.frescopamedia.com/<company>/…`), not the raw
@@ -648,11 +695,37 @@ once right after the step 1–2 edits, and again against the preview URL.
    the filter panel on the base cream surface (verified live) — that is a
    FAIL, not a pass. **Explicitly grep these exact base surface names — all
    verified still-cream live:** `--light-color` and its hex `#F4E9DC`
-   (case-insensitive), `frescopa-background` (the `.frescopa-background-*`
-   section classes), and `backgrounds/big.svg`. Any of these still present
-   with the frescopa cream value is the "filter background off-brand" gap.
+   (case-insensitive), the hardcoded facets/search-panel cream `#FBF1EA`,
+   `frescopa-background` (the `.frescopa-background-*` section classes),
+   and `backgrounds/big.svg`. Any of these still present with the
+   frescopa cream value is the "filter background off-brand" gap.
    Every base surface token and decorative base-brand background must be
    gone. Also confirm the welcome-panel tokens were set (see item 5).
+   Also grep the old action reds that commonly survive through component
+   overrides: `#95351D`, `#7a2b17`, and every other red/gold value in the
+   token diff. Any remaining hit must be either changed to a semantic token
+   from the new palette or explicitly justified as a deliberate new-brand
+   choice; do not classify these old brand reds as neutral chrome.
+   Then run a **structural hardcoded-surface audit**, not just exact old
+   values: inspect every `background`, `background-color`, `border-color`,
+   token assignment, and SVG `fill`/`stroke` using a literal hex in
+   `styles/`, `blocks/search-results/`, `blocks/search-bar/`, and `icons/`.
+   Classify each hit as **neutral UI chrome** (`#fff`, greys, focus ring),
+   **semantic token fallback**, or **brand/off-brand surface**. Any
+   brand/off-brand hit must become a semantic token. Do not dismiss a color
+   as neutral until checking the rendered component it styles.
+   **Known repeat misses that must be checked explicitly before Step 5:**
+   `blocks/search-results/styles/facets.css .facet-filter-panel`
+   (`background-color` overrides earlier `background`), search-results
+   `theme.css` red token aliases (`--red-*`, invalid/pressed colors),
+   `blocks/search-results/styles/search-panel.css`,
+   `blocks/search-results/styles/cart-panel.css`,
+   `blocks/search-results/styles/date-picker.css`,
+   `styles/add-to-collection-modal.css`, and `styles/styles.css`
+   secondary button base/hover colors. If a rule has both
+   `background: #...` and later `background-color: #...`, the later
+   declaration wins; inspect the computed result and fix the winning
+   declaration, not just the first one.
 3. **Grep the base brand slug** (`frescopa`) — case-insensitive, across
    the whole repo (`icons/`, `styles/`, `blocks/`, `head.html`) — catching
    a renamed icon whose class still reads `.icon-<baseSlug>-mark`, a CSS
@@ -699,6 +772,16 @@ column means the `welcome` section style was flattened (fix the rewrite).
 Also fetch `/<companyKey>/public/welcome.plain.html` and assert it still
 contains `<div class="welcome">`.
 
+**Facets-panel verification is mandatory before assets.** Open the
+deployed PR worker URL, not only the raw AEM content origin, at a desktop
+viewport where the facets panel is visible (`width >= 1440px`). Inspect the
+search page with the filter panel open and verify the computed panel
+background, secondary button hover state, and search-results theme tokens
+come from the new palette/semantic variables. Do not proceed to Step 5
+while any stale base-brand cream/red is visible there; this is the common
+gap where the hero looks rebranded but the actual searchable-assets UI
+still carries the old brand.
+
 **Link-scope check (the logo-404 guard).** Fetch the copied
 `/<companyKey>/en/nav` doc and assert the logo/brand link href starts with
 `/<companyKey>/` and has **no** `file:` scheme; assert every internal link
@@ -736,7 +819,7 @@ root content is unchanged (spot-check one root page still shows the old
 brand). Only then is the rebrand done.
 
 **Completion report** (I1, outcomes only): what's rebranded and confirmed
-on the preview URL (no merge needed); the new brand name and content
+on the portal link (no merge needed); the new brand name and content
 highlights; any follow-up (e.g. a placeholder logo pending the real
 asset). Then, unless `intent` is `full`, ask whether to load the assets in
 now or stop here — stopping is a valid end state (I4).
@@ -744,6 +827,17 @@ now or stop here — stopping is a valid end state (I4).
 ---
 
 # Step 5 — Upload and enrich the company's assets
+
+## Step 5 preflight — rebrand verification gate
+
+Before any `--dry-run` or live asset enrichment, assert all of these are
+true in the current session: Step 4g passed on the deployed PR worker;
+`cloudflare/src/config.js` is scoped to the company; the old cream/filter
+values and old action reds are gone or intentionally justified; the
+facets panel computed background and secondary hover state use the new
+semantic palette. If any check is missing or stale, go
+back to Step 4g and leave the asset steps pending. Do not treat asset
+enrichment as a way to "move forward" past an unverified rebrand.
 
 Make the customer's own assets show up in the portal and be **findable** —
 searchable by what's written about each and filterable by facets
@@ -755,8 +849,8 @@ searching and filtering on what's in each one." Two lanes:
 - **Enrich-existing (default)** — the assets already sit in the company's
   AEM folder; this labels them so they surface in search and facets.
 - **Bring-in (opt-in)** — the customer named a source website; pull sample
-  images and linked documents from it into the folder first, then label them
-  the same way.
+  images and linked documents from it into the folder first using the AEM UI's
+  repository blob-upload API, then label them the same way.
 
 ## Existing environment — no collection, no provisioning
 
@@ -764,7 +858,7 @@ Step 5 **reuses the existing environment**. The asset controller
 `scripts/agent/enrich-assets.js` resolves everything itself at call time:
 
 - **Credentials** from `cloudflare/.secrets` (`SPARK_DM_CLIENT_ID`,
-  `SPARK_DM_CLIENT_SECRET`, and/or a pre-issued `AUTHOR_SPARK_IMS_TOKEN`)
+  `SPARK_DM_CLIENT_SECRET`)
   — the existing repo already has these. **No new secret, no credential
   collection, no tier/boot/deploy.**
 - **AEM env id** from the repo's own config
@@ -782,8 +876,10 @@ disabled dedicated path.
 node scripts/agent/enrich-assets.js \
   --customer-key <companyKey> \
   [--dam-path /content/dam/<companyKey>] \
-  [--bring-in --source-url <url>] \
-  [--dry-run] [--force] [--no-publish] \
+  [--source-url <url>] \
+  [--dry-run] [--force] \
+  [--metadata-mode filename|vision] \
+  [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
 ```
 
@@ -792,44 +888,93 @@ node scripts/agent/enrich-assets.js \
   `company` scope value; they are the same value by construction. The
   controller rejects reserved route keys and any `--dam-path` outside
   `/content/dam/<companyKey>`.
-- Default lane is enrich-existing; `--bring-in --source-url <url>` selects
-  the cherry lane (auto-creates the folder). **Always `--dry-run` first**
-  (enumerate → read → generate → normalize, emitting intended writes
-  without writing/publishing) — review the printed category/channel values
-  — then run live. `--force` re-labels already-labelled assets;
-  `--no-publish` stops before publish. See `scripts/agent/README.md` for
-  the full flag list and offline `--fixture` mode.
+- Default lane is enrich-existing; `--source-url <url>` selects the
+  source-site lane (auto-creates the folder through
+  `/adobe/repository/content/dam;api=create;path=<companyKey>;intermediates=true`,
+  then uploads each file with the repository create → block_upload →
+  presigned-blob PUT → block_upload_finalize flow captured from the AEM UI
+  HARs). **Always `--dry-run` first**
+  (scrape/enumerate → read Sling metadata → generate → categorize → plan
+  Sling metadata writes, without writing) — review `categoryCoverage` and
+  `representatives.items` — then run live. `--force` reprocesses already
+  enriched assets but still never overwrites existing metadata. See
+  `scripts/agent/README.md` for the full flag list and offline `--fixture`
+  mode.
+
+**Do not give up on an EDS/AEM site after a plain `<img>` scrape.** The
+packaged scraper extracts images from `og:image`/`twitter:image`,
+`<img src|data-src|srcset>`, `<source srcset>`, and direct
+`<a href="*.jpg|*.png|*.webp|...">` links, which covers EDS raw/
+pre-decoration markup where authored images are links before block
+decoration. If bring-in returns zero or too few downloads, report the exact
+candidate/download counts and the failure reason (no candidates, blocked
+download, tiny/thumbnail-only, non-image response). Ask for a different
+source URL only after that diagnosis; do not stop at "try more URLs" when
+the current page exposes direct image asset links.
+
+**Metadata mode is explicit.** Default `--metadata-mode filename` is
+deterministic filename/hint-derived metadata, not AI/vision output:
+`dc:title`, `dc:description`, `dc:subject` keywords, `campaign`,
+`channel`, and `brand`. `productCategory` is assigned separately from
+existing metadata and source-site evidence. `company`,
+`dam:status=approved`, and `allowedCountries=["global"]` are stamped by
+the controller only when missing. `--metadata-mode vision` is reserved for a real
+model integration and fails fast until it is wired; do not claim a live run
+used AI/vision unless that mode is implemented and selected.
 
 The controller does the per-asset work (bounded concurrency, idempotent):
 **`assets-uploaded`/`assets-enriched`** — for each asset it generates a
 title, description, keywords and, where inferable, category/campaign/
 channel, stamps the company scope value, stamps
-**`allowedCountries=global`**, marks it approved, writes the metadata
-(bulk where possible, retrying on conflict), and publishes in batches so
-assets enter the search index. The `allowedCountries=global` stamp is not
-optional: the worker's country authz clause
+**`allowedCountries=["global"]`**, marks it approved, writes missing
+metadata through Sling on
+`/content/dam/<companyKey>/<asset>/jcr:content/metadata`, and relies on
+**`dam:status=approved`** for Delivery visibility. Metadata auth uses only
+the IMS bearer minted from `SPARK_DM_CLIENT_ID` and
+`SPARK_DM_CLIENT_SECRET`; do not use the Assets Author metadata PATCH API
+or a separate metadata API key. Do not run a separate asset publish stage.
+The `allowedCountries=global` stamp is not optional:
+the worker's country authz clause
 (`cloudflare/src/origin/dm.js`) hides any asset whose `allowedCountries`
 doesn't include the viewer's country, so an untagged asset returns **0
 results** for a country-scoped user (verified-broken live). Every enriched
 asset is tagged `global` so it is visible regardless of country.
 
-**Category and Channel are free text, not a fixed enum.** The portal's
-search config declares them as plain string buckets — whatever distinct
-values exist become the filter options. Default: keep the generator's own
-guesses (`normalize.js` clamps length, does not drop). Only if the
-customer explicitly gave a small fixed set do you pass
-`--product-category-vocab` / `--channel-vocab` to map-or-drop against
-exactly that list. **Never invent a curated vocabulary and silently apply
-it** — that once made an entire run's Category/Channel come back empty.
+**Category is source-site driven.** Do not invent a hardcoded
+customer-specific category list and do not pass strict vocab flags. The
+controller derives `productCategory` from existing metadata, source page
+category, URL path, title/heading, alt text, nearby text, and filename/
+keyword fallback evidence. If it cannot defend a category, it leaves that
+asset without a `productCategory` write and reports `stage=category`.
 
-**Exception — curated category cards make the vocab MANDATORY.** If Step 4
-rewrote the home "Browse by category" cards to specific `productCategory`
-slugs (it does), those slugs ARE the confirmed fixed set: pass them as
-`--product-category-vocab "<that exact list>"` so every asset's
-`productCategory` maps into a slug a card actually links to. Skipping this
-is the "coffee (0)" failure verified live — the card links `productCategory:coffee`
-while the assets carry free-text values, so every card returns 0. The card
-slugs (Step 4) and the enrichment vocab (here) MUST be the same list.
+## Use the enrichment report to replace copied placeholder visuals
+
+This is part of **Step 5**, not a new Step 5.5. Asset metadata alone will
+not change the copied homepage/category/top-model card images: those are
+authored page cells. The controller's `--report-file` contains
+`categoryCoverage.categories` and `representatives.items`. Use that report
+immediately after the dry-run/live run to update the copied DA docs under
+`/<companyKey>/...`:
+
+- Build Browse-by-category cards from `categoryCoverage.categories` only:
+  every card slug must have `assetCount > 0`.
+- Replace placeholder/base imagery in Browse-by-category cards with a
+  representative asset for the same `productCategory` slug.
+- Replace top-model/product cards with representative assets whose title,
+  filename, or keywords match the model/product named in the card; if no
+  exact product match exists, use the category representative and mark the
+  product-specific image as a follow-up.
+- Keep the card href facet slug and the asset's `productCategory` equal;
+  never rewrite the visible label only.
+- If the intended card set has a missing/zero category, do not publish that
+  category card and do not fallback to a broad search link. Continue source
+  discovery, upload more customer assets, re-run enrichment, and block Step
+  5 until each published category card has coverage.
+
+Publish the updated company-scoped DA docs after replacing the visuals.
+The visible outcome is real customer imagery/icons on the home/category
+and top-model cards, not the base coffee placeholders from the copied
+site.
 
 ## Scope the portal to this company (`search-scoped`)
 
@@ -855,18 +1000,25 @@ returned success:
 2. Open the Category filter (and Campaign/Channel/Keywords if configured)
    and confirm buckets exist for the written values with **non-zero
    counts** — e.g. `Movies & Shows (N)`, `N ≥ 1`, not `(0)`. A bucket
-   stuck at `(0)` after labelling/publishing is this step's known failure
-   (values dropped or not indexed) — re-check the vocab decision and
-   confirm publish actually completed, then retry.
+   stuck at `(0)` after labelling/approval is this step's known failure
+   (values not written, not indexed, or the asset is not visible) — confirm
+   the assets carry `company`, `productCategory`, `dam:status=approved`, and
+   `allowedCountries=global`, then retry after indexing.
 3. **Every home category-card slug is a live, non-zero bucket.** For each
    `productCategory` slug the Step-4 category cards link to, click that card
    on the preview and confirm it returns **> 0** assets (not the "coffee
-   (0)" failure). If any card yields 0, the card slug and the enrichment
-   vocab disagree — reconcile them (same list) and re-enrich/republish.
-4. **Country visibility.** Read one enriched asset's metadata and confirm
+   (0)" failure). If any card yields 0, the card was not backed by
+   `categoryCoverage`; find/upload more matching assets, re-run enrichment,
+   and republish only once the bucket is non-zero.
+4. **Card visuals are real customer assets.** Browse-by-category and
+   top-model/product cards in the copied `/<companyKey>` pages use assets
+   from `representatives.items`; no base-brand coffee icons, stale
+   placeholders, or missing-image circles remain. Each card image belongs
+   to the same category/model the card links to.
+5. **Country visibility.** Read one enriched asset's metadata and confirm
    `allowedCountries` includes `global`; confirm a country-scoped demo user
    (not just an admin) gets non-zero search results.
-5. Filtering by a bucket narrows results to matching assets, and only this
+6. Filtering by a bucket narrows results to matching assets, and only this
    company's assets appear.
 
 Mark `assets-uploaded`, `assets-enriched`, `search-scoped` `done` once all
@@ -875,10 +1027,111 @@ pass.
 **Completion report** (I1, outcomes only): which assets are now in the
 portal and searchable; that filtering works (name the facets that lit up);
 that the demo shows only this company's assets; any per-asset items that
-couldn't be brought in. The demo is shareable **without merging** — the
-open PR's branch-preview URL serves the rebranded, company-scoped portal;
-that link is the deliverable. Promoting to production (merge) is optional
-and not the finish line (I3); never close/delete the PR (I5).
+couldn't be brought in. Do not stop here for `full` or `assets-only` flows:
+continue directly to Step 6 and create the ready-made collections. The demo
+is shareable **without merging** — the portal link serves the rebranded,
+company-scoped portal; that link is the deliverable. Promoting to production
+(merge) is optional and not the finish line (I3); never close/delete the PR
+(I5).
+
+---
+
+# Step 6 — Build collections from the searchable assets (`collections-created`)
+
+Once Step 5's assets are searchable, turn them into **ready-made
+collections** so the demo opens with the company's assets already
+organized — one collection per category (the same `productCategory` slugs
+the home cards and category coverage report use). Customer-facing wording stays
+outcomes-only (I1): "grouping <Brand>'s assets into collections so they're
+ready to browse by category." Runs **automatically after**
+`assets-enriched` and `search-scoped` are `done` for `full` and
+`assets-only` flows — do not wait for a separate user request once assets
+are searchable. The assets must be approved and index-visible before they
+can be collected. Leave `collections-created` `not-requested` only when
+`intent` is `frontend-only`.
+
+## Existing environment — no provisioning
+
+Like Step 5, Step 6 **reuses the existing environment**. The controller
+`scripts/agent/create-collections.js` resolves everything itself: DM
+technical-account creds from `cloudflare/.secrets` (`SPARK_DM_CLIENT_ID`/
+`SPARK_DM_CLIENT_SECRET`) and the AEM env id from `cloudflare/src/config.js`
+(`AEM_ENV_ID`). Collections live on the **delivery / Content Hub tier**, so
+this uses the **DM collections API — not the author API** Step 5 writes
+metadata with. It follows the worker's deterministic request contract:
+asset search uses the DM client id as `x-api-key`, collection CRUD uses the
+Content Hub collections key (`aem-assets-content-hub-1`), and the bearer
+token always comes from the existing DM credentials. **No new collection
+credential, no provisioning, no author writes.**
+
+## Run the controller
+
+```
+node scripts/agent/create-collections.js \
+  --customer-key <companyKey> \
+  [--group-by productCategory|campaign|channel] \
+  [--limit 200] [--min-assets 1] [--access-level public] \
+  [--dry-run] [--report-file <path>] \
+  [--secrets-file cloudflare/.secrets] [--fixture <assets.json>]
+```
+
+- `<companyKey>` is the same slug as Steps 2–5. The controller queries the
+  DM asset search **scoped to `assetMetadata.company = <companyKey>`**
+  (only this company's assets become members), groups the hits by
+  `--group-by` (default `productCategory`), and creates one collection per
+  distinct value titled `"<Company> — <Category>"`. **Always `--dry-run`
+  first** — it enumerates the assets and prints the intended collections
+  (title + asset count) without creating anything — then run live.
+- Each collection is created `public` (every demo user sees it, not just
+  the creator) and stamped `custom:metadata.company = <companyKey>`. That
+  tag is what the company filter keys on (below). Assets with no
+  `--group-by` value are skipped — no "uncategorized" collection.
+
+## Hide/show collections by the company filter (`collections-created`)
+
+Collections are scoped to the demo company exactly like assets. The worker
+(`cloudflare/src/origin/dm.js` → `collectionsSearchContentAIAuthorization`)
+injects, on **every** collections search, a
+`collectionMetadata.custom:metadata.company = config.DEMO_COMPANY` clause —
+mirroring the asset-side `assetMetadata.company` filter. So a demo only
+ever surfaces the collections of the company `DEMO_COMPANY` points at;
+switching `DEMO_COMPANY` (already set to `<companyKey>` in Step 4/5) hides
+every other company's collections, and even admins don't see across
+companies. This filter ships **in the same PR** as the rest of the scope
+(`cloudflare/src/config.js` is already there), so the per-PR preview worker
+enforces it — no extra deploy. The controller's `custom:metadata.company`
+stamp and the worker clause use the **same `<companyKey>` value** by
+construction; keep them equal.
+
+**Every collection create and update is stamped — not just Step 6's.** The
+worker injects `custom:metadata.company = config.DEMO_COMPANY` into the body of
+any `POST /adobe/assets/collections` (create) **and** any
+`POST /adobe/assets/collections/{id}` (metadata update) via dm.js →
+`stampCollectionCompany`, so collections written through the portal UI or any
+other client are company-scoped — and can never lose the tag through a later
+update. Without this, a collection with no/overwritten company tag is hidden by
+the search filter — reachable only by direct id ("unlisted"). Note: direct GET
+of a collection by id is authorized by ACL/`accessLevel` only
+(`checkCollectionAuthorization`), so a public collection stays reachable by link
+even if its company tag differs — the company filter governs **listing/search**,
+not direct-id reads.
+
+## Verify (before marking Step 6 done)
+
+Confirm the **visible outcome** in the running portal:
+
+1. The Collections view lists the new `"<Company> — <Category>"`
+   collections; opening one shows the expected assets (non-zero).
+2. Each collection contains **only** this company's assets.
+3. The collections belong to this company only — they show under the demo
+   company and would be hidden if `DEMO_COMPANY` pointed elsewhere.
+
+Mark `collections-created` `done` once all pass (skip and leave
+`not-requested` when `intent` is `frontend-only`).
+
+**Completion report** (I1, outcomes only): which collections now exist and
+what each groups; that they carry only this company's assets. The portal
+link remains the deliverable (I3); never close/delete the PR (I5).
 
 ---
 

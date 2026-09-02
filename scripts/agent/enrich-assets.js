@@ -1,6 +1,6 @@
 /**
  * Controller for the asset-enrichment agent (plan §1.4). Wires discovery -> read ->
- * generate -> normalize -> write -> publish -> report, with a --dry-run that stops before
+ * generate -> normalize -> write approved metadata -> report, with a --dry-run that stops before
  * any write. Dependency-injected (`client`, `generator`, `log`) so the flow is testable
  * without live network or credentials; the CLI bootstrap at the bottom supplies the real
  * implementations.
@@ -11,94 +11,166 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 
 import { enumerateFolder } from './enumerate.js';
-import { getAssetMetadata, isAlreadyEnriched } from './metadata.js';
+import { isAlreadyEnriched, fieldsFromMetadata } from './metadata.js';
 import { fetchRenditionBytes, isImageFormat } from './rendition.js';
 import { normalizeGenerated } from './normalize.js';
-import { buildMetadataCsvBatches } from './csv.js';
-import { buildMetadataPatch } from './json-patch.js';
-import { submitMetadataImport, pollMetadataImportJob } from './write-bulk.js';
-import { writeAssetViaPatch } from './write-patch.js';
-import { publishAssets } from './publish.js';
+import {
+  buildSlingMetadataUpdate,
+  getSlingAssetMetadata,
+  writeSlingAssetMetadata,
+} from './sling-metadata.js';
 import { Report, OUTCOME } from './report.js';
-import { createDryRunGenerator } from './generate.js';
-import { ImsTokenProvider, StaticTokenProvider } from './ims-auth.js';
+import { createFilenameGenerator } from './generate.js';
+import { buildProductCategoryRepresentatives } from './representatives.js';
+import { applyCategoryPlan, buildCategoryCoverage } from './category-plan.js';
+import { scrapeSiteImages } from './scrape-site.js';
+import { createUploadStrategy } from './upload-strategy.js';
+import { ImsTokenProvider } from './ims-auth.js';
 import { AuthorClient } from './author-client.js';
-import { ClassicAuthorClient } from './classic-client.js';
-import { enrichAssetsClassic } from './enrich-classic.js';
 import { createFixtureClient } from './fixture-client.js';
-import { STATUS_APPROVED, buildHosts, buildAuthorHost } from './constants.js';
+import {
+  STATUS_APPROVED, buildHosts, buildAuthorHost, BRING_IN_MIN_TARGET_IMAGES,
+} from './constants.js';
 import { mapWithConcurrency } from './concurrency.js';
 import {
-  parseArgs, validateOptions, resolveCreds, resolveImsToken, resolveAemEnvId,
+  parseArgs, validateOptions, resolveCreds, resolveAemEnvId,
 } from './config.js';
 
 export { mapWithConcurrency };
 
-/** Map normalized fields + scope onto a CSV row. */
-function toCsvRow(asset, fields, scope) {
-  return {
-    assetPath: asset.repoPath,
-    assetId: asset.assetId,
-    title: fields.title,
-    description: fields.description,
-    keywords: fields.keywords,
-    productCategory: fields.productCategory,
-    campaign: fields.campaign,
-    channel: fields.channel,
-    brand: fields.brand,
-    company: scope.company,
-    status: scope.status,
-    allowedCountries: scope.allowedCountries,
-  };
-}
-
 /**
  * Plan one asset: read metadata, skip if already enriched, fetch a rendition, generate +
- * normalize. Returns { asset, skip } or { asset, etag, fields }.
+ * normalize. Returns { asset, skip } or { asset, fields }.
  */
 async function planAsset({
-  client, asset, generator, customerKey, force, productCategoryVocab, channelVocab,
+  client, asset, generator, customerKey, force,
 }) {
-  const meta = await getAssetMetadata(client, asset.assetId);
+  const meta = asset.dryRunSourceAsset
+    ? {
+      assetMetadata: {},
+      repositoryMetadata: { 'dc:format': asset.contentType || 'application/octet-stream' },
+      etag: null,
+    }
+    : await getSlingAssetMetadata(client, asset.repoPath);
   if (!force && isAlreadyEnriched(meta.assetMetadata, customerKey)) {
-    return { asset, skip: true };
+    return {
+      asset,
+      skip: true,
+      fields: fieldsFromMetadata(meta.assetMetadata),
+      existingMetadata: meta.assetMetadata,
+      repositoryMetadata: meta.repositoryMetadata,
+    };
   }
-  const dcFormat = meta.repositoryMetadata['dc:format'];
+  const dcFormat = meta.repositoryMetadata['dc:format'] || asset.contentType;
   let renditionBytes = null;
-  if (isImageFormat(dcFormat)) {
+  if (!asset.dryRunSourceAsset && isImageFormat(dcFormat)) {
     const rendition = await fetchRenditionBytes(client, asset.assetId).catch(() => null);
     renditionBytes = rendition?.bytes || null;
   }
   const hints = {
     machineKeywords: meta.assetMetadata['xcm:machineKeywords'],
-    repoName: asset.repoName,
+    repoName: asset.repoName || asset.fileName,
     dcFormat,
+    sourcePage: asset.sourcePage,
+    pageTitle: asset.pageTitle,
+    heading: asset.heading,
+    altText: asset.altText,
+    nearbyText: asset.nearbyText,
   };
   const raw = await generator({
-    assetId: asset.assetId, repoName: asset.repoName, hints, renditionBytes,
+    assetId: asset.assetId,
+    repoName: asset.repoName || asset.fileName,
+    hints,
+    renditionBytes,
+    existingAssetMetadata: meta.assetMetadata,
   });
-  const fields = normalizeGenerated(raw, { productCategoryVocab, channelVocab });
-  return { asset, etag: meta.etag, fields };
+  const fields = normalizeGenerated(raw);
+  return {
+    asset,
+    etag: meta.etag,
+    fields,
+    existingMetadata: meta.assetMetadata,
+    repositoryMetadata: meta.repositoryMetadata,
+  };
 }
 
-/**
- * Run the enrichment flow.
- * @returns {Promise<{ report: Report, dryRun: boolean, csvPreview?: string }>}
- */
-export async function enrichAssets({
-  options, client, generator, log = console,
+function metadataPreview(plans = []) {
+  return plans
+    .map((p) => `${p.asset.repoPath || p.asset.assetId}\n${JSON.stringify(p.metadataPlan.entries, null, 2)}`)
+    .join('\n\n');
+}
+
+async function discoverTargetAssets({
+  options, client, folderPath, report, log,
 }) {
-  const report = new Report();
-  const { customerKey } = options;
-  // allowedCountries: 'global' makes every enriched asset visible regardless of the
-  // viewer's country — the worker's country authz clause (dm.js) otherwise hides untagged
-  // assets from any country-scoped user (the demo's "0 results" failure).
-  const scope = { company: customerKey, status: STATUS_APPROVED, allowedCountries: 'global' };
-  const folderPath = options.damPath || `/content/dam/${customerKey}`;
+  if (options.sourceUrl) {
+    const scraped = await scrapeSiteImages({
+      pageUrl: options.sourceUrl,
+      maxImages: options.limit || undefined,
+      fetchFn: options.fetchFn || fetch,
+      log,
+    });
+    report.setContext({
+      sourceUrl: options.sourceUrl,
+      scrapedCandidates: scraped.candidates,
+      downloadedAssets: scraped.images.length,
+    });
 
-  log.info?.(`[agent] enrich customer=${customerKey} folder=${folderPath} dryRun=${options.dryRun}`);
+    if (options.dryRun) {
+      log.info?.('[agent] DRY RUN — scraped/downloaded assets; upload and metadata PATCH require a live run');
+      return {
+        assets: scraped.images.map((img) => {
+          const {
+            bytes, fileName, contentType, ...evidence
+          } = img;
+          return {
+            ...evidence,
+            dryRunSourceAsset: true,
+            assetId: `dry-run:${fileName}`,
+            repoPath: `${folderPath}/${fileName}`,
+            repoName: fileName,
+            fileName,
+            contentType,
+          };
+        }),
+      };
+    }
 
-  // [1..3] Discover
+    const uploader = createUploadStrategy('repository', { client });
+    await uploader.ensureFolder({ folderPath });
+    const { uploaded, failures } = await uploader.uploadImages({
+      folderPath,
+      images: scraped.images,
+    });
+    failures.forEach((f) => {
+      report.record(f.fileName, OUTCOME.FAILED, { stage: 'upload', error: f.error });
+    });
+    if (uploaded.length < BRING_IN_MIN_TARGET_IMAGES) {
+      log.warn?.(`[agent] only uploaded ${uploaded.length} asset(s); target at least ${BRING_IN_MIN_TARGET_IMAGES} for credible category coverage`);
+    }
+
+    log.info?.('[agent] resolving uploaded file asset ids from folder enumeration');
+    const recovered = await enumerateFolder({ client, folderPath });
+    const byPath = new Map(recovered.assets.map((asset) => [asset.repoPath, asset]));
+    const byName = new Map(recovered.assets.map((asset) => [asset.repoName, asset]));
+    const unresolved = [];
+    const resolved = [];
+    for (const asset of uploaded) {
+      const match = byPath.get(asset.repoPath) || byName.get(asset.repoName);
+      if (match?.assetId) resolved.push({ ...asset, ...match });
+      else unresolved.push(asset);
+    }
+    unresolved.forEach((asset) => {
+      report.record(asset.repoPath || asset.repoName || asset.fileName, OUTCOME.FAILED, {
+        stage: 'upload-id',
+        error: 'uploaded asset was not found by folder enumeration',
+      });
+    });
+    return {
+      assets: resolved,
+    };
+  }
+
   const {
     assets, scanned, matched, exceededWindow,
   } = await enumerateFolder({ client, folderPath });
@@ -107,17 +179,51 @@ export async function enrichAssets({
     log.warn?.(`[agent] hit the scan cap before exhausting the repo — some assets under ${folderPath} may be missed; narrow with --dam-path`);
   }
 
-  let targetAssets = assets;
-  if (assets.length === 0) {
-    if (options.bringIn) {
-      log.warn?.('[agent] 0 assets found; bring-in lane requires scraped files (E3) — none provided here');
-      return { report, dryRun: options.dryRun };
-    }
-    log.warn?.(`[agent] No assets found under ${folderPath} — nothing to enrich.`);
-    return { report, dryRun: options.dryRun };
-  }
   if (options.limit && Number.isFinite(options.limit)) {
-    targetAssets = assets.slice(0, options.limit);
+    return { assets: assets.slice(0, options.limit) };
+  }
+  return { assets };
+}
+
+/**
+ * Run the enrichment flow.
+ * @returns {Promise<{
+ *   report: Report,
+ *   dryRun: boolean,
+ *   metadataPreview?: string,
+ *   patchPreview?: string
+ * }>}
+ */
+export async function enrichAssets({
+  options, client, generator, log = console,
+}) {
+  const report = new Report();
+  const { customerKey } = options;
+  // allowedCountries: ['global'] makes every enriched asset visible regardless of the
+  // viewer's country. The worker's country authz clause (dm.js) otherwise hides untagged
+  // assets from any country-scoped user (the demo's "0 results" failure).
+  const scope = { company: customerKey, status: STATUS_APPROVED, allowedCountries: ['global'] };
+  const folderPath = options.damPath || `/content/dam/${customerKey}`;
+  report.setContext({
+    customerKey,
+    damPath: folderPath,
+    metadataMode: options.metadataMode || 'filename',
+    metadataWrite: 'sling-post',
+  });
+
+  log.info?.(`[agent] enrich customer=${customerKey} folder=${folderPath} dryRun=${options.dryRun}`);
+
+  const { assets: targetAssets } = await discoverTargetAssets({
+    options,
+    client,
+    folderPath,
+    report,
+    log,
+  });
+
+  if (targetAssets.length === 0) {
+    log.warn?.(`[agent] No assets ready for metadata enrichment under ${folderPath}.`);
+    return { report, dryRun: options.dryRun, patchPreview: '' };
   }
 
   // [4] Read + generate + normalize (bounded concurrency)
@@ -132,8 +238,6 @@ export async function enrichAssets({
           generator,
           customerKey,
           force: options.force,
-          productCategoryVocab: options.productCategoryVocab,
-          channelVocab: options.channelVocab,
         });
       } catch (err) {
         report.record(asset.assetId, OUTCOME.FAILED, { stage: 'plan', error: String(err.message || err) });
@@ -142,59 +246,101 @@ export async function enrichAssets({
     },
   );
 
-  const enrichable = planned.filter((p) => p && p.fields && !p.skip);
-  planned.forEach((p) => {
-    if (p?.skip) report.record(p.asset.assetId, OUTCOME.SKIPPED, { reason: 'already-enriched' });
+  const categorized = applyCategoryPlan(planned);
+  const withMetadataPlans = categorized.map((p) => {
+    if (!p || p.error || p.skip || !p.fields) return p;
+    return {
+      ...p,
+      metadataPlan: buildSlingMetadataUpdate(p.fields, scope, p.existingMetadata),
+    };
+  });
+  const categoryCoverage = buildCategoryCoverage(withMetadataPlans);
+  report.setCategoryCoverage(categoryCoverage);
+  report.setRepresentatives(buildProductCategoryRepresentatives(withMetadataPlans));
+
+  const writable = [];
+  withMetadataPlans.forEach((p) => {
+    if (!p || p.error) return;
+    if (p.skip) {
+      report.record(p.asset.assetId, OUTCOME.SKIPPED, { reason: 'already-enriched' });
+      return;
+    }
+    if (!p.fields?.productCategory) {
+      report.record(p.asset.assetId, OUTCOME.FAILED, {
+        stage: 'category',
+        error: 'no supported productCategory from source evidence',
+      });
+      return;
+    }
+    if (!p.asset?.repoPath) {
+      report.record(p.asset.assetId, OUTCOME.FAILED, {
+        stage: 'metadata-path',
+        error: 'missing DAM repoPath required for Sling metadata write',
+      });
+      return;
+    }
+    if (p.metadataPlan?.conflicts?.length) {
+      report.record(p.asset.assetId, OUTCOME.FAILED, {
+        stage: 'metadata-plan',
+        error: JSON.stringify(p.metadataPlan.conflicts),
+      });
+      return;
+    }
+    if (!p.metadataPlan?.entries?.length) {
+      report.record(p.asset.assetId, OUTCOME.SKIPPED, { reason: 'no-missing-metadata' });
+      return;
+    }
+    writable.push(p);
   });
 
-  const rows = enrichable.map((p) => toCsvRow(p.asset, p.fields, scope));
-  const csvBatches = buildMetadataCsvBatches(rows);
-  const csvPreview = csvBatches.map((b) => b.csv).join('\n\n');
+  const preview = metadataPreview(writable);
 
   // [5] Dry-run stops here
   if (options.dryRun) {
-    log.info?.(`[agent] DRY RUN — would enrich ${enrichable.length} asset(s):`);
-    log.info?.(csvPreview);
-    enrichable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, { dryRun: true }));
-    return { report, dryRun: true, csvPreview };
+    log.info?.(`[agent] DRY RUN - would update Sling metadata for ${writable.length} asset(s):`);
+    log.info?.(preview);
+    writable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, { dryRun: true }));
+    return {
+      report, dryRun: true, metadataPreview: preview, patchPreview: preview,
+    };
   }
 
   // [5] Write
-  if (options.writeMode === 'patch') {
-    await mapWithConcurrency(enrichable, options.concurrency, async (p) => {
-      const patchOps = buildMetadataPatch(p.fields, scope);
-      const res = await writeAssetViaPatch({
-        client, assetId: p.asset.assetId, patchOps, etag: p.etag,
-      });
-      if (res.ok) report.record(p.asset.assetId, OUTCOME.ENRICHED, { via: 'patch' });
-      else report.record(p.asset.assetId, OUTCOME.FAILED, { stage: 'patch', status: res.status, error: res.error });
-    });
-  } else {
-    for (const batch of csvBatches) {
-      const submission = await submitMetadataImport(client, batch.csv, { waitSeconds: 0 });
-      if (!submission.sync && submission.jobId) {
-        await pollMetadataImportJob(client, submission.jobId).catch((err) => {
-          log.warn?.(`[agent] import job poll failed: ${err.message}`);
+  await mapWithConcurrency(writable, options.concurrency, async (p) => {
+    const res = await writeSlingAssetMetadata(
+      client,
+      p.asset.repoPath,
+      p.metadataPlan,
+    );
+    if (res.ok && res.skipped) {
+      report.record(p.asset.assetId, OUTCOME.SKIPPED, { reason: 'no-missing-metadata-after-reread' });
+    } else if (res.ok) {
+      try {
+        const fresh = await getSlingAssetMetadata(client, p.asset.repoPath);
+        if (!isAlreadyEnriched(fresh.assetMetadata, customerKey)) {
+          report.record(p.asset.assetId, OUTCOME.FAILED, {
+            stage: 'verify',
+            error: 'metadata write succeeded but required scope fields were not readable after write',
+          });
+          return;
+        }
+        report.record(p.asset.assetId, OUTCOME.ENRICHED, { via: 'sling' });
+      } catch (err) {
+        report.record(p.asset.assetId, OUTCOME.FAILED, {
+          stage: 'verify',
+          error: String(err.message || err),
         });
       }
+    } else {
+      report.record(p.asset.assetId, OUTCOME.FAILED, { stage: 'sling-post', status: res.status, error: res.error });
     }
-    enrichable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, { via: 'bulk' }));
-  }
+  });
 
-  // [6] Publish
-  if (!options.noPublish) {
-    const enrichedIds = report.assets
-      .filter((a) => a.outcome === OUTCOME.ENRICHED)
-      .map((a) => a.assetId);
-    if (enrichedIds.length > 0) {
-      const { published } = await publishAssets(client, enrichedIds, {
-        target: options.publishTarget,
-      });
-      log.info?.(`[agent] published ${published} asset(s) to ${options.publishTarget}`);
-    }
-  }
+  log.info?.('[agent] enriched assets stamped dam:status=approved through Sling metadata');
 
-  return { report, dryRun: false, csvPreview };
+  return {
+    report, dryRun: false, metadataPreview: preview, patchPreview: preview,
+  };
 }
 
 /**
@@ -242,16 +388,17 @@ export async function main(argv = process.argv.slice(2)) {
     process.exit(2);
   }
 
-  const generator = createDryRunGenerator();
+  if (options.metadataMode === 'vision') {
+    throw new Error(
+      '--metadata-mode vision requires a real invokeModel integration; use --metadata-mode filename for filename/hint-derived metadata',
+    );
+  }
+  const generator = createFilenameGenerator();
+  console.warn(`[agent] metadata mode=${options.metadataMode || 'filename'}`);
 
-  // Dispatch to the right runner based on how credentials resolve:
-  //  - --fixture: fully offline preview (converged fixture client, forced dry-run).
-  //  - AUTHOR_SPARK_IMS_TOKEN present: the pre-issued bearer targets the CLASSIC AEM author
-  //    API (Sling / Assets HTTP API). This is the live, working path — the converged
-  //    /adobe/assets facade rejects this token's x-api-key (403003) and does not route
-  //    publish/import, whereas the classic API authenticates the bearer with no key.
-  //  - otherwise: the DM client_credentials flow against the converged API (documented
-  //    fallback; requires the client id to be allowlisted for the environment).
+  // Dispatch:
+  //  - --fixture: fully offline preview, forced dry-run.
+  //  - otherwise: DM client_credentials against the AEM Assets Author API.
   let run;
 
   if (options.fixture) {
@@ -263,49 +410,36 @@ export async function main(argv = process.argv.slice(2)) {
     }
     run = () => enrichAssets({ options, client, generator });
   } else {
-    const preToken = resolveImsToken({ secretsFile: options.secretsFile });
     const aemEnvId = resolveAemEnvId({ aemEnvId: options.aemEnvId });
-
-    if (preToken) {
-      const tokenProvider = new StaticTokenProvider({ token: preToken.token });
-      const client = new ClassicAuthorClient({
-        tokenProvider, authorHost: buildAuthorHost(aemEnvId),
-      });
-      const apiKey = preToken.apiKey || null;
-      const uploadStrategyName = apiKey ? 'repository' : 'classic';
-      console.warn(`[agent] using pre-issued AUTHOR_SPARK_IMS_TOKEN from ${preToken.source}`);
-      console.warn(`[agent] targeting AEM author env ${aemEnvId} uploadStrategy=${uploadStrategyName}`);
-      run = () => enrichAssetsClassic({
-        options, client, generator, apiKey, uploadStrategyName,
-      });
-    } else {
-      let creds = null;
-      try {
-        creds = resolveCreds({ secretsFile: options.secretsFile });
-      } catch (err) {
-        if (options.dryRun) {
-          console.error(
-            `[agent] ${err.message}\n`
-            + '[agent] --dry-run needs folder discovery, which requires credentials + network. '
-            + 'Provide a pre-issued AUTHOR_SPARK_IMS_TOKEN or DM creds (env or cloudflare/.secrets) '
-            + 'to preview against a real folder, pass --fixture <file.json> for a fully offline '
-            + 'preview, or run the unit tests for offline verification of the pipeline logic.',
-          );
-          process.exit(2);
-        }
-        throw err;
+    let creds = null;
+    try {
+      creds = resolveCreds({ secretsFile: options.secretsFile });
+    } catch (err) {
+      if (options.dryRun) {
+        console.error(
+          `[agent] ${err.message}\n`
+          + '[agent] --dry-run against AEM needs folder discovery, which requires DM creds and network. '
+          + 'Provide SPARK_DM_CLIENT_ID/SPARK_DM_CLIENT_SECRET, pass --fixture <file.json> for a '
+          + 'fully offline preview, or run the unit tests for offline verification of the pipeline logic.',
+        );
+        process.exit(2);
       }
-      const tokenProvider = new ImsTokenProvider({
-        clientId: creds.clientId,
-        clientSecret: creds.clientSecret,
-      });
-      const client = new AuthorClient({
-        tokenProvider, clientId: creds.clientId, hosts: buildHosts(aemEnvId),
-      });
-      console.warn(`[agent] using DM creds from ${creds.source}`);
-      console.warn(`[agent] targeting AEM author env ${aemEnvId} via the converged Assets API`);
-      run = () => enrichAssets({ options, client, generator });
+      throw err;
     }
+    const authorHost = buildAuthorHost(aemEnvId);
+    const tokenProvider = new ImsTokenProvider({
+      clientId: creds.clientId,
+      clientSecret: creds.clientSecret,
+    });
+    const client = new AuthorClient({
+      tokenProvider,
+      clientId: creds.clientId,
+      hosts: buildHosts(aemEnvId),
+      authorHost,
+    });
+    console.warn(`[agent] using DM creds from ${creds.source}`);
+    console.warn(`[agent] targeting AEM author env ${aemEnvId} via the Assets Author API`);
+    run = () => enrichAssets({ options, client, generator });
   }
 
   const { report } = await run();
@@ -317,6 +451,26 @@ export async function main(argv = process.argv.slice(2)) {
       .filter(Boolean)
       .join(' ');
     console.error(`[agent] FAILED ${f.assetId}: ${bits}`);
+  }
+
+  if (report.representatives) {
+    const { items = {}, missing = [] } = report.representatives;
+    const categories = Object.keys(items);
+    if (categories.length > 0) {
+      console.warn(`[agent] representatives productCategory=${categories.join(', ')}`);
+    }
+    if (missing.length > 0) {
+      console.warn(`[agent] missing representatives for productCategory=${missing.join(', ')}`);
+    }
+  }
+  if (report.categoryCoverage?.categories?.length) {
+    const coverage = report.categoryCoverage.categories
+      .map((c) => `${c.slug}:${c.assetCount}`)
+      .join(', ');
+    console.warn(`[agent] category coverage productCategory=${coverage}`);
+  }
+  if (report.categoryCoverage?.unclassified?.length) {
+    console.warn(`[agent] unclassified assets=${report.categoryCoverage.unclassified.length}`);
   }
 
   if (options.reportFile) {
