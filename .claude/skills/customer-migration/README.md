@@ -15,7 +15,7 @@
 - Open the architecture view:
 
 ```text
-customer-migration-architecture.html
+.claude/skills/customer-migration/docs/customer-migration-architecture.html
 ```
 
 ## What You Provide
