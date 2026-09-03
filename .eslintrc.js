@@ -16,4 +16,24 @@ module.exports = {
     'no-param-reassign': [2, { props: false }], // allow modifying properties of param
     'no-use-before-define': ['warn'],
   },
+  overrides: [
+    {
+      // Node CLI: the per-fork asset enrichment agent (rebrand-portal Phase C).
+      files: [
+        '.claude/skills/rebrand-portal/scripts/assets/**/*.js',
+        '.claude/skills/rebrand-portal/tests/assets/**/*.js',
+      ],
+      env: { node: true },
+      rules: {
+        'import/prefer-default-export': 'off', // small single-purpose util modules
+        'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: __dirname }],
+        'no-console': 'off', // CLI reporting writes to stdout/stderr
+        'no-await-in-loop': 'off', // sequential paging / bounded per-asset work
+        'no-restricted-syntax': 'off', // allow for..of in Node CLI code
+        'no-plusplus': 'off',
+        'no-continue': 'off',
+        'max-classes-per-file': ['error', 2], // ims-auth: IMS + static token providers
+      },
+    },
+  ],
 };

@@ -14,6 +14,21 @@ const config = {
   // AEM environment (Program-Environment) id for the backing DM tenant.
   AEM_ENV_ID: 'p203220-e2129061',
 
+  // Demo customer scope — always required. Every asset search is restricted to assets
+  // tagged assetMetadata.company === DEMO_COMPANY, so the portal only shows assets for
+  // the configured customer. Default is 'frescopa' (our own demo repo). When running the
+  // enrichment agent for a prospect (e.g. 'santander'), the agent auto-patches this value
+  // after a successful run. Value is the customer key, NOT the logged-in viewer's company.
+  DEMO_COMPANY: 'frescopa',
+
+  // Content base path for a foldered demo. DA content is shared across all branches of a
+  // repo, so a per-company demo copies the site into /<companyKey> and serves it from there.
+  // '' (default) = content at the repo root (production/showcase, unchanged). A migration
+  // sets this to '/<companyKey>' TOGETHER with DEMO_COMPANY above (same key). The worker
+  // uses it for the root redirect, the unauthenticated login/public route, and LOGIN_PAGE;
+  // the browser derives the same base from the URL (scripts/locale-utils.js).
+  DEMO_BASE_PATH: '',
+
   // Content Optimization Agent environment. COA is called with the same DM
   // S2S technical account/token as Dynamic Media, so this must match whatever
   // IMS environment that account's credentials were issued against — not an
@@ -43,3 +58,16 @@ const config = {
 };
 
 export default Object.freeze(config);
+
+/**
+ * Content base path for the current deploy: '' at the repo root (production), or
+ * '/<companyKey>' for a foldered company demo. Normalized to have a leading slash and no
+ * trailing slash. Single source of truth for worker routing/auth base-path decisions.
+ * @returns {string}
+ */
+export function companyBasePath() {
+  const raw = (config.DEMO_BASE_PATH || '').trim();
+  if (!raw) return '';
+  const withLead = raw.startsWith('/') ? raw : `/${raw}`;
+  return withLead.replace(/\/+$/, '');
+}

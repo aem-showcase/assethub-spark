@@ -7,7 +7,9 @@ import {
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
+  stampCollectionCompany,
 } from '../dm.js';
+import config from '../../config.js';
 
 /**
  * Unit tests for dm.js (Dynamic Media Origin Handler)
@@ -40,6 +42,13 @@ vi.mock('../../user', () => ({
     ALL: 'all',
   },
 }));
+
+// Mock config with a mutable copy so individual tests can toggle DEMO_COMPANY
+// (the real config is frozen). All other values are preserved from the real config.
+vi.mock('../../config.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { default: { ...actual.default } };
+});
 
 // Mock console.log for authorization tests
 vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -784,6 +793,15 @@ describe('dm.js - ContentAI Authorization', () => {
   });
 
   describe('buildAssetAuthClauses', () => {
+    let savedDemoCompany;
+    beforeEach(() => {
+      savedDemoCompany = config.DEMO_COMPANY;
+      config.DEMO_COMPANY = null;
+    });
+    afterEach(() => {
+      config.DEMO_COMPANY = savedDemoCompany;
+    });
+
     it('should return no constraints for admin users', async () => {
       const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal' } };
       const clauses = await buildAssetAuthClauses(request, {});
@@ -840,6 +858,85 @@ describe('dm.js - ContentAI Authorization', () => {
       const authClauses = [internalStatusClause];
       const assetMetadata = { internalStatus: 'preview' };
       const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
+      expect(result.violated).toBe(true);
+    });
+  });
+
+  describe('buildAssetAuthClauses — demo customer scope (DEMO_COMPANY)', () => {
+    const companyClause = { term: { 'assetMetadata.company': ['santander'] } };
+
+    afterEach(() => {
+      config.DEMO_COMPANY = null;
+    });
+
+    it('adds the company scope term for external users when DEMO_COMPANY is set', async () => {
+      config.DEMO_COMPANY = 'santander';
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(companyClause);
+    });
+
+    it('applies the company scope term even to admins (demo must never leak other assets)', async () => {
+      config.DEMO_COMPANY = 'santander';
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([companyClause]);
+    });
+
+    it('adds no company term when DEMO_COMPANY is null (admin unchanged: [])', async () => {
+      config.DEMO_COMPANY = null;
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('adds no company term when DEMO_COMPANY is null (external unchanged)', async () => {
+      config.DEMO_COMPANY = null;
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.company'])).toBe(false);
+    });
+
+    it('takes the scope value from config.DEMO_COMPANY, NOT the viewer session company', async () => {
+      config.DEMO_COMPANY = 'santander';
+      // Viewer belongs to a different org (e.g. an Adobe SE demoing Santander).
+      const request = { user: { email: 'se@adobe.com', userType: 'external', company: 'adobe' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(companyClause);
+      expect(clauses).not.toContainEqual({ term: { 'assetMetadata.company': ['adobe'] } });
+    });
+
+    it('coexists with the country and internalStatus clauses for external users', async () => {
+      config.DEMO_COMPANY = 'santander';
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(companyClause);
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['us', 'usa', 'global'] } });
+      expect(clauses).toContainEqual({
+        or: [
+          { term: { 'assetMetadata.internalStatus': ['approved'] } },
+          { not: [{ exists: { field: 'assetMetadata.internalStatus' } }] },
+        ],
+      });
+    });
+
+    it('is injected into the ContentAI search filter by forceContentAISearchFilter', async () => {
+      config.DEMO_COMPANY = 'santander';
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const authClauses = await buildAssetAuthClauses(request, {});
+      const search = { query: [{ and: [] }] };
+      forceContentAISearchFilter(search, authClauses);
+      expect(search.query[0].and).toContainEqual({ and: authClauses });
+      expect(authClauses).toContainEqual(companyClause);
+    });
+
+    it('checkAssetMetadataAuthorization passes an asset tagged with the customer company', () => {
+      const result = checkAssetMetadataAuthorization([companyClause], { company: 'santander' });
+      expect(result.violated).toBe(false);
+    });
+
+    it('checkAssetMetadataAuthorization violates an asset tagged with a different company', () => {
+      const result = checkAssetMetadataAuthorization([companyClause], { company: 'acme' });
       expect(result.violated).toBe(true);
     });
   });
@@ -1038,10 +1135,24 @@ describe('dm.js - ContentAI Authorization', () => {
   });
 
   describe('collectionsSearchContentAIAuthorization', () => {
+    let savedDemoCompany;
+    beforeEach(() => {
+      savedDemoCompany = config.DEMO_COMPANY;
+      config.DEMO_COMPANY = null;
+    });
+    afterEach(() => {
+      config.DEMO_COMPANY = savedDemoCompany;
+    });
+
     /** Auth clauses are nested via chunkIntoAnd inside query[0].and */
     function getNestedAuthClauses(search) {
       const authBlock = search.query[0].and.find((c) => c.and);
       return authBlock?.and || [];
+    }
+
+    /** All nested auth blocks (each a { and: [...] }) pushed into query[0].and */
+    function getAllNestedAuthBlocks(search) {
+      return search.query[0].and.filter((c) => c.and);
     }
 
     it('should block search when user has no email', () => {
@@ -1139,6 +1250,149 @@ describe('dm.js - ContentAI Authorization', () => {
         },
       });
     });
+
+    describe('demo customer scope (DEMO_COMPANY)', () => {
+      const companyClause = {
+        term: { 'collectionMetadata.custom:metadata.company': ['santander'] },
+      };
+      /** Flatten every clause across all nested auth blocks. */
+      function getAllClauses(search) {
+        return getAllNestedAuthBlocks(search).flatMap((b) => b.and);
+      }
+
+      it('adds the company scope term on every collections search when DEMO_COMPANY is set', () => {
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: 'user@example.com' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
+
+        expect(getAllClauses(search)).toContainEqual(companyClause);
+      });
+
+      it('also requires the company field to exist, so collections with no company tag at all are excluded', () => {
+        // A `term` match alone already excludes a missing field, but that's an implicit
+        // property of the ContentAI backend's term semantics, not something this filter
+        // enforces by construction. Collections created before company-scoping existed (or
+        // written by any path that skips stampCollectionCompany) have no company field —
+        // the explicit `exists` clause closes that gap regardless of term-matching quirks.
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: 'user@example.com' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
+
+        expect(getAllClauses(search)).toContainEqual({
+          exists: { field: 'collectionMetadata.custom:metadata.company' },
+        });
+      });
+
+      it('applies the company scope even for the no-user block path', () => {
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: null } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search);
+
+        expect(getAllClauses(search)).toContainEqual(companyClause);
+      });
+
+      it('applies the company scope alongside the legacy ACL filter', () => {
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: 'user@example.com' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search);
+
+        const clauses = getAllClauses(search);
+        expect(clauses).toContainEqual(companyClause);
+        // the legacy ACL OR-filter is still present
+        expect(clauses.some((c) => c.or && c.or.length === 3)).toBe(true);
+      });
+
+      it('takes the scope value from config.DEMO_COMPANY, not any request field', () => {
+        config.DEMO_COMPANY = 'santander';
+        const request = { user: { email: 'se@adobe.com', company: 'adobe' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
+
+        const clauses = getAllClauses(search);
+        expect(clauses).toContainEqual(companyClause);
+        expect(clauses).not.toContainEqual({
+          term: { 'collectionMetadata.custom:metadata.company': ['adobe'] },
+        });
+      });
+
+      it('adds no company term when DEMO_COMPANY is null', () => {
+        config.DEMO_COMPANY = null;
+        const request = { user: { email: 'user@example.com' } };
+        const search = { query: [{ and: [] }] };
+
+        collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
+
+        const clauses = getAllNestedAuthBlocks(search).flatMap((b) => b.and);
+        expect(clauses.some(
+          (c) => c.term?.['collectionMetadata.custom:metadata.company'],
+        )).toBe(false);
+      });
+    });
+  });
+});
+
+describe('stampCollectionCompany', () => {
+  let savedDemoCompany;
+
+  beforeEach(() => {
+    savedDemoCompany = config.DEMO_COMPANY;
+    config.DEMO_COMPANY = 'frescopa';
+  });
+
+  afterEach(() => {
+    config.DEMO_COMPANY = savedDemoCompany;
+  });
+
+  it('stamps custom:metadata.company on a create body with no metadata', () => {
+    const body = { title: 'My Collection', items: [] };
+    const out = stampCollectionCompany(body);
+    expect(out['custom:metadata']).toEqual({ company: 'frescopa' });
+  });
+
+  it('preserves existing custom:metadata fields while adding company', () => {
+    const body = { title: 'X', 'custom:metadata': { note: 'keep me' } };
+    const out = stampCollectionCompany(body);
+    expect(out['custom:metadata']).toEqual({ note: 'keep me', company: 'frescopa' });
+  });
+
+  it('re-stamps company on an update body that dropped/overrode it', () => {
+    // Update bodies are a merge of existing collectionMetadata + changes; a client could
+    // overwrite custom:metadata and lose the company tag — this restores it every time.
+    const updateBody = {
+      title: 'Renamed',
+      accessLevel: 'public',
+      'custom:metadata': { company: 'someone-else' },
+    };
+    const out = stampCollectionCompany(updateBody);
+    expect(out['custom:metadata'].company).toBe('frescopa');
+  });
+
+  it('overrides a caller-supplied company with the configured scope', () => {
+    const body = { title: 'X', 'custom:metadata': { company: 'somethingelse' } };
+    const out = stampCollectionCompany(body);
+    expect(out['custom:metadata'].company).toBe('frescopa');
+  });
+
+  it('is a no-op when DEMO_COMPANY is unset', () => {
+    config.DEMO_COMPANY = null;
+    const body = { title: 'X' };
+    const out = stampCollectionCompany(body);
+    expect(out['custom:metadata']).toBeUndefined();
+  });
+
+  it('takes the value from config.DEMO_COMPANY', () => {
+    config.DEMO_COMPANY = 'santander';
+    const out = stampCollectionCompany({ title: 'X' });
+    expect(out['custom:metadata'].company).toBe('santander');
   });
 });
 

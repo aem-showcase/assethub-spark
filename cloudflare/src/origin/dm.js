@@ -26,6 +26,12 @@ import {
   CollectionCreatedByMeVisibility,
   CollectionListSegment,
 } from '../../../scripts/collections/collection-search-constants.js';
+import {
+  DM_COLLECTIONS_PATH_PREFIX,
+  DM_CONTENT_HUB_COLLECTIONS_API_KEY,
+  getDynamicMediaApiKeyForPath,
+  isDynamicMediaCollectionsPath,
+} from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
 import { resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
@@ -62,7 +68,7 @@ const IMS_SCOPE = 'AdobeID,openid';
 /** API key for AEM Assets Content Hub collections endpoint
  * @constant {string}
  */
-const ADOBE_API_KEY_COLLECTIONS = 'aem-assets-content-hub-1';
+const ADOBE_API_KEY_COLLECTIONS = DM_CONTENT_HUB_COLLECTIONS_API_KEY;
 
 /** Prefix for Adobe AEM Cloud delivery hostname
  * @constant {string}
@@ -91,7 +97,7 @@ const PATH_API_PREFIX = '/api';
 /** Path for collections endpoint
  * @constant {string}
  */
-const PATH_COLLECTIONS = '/adobe/assets/collections';
+const PATH_COLLECTIONS = DM_COLLECTIONS_PATH_PREFIX;
 
 // ==========================================
 // Collection ACL Constants
@@ -121,6 +127,15 @@ const CONTENTAI_COLLECTION_SEARCH_ACL = {
 
 /** ContentAI term path for collection access level in search queries */
 const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
+
+/** ContentAI term path for the demo-company scope on a collection.
+ * Mirrors the asset-side `assetMetadata.company` scope, but on the collection's own
+ * metadata surface. Stamped by scripts/agent/create-collections.js when a collection
+ * is created, and matched against config.DEMO_COMPANY on every collections search so a
+ * demo only ever surfaces the current company's collections.
+ * @constant {string}
+ */
+const CONTENTAI_COLLECTION_COMPANY = 'collectionMetadata.custom:metadata.company';
 
 // ==========================================
 // Collection Roles
@@ -258,7 +273,6 @@ async function getIMSToken(request, env) {
 
     // get cached token
     const { value: token, metadata } = await env.AUTH_TOKENS.getWithMetadata(cachedTokenName);
-
     // use token until 5 minutes before expiry
     if (token && metadata?.expiration > Math.floor(Date.now() / 1000) + IMS_TOKEN_EXPIRY_BUFFER) {
       return token;
@@ -266,7 +280,7 @@ async function getIMSToken(request, env) {
       const clientSecret = await env.DM_CLIENT_SECRET.get();
 
       const tokenData = await createIMSToken(request, clientId, clientSecret, IMS_SCOPE);
-
+      console.warn(`Generated new IMS token for clientId=${clientId}`);
       // seconds since epoch
       const expiration = Math.floor(Date.now() / 1000) + tokenData.expires_in;
 
@@ -566,13 +580,23 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
     ? { ...request.user, ...request.user.su }
     : request.user;
 
-  // Admins bypass all asset filters — they see everything in Content Hub.
-  if (user.roles?.includes(ROLE.ADMIN)) {
-    console.warn(`[${user.email}] admin bypass: no asset auth clauses applied`);
-    return [];
+  const clauses = [];
+
+  // --- Customer scope filter (always applied) ---
+  // config.DEMO_COMPANY is always set (default: 'frescopa'). Every asset search is
+  // restricted to assets tagged assetMetadata.company === DEMO_COMPANY. The agent
+  // auto-patches this to the prospect's key after enrichment. Injected BEFORE the admin
+  // bypass so even admins only see the configured customer's assets.
+  if (config.DEMO_COMPANY) {
+    clauses.push({ term: { 'assetMetadata.company': [config.DEMO_COMPANY] } });
   }
 
-  const clauses = [];
+  // Admins bypass all per-user asset filters — they see everything in Content Hub
+  // (except the demo customer scope above, which always applies when configured).
+  if (user.roles?.includes(ROLE.ADMIN)) {
+    console.warn(`[${user.email}] admin bypass: no per-user asset auth clauses applied`);
+    return clauses;
+  }
 
   // --- Country filter ---
   // Collect all country codes the user is authorised for:
@@ -679,6 +703,26 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   const user = request.user;
   const userEmailLower = user?.email?.toLowerCase();
 
+  // --- Customer scope filter (always applied) ---
+  // Mirrors the asset company scope (buildAssetAuthClauses): config.DEMO_COMPANY restricts
+  // every collections search to collections tagged collectionMetadata.custom:metadata.company
+  // === DEMO_COMPANY. Injected BEFORE all ACL/visibility branches below (and before the
+  // early returns) so it holds on every path — including admins, so the demo never leaks
+  // another company's collections. create-collections.js stamps this tag at creation time.
+  //
+  // The explicit `exists` clause matters on its own: a `term` match on a missing field is
+  // normally excluded, but collections created before this company-scoping code existed (or
+  // written by any path that skips stampCollectionCompany) have no company field at all —
+  // without a hard exists check, any relaxation of the term match (or a backend quirk in how
+  // missing fields are scored) can let untagged legacy collections leak into every company's
+  // demo. Requiring existence closes that off by construction, independent of term semantics.
+  if (config.DEMO_COMPANY) {
+    forceContentAISearchFilter(search, [
+      { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
+      { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
+    ]);
+  }
+
   if (!userEmailLower) {
     forceContentAISearchFilter(search, [
       {
@@ -768,6 +812,33 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
 }
 
 /**
+ * Stamp the demo company onto a collection CREATE or UPDATE request body so that EVERY
+ * collection written through the worker — the portal UI, scripts/collections, the Step 6
+ * agent, anything — carries custom:metadata.company === config.DEMO_COMPANY. This is the
+ * write side of the company scope: without it a collection has no company tag (on create)
+ * or could lose it (on an update that overwrites custom:metadata) and would then be hidden
+ * by the collectionsSearchContentAIAuthorization company filter (i.e. become "unlisted" —
+ * reachable only by direct id).
+ *
+ * The tag is written FLAT under `custom:metadata.company`; the delivery tier namespaces it
+ * as collectionMetadata.custom:metadata.company on read (the exact key the search filter
+ * matches). Mutates and returns the parsed body. No-op when DEMO_COMPANY is unset.
+ *
+ * @param {Object} parsedBody - the parsed JSON create/update body
+ * @returns {Object} the same body with custom:metadata.company set
+ */
+function stampCollectionCompany(parsedBody) {
+  if (!config.DEMO_COMPANY) return parsedBody;
+  const b = parsedBody || {};
+  const custom = (b['custom:metadata'] && typeof b['custom:metadata'] === 'object')
+    ? b['custom:metadata']
+    : {};
+  custom.company = config.DEMO_COMPANY;
+  b['custom:metadata'] = custom;
+  return b;
+}
+
+/**
  * Main handler for Adobe Dynamic Media origin requests
  *
  * This is the primary entry point for all Adobe Dynamic Media requests. It:
@@ -825,11 +896,10 @@ export async function originDynamicMedia(request, env, ctx) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  if (url.pathname.startsWith(PATH_COLLECTIONS)) {
-    headers.set(HEADER_API_KEY, ADOBE_API_KEY_COLLECTIONS);
-  } else {
-    headers.set(HEADER_API_KEY, await env.DM_CLIENT_ID.get());
-  }
+  const dmClientId = isDynamicMediaCollectionsPath(url.pathname)
+    ? undefined
+    : await env.DM_CLIENT_ID.get();
+  headers.set(HEADER_API_KEY, getDynamicMediaApiKeyForPath(url.pathname, dmClientId));
   headers.set(HEADER_AUTHORIZATION, `Bearer ${imsToken}`);
   headers.delete(HEADER_COOKIE);
 
@@ -898,6 +968,29 @@ export async function originDynamicMedia(request, env, ctx) {
     await searchContentAIAuthorization(request, env, search);
     url.pathname = `/adobe/experimental/collectionsearch-expires-20260915/assets/collections/${collectionId}/search`;
     body = JSON.stringify(search);
+  }
+
+  // --- Stamp company on collection CREATE and UPDATE (always applied) ---
+  // Create = POST to exactly PATH_COLLECTIONS. Update = POST to
+  // /adobe/assets/collections/{id} (excludes /search and /{id}/items — those have a
+  // different segment shape). Stamping on BOTH means a collection can never lose its
+  // company tag — not at creation, and not via a later metadata update that overwrites
+  // custom:metadata — so it always stays visible under the company search filter,
+  // whatever client wrote it (portal UI, scripts, the Step 6 agent).
+  const isCollectionCreate = url.pathname === PATH_COLLECTIONS
+    || url.pathname === `${PATH_COLLECTIONS}/`;
+  const isCollectionUpdate = /^\/adobe\/assets\/collections\/(?!search$)[^/]+$/.test(url.pathname);
+  if (
+    request.method === 'POST'
+    && (isCollectionCreate || isCollectionUpdate)
+    && config.DEMO_COMPANY
+    && body
+  ) {
+    try {
+      body = JSON.stringify(stampCollectionCompany(JSON.parse(body)));
+    } catch {
+      // Non-JSON body: leave it untouched; the upstream will reject a malformed request.
+    }
   }
 
   handleArchiveAnalytics(url, request, headers, env, ctx);
@@ -1012,6 +1105,8 @@ export {
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
+  // Company scope: stamp custom:metadata.company on collection create/update
+  stampCollectionCompany,
   // IMS token (shared with coa.js — same DM S2S technical account, same x-api-key)
   getIMSToken,
 };
