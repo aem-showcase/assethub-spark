@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1196" height="300" viewBox="0 0 1196 300" role="img" aria-label="Hyundai">
+  <rect width="1196" height="300" fill="#fff" opacity="0"/>
+  <g transform="translate(10 60) scale(1.2)">
+    <g transform="rotate(-9 130 75)">
+      <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" stroke="#002C5F" stroke-width="12"/>
+      <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#002C5F">
+        <path d="M58 38h18v74H58z"/>
+        <path d="M184 38h18v74h-18z"/>
+        <path d="M58 66h144v18H58z"/>
+      </g>
+    </g>
+  </g>
+  <g fill="#002C5F" fill-rule="evenodd">
+    <path d="M370 85h16v57h68V85h16v130h-16v-57h-68v57h-16z"/>
+    <path d="M500 85h18l32 53 32-53h18l-42 70v60h-16v-60z"/>
+    <path d="M630 85v80c0 28 22 50 50 50s50-22 50-50V85h-16v80c0 19-15 34-34 34s-34-15-34-34V85z"/>
+    <path d="M760 85h18l66 97V85h16v130h-18l-66-97v97h-16z"/>
+    <path d="M890 85h45c34 0 55 28 55 65s-21 65-55 65h-45zm16 16v98h29c25 0 39-21 39-49s-14-49-39-49z"/>
+    <path d="M1062 85h16l42 130h-17l-9-28h-48l-9 28h-17zm8 26-19 60h38z"/>
+    <path d="M1150 85h16v130h-16z"/>
+  </g>
+</svg>

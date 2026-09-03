@@ -19,8 +19,8 @@ main > .section.hero-container {
   border-radius: 0;
   overflow: hidden;
   padding: 0;
-  background-color: #2f2318;
-  color: #f5ede0;
+  background-color: #002C5F;
+  color: #F6F3F2;
 }
 
 .hero::before {
@@ -117,8 +117,8 @@ main > .section.hero-container {
 .hero h1,
 .hero h2 {
   margin: 0;
-  color: #f7efe3;
-  font-family: Baskerville, serif;
+  color: #F6F3F2;
+  font-family: var(--heading-font-family);
   text-shadow: 0 14px 34px rgb(0 0 0 / 36%);
 }
 
@@ -186,14 +186,14 @@ main > .section.hero-container {
 
 .hero .button-container .button.secondary:any-link {
   background-color: transparent;
-  border-color: rgb(244 233 220 / 70%);
+  border-color: rgb(246 243 242 / 70%);
   color: var(--light-color);
 }
 
 .hero .button-container .button.secondary:any-link:hover,
 .hero .button-container .button.secondary:any-link:focus-visible {
-  background-color: rgb(244 233 220 / 10%);
-  border-color: rgb(244 233 220 / 90%);
+  background-color: rgb(246 243 242 / 10%);
+  border-color: rgb(246 243 242 / 90%);
 }
 
 @media (width >= 900px) {

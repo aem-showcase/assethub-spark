@@ -12,19 +12,26 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --light-color: #F6F3F2;
+  --dark-color: #212529;
+  --text-color: #212529;
+  --text-primary: #212529;
+  --link-color: #002C5F;
+  --link-hover-color: #00AAD2;
+  --primary-color: #002C5F;
+  --primary-color-hover: #001E42;
+  --color-red: #C4262E;
+  --color-dark-red: #9A1E24;
+  --accent-secondary: #00AAD2;
+  --accent-tertiary: #D9822B;
+  --secondary-color: #002C5F;
+
+  /* Login / welcome split-screen brand panel */
+  --welcome-panel-bg: #002C5F;
+  --welcome-panel-accent-rgb: 0 170 210;
+  --welcome-panel-mark-image: url('/icons/hyundai-india-beans.svg');
+  --welcome-tagline-line1: 'Progress for Humanity,';
+  --welcome-tagline-line2: 'one asset at a time.';
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -60,14 +67,16 @@
 
   /* Semantic aliases */
   --background-color: var(--color-neutral-50);
-  --color-secondary-light-sky-blue: rgb(0 100 125 / 12%);
+  --color-secondary-light-sky-blue: rgb(0 44 95 / 12%);
   --color-secondary: var(--text-color);
   --color-medium-grey: var(--color-neutral-400);
   --color-dark-blue: var(--primary-color);
 
-  /* fonts */
+  /* fonts. The brand head face is NOT bundled (it is licensed, not self-hostable) — it is
+     listed first so machines that have it installed pick it up; everyone else renders the
+     self-hosted roboto in styles/fonts.css, which is the intended baseline. */
   --body-font-family: var(--type-base-font-family);
-  --heading-font-family: baskerville, serif;
+  --heading-font-family: 'HyundaiSansHeadMedium', roboto, roboto-fallback, sans-serif;
 
   /* font sizes */
   --body-font-size-m: 18px;
@@ -93,13 +102,13 @@
 
   /* status badge colors */
   --status-not-started: var(--primary-color);
-  --status-not-started-bg: rgb(0 100 125 / 12%);
+  --status-not-started-bg: rgb(0 44 95 / 12%);
   --status-in-progress: var(--accent-tertiary);
-  --status-in-progress-bg: rgb(235 164 57 / 12%);
+  --status-in-progress-bg: rgb(217 130 43 / 12%);
   --status-completed: #7fb078;
   --status-completed-bg: rgb(127 176 120 / 12%);
   --status-cancelled: var(--color-red);
-  --status-cancelled-bg: rgb(163 53 50 / 12%);
+  --status-cancelled-bg: rgb(196 38 46 / 12%);
 
   /* focus ring */
   --focus-ring-color: var(--primary-color);
@@ -120,7 +129,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: #001E42;
 
   /* label colors */
   --label-color: var(--text-color);
@@ -208,9 +217,9 @@ body.appear {
 
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
-     a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  /* Welcome/login split-screen brand panel is themeable via these tokens (set in :root);
+     a company demo overrides --welcome-panel-* + --welcome-tagline-* to rebrand the login. */
+  background-color: var(--welcome-panel-bg, #002C5F);
   overflow: hidden;
 }
 
@@ -236,14 +245,14 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Deep brand background with the company mark as a large decorative element */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #002C5F);
   background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
+    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 0 170 210) / 22%) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 0 170 210) / 10%) 0%, transparent 100%),
+    var(--welcome-panel-mark-image, url('/icons/hyundai-india-beans.svg'));
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
   background-position: bottom left, top right, center 40%;
@@ -258,14 +267,14 @@ body:has(.section.welcome) > main::before {
    the line. Keeping the \A here, outside any custom property, avoids that class of bug
    regardless of what a per-company override sets each line to. */
 body:has(.section.welcome) > main::after {
-  content: var(--welcome-tagline-line1, '"The world\'s finest coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertips."');
+  content: var(--welcome-tagline-line1, 'Progress for Humanity,') "\A" var(--welcome-tagline-line2, 'one asset at a time.');
   white-space: pre;
-  font-family: baskerville, serif;
+  font-family: var(--heading-font-family);
   font-size: 1rem;
-  font-style: italic;
+  font-style: normal;
   line-height: 1.6;
-  letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  letter-spacing: 0.08em;
+  color: rgb(246 243 242 / 62%);
   position: absolute;
   bottom: 48px;
   left: 0;
@@ -302,7 +311,7 @@ body:has(.section.welcome) > main::after {
 }
 
 /* Brand mark — larger on the auth panel. Brand-agnostic: targets any icon shortcode the
-   welcome doc carries (e.g. :frescopa-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
+   welcome doc carries (e.g. :<company>-beans:) so a rebrand needs no CSS edit. */
 .section.welcome p:has(.icon) {
   margin: 0 0 var(--spacing-medium);
   max-width: none;
@@ -948,7 +957,7 @@ main .section.full-width > div {
   border-radius: 12px;
 }
 
-/* Frescopa landing hero: compact, elegant, beige; the search pill is the focal point */
+/* Landing hero: compact, elegant, light brand surface; the search pill is the focal point */
 main .section.search-hero {
   background: var(--light-color) url('backgrounds/big.svg') no-repeat center top / cover;
   color: var(--text-color);
@@ -1012,13 +1021,13 @@ main .section.search-hero .query-input-container {
 
 main .section.search-hero .query-input-bar {
   background: #fff;
-  box-shadow: 0 12px 30px rgb(88 24 29 / 14%);
+  box-shadow: 0 12px 30px rgb(0 44 95 / 14%);
 }
 
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(235 164 57 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  background: rgb(217 130 43 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
   text-align: center;
 }
 
@@ -1054,15 +1063,15 @@ main .section.category-tiles .cards > ul > li {
   flex-direction: column;
   text-align: left;
   background: var(--color-neutral-50);
-  border: 1px solid rgb(88 24 29 / 8%);
+  border: 1px solid rgb(0 44 95 / 8%);
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
+  box-shadow: 0 8px 22px rgb(0 44 95 / 8%);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 main .section.category-tiles .cards > ul > li:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
+  box-shadow: 0 12px 26px rgb(0 44 95 / 12%);
 }
 
 /* Text-only tile (no image cell) collapses to its body — never reserve a blank
@@ -1614,23 +1623,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.hyundai-india-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.hyundai-india-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.hyundai-india-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.hyundai-india-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.hyundai-india-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1661,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.hyundai-india-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.hyundai-india-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.hyundai-india-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.hyundai-india-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.hyundai-india-background-black {
   background-color: var(--dark-color);
 }
 

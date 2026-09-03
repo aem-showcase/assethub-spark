@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="150" viewBox="0 0 260 150" role="img" aria-label="Hyundai">
+  <g transform="rotate(-9 130 75)">
+    <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" stroke="#00AAD2" stroke-width="12"/>
+    <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#00AAD2">
+      <path d="M58 38h18v74H58z"/>
+      <path d="M184 38h18v74h-18z"/>
+      <path d="M58 66h144v18H58z"/>
+    </g>
+  </g>
+</svg>
