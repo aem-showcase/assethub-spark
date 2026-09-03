@@ -204,7 +204,7 @@
   font-weight: bold;
 }
 
-/* Frescopa section card variants */
+/* Section card variants */
 .numbered > .cards-wrapper {
   padding: 40px;
   box-sizing: border-box;
@@ -256,7 +256,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font: normal normal normal 300px/300px Baskerville, serif;
+  font: normal normal 300 300px/300px var(--heading-font-family);
   color: rgb(0 0 0 / 10%);
 }
 
