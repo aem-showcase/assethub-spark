@@ -1,6 +1,11 @@
 ---
 name: rebrand-portal
-description: Produce a demo copy of the AEM Edge Delivery asset portal for a company, rebrand it, enrich company assets, and create scoped collections using the existing environment.
+description: >
+  Produce a demo copy of the AEM Edge Delivery asset portal for a company,
+  rebrand it, enrich company assets, and create scoped collections using the
+  existing environment. Use when the user says: "create a demo portal for
+  [company]", "rebrand the portal for [company]", "set up a demo for
+  [company]", "enrich [company]'s assets", "build collections for [company]".
 ---
 
 # Customer Migration — Demo
@@ -11,60 +16,23 @@ delivered as **one open pull request** whose branch-preview URL is the
 shareable result. It never touches the shared original and it **reuses the
 existing environment end to end** — the existing repo, its Document
 Authoring (DA) content, its publish access, and its asset credentials.
-Nothing is provisioned.
+Nothing is provisioned. Dedicated portal path: disabled — see `NON-DEMO-DISABLED.md`.
 
-A **dedicated real portal** (a customer's own new environment + Cloudflare
-+ deployment) is a different thing and is **temporarily disabled**. Every
-invocation is a demo. The dedicated/backend/deploy material is preserved,
-disabled, in **`NON-DEMO-DISABLED.md`** — do not run it, and do not let it
-into the demo path.
+## Invariants
 
-## Invariants (apply throughout — never restated per step)
+⚠️ **Read `docs/invariants.md` in full before acting.** The rules there
+(I1–I6) govern every step and are not repeated below.
 
-- **I1 — Outcomes only, never internal terms.** Never expose this skill's
-  name, its steps, `intent`, branch/folder mechanics, or tool names
-  (`excat`, `da-copy-folder.sh`) to the customer — in prose or in any UI
-  you render. Say "give the site a fresh look," "make a copy under the
-  company's name," "make the assets easy to find." Avoid jargon the
-  customer didn't use — "rebrand," "branch," "publish," "scope."
-- **I2 — Never handle raw secrets in chat.** Never accept, echo, or read
-  back a pasted token or secret. Tell the customer where to put it; read
-  it only from the gitignored file at call time. If a secret appears in
-  chat, treat it as compromised — tell them to rotate it (by name only,
-  never reproducing the value) and don't use it.
-- **I3 — The demo is delivered from the OPEN PR, not a merge.** DA content
-  goes live when published; repo code reaches *production* only on merge —
-  but the demo does not need production. **Every PR auto-deploys a
-  per-branch Cloudflare worker** (`.github/workflows/build.yaml` →
-  `spark-eds-pr-<N>` on the `<branch>.dev.frescopamedia.com` route); that
-  worker is the demo URL — it does login/auth, proxies the portal search,
-  and applies the company scope from the PR's bundled
-  `cloudflare/src/config.js`. (The raw
-  `https://<branch>--<repo>--<org>.aem.page/<company>/…` is only the
-  content origin — no login or search there — so never hand it out as the
-  portal.) The result is fully viewable straight from the open PR.
-  **Merging is not required and not preferred.** Only call something "live
-  in production" once merged; never gate demo completion on a merge.
-- **I4 — Deferring asset enrichment is a valid, complete end state.**
-  Every demo runs `full` (rebrand + assets are both always in scope), but
-  if the customer answers Entry flow Q2 with "leave enrichment for a later
-  step," the demo is *done* once rebrand + upload (if applicable) land —
-  don't hold the demo open chasing enrichment the customer explicitly
-  deferred. This is different from *never* wanting assets — that option no
-  longer exists; deferral only postpones *when* enrichment runs.
-- **I5 — Never destroy a pull request or its branch.** Never run
-  `gh pr close`, `git push --delete`, `git branch -D`, `--delete-branch`,
-  or anything that closes/deletes a PR or a branch that has (or had) a PR
-  — not on error, not on a "start fresh" request, not to "clean up." An
-  open PR is the deliverable (I3). If the customer wants to start over,
-  **ask first**, then create a **new** branch and a **new** PR, leaving
-  the existing one untouched.
-- **I6 — Company key must not collide with site/runtime paths.**
-  `customer.companyKey` becomes both the DA folder (`/<companyKey>`) and
-  the asset folder (`/content/dam/<companyKey>`). Reject empty slugs and
-  reserved route names such as `en`, `ja`, `config`, `public`, `api`,
-  `auth`, `tools`, `scripts`, `styles`, `blocks`, `icons`, and `fonts`.
-  Use a specific slug instead, e.g. `acme-demo`.
+## Missing required inputs
+
+Before doing anything, check the user's request for two required inputs:
+
+- **Company name** — needed for every step (`companyKey`, DA folder, branch). Never infer it from a source URL (e.g. don't assume "acme" from `acme.com`).
+- **Source site URL** — needed for design matching (Step 4 / excat). Required even when `assetsLane` is `enrich-existing`.
+
+If both are missing: ask for both in one message, after the Step 1 plain-sentence intro (I1 — never open with a question).
+If one is missing: ask only for that one.
+If both are present in the request: proceed without asking.
 
 ## The demo — one sequence (the single source of truth)
 
@@ -257,54 +225,10 @@ searchable.
 
 ## Operator setup (not customer-facing)
 
-These are for whoever runs the session, not the customer — I1 still
-forbids naming any of this in customer-facing prose.
-
-**Experience Catalyst plugin.** Step 4 drives
-`excat-complete-design-expert` from the `excat` plugin
-(`excat-marketplace`), published from the internal Adobe repo
-**`Adobe-AEM-Foundation/aem-experience-catalyst`**. Treat Catalyst as an
-operator-environment dependency. The agent should install/enable it when
-possible; a human can follow the same steps if confirmation or local access
-is required. Full setup: `docs/excat-setup.md`.
-
-Before Step 4 design work, determine the live session state, not a stale
-cache. Claude Code and Copilot CLI keep separate plugin registrations.
-Check the active CLI:
-
-```
-claude plugin list
-claude skill list
-```
-
-- **Skill invokable** — if `excat-complete-design-expert` is available in
-  the current session, proceed directly.
-- **Installed but not enabled** — enable the existing plugin, restart if
-  needed, and recheck:
-  `claude plugin enable excat@excat-marketplace --project`.
-- **Not installed** — use an existing local
-  `aem-experience-catalyst` clone if present; otherwise clone
-  `https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst.git`.
-  From that clone, run `npm run install:all` inside
-  `resources/plugins/aem-excat-plugin/excat-marketplace`, smoke-check
-  `excat/tools/excatops-mcp` with `npx .`, then install with Claude Code
-  using the **absolute** marketplace path:
-  `/plugin marketplace add <absolute-clone-path>/resources/plugins/aem-excat-plugin/excat-marketplace`
-  and `/plugin install excat@excat-marketplace`.
-
-Never write a machine-specific `/Users/...` plugin path into the repo, a
-fork, or customer-facing text. Re-verify with `/plugin list` and
-`claude skill list` after install/enable. If Catalyst still is not
-invokable, mark `rebranded` `blocked`, state the setup action needed, and
-pause. **Never hand-roll the rebrand instead of fixing the tool** — manual
-`styles.css` edits are not a substitute and silently miss the content
-rewrite and asset-color sweep.
-
-**Publish guard hook.** `hooks/guard-da-publish.sh` is a `PreToolUse` hook
-that blocks any DA/Helix publish whose target path is not under
-`customer.daFolder`. It's defense-in-depth for Step 4's folder-scope rule.
-This repo registers it for Claude Code in `.claude/settings.json`; Copilot
-CLI still needs explicit hook registration. See `hooks/README.md`.
+⚠️ **Read `docs/excat-setup.md` in full before Step 4.** It covers the
+three plugin states (invokable / installed-not-enabled / not-installed),
+agent-first install steps, and the publish guard hook. Never hand-roll the
+rebrand as a substitute for fixing the tool.
 
 
 # The steps — summaries + where the full detail lives

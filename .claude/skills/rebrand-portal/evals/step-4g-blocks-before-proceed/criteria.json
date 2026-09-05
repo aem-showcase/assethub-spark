@@ -1,0 +1,37 @@
+{
+  "context": "Guards that Step 4g blocks Step 5 on ANY single check failure, not just color mismatches. Scenario: color checks pass but auth verification fails (404 on company-scoped access sheet). The agent must refuse the customer's instruction to proceed.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Refuses to proceed despite customer instruction",
+      "max_score": 25,
+      "description": "The agent does not start asset enrichment or any Step 5 action despite the customer saying 'go ahead'."
+    },
+    {
+      "name": "Identifies auth verification as the blocker",
+      "max_score": 25,
+      "description": "The agent names the failing check specifically (auth verification / 404 on application.json) rather than giving a generic 'checks failed' response."
+    },
+    {
+      "name": "Asset steps remain non-done",
+      "max_score": 20,
+      "description": "No asset step (assets-uploaded, assets-enriched, search-scoped) is marked done.",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.assets-uploaded",
+        "notEquals": "done"
+      }
+    },
+    {
+      "name": "States the fix required",
+      "max_score": 20,
+      "description": "The agent says what needs to be fixed before Step 5 can begin (publish company-scoped config/access/application.json as a .json sheet)."
+    },
+    {
+      "name": "Does not treat partial pass as gate clearance",
+      "max_score": 10,
+      "description": "The agent does not imply that passing the color checks is sufficient to clear the Step 4g gate."
+    }
+  ]
+}
