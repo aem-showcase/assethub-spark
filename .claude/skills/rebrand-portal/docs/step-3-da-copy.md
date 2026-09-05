@@ -61,8 +61,11 @@ from Step 2. It reads `DA_TOKEN` from `token.env` (never printed) and:
   replacement doc in place of the copy.
 
 **Exit codes decide what "empty" means — the guard against false-empty:**
-- `0` — copied and verified. Set `customer.daFolder = "/<companyKey>"` and
-  mark `da-content-copied` `done`.
+- `0` — copied and verified. **Only after exit `0` is confirmed and the
+  path-by-path verification loop completes:** set `customer.daFolder =
+  "/<companyKey>"` and mark `da-content-copied` `done`. Do not pre-mark
+  `done` before the verification loop finishes — an interrupted session
+  would resume past an unverified step.
 - `3` — **and only `3`** means genuinely empty (list returned HTTP 200,
   zero documents). Only then may you say there's nothing to copy; say you
   confirmed it via the authenticated list (name the org/repo checked).

@@ -158,6 +158,16 @@ new gates such as Step 4g's color verification before assets.
    copied docs, PR scope, or the facets panel can still carry stale base
    branding.
 
+1a. **Check excat availability now — before Step 3.** Run `claude plugin
+    list` / `claude skill list` (or equivalent) and confirm
+    `excat-complete-design-expert` is invokable in this session. The three
+    states and their handling are in `docs/excat-setup.md`. If it is not
+    invokable: surface the state to the operator and follow the setup
+    steps. **Do not block Steps 1–3 on this** — DA copy and branch work
+    need no excat; proceed through Steps 1–3 while the operator resolves
+    it. Do block Step 4 as before. Surfacing this early avoids a
+    mid-flow restart after the DA setup is already done.
+
 2. **Ask Q1/Q2 immediately before Step 5, not in the entry flow** (skip any
    question the request already answers unambiguously). Plain outcome
    language, no internal terms (I1). Never ask "demo vs real portal" — the

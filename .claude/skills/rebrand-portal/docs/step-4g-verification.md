@@ -147,11 +147,21 @@ before fixing. Fix real misses and re-run both passes clean.
 The asset sweep covers the *repo*; this covers the *content*. Fetch each
 published company-scoped doc — `/<companyKey>/en/nav`,
 **`/<companyKey>/en/footer`**, and `/<companyKey>/public/welcome` — from
-the preview (or via `admin.da.live/source`) and assert **none** contains
-`baseSlug` anywhere in its name/casing variants (`Fréscopa`/`frescopa` at
-the time of writing), its old logo shortcode (`:${baseSlug}-icon:`), its
-taglines/contact, or its copyright line. Any hit means that doc was
-skipped in item 3 of the delegation — go rewrite it and republish.
+the preview (or via `admin.da.live/source`).
+
+**Fetch with status verification — a non-200 response is a failure, not a
+clean result.** Use `curl -s -o /tmp/body.txt -w '%{http_code}'` and check
+the status code first. A `404` or `403` means the path is unverifiable —
+the response body may contain the base brand's name in error-page
+boilerplate and must never be grepped as a residue check. Treat any
+non-200 as a failure: the doc is missing or unpublished, which is itself a
+defect. Fix and republish before proceeding.
+
+On a confirmed 200, assert the body contains **none** of: `baseSlug` in
+any name/casing variant (`Fréscopa`/`frescopa` at the time of writing),
+its old logo shortcode (`:${baseSlug}-icon:`), its taglines/contact, or
+its copyright line. Any hit means that doc was skipped in item 3 of the
+delegation — go rewrite it and republish.
 Also assert **every** remaining icon shortcode in those docs resolves to an
 **existing** `/icons/<companyKey>-*.svg` (a shortcode pointing at a missing
 icon renders the empty circle seen live), and that the repo `favicon.svg`
@@ -242,7 +252,15 @@ brand). Only then is the rebrand done.
 **Completion report** (I1, outcomes only): what's rebranded and confirmed
 on the portal link (no merge needed); the new brand name and content
 highlights; any follow-up (e.g. a placeholder logo pending the real
-asset). Then continue straight into Step 5 with the asset answers already
+asset).
+
+**Context check before Step 5.** Check `/context`. If the messages
+budget is above 60%, tell the operator: "Before I start the asset step,
+run `/compact` — that keeps the session clean through enrichment and
+collections." Wait for confirmation before proceeding. (`/compact` is a
+user-typed command; you surface the suggestion, you don't invoke it.)
+
+Then continue straight into Step 5 with the asset answers already
 gathered in the Entry flow (Q1/Q2) — if `assetsEnrichNow` is `false`,
 upload (if applicable) and stop there; stopping with enrichment deferred
 is a valid end state (I4).
