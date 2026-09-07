@@ -47,8 +47,8 @@
   --spacing-big: 32px;
   --spacing-xbig: 40px;
   --site-width: 1360px;
-  --type-base-font-family: -apple-system, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --type-condensed-font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --type-base-font-family: -apple-system, "SF Pro Text", "SF Pro Display", "Helvetica Neue", helvetica, arial, sans-serif;
+  --type-condensed-font-family: -apple-system, "SF Pro Display", "Helvetica Neue", helvetica, arial, sans-serif;
   --type-body-1-strong-letter-spacing: 0.04em;
   --type-button-2-font: normal normal 400 1.6rem/2.4rem var(--type-base-font-family);
   --type-button-2-letter-spacing: 0.08em;
@@ -67,7 +67,7 @@
 
   /* fonts */
   --body-font-family: var(--type-base-font-family);
-  --heading-font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --heading-font-family: -apple-system, "SF Pro Display", "Helvetica Neue", helvetica, arial, sans-serif;
 
   /* font sizes */
   --body-font-size-m: 18px;
@@ -120,7 +120,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: #0077ed;
 
   /* label colors */
   --label-color: var(--text-color);
@@ -267,12 +267,12 @@ body:has(.section.welcome) > main::before {
 body:has(.section.welcome) > main::after {
   content: var(--welcome-tagline-line1, '"The world\'s finest coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertips."');
   white-space: pre;
-  font-family: baskerville, serif;
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
   font-size: 1rem;
   font-style: italic;
   line-height: 1.6;
   letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  color: rgb(255 255 255 / 55%);
   position: absolute;
   bottom: 48px;
   left: 0;
