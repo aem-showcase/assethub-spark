@@ -168,8 +168,12 @@ new gates such as Step 4g's color verification before assets.
     it. Do block Step 4 as before. Surfacing this early avoids a
     mid-flow restart after the DA setup is already done.
 
-2. **Ask Q1/Q2 immediately before Step 5, not in the entry flow** (skip any
-   question the request already answers unambiguously). Plain outcome
+2. **Ask Q1/Q2 as the first action of Step 5, not in the entry flow and not
+   in the Step 4 handoff** (skip any question the request already answers
+   unambiguously). Ask only *after* the Step 4 completion report and portal
+   link are delivered and the context check is done — never bundled into the
+   Step 4 handoff, and never in the same message as a publish/access blocker
+   or the completion report (one purpose per interruption). Plain outcome
    language, no internal terms (I1). Never ask "demo vs real portal" — the
    dedicated path is disabled; every request is a demo. If the customer
    explicitly asks for their own real, separate portal, say plainly that a

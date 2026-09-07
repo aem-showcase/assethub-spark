@@ -62,14 +62,27 @@ The script verifies `DA_TOKEN`, reuses an existing valid `HLX_ADMIN_TOKEN`
 if present, otherwise mints a new Helix Admin API key from `DA_TOKEN`,
 writes it back to `token.env`, and verifies Helix Admin status. It never
 prints token values. If DA validation fails, stop and say the DA token is
-expired or does not have access to this site. If minting fails or returns no
-token value, stop and say the DA token works for DA but the user cannot mint
-the publish token for this site; ask for a DA token from a user with the
-required site admin/config rights. Do not offer fallback token paths.
+expired or does not have access to this site.
 
-Known quirk: a `admin.hlx.page` preview/publish can `401` even with valid
-tokens — forward the DA token via an `x-content-source-authorization`
-header rather than assuming it's wrong.
+**Minting can 403 and that is NOT a publish blocker.** Minting a separate
+`HLX_ADMIN_TOKEN` needs site admin/config rights the DA token may lack, but
+`admin.hlx.page` preview/publish accepts `DA_TOKEN` forwarded directly — so
+a mint failure says nothing about whether you can publish. When minting
+fails or returns no token value, do **not** stop and do **not** ask the user
+for a different token. Decide publish capability by a real probe, not by the
+mint result:
+
+1. Run one real `admin.hlx.page` **preview** call against a
+   `/<companyKey>/...` path, forwarding `DA_TOKEN` as
+   `Authorization: Bearer $DA_TOKEN`; assert on the HTTP status.
+2. If that returns non-2xx, retry the same call forwarding `DA_TOKEN` via an
+   `x-content-source-authorization` header instead (a known `admin.hlx.page`
+   quirk: it can `401` on the `Authorization` form even with a valid token).
+3. A 2xx on either form means `DA_TOKEN` can publish — proceed; the mint 403
+   is irrelevant. Only if **both** header forms return non-2xx is there a
+   real blocker — and surface it as "publish failed against `admin.hlx.page`
+   (status N)", not "the token can't mint". Do not offer fallback token
+   paths.
 
 **Capture the base brand's current values — before any edit.** Every
 later residue/applied check in this skill needs to know what the

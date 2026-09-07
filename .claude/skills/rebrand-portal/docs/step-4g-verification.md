@@ -55,6 +55,16 @@ residue grep moot:
    (`.facet-filter-panel`). Excat already fetched the source site and
    already decided these values — this step reuses that decision as the
    expected value, it does not re-derive brand colors from anywhere else.
+   **Include the home landing page's dominant surfaces explicitly** — the
+   search-page selectors above are not enough; the base cream commonly
+   survives on the home canvas even when the search page is clean (verified
+   live). Add: the **home landing canvas** at `/<companyKey>/en/` — resolve
+   it once on the preview as the element whose computed `background-color`
+   actually paints the full-page background behind the cards (typically
+   `body` or the top-level `main`/section wrapper) — and the
+   **section-container band behind the category cards** (the wrapper parent
+   of `main .section.category-tiles`, where the band color usually lives,
+   not just `.category-tiles` itself).
 2. **Read the actual computed value on the deployed PR preview** for each
    of those same selectors (not the local tree, not source-inspection —
    the rendered, cascaded result).
@@ -65,6 +75,15 @@ residue grep moot:
    more-specific selector winning; see the known-repeat-misses list below
    for files this has hit before), then re-check. Do not downgrade this to
    a screenshot judgment call — it is binary pass/fail per selector.
+4. **Anti-regression: no surface may still be the base cream.** In addition
+   to the expected-value match, assert that the computed `background-color`
+   on every surface selector (especially the two home-page surfaces added
+   in step 1) does **not** equal `baseSurfaceHex` — the base surface value
+   captured before Step 4b (see `step-4-rebrand.md`, "Capture the base
+   brand's current values"). Any surface still resolving to the captured
+   base cream is a hard FAIL regardless of what the expected map says; this
+   catches surfaces that were never named in the map. `baseSurfaceHex` is
+   already captured — nothing new to read.
 
 **Asset-file color sweep — a fixed checklist, not an ad hoc grep** (a
 manual eyeball pass has missed real cases). Run the whole checklist twice:
@@ -252,15 +271,28 @@ brand). Only then is the rebrand done.
 **Completion report** (I1, outcomes only): what's rebranded and confirmed
 on the portal link (no merge needed); the new brand name and content
 highlights; any follow-up (e.g. a placeholder logo pending the real
-asset).
+asset). **Do not emit this report while the background-color applied
+check (above) is unresolved** — a home surface still on the base cream is
+a hard FAIL that blocks the report the same way a losing welcome-panel
+token does; fix it, re-check, then report.
 
-**Context check before Step 5.** Check `/context`. If the messages
-budget is above 60%, tell the operator: "Before I start the asset step,
-run `/compact` — that keeps the session clean through enrichment and
-collections." Wait for confirmation before proceeding. (`/compact` is a
-user-typed command; you surface the suggestion, you don't invoke it.)
+**The Step 4 handoff carries no asset question and no blocker.** Deliver
+the completion report and the portal link on their own. Do not bundle Q1/Q2
+(asset source, label-now-or-later) or any publish/access blocker into the
+same message as the report — one purpose per interruption. Q1/Q2 is a
+Step 5 concern (below), not part of the Step 4 handoff.
 
-Then continue straight into Step 5 with the asset answers already
-gathered in the Entry flow (Q1/Q2) — if `assetsEnrichNow` is `false`,
-upload (if applicable) and stop there; stopping with enrichment deferred
-is a valid end state (I4).
+**Context check before Step 5.** After the report + link are delivered,
+check `/context`. If the messages budget is above 60%, tell the operator:
+"Before I start the asset step, run `/compact` — that keeps the session
+clean through enrichment and collections." Wait for confirmation before
+proceeding. (`/compact` is a user-typed command; you surface the
+suggestion, you don't invoke it.)
+
+Then continue into Step 5. **Ask Q1/Q2 as the first action of Step 5** —
+after the report and link are delivered and the context check is done —
+not before, and never in the Step 4 handoff (see SKILL.md Entry flow
+point 2 for the wording). Skip either question the original request or
+prior state already answered unambiguously. Once answered: if
+`assetsEnrichNow` is `false`, upload (if applicable) and stop there;
+stopping with enrichment deferred is a valid end state (I4).
