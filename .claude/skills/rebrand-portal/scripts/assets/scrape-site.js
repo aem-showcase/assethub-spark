@@ -43,7 +43,7 @@ function looksLikeThumbnail(url) {
 function getAttr(tag, name) {
   const m = tag.match(ATTR_RE(name));
   if (!m) return null;
-  return (m[2] ?? m[3] ?? m[4] ?? '').trim();
+  return decodeEntities((m[2] ?? m[3] ?? m[4] ?? '').trim());
 }
 
 function decodeEntities(value) {
@@ -383,6 +383,9 @@ export async function scrapeSiteImages({
   fetchFn = fetch,
   log = console,
 }) {
+  const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+    + '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
   const pageRes = await fetchFn(pageUrl, { headers: { Accept: 'text/html' } });
   if (!pageRes.ok) {
     throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
@@ -404,7 +407,9 @@ export async function scrapeSiteImages({
       log.info?.(`[agent] resolved original: ${candidateUrl} -> ${url}`);
     }
     try {
-      const res = await fetchFn(url, { headers: { Accept: '*/*' } });
+      const res = await fetchFn(url, {
+        headers: { Accept: '*/*', 'User-Agent': BROWSER_UA, Referer: pageUrl },
+      });
       if (!res.ok) {
         log.warn?.(`[agent] skip ${url} -> ${res.status}`);
         continue;

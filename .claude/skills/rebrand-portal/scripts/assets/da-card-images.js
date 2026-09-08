@@ -59,7 +59,7 @@ export async function uploadCardImage({
 
   const ext = extFromContentType(rendition.contentType);
   const fileName = `media_${rep.productCategory}.${ext}`;
-  const daPath = `${companyKey}/en/${fileName}`;
+  const daPath = `companies/${companyKey}/en/${fileName}`;
   const url = `${DA_ADMIN_BASE}/source/${org}/${repo}/${daPath}`;
 
   const form = new FormData();
@@ -97,7 +97,7 @@ export async function materializeCardImages({
     if (dryRun) {
       items[slug] = {
         ...rep,
-        cardImageUrl: `[dry-run] would upload media_${slug}.jpg from asset ${rep.assetId} to /${companyKey}/en/`,
+        cardImageUrl: `[dry-run] would upload media_${slug}.jpg from asset ${rep.assetId} to /companies/${companyKey}/en/`,
       };
       continue;
     }
