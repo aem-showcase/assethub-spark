@@ -15,9 +15,9 @@
   --gray-300: #b8b8b8;
   --gray-400: #8f8f8f;
   --gray-500: #666;
-  --purple-100: rgb(0 100 125 / 12%);
-  --purple-200: rgb(0 100 125 / 20%);
-  --purple-300: rgb(0 100 125 / 30%);
+  --purple-100: rgb(218 41 28 / 12%);
+  --purple-200: rgb(218 41 28 / 20%);
+  --purple-300: rgb(218 41 28 / 30%);
   --purple-400: var(--primary-color);
   --purple-500: #b01e12;
   --purple-600: #003d4d;
@@ -52,7 +52,7 @@
   --highlight-background-invalid: var(--color-red);
   --highlight-foreground: white;
   --highlight-foreground-pressed: var(--light-color);
-  --highlight-overlay: rgb(0 100 125 / 15%);
+  --highlight-overlay: rgb(218 41 28 / 15%);
   --invalid-color: var(--color-red);
   --invalid-color-pressed: var(--color-dark-red);
 }
