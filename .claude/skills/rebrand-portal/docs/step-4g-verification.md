@@ -13,13 +13,13 @@ then continue.
 
 Completion is the **open PR + its verified branch-preview URL** (I3), not
 a merge. The preview URL is the **per-PR worker**
-(`https://<branch>.dev.frescopamedia.com/<company>/…`), not the raw
+(`https://<branch>.dev.frescopamedia.com/companies/<company>/…`), not the raw
 `aem.page` origin — that worker is where login, search, and the company
 filter actually run. First confirm the PR diff **includes
 `cloudflare/src/config.js`** with `DEMO_COMPANY`/`DEMO_BASE_PATH` =
 companyKey (without it the deployed worker is unscoped — abort and fix).
 Then open the preview: confirm the rebranded `/<company>` pages render,
-the `/<company>/public/welcome` login page shows the new brand, and
+the `/companies/<company>/public/welcome` login page shows the new brand, and
 searching returns **only** this company's assets. Run the asset-color
 sweep against that **preview URL** (not the local tree, not after a
 merge).
@@ -63,7 +63,7 @@ residue grep moot:
    search-page selectors above are not enough; the base surface
    (`baseSurfaceHex`) commonly survives on the home canvas even when the
    search page is clean (verified live). Add: the **home landing canvas**
-   at `/<companyKey>/en/` — resolve
+   at `/companies/<companyKey>/en/` — resolve
    it once on the preview as the element whose computed `background-color`
    actually paints the full-page background behind the cards (typically
    `body` or the top-level `main`/section wrapper) — and the
@@ -120,10 +120,11 @@ once right after the step 1–2 edits, and again against the preview URL.
    value in the token diff. Any remaining hit must be either changed to a
    semantic token from the new palette or explicitly justified as a
    deliberate new-brand choice; do not classify these old brand colors as
-   neutral chrome. (At the time of writing this repo's example values are
-   `#F4E9DC`, `#FBF1EA`, `#95351D`, `#7a2b17` — read the actual current
-   values from the tree per the capture step above, don't match these
-   literals if the base template has since changed.)
+   neutral chrome. **The old-hex set is `baseBrand.oldHexes`** (captured by
+   `capture-base.mjs`); this doc carries no hex literals to match — grep the
+   state's `oldHexes`, never a value copied from here.
+   `scripts/rebrand/verify.mjs --only residue` runs exactly this grep across
+   `icons/`, `styles/`, `blocks/`, and `scripts/analytics/`.
    Then run a **structural hardcoded-surface audit**, not just exact old
    values: inspect every `background`, `background-color`, `border-color`,
    token assignment, and SVG `fill`/`stroke` using a literal hex in
@@ -158,9 +159,8 @@ once right after the step 1–2 edits, and again against the preview URL.
    `--welcome-panel-bg`, `--welcome-panel-accent-rgb`,
    `--welcome-panel-mark-image` (→ `/icons/<companyKey>-beans.svg`), and
    `--welcome-tagline-line1` + `--welcome-tagline-line2`; otherwise the
-   login's left panel keeps the frescopa coffee colour, bean mark, and
-   "world's finest coffee" tagline (the CSS
-   defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
+   login's left panel keeps the base brand's panel colour, mark, and
+   tagline (the CSS defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
    `/icons/<companyKey>-beans.svg` exist.
 
 Not every hardcoded fill is wrong (a neutral icon that turns brand-colored
@@ -169,8 +169,8 @@ before fixing. Fix real misses and re-run both passes clean.
 
 **Brand-residue check on the copied DA docs — the footer/logo guard.**
 The asset sweep covers the *repo*; this covers the *content*. Fetch each
-published company-scoped doc — `/<companyKey>/en/nav`,
-**`/<companyKey>/en/footer`**, and `/<companyKey>/public/welcome` — from
+published company-scoped doc — `/companies/<companyKey>/en/nav`,
+**`/companies/<companyKey>/en/footer`**, and `/companies/<companyKey>/public/welcome` — from
 the preview (or via `admin.da.live/source`).
 
 **Fetch with status verification — a non-200 response is a failure, not a
@@ -181,9 +181,9 @@ boilerplate and must never be grepped as a residue check. Treat any
 non-200 as a failure: the doc is missing or unpublished, which is itself a
 defect. Fix and republish before proceeding.
 
-On a confirmed 200, assert the body contains **none** of: `baseSlug` in
-any name/casing variant (`Fréscopa`/`frescopa` at the time of writing),
-its old logo shortcode (`:${baseSlug}-icon:`), its taglines/contact, or
+On a confirmed 200, assert the body contains **none** of:
+`baseBrand.baseSlug` in any name/casing variant,
+its old logo shortcode (`:${baseBrand.baseSlug}-icon:`), its taglines/contact, or
 its copyright line. Any hit means that doc was skipped in item 3 of the
 delegation — go rewrite it and republish.
 Also assert **every** remaining icon shortcode in those docs resolves to an
@@ -200,21 +200,25 @@ assert the two-panel split layout** (left brand panel + right sign-in) with
 BOTH marks rendered (left large mark + the panel logo — no empty circle or
 broken image) and the panel in the NEW brand colour; a single off-brand
 column means the `welcome` section style was flattened (fix the rewrite).
-Also fetch `/<companyKey>/public/welcome.plain.html` and assert it still
+Also fetch `/companies/<companyKey>/public/welcome.plain.html` and assert it still
 contains `<div class="welcome">`.
 
-**Header logo-size check (the overflow guard).** The template's brand-logo
-CSS (`header .nav-brand .icon img`) constrains the logo by `max-height`
-against `--nav-bar-height`, not a fixed `width` + `height: auto` — this is
-deliberate: a fixed width with `height: auto` renders a square-aspect logo
-(e.g. a four-square 1:1 mark) far taller than the 72px header, spilling
-over the hero title beneath it (verified live). **Never re-fix this by
-adding a per-company override selector** (e.g. `.icon-<companyKey>-icon`)
-sized in pixels for this one logo's aspect ratio — that papers over the
-next brand with a different aspect ratio instead of fixing the shared
-rule. If the logo still overflows on the preview, the shared
-`max-height`/`max-width` rule in `header.css` regressed; fix it there, not
-with a brand-specific selector. On the preview screenshot (taken for the
+**Header logo-size check (the overflow guard).** The brand-logo rule
+(`header .nav-brand .icon img`) MUST constrain the logo by `max-height`
+against `--nav-bar-height`, not a fixed `width` + `height: auto`: a fixed
+width with `height: auto` renders a square-aspect logo (e.g. a ~1:1 or
+~1.6:1 mark) far taller than the header, spilling over the hero title
+beneath it (verified live — shipped on a demo whose logo was less wide/flat
+than the base). **Verify the actual rule, do not assume it:**
+```
+node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs --only header-logo
+```
+`header-logo` FAILs if either brand-logo rule is fixed-`width` with no
+`max-height`. On a FAIL, **fix the shared rule in `header.css`**
+(`width:auto; max-width:<px>; max-height:calc(var(--nav-bar-height) - N)`) —
+**never** add a per-company override selector (e.g. `.icon-<companyKey>-icon`)
+sized in pixels, which papers over the next brand's aspect ratio instead of
+fixing the shared rule. Then, on the preview screenshot (taken for the
 brand-residue check above), confirm the header logo's rendered height is
 visibly within the header bar and does not touch or cover the hero
 title/search bar below it.
@@ -238,20 +242,20 @@ UI still carries the old brand in a state nobody happened to trigger
 during a quick look.
 
 **Link-scope check (the logo-404 guard).** Fetch the copied
-`/<companyKey>/en/nav` doc and assert the logo/brand link href starts with
-`/<companyKey>/` and has **no** `file:` scheme; assert every internal link
-in the copied nav/footer/welcome is under `/<companyKey>/` (no bare
+`/companies/<companyKey>/en/nav` doc and assert the logo/brand link href starts with
+`/companies/<companyKey>/` and has **no** `file:` scheme; assert every internal link
+in the copied nav/footer/welcome is under `/companies/<companyKey>/` (no bare
 `/en/…`). Then click the logo on the preview and confirm it lands on
-`/<companyKey>/en/`, **not** `/404.html` (verified-broken live: an
+`/companies/<companyKey>/en/`, **not** `/404.html` (verified-broken live: an
 un-rescoped `/en/` logo link 404s).
 
 **Auth verification (the login-gating guard).** The worker resolves login
 and permissions from the **company-scoped** access sheets
 (`companyBasePath()/config/access/application` and `.../users`), not the
 root ones. After publish: (a) GET
-`<preview>/<companyKey>/config/access/application.json` and confirm **200 +
+`<preview>/companies/<companyKey>/config/access/application.json` and confirm **200 +
 an EDS sheet shape** (`{":type":"sheet",…}`) — a `404` or an `.xlsx`/media
-response means the sheet wasn't published under `/<companyKey>` (or landed
+response means the sheet wasn't published under `/companies/<companyKey>` (or landed
 as media, not a `.json` sheet); (b) sign in on the preview as a known demo
 user and confirm you **reach the portal**, NOT "User not allowed to access
 this application". Either failure means Step 3/4 didn't get the company
@@ -259,29 +263,52 @@ this application". Either failure means Step 3/4 didn't get the company
 declaring the rebrand done.
 
 **Sign-in redirect check (hard gate — the dead-login guard).** On the
-deployed preview, load `/<companyKey>/en/` (or the welcome page) and
+deployed preview, load `/companies/<companyKey>/en/` (or the welcome page) and
 **click the Sign in button**. It **must** redirect to the identity provider
 (`login.microsoftonline.com` / the configured Entra host). If it instead
 loops back to the welcome page, sign-in is **broken** — do not declare the
 portal ready. The cause is a base-path mismatch: the worker's auth routes
 are hardcoded at `/auth/*` (`AUTH_PREFIX = '/auth'` in `cloudflare/src/auth.js`
 is **not** prefixed with `DEMO_BASE_PATH`), while the welcome page may have
-been authored to link `/<companyKey>/auth/login`. The fix is to author the
-welcome Sign-in link as **`/auth/login`** (no `/<companyKey>` prefix) — see
+been authored to link `/companies/<companyKey>/auth/login`. The fix is to author the
+welcome Sign-in link as **`/auth/login`** (no `/companies/<companyKey>` prefix) — see
 Step 4. This exact loop shipped on a live demo because only the login page
 render (not the click-through) was checked; the click-through is mandatory.
 
-**Navigation-scope check (the folder-drop guard).** Beyond the logo, click
-through the preview and confirm **every** hop stays under `/<companyKey>/`:
-a home **category card**, the cart's **"Go to Homepage"**, the **404 "Go
-home"** (hit a bad `/<companyKey>/...` URL to trigger it), and **sign-out**.
-None may land on a bare `/en/…`, `/`, or `/404.html` outside the folder
-(all verified-broken live). The worker's `/en/*`→`/<companyKey>/en/*`
-redirect should catch strays, so a landing outside `/<companyKey>/` means
-both the link and the redirect are wrong — investigate.
+**Navigation-scope check (the folder-drop guard + the 404-loop guard).**
+Run the packaged check first — it hits a deliberately-missing
+`/companies/<companyKey>/...` path and asserts the 404 fallback resolves without a
+redirect loop:
+```
+node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+  --preview <branch>.dev.frescopamedia.com --company <companyKey> --only nav-404-loop
+```
+`nav-404-loop` FAILs if the missing path 302s to a 404 page that itself does
+not return 200 (e.g. a company-prefixed `/companies/<companyKey>/404.html` that was
+never provisioned — it 404s and re-triggers the same handler, an infinite
+loop that shipped live). The base template redirects missing paths to the
+**shared un-prefixed** `/404.html` (a repo-root static file, not copied
+per-company); if this check fails, the worker's 404 redirect regressed to a
+company-prefixed target — fix `cloudflare/src/index.js` (`redirectTo404`),
+do not "fix" it by copying a 404 page into the company folder.
+Then click through the preview and confirm **every** hop stays under
+`/companies/<companyKey>/`: a home **category card**, the cart's **"Go to Homepage"**,
+the **404 "Go home"**, and **sign-out**. None may land on a bare `/en/…`,
+`/`, or an unresolvable `/404.html` (all verified-broken live). The worker's
+`/en/*`→`/companies/<companyKey>/en/*` redirect catches strays, so a landing outside
+`/companies/<companyKey>/` means both the link and the redirect are wrong.
+
+**Debugging a redirect symptom — check the DESTINATION first.** When a
+report names a redirect target (e.g. "after login it goes to
+`/companies/<companyKey>/404.html`"), the fastest diagnosis is one `curl -sI` on that
+**destination** to see whether it itself resolves — before tracing how the
+redirect was produced (auth callback, Referer, cookies). A 302 to a page
+that itself 404s is a loop; checking the end of the chain first collapses
+the investigation (verified: a live 404-loop was traced through the whole
+auth flow before the one-request destination check settled it).
 
 **Folder-scope checks.** Confirm: the rebranded pages render at the branch
-preview under `/<companyKey>/`; only `/<companyKey>/...` paths were
+preview under `/companies/<companyKey>/`; only `/companies/<companyKey>/...` paths were
 published (per-path report shows no root path); and the original shared
 root content is unchanged (spot-check one root page still shows the old
 brand). Only then is the rebrand done.

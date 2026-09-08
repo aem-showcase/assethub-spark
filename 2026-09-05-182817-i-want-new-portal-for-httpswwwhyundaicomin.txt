@@ -1,0 +1,1251 @@
+▗ ▗   ▖ ▖  Claude Code v2.1.259
+           Opus 5 · Amazon Bedrock
+  ▘▘ ▝▝    ~/Documents/code/eds/master_1/prod/assethub-spark
+
+
+❯ I want new portal for https://www.hyundai.com/in/                             
+
+⏺ Skill(rebrand-portal)
+  ⎿  Successfully loaded skill
+
+  Read 1 file, listed 1 directory, ran 1 shell command (ctrl+o to expand)
+
+⏺ Here's what I'll do: I'll make a copy of this site under your company's name,
+  give it Hyundai India's look and content, and share it back as a portal link —
+  the original site is never touched.
+
+  One thing to confirm before I start:
+
+⏺ User answered Claude's questions:
+  ⎿  · What company name should the portal be branded under? → Hyundai India
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(.internal/onboarding-state.json)
+  ⎿  Wrote 25 lines to .internal/onboarding-state.json
+       1 {
+       2   "schemaVersion": 4,
+       3   "intent": "full",
+       4   "customer": {
+       5     "name": "Hyundai India",
+       6     "companyKey": "hyundai-india",
+       7     "demoBranch": "demo/hyundai-india",
+       8     "daFolder": null,
+       9     "assetsLane": null,
+      10     "assetsEnrichNow": null
+     … +15 lines (ctrl+o to expand)
+
+⏺ Now setting up the copy of the existing site content under Hyundai India's
+  name.
+
+  Searched for 2 patterns, read 2 files, listed 3 directories, ran 8 shell commands (ctrl+o to expand)
+
+⏺ Write(.internal/base-brand.md)
+  ⎿  Wrote 65 lines to .internal/base-brand.md
+       1 # Base brand capture — read from unedited tree on demo/hyundai-i
+         ndia (pre-Step-4b)
+       2 
+       4 
+       5 ## Surface / palette (`styles/styles.css` `:root`)
+       6 - `--light-color: #F4E9DC`   ← baseSurfaceHex (search hero, face
+         ts panel, section bg)
+       8 - `--text-color` / `--text-primary` / `--link-color`: `#58181D`
+       9 - `--link-hover-color` / `--primary-color`: `#00647D`
+      10 - `--primary-color-hover`: `#004d61`
+     … +64 lines (ctrl+o to expand)
+
+⏺ I've got the copy set up under Hyundai India's name. One thing I need from you
+  before I can copy the site's content across:
+
+  ▎ Before I start, create a file called token.env in the project root with this
+  ▎ one line (I'll never ask you to paste this in chat):
+  ▎ DA_TOKEN=<token copied from da.live>
+  ▎ To get it: open https://da.live/#/aem-showcase/assethub-spark, sign in, open
+  ▎ browser DevTools → Network, click a request like 
+  ▎ https://admin.da.live/config/aem-showcase/..., copy the Authorization: 
+  ▎ Bearer ... request header, and paste only the token value after DA_TOKEN=.
+  ▎ Let me know once it's there.
+
+  token.env is already gitignored (.gitignore:13), so it won't be committed.
+
+  Two operator notes while you're doing that:
+
+  - The Experience Catalyst plugin (excat v2.1.6) was disabled in this session —
+    I've enabled it at user scope, but it won't register until Claude Code
+    restarts. The design step needs it, so plan on a /exit + reopen before we
+    get there. Everything is recorded in .internal/onboarding-state.json, so
+    resuming is a one-liner.
+  - I captured the current base-brand values (frescopa, #F4E9DC surface, #2f2318
+    login panel, both icon marks) into .internal/base-brand.md before touching
+    anything — that's what the residue checks key off later.
+
+✻ Cooked for 3m 39s · done Thursday, 10:02 PM
+
+❯ Done                                                                          
+  ⎿  5 agent types available
+  ⎿  20 skills available
+
+⏺ Plugin's registered now. Let me verify the token file and mint the publish
+  key.
+
+  Searched for 1 pattern, ran 2 shell commands (ctrl+o to expand)
+
+⏺ DA token is good for content. The publish key can't be minted with it — I'll
+  flag that in a moment, but the content copy only needs the DA token, so let me
+  get that done first.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ The publish guard needs the company folder registered before it'll allow the
+  copy — it's derived from the company key, so setting it now.
+
+⏺ Update(.internal/onboarding-state.json)
+  ⎿  Added 1 line, removed 1 line
+       5      "name": "Hyundai India",
+       6      "companyKey": "hyundai-india",
+       7      "demoBranch": "demo/hyundai-india",
+       8 -    "daFolder": null,                                          
+       8 +    "daFolder": "/hyundai-india",                              
+       9      "assetsLane": null,
+      10      "assetsEnrichNow": null
+      11    },
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Update(.internal/onboarding-state.json)
+  ⎿  Added 1 line, removed 1 line
+      12    "steps": {
+      13      "demo-confirmed": "done",
+      14      "branch-resolved": "done",
+      15 -    "da-content-copied": "pending",                            
+      15 +    "da-content-copied": "done",                               
+      16      "rebranded": "pending",
+      17      "demo-company-set": "pending",
+      18      "published": "pending",
+
+  Read 2 files, called scout (ctrl+o to expand)
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Can you just first check publish thing? I want to see if that works           
+
+⏺ Fair — let me probe the publish path directly before building anything on top
+  of it.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ DA_TOKEN itself has write on both preview and live for /hyundai-india/ — the
+  403 was only on minting a separate API key, which we don't need. Let me prove
+  publish end-to-end on one page.
+
+  Searched for 1 pattern, read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Publish works. Here's what I verified end to end:
+
+  The mint 403 is a red herring. ensure-eds-tokens.sh tries to create a separate
+  Helix API key via POST /config/aem-showcase/sites/assethub-spark/apiKeys.json
+  — that needs site-config admin rights your DA user doesn't have (403). But we
+  don't need that key: your DA_TOKEN is itself accepted as an Authorization: 
+  Bearer on admin.hlx.page, and GET /status reports permissions: [delete, list, 
+  read, write] on both preview and live for /hyundai-india/.
+
+  Proved it with a real publish on the copied home page:
+
+  ┌─────────────────────────────────────────────────┬─────────────────┐
+  │                      Call                       │     Result      │
+  ├─────────────────────────────────────────────────┼─────────────────┤
+  │ POST /preview/…/main/hyundai-india/en/index     │ 200             │
+  ├─────────────────────────────────────────────────┼─────────────────┤
+  │ POST /live/…/main/hyundai-india/en/index        │ 200             │
+  ├─────────────────────────────────────────────────┼─────────────────┤
+  │ GET …aem.page/hyundai-india/en/index.plain.html │ 200, 8237 bytes │
+  ├─────────────────────────────────────────────────┼─────────────────┤
+  │ GET …aem.live/hyundai-india/en/index.plain.html │ 200, 8237 bytes │
+  └─────────────────────────────────────────────────┴─────────────────┘
+
+  So Step 4's publish will run fine using DA_TOKEN directly — no admin
+  escalation needed from you.
+
+  Two things that fell out of the probe, both useful:
+
+  - ref=main is the right publish target, not the branch.
+    .github/workflows/build.yaml:58 probes $branch_origin/public/welcome and
+    falls back to main_origin when it 404s — which it will, since nothing is
+    published on the demo-hyundai-india ref. So the PR worker will proxy
+    main--assethub-spark--aem-showcase.aem.page, where our /hyundai-india/*
+    content lives.
+  - Portal URL will be
+    https://demo-hyundai-india.dev.frescopamedia.com/hyundai-india/en/
+    (build.yaml:45,88 sanitizes demo/hyundai-india → demo-hyundai-india).
+
+  Also confirmed the copy landed clean: 28/28 docs, and
+  config/access/application.json + users.json both came across as .json sheets
+  (not .xlsx), which is what login/permission gating reads.
+
+  The served page currently reads Find your Fréscopa assets, and the category
+  cards still encode coffee / machine / accessory / lifestyle in their filter
+  links — expected, that's exactly the pre-rebrand state Step 4 rewrites.
+
+  Want me to carry on into the rebrand now?
+✻ Worked for 1m 40s · done Thursday, 10:08 PM
+
+❯ Yes complete the tasks                                                        
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Fetch(https://www.hyundai.com/in/en/find-a-car/all-cars)
+  ⎿  Received 0 bytes (404 Not Found)
+
+⏺ Fetch(https://www.hyundai.com/in/en)
+  ⎿  Received 813.5KB (200 OK)
+
+⏺ Source nav gives me the category vocabulary. Let me confirm the models behind
+  each.
+
+⏺ Fetch(https://www.hyundai.com/in/en/find-a-car/suv)
+  ⎿  Received 636.1KB (200 OK)
+
+⏺ Fetch(https://www.hyundai.com/in/en/find-a-car/electric)
+  ⎿  Received 628.4KB (200 OK)
+
+⏺ Fetch(https://www.hyundai.com/in/en/find-a-car/hatchback)
+  ⎿  Received 652.2KB (200 OK)
+
+⏺ Category contract derived from the source nav — six, all evidence-backed. Let
+  me record it and get the copied pages previewing so the design pass has
+  something to verify against.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(.internal/publish.sh)
+  ⎿  Wrote 25 lines to .internal/publish.sh
+       1 #!/usr/bin/env bash
+         a Helix Admin.
+       3 # Auth: DA_TOKEN is accepted directly as the admin.hlx.page bear
+         er — this user
+         Keys.json) but
+       5 # DA_TOKEN carries write on preview+live for /hyundai-india. Ver
+       6 set -uo pipefail
+       7 cd "$(dirname "$0")/.."
+       8 set -a; . ./token.env; set +a
+      10 BASE=https://admin.hlx.page
+     … +24 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ JSON sheets need their extension on the admin path — retrying those three.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Update(.internal/publish.sh)
+  ⎿  Added 7 lines, removed 2 lines
+      13    [ -z "$p" ] && continue
+      14    case "$p" in *"/drafts/"*) continue;; esac
+      15    case "$p" in /hyundai-india/*) ;; *) echo "REFUSE (out of fol
+          der): $p"; fail=$((fail+1)); continue;; esac
+      16 -  pv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Autho
+         -rization: Bearer $DA_TOKEN" "$BASE/preview/$ORG/$SITE/$REF$p") 
+      17 -  lv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Autho
+         -rization: Bearer $DA_TOKEN" "$BASE/live/$ORG/$SITE/$REF$p")    
+      16 +  # DA sheets are addressed with their .json extension on admin
+         +.hlx.page; docs are not.                                       
+      17 +  # Try the bare path first, fall back to <path>.json on 404.  
+      18 +  for suffix in '' '.json'; do                                 
+      19 +    pv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Aut
+         +horization: Bearer $DA_TOKEN" "$BASE/preview/$ORG/$SITE/$REF$p$
+         +suffix")                                                       
+      20 +    lv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Aut
+         +horization: Bearer $DA_TOKEN" "$BASE/live/$ORG/$SITE/$REF$p$suf
+         +fix")                                                          
+      21 +    [ "$pv" = "200" ] && [ "$lv" = "200" ] && break            
+      22 +  done                                                         
+      23    if [ "$pv" = "200" ] && [ "$lv" = "200" ]; then
+      24      ok=$((ok+1)); printf 'OK    preview=%s live=%s  %s\n' "$pv"
+           "$lv" "$p"
+      25    else
+
+⏺ Write(.internal/notes.md)
+  ⎿  Wrote 59 lines to .internal/notes.md
+       1 # Hyundai India demo — working notes
+       3 ## Publish auth (resolved — do NOT re-run ensure-eds-tokens.sh e
+         xpecting success)
+       4 `ensure-eds-tokens.sh` fails at the **mint** step:
+         spark/apiKeys.json` → **403**
+       6 (the DA user lacks Helix site-config admin rights).
+       8 **This does not block publish.** `DA_TOKEN` is itself a valid
+       9 `Authorization: Bearer` for `admin.hlx.page`. `GET /status` repo
+         rts
+         oth**
+     … +73 lines (ctrl+o to expand)
+
+⏺ Baseline is live. Now the design pass — I'll hand the source site to the
+  design tool in complete-migration mode.
+
+⏺ Skill(excat:excat-complete-design-expert)
+  ⎿  Successfully loaded skill
+
+  Read 1 file, listed 1 directory (ctrl+o to expand)
+
+⏺ This repo has no import artifacts (tools/importer/page-templates.json,
+  migration-work/) — it's an existing portal being rebranded, not a content
+  import, so the per-block source-selector phase has no counterpart to match
+  against. Phase 1's deterministic brand extraction is what applies. Running it
+  against the source now.
+
+  Called plugin:excat:playwright 2 times (ctrl+o to expand)
+
+⏺ Deterministic extraction done. The key signals: primary #002C5F (42 button
+  instances + 4 section backgrounds), accent #00AAD2, surface #F6F3F2, text
+  #212529. Let me save that and pull the real brand assets.
+
+  Read 6 files, called scout 2 times, ran 1 shell command (ctrl+o to expand)
+  ⎿  Read ../notes.md (60 lines)
+  ⎿  Read ../publish.sh (31 lines)
+  ⎿  Read ../onboarding-state.json (26 lines)
+  ⎿  Read ../base-brand.md (66 lines)
+  ⎿  Referenced file ../../.claude/skills/rebrand-portal/docs/step-4-rebrand.md  ⎿  Skills restored (excat:excat-complete-design-expert)
+
+⏺ Now authoring the Hyundai brand marks.
+
+⏺ Write(icons/hyundai-india-beans.svg)
+  ⎿  Wrote 10 lines to icons/hyundai-india-beans.svg
+       1 <svg xmlns="http://www.w3.org/2000/svg" width="260" height="150"
+          viewBox="0 0 260 150" role="img" aria-label="Hyundai">
+       3     <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" strok
+         e="#00AAD2" stroke-width="12"/>
+       4     <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#00AAD2"
+       5       <path d="M58 38h18v74H58z"/>
+       6       <path d="M184 38h18v74h-18z"/>
+       7       <path d="M58 66h144v18H58z"/>
+       9   </g>
+      10 </svg>
+     … +2 lines (ctrl+o to expand)
+
+⏺ Write(icons/hyundai-india-icon.svg)
+  ⎿  Wrote 22 lines to icons/hyundai-india-icon.svg
+       1 <svg xmlns="http://www.w3.org/2000/svg" width="1160" height="300
+         " viewBox="0 0 1160 300" role="img" aria-label="Hyundai">
+       3   <g transform="translate(10 85) scale(0.86667)">
+       4     <g transform="rotate(-9 130 75)">
+       5       <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" str
+       6       <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#002C5
+         F">
+       7         <path d="M58 38h18v74H58z"/>
+       9         <path d="M58 66h144v18H58z"/>
+      10       </g>
+     … +17 lines (ctrl+o to expand)
+
+⏺ Update(icons/hyundai-india-icon.svg)
+  ⎿  Added 2 lines, removed 2 lines
+      1 -<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="300
+        -" viewBox="0 0 1160 300" role="img" aria-label="Hyundai">       
+      2 -  <rect width="1160" height="300" fill="#fff" opacity="0"/>     
+      1 +<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="300
+        +" viewBox="0 0 1140 300" role="img" aria-label="Hyundai">       
+      2 +  <rect width="1140" height="300" fill="#fff" opacity="0"/>     
+      3    <g transform="translate(10 85) scale(0.86667)">
+      4      <g transform="rotate(-9 130 75)">
+      5        <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" str
+         oke="#002C5F" stroke-width="12"/>
+
+⏺ Write(favicon.svg)
+  ⎿  Added 11 lines, removed 4 lines
+       1 -<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" rol
+         -e="img" aria-label="Frescopa">                                 
+       2 -  <rect width="32" height="32" fill="#fff"/>                   
+       3 -  <g transform="translate(2.5 4) scale(0.105)">                
+       4 -    <path fill="#eaa33a" d="M152.258,210.922q-4.274.429-8.687.4
+         -22c-32.95,0-70.723-17.509-98.9-46.448C-2.478,116.46-14.181,50.6
+         -,18.588,18.1,30.694,6.095,47.429-.122,67.1,0c32.186.282,68.336,
+         -17.853,96.7,47.006a179.461,179.461,0,0,1,16.213,19.134c15.794-9
+         -.663,32.668-15.12,48.332-15.256,15.3-.076,28.251,4.738,37.663,1
+         -4.078,25.321,25.109,16.457,75.807-19.761,113.006-21.733,22.33-4
+         -9.47,35.782-74.187,36l-.6.014A58.662,58.662,0,0,1,152.258,210.9
+         -22Zm19.716-7.088c22.031-.193,47.047-12.5,66.92-32.9,31.512-32.3
+         -87,40.8-75.262,21.5-97.09-3.459,17.894-16.637,54.679-66.761,69.
+         -485-20.983,6.2-34.831,15.8-41.147,28.527-5.8,11.687-3.508,23.03
+         -5-2.364,27.1A45.683,45.683,0,0,0,171.974,203.834ZM52.038,157.86
+         -c23.98,24.626,55.152,40.408,83.349,42.988q-.5-.466-.985-.948c-1
+         -7.487-17.345-18.665-46.9-5.786-75.782a155.443,155.443,0,0,0-15.
+         -239-5.341C67.85,105.332,46.2,78.023,36.052,57.481A112.034,112.0
+         -34,0,0,1,25.8,25.287C-3.019,53.929,8.741,113.388,52.038,157.86Z
+         -M228.447,61.03c-22.038.186-47.054,12.489-66.927,32.894-30.628,3
+         -1.465-40.261,72.85-23.068,95.194a46.936,46.936,0,0,1,4.772-21.5
+         -53c7.58-15.46,23.558-26.876,47.491-33.946,52.425-15.483,59.56-5
+         -6.147,60.528-67.176a44.907,44.907,0,0,0-22.281-5.415ZM116.3,109
+         -.067a164.3,164.3,0,0,1,16.858,5.951,132.417,132.417,0,0,1,21-28
+         -.123,136.1,136.1,0,0,1,17.376-15.078,169.85,169.85,0,0,0-15.092
+         --17.781c-26.5-27.227-59.93-43.643-89.423-43.89-12.2-.1-22.963,2
+         -.585-31.807,7.853C36.155,31.181,44.4,87.832,116.3,109.067Z"/>  
+       1 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" rol
+         +e="img" aria-label="Hyundai">                                  
+       2 +  <rect width="32" height="32" fill="#002C5F"/>                
+       3 +  <g transform="translate(3 8.5) scale(0.1)">                  
+       4 +    <g transform="rotate(-9 130 75)">                          
+       5 +      <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" st
+         +roke="#fff" stroke-width="16"/>                                
+       6 +      <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#fff"
+         +>                                                              
+       7 +        <path d="M56 38h22v74H56z"/>                           
+       8 +        <path d="M182 38h22v74h-22z"/>                         
+       9 +        <path d="M56 64h148v22H56z"/>                          
+      10 +      </g>                                                     
+      11 +    </g>                                                       
+      12    </g>
+      13  </svg>
+
+  Called plugin:excat:playwright 3 times, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Write(icons/hyundai-india-icon.svg)
+  ⎿  Added 10 lines, removed 10 lines
+      1 -<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="300
+        -" viewBox="0 0 1140 300" role="img" aria-label="Hyundai">       
+      2 -  <rect width="1140" height="300" fill="#fff" opacity="0"/>     
+      3 -  <g transform="translate(10 85) scale(0.86667)">               
+      1 +<svg xmlns="http://www.w3.org/2000/svg" width="1196" height="300
+        +" viewBox="0 0 1196 300" role="img" aria-label="Hyundai">       
+      2 +  <rect width="1196" height="300" fill="#fff" opacity="0"/>     
+      3 +  <g transform="translate(10 60) scale(1.2)">                   
+      4      <g transform="rotate(-9 130 75)">
+      5        <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" str
+         oke="#002C5F" stroke-width="12"/>
+      6        <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#002C5
+         F">
+     ...
+      11      </g>
+      12    </g>
+      13    <g fill="#002C5F" fill-rule="evenodd">
+      14 -    <path d="M280 85h16v57h68V85h16v130h-16v-57h-68v57h-16z"/> 
+      15 -    <path d="M410 85h18l32 53 32-53h18l-42 70v60h-16v-60z"/>   
+      16 -    <path d="M540 85v80c0 28 22 50 50 50s50-22 50-50V85h-16v80c
+         -0 19-15 34-34 34s-34-15-34-34V85z"/>                           
+      17 -    <path d="M670 85h18l66 97V85h16v130h-18l-66-97v97h-16z"/>  
+      18 -    <path d="M800 85h45c34 0 55 28 55 65s-21 65-55 65h-45zm16 1
+         -6v98h29c25 0 39-21 39-49s-14-49-39-49z"/>                      
+      19 -    <path d="M972 85h16l42 130h-17l-9-28h-48l-9 28h-17zm8 26-19
+         - 60h38z"/>                                                     
+      20 -    <path d="M1102 85h16v130h-16z"/>                           
+      14 +    <path d="M370 85h16v57h68V85h16v130h-16v-57h-68v57h-16z"/> 
+      15 +    <path d="M500 85h18l32 53 32-53h18l-42 70v60h-16v-60z"/>   
+      16 +    <path d="M630 85v80c0 28 22 50 50 50s50-22 50-50V85h-16v80c
+         +0 19-15 34-34 34s-34-15-34-34V85z"/>                           
+      17 +    <path d="M760 85h18l66 97V85h16v130h-18l-66-97v97h-16z"/>  
+      18 +    <path d="M890 85h45c34 0 55 28 55 65s-21 65-55 65h-45zm16 1
+         +6v98h29c25 0 39-21 39-49s-14-49-39-49z"/>                      
+      19 +    <path d="M1062 85h16l42 130h-17l-9-28h-48l-9 28h-17zm8 26-1
+         +9 60h38z"/>                                                    
+      20 +    <path d="M1150 85h16v130h-16z"/>                           
+      21    </g>
+      22  </svg>
+
+  Read 2 files, listed 2 directories, called plugin:excat:playwright, scout 5 times, ran 5 shell commands (ctrl+o to expand)
+
+⏺ Now applying the palette. First the mechanical asset-color sweep across icons
+  and background SVGs:
+
+  Read 1 file, called scout, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Write(styles/backgrounds/big.svg)
+  ⎿  Added 38 lines, removed 5 lines
+       1 -<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www
+         -.w3.org/1999/xlink" width="1360" height="655" viewBox="0 0 1360
+         - 655">                                                         
+       2 -  <g id="Base" transform="translate(-40 -1060)">               
+       3 -    <rect id="Base-2" data-name="Base" width="1360" height="655
+         -" rx="10" transform="translate(40 1060)" fill="#F6F3F2"/>      
+       4 -    <image id="Pattern3" width="1360" height="655" transform="t
+         -ranslate(40 1060)" xlink:href="data:image/png;base64,iVBORw0KGg
+         -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 … [+152299 char
+         -s]                                                             
+       1 +<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="65
+         +5" viewBox="0 0 1360 655">                                     
+       2 +  <defs>                                                       
+       3 +    <linearGradient id="bgWash" x1="0" y1="0" x2="1" y2="1">   
+       4 +      <stop offset="0" stop-color="#F6F3F2"/>                  
+       5 +      <stop offset="0.55" stop-color="#EFEBE9"/>               
+       6 +      <stop offset="1" stop-color="#E4DCD3"/>                  
+       7 +    </linearGradient>                                          
+       8 +    <linearGradient id="bandCyan" x1="0" y1="0" x2="1" y2="0"> 
+       9 +      <stop offset="0" stop-color="#00AAD2" stop-opacity="0"/> 
+      10 +      <stop offset="0.5" stop-color="#00AAD2" stop-opacity="0.1
+         +6"/>                                                           
+      11 +      <stop offset="1" stop-color="#00AAD2" stop-opacity="0"/> 
+      12 +    </linearGradient>                                          
+      13 +    <linearGradient id="bandNavy" x1="0" y1="0" x2="1" y2="0"> 
+      14 +      <stop offset="0" stop-color="#002C5F" stop-opacity="0"/> 
+      15 +      <stop offset="0.55" stop-color="#002C5F" stop-opacity="0.
+         +1"/>                                                           
+      16 +      <stop offset="1" stop-color="#002C5F" stop-opacity="0"/> 
+      17 +    </linearGradient>                                          
+      18 +    <clipPath id="bgClip">                                     
+      19 +      <rect width="1360" height="655" rx="10"/>                
+      20 +    </clipPath>                                                
+      21 +  </defs>                                                      
+      22 +  <g clip-path="url(#bgClip)">                                 
+      23 +    <rect width="1360" height="655" fill="url(#bgWash)"/>      
+      24 +    <g>                                                        
+      25 +      <rect x="-200" y="-140" width="2000" height="120" fill="u
+         +rl(#bandCyan)" transform="rotate(-18 680 328)"/>               
+      26 +      <rect x="-200" y="120" width="2000" height="64" fill="url
+         +(#bandNavy)" transform="rotate(-18 680 328)"/>                 
+      27 +      <rect x="-200" y="470" width="2000" height="150" fill="ur
+         +l(#bandCyan)" transform="rotate(-18 680 328)"/>                
+      28 +    </g>                                                       
+      29 +    <g opacity="0.07" transform="translate(880 150) scale(2.1)"
+         +>                                                              
+      30 +      <g transform="rotate(-9 130 75)">                        
+      31 +        <ellipse cx="130" cy="75" rx="118" ry="62" fill="none" 
+         +stroke="#002C5F" stroke-width="12"/>                           
+      32 +        <g transform="matrix(1 0 -0.2126 1 15.945 0)" fill="#00
+         +2C5F">                                                         
+      33 +          <path d="M58 38h18v74H58z"/>                         
+      34 +          <path d="M184 38h18v74h-18z"/>                       
+      35 +          <path d="M58 66h144v18H58z"/>                        
+      36 +        </g>                                                   
+      37 +      </g>                                                     
+      38 +    </g>                                                       
+      39    </g>
+      40  </svg>
+       7 -                                                               
+
+⏺ Write(styles/backgrounds/small.svg)
+  ⎿  Added 25 lines, removed 2 lines
+       1 -<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www
+         -.w3.org/1999/xlink" width="1360" height="180" viewBox="0 0 1360
+         - 180">                                                         
+       2 -  <image id="Pattern5" width="1360" height="180" xlink:href="da
+         -ta:image/png;base64,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 … [+44238 chars
+         -]                                                              
+       1 +<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="18
+         +0" viewBox="0 0 1360 180">                                     
+       2 +  <defs>                                                       
+       3 +    <linearGradient id="bgWashS" x1="0" y1="0" x2="1" y2="1">  
+       4 +      <stop offset="0" stop-color="#F6F3F2"/>                  
+       5 +      <stop offset="1" stop-color="#E4DCD3"/>                  
+       6 +    </linearGradient>                                          
+       7 +    <linearGradient id="bandCyanS" x1="0" y1="0" x2="1" y2="0">
+       8 +      <stop offset="0" stop-color="#00AAD2" stop-opacity="0"/> 
+       9 +      <stop offset="0.5" stop-color="#00AAD2" stop-opacity="0.1
+         +6"/>                                                           
+      10 +      <stop offset="1" stop-color="#00AAD2" stop-opacity="0"/> 
+      11 +    </linearGradient>                                          
+      12 +    <linearGradient id="bandNavyS" x1="0" y1="0" x2="1" y2="0">
+      13 +      <stop offset="0" stop-color="#002C5F" stop-opacity="0"/> 
+      14 +      <stop offset="0.55" stop-color="#002C5F" stop-opacity="0.
+         +1"/>                                                           
+      15 +      <stop offset="1" stop-color="#002C5F" stop-opacity="0"/> 
+      16 +    </linearGradient>                                          
+      17 +    <clipPath id="bgClipS">                                    
+      18 +      <rect width="1360" height="180"/>                        
+      19 +    </clipPath>                                                
+      20 +  </defs>                                                      
+      21 +  <g clip-path="url(#bgClipS)">                                
+      22 +    <rect width="1360" height="180" fill="url(#bgWashS)"/>     
+      23 +    <rect x="-200" y="-30" width="2000" height="60" fill="url(#
+         +bandCyanS)" transform="rotate(-8 680 90)"/>                    
+      24 +    <rect x="-200" y="118" width="2000" height="44" fill="url(#
+         +bandNavyS)" transform="rotate(-8 680 90)"/>                    
+      25 +  </g>                                                         
+      26  </svg>
+
+⏺ Now the :root palette in styles/styles.css:
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 13 lines, removed 13 lines
+      12  
+      13  :root {
+      14    /* Brand palette (semantic tokens — single source of truth) *
+          /
+      15 -  --light-color: #F4E9DC;                                      
+      16 -  --dark-color: #2C2C2C;                                       
+      17 -  --text-color: #58181D;                                       
+      18 -  --text-primary: #58181D;                                     
+      19 -  --link-color: #58181D;                                       
+      20 -  --link-hover-color: #00647D;                                 
+      21 -  --primary-color: #00647D;                                    
+      22 -  --primary-color-hover: #004d61;                              
+      23 -  --color-red: #A33532;                                        
+      24 -  --color-dark-red: #95351D;                                   
+      25 -  --accent-secondary: #DC6E52;                                 
+      26 -  --accent-tertiary: #EBA439;                                  
+      27 -  --secondary-color: #95351D;                                  
+      15 +  --light-color: #F6F3F2;                                      
+      16 +  --dark-color: #212529;                                       
+      17 +  --text-color: #212529;                                       
+      18 +  --text-primary: #212529;                                     
+      19 +  --link-color: #002C5F;                                       
+      20 +  --link-hover-color: #00AAD2;                                 
+      21 +  --primary-color: #002C5F;                                    
+      22 +  --primary-color-hover: #001E42;                              
+      23 +  --color-red: #C4262E;                                        
+      24 +  --color-dark-red: #9A1E24;                                   
+      25 +  --accent-secondary: #00AAD2;                                 
+      26 +  --accent-tertiary: #D9822B;                                  
+      27 +  --secondary-color: #002C5F;                                  
+      28  
+      29    /* Neutral & shape tokens */
+      30    --color-neutral-50: #fff;
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 1 line, removed 1 line
+      60  
+      61    /* Semantic aliases */
+      62    --background-color: var(--color-neutral-50);
+      63 -  --color-secondary-light-sky-blue: rgb(0 100 125 / 12%);      
+      63 +  --color-secondary-light-sky-blue: rgb(0 44 95 / 12%);        
+      64    --color-secondary: var(--text-color);
+      65    --color-medium-grey: var(--color-neutral-400);
+      66    --color-dark-blue: var(--primary-color);
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 1 line, removed 1 line
+      67  
+      68    /* fonts */
+      69    --body-font-family: var(--type-base-font-family);
+      70 -  --heading-font-family: baskerville, serif;                   
+      70 +  --heading-font-family: 'HyundaiSansHeadMedium', roboto, robot
+         +o-fallback, sans-serif;                                        
+      71  
+      72    /* font sizes */
+      73    --body-font-size-m: 18px;
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 3 lines, removed 3 lines
+       93  
+       94    /* status badge colors */
+       95    --status-not-started: var(--primary-color);
+       96 -  --status-not-started-bg: rgb(0 100 125 / 12%);              
+       96 +  --status-not-started-bg: rgb(0 44 95 / 12%);                
+       97    --status-in-progress: var(--accent-tertiary);
+       98 -  --status-in-progress-bg: rgb(235 164 57 / 12%);             
+       98 +  --status-in-progress-bg: rgb(217 130 43 / 12%);             
+       99    --status-completed: #7fb078;
+      100    --status-completed-bg: rgb(127 176 120 / 12%);
+      101    --status-cancelled: var(--color-red);
+      102 -  --status-cancelled-bg: rgb(163 53 50 / 12%);                
+      102 +  --status-cancelled-bg: rgb(196 38 46 / 12%);                
+      103  
+      104    /* focus ring */
+      105    --focus-ring-color: var(--primary-color);
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 1 line, removed 1 line
+      120  
+      121    /* action button colors */
+      122    --button-primary: var(--primary-color);
+      123 -  --button-primary-hover: #004d61;                            
+      123 +  --button-primary-hover: #001E42;                            
+      124  
+      125    /* label colors */
+      126    --label-color: var(--text-color);
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 7 lines
+      26    --accent-tertiary: #D9822B;
+      27    --secondary-color: #002C5F;
+      28  
+      29 +  /* Login / welcome split-screen brand panel */               
+      30 +  --welcome-panel-bg: #002C5F;                                 
+      31 +  --welcome-panel-accent-rgb: 0 170 210;                       
+      32 +  --welcome-panel-mark-image: url('/icons/hyundai-india-beans.s
+         +vg');                                                          
+      33 +  --welcome-tagline-line1: 'Progress for Humanity,';           
+      34 +  --welcome-tagline-line2: 'one asset at a time.';             
+      35 +                                                               
+      36    /* Neutral & shape tokens */
+      37    --color-neutral-50: #fff;
+      38    --color-neutral-100: #fafafa;
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 3 lines, removed 3 lines
+      215  
+      216  /* Prevent flash: match the dark left panel colour from first 
+           paint */
+      217  body:has(.section.welcome) {
+      218 -  /* Welcome/login split-screen brand panel is themeable via t
+          -hese tokens (frescopa defaults);                              
+      219 -     a company demo overrides --welcome-panel-* + --welcome-ta
+          -gline to rebrand the login. */                                
+      220 -  background-color: var(--welcome-panel-bg, #2f2318);         
+      218 +  /* Welcome/login split-screen brand panel is themeable via t
+          +hese tokens (set in :root);                                   
+      219 +     a company demo overrides --welcome-panel-* + --welcome-ta
+          +gline-* to rebrand the login. */                              
+      220 +  background-color: var(--welcome-panel-bg, #002C5F);         
+      221    overflow: hidden;
+      222  }
+      223  
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 5 lines, removed 5 lines
+      243  
+      244  /* ── Left: Brand Panel ──────────────────────────────────────
+           ──── */
+      245  
+      246 -/* Dark coffee background with the gold beans icon as a large 
+          -decorative mark */                                            
+      246 +/* Deep brand background with the company mark as a large deco
+          +rative element */                                             
+      247  body:has(.section.welcome) > main::before {
+      248    content: '';
+      249 -  background-color: var(--welcome-panel-bg, #2f2318);         
+      249 +  background-color: var(--welcome-panel-bg, #002C5F);         
+      250    background-image:
+      251 -    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--wel
+          -come-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%
+          -),                                                            
+      252 -    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--wel
+          -come-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%
+          -),                                                            
+      253 -    var(--welcome-panel-mark-image, url('/icons/frescopa-beans
+          -.svg'));                                                      
+      251 +    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--wel
+          +come-panel-accent-rgb, 0 170 210) / 22%) 0%, transparent 100%)
+          +,                                                             
+      252 +    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--wel
+          +come-panel-accent-rgb, 0 170 210) / 10%) 0%, transparent 100%)
+          +,                                                             
+      253 +    var(--welcome-panel-mark-image, url('/icons/hyundai-india-
+          +beans.svg'));                                                 
+      254    background-repeat: no-repeat, no-repeat, no-repeat;
+      255    background-size: cover, cover, 42%;
+      256    background-position: bottom left, top right, center 40%;
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 5 lines, removed 5 lines
+      265     the line. Keeping the \A here, outside any custom property,
+            avoids that class of bug
+      266     regardless of what a per-company override sets each line to
+           . */
+      267  body:has(.section.welcome) > main::after {
+      268 -  content: var(--welcome-tagline-line1, '"The world\'s finest 
+          -coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertip
+          -s."');                                                        
+      268 +  content: var(--welcome-tagline-line1, 'Progress for Humanity
+          +,') "\A" var(--welcome-tagline-line2, 'one asset at a time.');
+      269    white-space: pre;
+      270 -  font-family: baskerville, serif;                            
+      270 +  font-family: var(--heading-font-family);                    
+      271    font-size: 1rem;
+      272 -  font-style: italic;                                         
+      272 +  font-style: normal;                                         
+      273    line-height: 1.6;
+      274 -  letter-spacing: 0.01em;                                     
+      275 -  color: rgb(244 233 220 / 55%);                              
+      274 +  letter-spacing: 0.08em;                                     
+      275 +  color: rgb(246 243 242 / 62%);                              
+      276    position: absolute;
+      277    bottom: 48px;
+      278    left: 0;
+⏺ Update(styles/styles.css)
+  ⎿  Added 1 line, removed 1 line
+      309  }
+      310  
+      311  /* Brand mark — larger on the auth panel. Brand-agnostic: targ
+           ets any icon shortcode the
+      312 -   welcome doc carries (e.g. :frescopa-beans:, :<company>-bean
+          -s:) so a rebrand needs no CSS edit. */                        
+      312 +   welcome doc carries (e.g. :<company>-beans:) so a rebrand n
+          +eeds no CSS edit. */                                          
+      313  .section.welcome p:has(.icon) {
+      314    margin: 0 0 var(--spacing-medium);
+      315    max-width: none;
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 1 line, removed 1 line
+      955    border-radius: 12px;
+      956  }
+      957  
+      958 -/* Frescopa landing hero: compact, elegant, beige; the search 
+          -pill is the focal point */                                    
+      958 +/* Landing hero: compact, elegant, light brand surface; the se
+          +arch pill is the focal point */                               
+      959  main .section.search-hero {
+      960    background: var(--light-color) url('backgrounds/big.svg') no
+           -repeat center top / cover;
+      961    color: var(--text-color);
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+⏺ Now the chart palettes (need distinguishable hues, not a blanket collapse):
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(blocks/report-asset-activity/report-asset-activity.js)
+  ⎿  Added 17 lines, removed 17 lines
+      11  import showToast from '../../scripts/toast/toast.js';
+      12  import { hasPermission, PERMISSIONS } from '../../scripts/auth/
+          permissions.js';
+      13  
+      14 -// Brand-derived chart palette — built around the Fréscopa them
+         -e (teal --primary-color                                        
+      15 -// #00647D, maroon --text-color #58181D) plus harmonious suppor
+         -ting tones, so charts                                          
+      14 +// Brand-derived chart palette — built around the brand theme (
+         +navy --primary-color                                           
+      15 +// #002C5F, cyan --accent-secondary #00AAD2) plus harmonious su
+         +pporting tones, so charts                                      
+      16  // match the rest of the app instead of using a generic/Google 
+          default palette.
+      17 -// Primary teal is reserved for `download` (the dominant action
+         - in this report).                                              
+      17 +// Primary navy is reserved for `download` (the dominant action
+         + in this report).                                              
+      18  const BRAND_SEQUENCE = [
+      19 -  '#00647D', // brand teal (primary)                           
+      20 -  '#A35E4B', // terracotta                                     
+      21 -  '#C99A3F', // warm gold                                      
+      22 -  '#58181D', // brand maroon (text-color)                      
+      23 -  '#3D8FA3', // light teal                                     
+      24 -  '#6E7E5B', // sage                                           
+      25 -  '#8A6D3B', // bronze                                         
+      19 +  '#002C5F', // brand navy (primary)                           
+      20 +  '#00AAD2', // brand cyan (accent)                            
+      21 +  '#D9822B', // amber                                          
+      22 +  '#7A8FA6', // steel                                          
+      23 +  '#4E6E5D', // sage                                           
+      24 +  '#9A6E8F', // mauve                                          
+      25 +  '#B99C7B', // sand                                           
+      26    '#4F6472', // slate
+      27  ];
+      28  const PALETTE = {
+      29 -  download: '#00647D', // primary teal — dominant action       
+      30 -  view: '#3D8FA3', // light teal                               
+      31 -  'share-link-copy': '#C99A3F', // warm gold                   
+      32 -  'dm-url-copy': '#A35E4B', // terracotta                      
+      33 -  'collection-add': '#58181D', // brand maroon                 
+      34 -  internal: '#00647D',                                         
+      35 -  external: '#3D8FA3',                                         
+      29 +  download: '#002C5F', // primary navy — dominant action       
+      30 +  view: '#00AAD2', // brand cyan                               
+      31 +  'share-link-copy': '#D9822B', // amber                       
+      32 +  'dm-url-copy': '#7A8FA6', // steel                           
+      33 +  'collection-add': '#4E6E5D', // sage                         
+      34 +  internal: '#002C5F',                                         
+      35 +  external: '#00AAD2',                                         
+      36    unknown: '#8F8F8F', // neutral grey (matches --color-neutral-
+          600)
+      37  };
+      38  const FALLBACK_COLORS = BRAND_SEQUENCE;
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now the remaining frescopa string residue in code:
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(blocks/header/header.js)
+  ⎿  Added 1 line, removed 1 line
+      141    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+      142    if (node.tagName === 'UL') return false;
+      143    return Boolean(
+      144 -    node.querySelector?.('.icon-frescopa-icon')               
+      144 +    node.querySelector?.('.icon-hyundai-india-icon')          
+      145      || node.querySelector?.('a[href] .icon'),
+      146    );
+      147  }
+
+⏺ Update(blocks/header/header.js)
+  ⎿  Added 2 lines, removed 2 lines
+      593      welcomeBar.className = 'header-welcome-bar';
+      594      welcomeBar.innerHTML = `
+      595        <a href="/" class="welcome-logo" aria-label="Home">
+      596 -        <span class="icon icon-frescopa-icon">                
+      597 -          <img src="/icons/frescopa-icon.svg" alt="Fréscopa" l
+          -oading="eager" />                                             
+      596 +        <span class="icon icon-hyundai-india-icon">           
+      597 +          <img src="/icons/hyundai-india-icon.svg" alt="Hyunda
+          +i India" loading="eager" />                                   
+      598          </span>
+      599        </a>`;
+      600      block.append(welcomeBar);
+
+  Read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+⏺ Update(blocks/cards/cards.css)
+  ⎿  Added 1 line, removed 1 line
+      256    top: 50%;
+      257    left: 50%;
+      258    transform: translate(-50%, -50%);
+      259 -  font: normal normal normal 300px/300px Baskerville, serif;  
+      259 +  font: normal normal 300 300px/300px var(--heading-font-famil
+          +y);                                                           
+      260    color: rgb(0 0 0 / 10%);
+      261  }
+      262  
+
+  Ran 6 shell commands (ctrl+o to expand)
+  ⎿  Read blocks/cards/cards.css (369 lines)
+  ⎿  Referenced file blocks/header/header.js
+  ⎿  Read blocks/report-asset-activity/report-asset-activity.js (486 lines)
+  ⎿  Referenced file styles/styles.css
+  ⎿  Read styles/backgrounds/small.svg (27 lines)
+  ⎿  Skills restored (excat:excat-complete-design-expert)
+
+⏺ .facet-filter-panel is at blocks/search-results/styles/facets.css:356 with a
+  compound .search-results prefix — that's why the anchored grep missed it. Its
+  winning declaration is background-color: var(--light-color) (line 367, after
+  the background: #fafbfc shorthand), so it already resolves to the new #F6F3F2.
+  Cleaning up the stale fallback and fixing the three off-brand hits:
+
+⏺ Update(blocks/search-results/styles/facets.css)
+  ⎿  Added 1 line, removed 1 line
+      357    flex: 0 0 330px;
+      358    min-width: 22%;
+      359    border-right: 1px solid #e0e0e0;
+      360 -  background: #fafbfc;                                        
+      360 +  background: var(--light-color);                             
+      361    padding: 30px;
+      362    overflow-y: auto;
+      363    width: 330px;
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+⏺ Structural surface audit closed. Now the worker config:
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+⏺ Icon hexes are all functional UI colors (cart/arrow/star/success/error sets),
+  no brand residue. Now the worker scope:
+
+⏺ Update(cloudflare/src/config.js)
+  ⎿  Added 1 line, removed 1 line
+      19    // the configured customer. Default is 'frescopa' (our own de
+          mo repo). When running the
+      20    // enrichment agent for a prospect (e.g. 'santander'), the ag
+          ent auto-patches this value
+      21    // after a successful run. Value is the customer key, NOT the
+           logged-in viewer's company.
+      22 -  DEMO_COMPANY: 'frescopa',                                    
+      22 +  DEMO_COMPANY: 'hyundai-india',                               
+      23  
+      24    // Content base path for a foldered demo. DA content is share
+          d across all branches of a
+      25    // repo, so a per-company demo copies the site into /<company
+          Key> and serves it from there.
+
+⏺ Update(cloudflare/src/config.js)
+  ⎿  Added 1 line, removed 1 line
+      27    // sets this to '/<companyKey>' TOGETHER with DEMO_COMPANY ab
+          ove (same key). The worker
+      28    // uses it for the root redirect, the unauthenticated login/p
+          ublic route, and LOGIN_PAGE;
+      29    // the browser derives the same base from the URL (scripts/lo
+          cale-utils.js).
+      30 -  DEMO_BASE_PATH: '',                                          
+      30 +  DEMO_BASE_PATH: '/hyundai-india',                            
+      31  
+      32    // Content Optimization Agent environment. COA is called with
+           the same DM
+      33    // S2S technical account/token as Dynamic Media, so this must
+           match whatever
+
+  Read 1 file (ctrl+o to expand)
+⏺ Update(cloudflare/src/config.js)
+  ⎿  Added 3 lines, removed 3 lines
+      16  
+      17    // Demo customer scope — always required. Every asset search 
+          is restricted to assets
+      18    // tagged assetMetadata.company === DEMO_COMPANY, so the port
+          al only shows assets for
+      19 -  // the configured customer. Default is 'frescopa' (our own de
+         -mo repo). When running the                                     
+      20 -  // enrichment agent for a prospect (e.g. 'santander'), the ag
+         -ent auto-patches this value                                    
+      21 -  // after a successful run. Value is the customer key, NOT the
+         - logged-in viewer's company.                                   
+      19 +  // the configured customer. When running the enrichment agent
+         + for a prospect, the agent                                     
+      20 +  // auto-patches this value after a successful run. Value is t
+         +he customer key, NOT the                                       
+      21 +  // logged-in viewer's company.                               
+      22    DEMO_COMPANY: 'hyundai-india',
+      23  
+      24    // Content base path for a foldered demo. DA content is share
+          d across all branches of a
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now pulling the DA source of every copied doc so I can rewrite content in
+  place:
+
+  Listed 1 directory, ran 22 shell commands (ctrl+o to expand)
+
+⏺ Found residue the earlier sweep missed — old brand hexes expressed as rgb()
+  triples:
+
+  Ran 7 shell commands (ctrl+o to expand)
+
+⏺ 0 errors on lint (warnings are pre-existing). Now the tests:
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+⏺ Now writing the rebranded DA sources:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now trending, search, and the users sheet:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Uploading the rewritten docs to DA:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ The guard needs literal paths in the command (my $2 variable hid them).
+  Writing them out explicitly:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now removing the two base-brand sub-brand pages from the company folder:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now republish the whole folder with the updated path list:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 21/21 published. Verifying zero base-brand residue in the live content:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ My residue sweep was passing on 404 bodies. Redoing it with status
+  verification:
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Update(.internal/onboarding-state.json)
+  ⎿  Added 3 lines, removed 3 lines
+      13      "demo-confirmed": "done",
+      14      "branch-resolved": "done",
+      15      "da-content-copied": "done",
+      16 -    "rebranded": "pending",                                    
+      17 -    "demo-company-set": "pending",                             
+      18 -    "published": "pending",                                    
+      16 +    "rebranded": "done",                                       
+      17 +    "demo-company-set": "done",                                
+      18 +    "published": "done",                                       
+      19      "landed-via-pr": "pending",
+      20      "assets-uploaded": "pending",
+      21      "assets-enriched": "pending",
+
+⏺ Now the PR. First confirming the auth bypass is not touched and reviewing what
+  would be staged:
+
+  Read 1 file, ran 9 shell commands (ctrl+o to expand)
+
+⏺ Update(styles/styles.css)
+  ⎿  Added 3 lines, removed 1 line
+      72    --color-medium-grey: var(--color-neutral-400);
+      73    --color-dark-blue: var(--primary-color);
+      74  
+      75 -  /* fonts */                                                  
+      75 +  /* fonts. The brand head face is NOT bundled (it is licensed,
+         + not self-hostable) — it is                                    
+      76 +     listed first so machines that have it installed pick it up
+         +; everyone else renders the                                    
+      77 +     self-hosted roboto in styles/fonts.css, which is the inten
+         +ded baseline. */                                               
+      78    --body-font-family: var(--type-base-font-family);
+      79    --heading-font-family: 'HyundaiSansHeadMedium', roboto, robot
+          o-fallback, sans-serif;
+      80  
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+⏺ The staged diff is complete and reviewed. Summary of what's staged (50 files,
+  0 lint errors, 696 tests passing):
+
+  ┌─────────────────────────────┬───────────────────────────────────────────┐
+  │            Area             │                  Change                   │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │                             │ Full palette swap to navy #002C5F / cyan  │
+  │ styles/styles.css           │ #00AAD2 / amber #D9822B; welcome-panel    │
+  │                             │ tokens + tagline; .frescopa-background-*  │
+  │                             │ → .hyundai-india-background-*             │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ styles/backgrounds/big.svg  │ Base64 coffee-bean rasters → pure-vector  │
+  │ small.svg                   │ brand backdrops                           │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ cloudflare/src/config.js    │ DEMO_COMPANY: 'hyundai-india',            │
+  │                             │ DEMO_BASE_PATH: '/hyundai-india'          │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │                             │ 3 frescopa marks deleted;                 │
+  │ icons/                      │ hyundai-india-icon.svg +                  │
+  │                             │ hyundai-india-beans.svg added; 16 UI      │
+  │                             │ icons recolored #00647D→#002C5F           │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ favicon.svg / favicon.ico   │ Rebuilt (.ico from the real downloaded    │
+  │                             │ Hyundai favicon PNG)                      │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │                             │ Brand-agnostic header detection + logo;   │
+  │ blocks/* (13 files)         │ theme tokens; rgb(88 24 29) shadow tints  │
+  │                             │ → navy; off-brand #fff0da/#85b7d9 chips & │
+  │                             │  borders → brand tints                    │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │                             │ Chart palettes hand-mapped (not           │
+  │ scripts/analytics/*         │ blanket-replaced, to keep series          │
+  │                             │ distinguishable) + test expectations      │
+  │                             │ updated                                   │
+  └─────────────────────────────┴───────────────────────────────────────────┘
+
+  DA content is already rewritten and published separately (21/21 paths, zero
+  base-brand residue, coffee/tea sub-brand pages replaced with N Line / IONIQ
+  and removed).
+
+  Two things to flag before I commit:
+  - HyundaiSansHeadMedium leads the heading font stack but is not bundled
+    (licensed). It renders as self-hosted Roboto for anyone without it installed
+    — commented inline.
+  - Index category tiles are text-only right now (cards, not carousel tiles).
+    The base template's carousel requires an image cell in column 1, and the
+    only images available were the coffee photos. Step 5 will populate them with
+    real Hyundai assets from report.cards.
+
+  Ready to commit to demo/hyundai-india — please confirm.
+
+✻ Sautéed for 35m 17s · done Thursday, 10:44 PM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛁ ⛁ ⛁ ⛁ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁   Opus 5
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   us.anthropic.claude-opus-5
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   152.8k/200k tokens (76%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   Estimated usage by category
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   ⛁ System prompt: 2.6k tokens (1.3%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   ⛁ System tools: 6.7k tokens (3.3%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶   ⛁ Custom agents: 348 tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Memory files: 2.8k tokens (1.4%)
+     ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Skills: 2.2k tokens (1.1%)
+                           ⛁ Messages: 138.2k tokens (69.1%)
+                           ⛶ Free space: 14.2k (7.1%)
+                           ⛝ Autocompact buffer: 33k tokens (16.5%)
+
+     Auto-compact window: 200k tokens
+
+     MCP tools · /mcp (loaded on-demand)
+     └ 74 tools · 0 tokens
+
+     Custom agents · .claude/agents/
+     └ 6 agents · 348 tokens
+
+     Memory files · /memory
+     └ 3 files · 2.8k tokens
+
+     Skills · /skills
+     └ 75 skills · 2.2k tokens
+
+     /context all to expand
+
+      Suggestions
+      ⚠ Bash results using 40.8k tokens (20%) → save ~20.4k
+        Pipe output through head, tail, or grep to reduce result size. Avoid cat on large files — use Read with offset/limit instead.
+
+❯ Commit                                                                        
+
+  Pushed to demo/hyundai-india, created PR #34, ran 1 shell command (ctrl+o to expand)
+
+⏺ PR opened: https://github.com/aem-showcase/assethub-spark/pull/34
+
+  Now waiting on the per-PR worker deploy to get the portal URL:
+  Ran 3 shell commands (ctrl+o to expand)
+
+⏺ Portal URL: https://demo-hyundai-india.dev.frescopamedia.com/hyundai-india/en/
+
+⏺ Update(.internal/onboarding-state.json)
+  ⎿  Added 1 line, removed 1 line
+      16      "rebranded": "done",
+      17      "demo-company-set": "done",
+      18      "published": "done",
+      19 -    "landed-via-pr": "pending",                                
+      19 +    "landed-via-pr": "done",                                   
+      20      "assets-uploaded": "pending",
+      21      "assets-enriched": "pending",
+      22      "search-scoped": "pending",
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+⏺ /favicon.svg is auth-gated by the worker while /favicon.ico isn't — a
+  pre-existing template gap, but it means the login page (the demo's landing
+  page) silently drops the new brand favicon. One-line fix:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Update(cloudflare/src/index.js)
+  ⎿  Added 3 lines
+      125    .get('/fonts/*', originHelix)
+      126    .get('/icons/*', originHelix)
+      127    .get('/favicon.ico', originHelix)
+      128 +  // head.html declares both; browsers prefer the SVG, so it h
+          +as to be public too or the                                    
+      129 +  // login page (the unauthenticated landing page) falls back 
+          +to the .ico.                                                  
+      130 +  .get('/favicon.svg', originHelix)                           
+      131    .get('/robots.txt', originHelix)
+      132  
+      133    // from here on authentication required (middleware)
+
+⏺ Now the login page render — checking the two-panel layout, both marks, and
+  computed brand colors in a real browser:
+  ⎿  Interrupted · What should Claude do instead?
+
+※ recap: Building the Hyundai India demo portal from the assethub-spark template: rebrand code and DA content are done and published, 50 files staged on demo/hyundai-india. Waiting on your approval to commit, then I open the PR. (disable recaps in /config)

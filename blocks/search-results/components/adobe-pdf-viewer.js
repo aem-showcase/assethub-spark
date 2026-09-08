@@ -12,6 +12,9 @@ let adobeDCViewInstance = null;
 // NOTE: Adobe PDF Embed client IDs are domain-locked. Register a client ID for the
 // Spark production host at https://developer.adobe.com/document-services/apis/pdf-embed/
 // and replace the placeholder below before PDF preview works on production.
+// 'frescopamedia.com' is intentional: it is the shared showcase deploy domain every
+// per-company demo (including this one) previews under, not a brand residue — do not
+// rename it per company.
 const CLIENT_IDS = {
   localhost: '5b30e43dabf0482480341b9395596694',
   'frescopamedia.com': 'REPLACE_WITH_FRESCOPA_PDF_EMBED_CLIENT_ID',

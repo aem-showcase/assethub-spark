@@ -202,7 +202,11 @@ if scan:
         r"\s+[^\s\"';&|]+\s+[^\s\"';&|]+\s+([^\s\"';&|]+)",
         scan,
     ):
-        company = "/" + m.group(1).strip().strip("/")
+        # The copy helper writes into the companies container: /companies/<companyKey>.
+        # Build the destination the same way the script does so it matches daFolder
+        # (which the skill sets to /companies/<companyKey>).
+        key = m.group(1).strip().strip("/")
+        company = "/companies/" + key
         if not under_folder(company):
             violations.append("DA copy script destination -> " + company)
 
