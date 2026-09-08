@@ -85,6 +85,7 @@ shape from memory:**
     "name": null,
     "companyKey": null,
     "demoBranch": null,
+    "worktreePath": null,
     "daFolder": null,
     "assetsLane": null,
     "assetsEnrichNow": null
@@ -112,7 +113,10 @@ customer chose to leave enrichment for a later step — see Entry flow Q2 —
 and resume to `pending` on a later "now enrich the assets" follow-up
 request).
 `customer.companyKey` is the slug of `customer.name` (lowercase, hyphens);
-`daFolder` is `/<companyKey>`. `customer.assetsLane` is
+`daFolder` is `/<companyKey>`. `customer.worktreePath` is the demo's
+dedicated git worktree (`../assethub-spark.worktrees/demo-<companyKey>`,
+set in Step 2); **Steps 3–6 run with cwd = this worktree**, not the main
+checkout, so parallel demos never contend over one working tree. `customer.assetsLane` is
 `enrich-existing` or `bring-in` (Entry flow Q1); `customer.assetsEnrichNow`
 is `true`/`false` (Entry flow Q2 — always `true` for `bring-in`, since
 pulling in samples with no labeling afterward isn't a sensible outcome).
@@ -283,10 +287,13 @@ original is never changed — I1). Mark `demo-confirmed` `done`.
 
 Resolve `customer.name` + `customer.companyKey` (apply I6 for empty/reserved
 slugs). Resolve `{org}/{repo}` from the origin remote (this shared repo, not
-a fork). Demo branch is `demo/<companyKey>`. **Always check for an existing
+a fork). Demo branch is `demo/<companyKey>`, created in its **own git
+worktree** (`../assethub-spark.worktrees/demo-<companyKey>`) — not the main
+checkout — so parallel demos don't contend. Symlink the gitignored
+`token.env` + `cloudflare/.secrets` into it. **Always check for an existing
 brand branch first and ASK continue-vs-new if one is found — never silently
-reuse, recreate, or delete it (I5).** Record `customer.demoBranch`; mark
-`branch-resolved` `done`.
+reuse, recreate, or delete it (I5).** Record `customer.demoBranch` and
+`customer.worktreePath`; mark `branch-resolved` `done`.
 
 ▶ **Read now, before acting:** `.claude/skills/rebrand-portal/docs/step-1-2-branch.md`
 

@@ -1,5 +1,9 @@
 ## Step 4g — Verification (before declaring the rebrand done)
 
+> **Run from the worktree** (`customer.worktreePath`). The config.js diff
+> and asset-color sweep you verify are the worktree's files on the demo
+> branch, not the main checkout.
+
 This section is a **hard gate before Step 5**, not optional cleanup. Do not
 invoke `.claude/skills/rebrand-portal/scripts/assets/enrich-assets.js`, create collections, or mark asset
 steps `done` until every Step 4g check passes against the deployed PR
@@ -56,9 +60,10 @@ residue grep moot:
    already decided these values — this step reuses that decision as the
    expected value, it does not re-derive brand colors from anywhere else.
    **Include the home landing page's dominant surfaces explicitly** — the
-   search-page selectors above are not enough; the base cream commonly
-   survives on the home canvas even when the search page is clean (verified
-   live). Add: the **home landing canvas** at `/<companyKey>/en/` — resolve
+   search-page selectors above are not enough; the base surface
+   (`baseSurfaceHex`) commonly survives on the home canvas even when the
+   search page is clean (verified live). Add: the **home landing canvas**
+   at `/<companyKey>/en/` — resolve
    it once on the preview as the element whose computed `background-color`
    actually paints the full-page background behind the cards (typically
    `body` or the top-level `main`/section wrapper) — and the
@@ -253,6 +258,19 @@ this application". Either failure means Step 3/4 didn't get the company
 `config/access/*` sheets published as `.json` — fix and republish before
 declaring the rebrand done.
 
+**Sign-in redirect check (hard gate — the dead-login guard).** On the
+deployed preview, load `/<companyKey>/en/` (or the welcome page) and
+**click the Sign in button**. It **must** redirect to the identity provider
+(`login.microsoftonline.com` / the configured Entra host). If it instead
+loops back to the welcome page, sign-in is **broken** — do not declare the
+portal ready. The cause is a base-path mismatch: the worker's auth routes
+are hardcoded at `/auth/*` (`AUTH_PREFIX = '/auth'` in `cloudflare/src/auth.js`
+is **not** prefixed with `DEMO_BASE_PATH`), while the welcome page may have
+been authored to link `/<companyKey>/auth/login`. The fix is to author the
+welcome Sign-in link as **`/auth/login`** (no `/<companyKey>` prefix) — see
+Step 4. This exact loop shipped on a live demo because only the login page
+render (not the click-through) was checked; the click-through is mandatory.
+
 **Navigation-scope check (the folder-drop guard).** Beyond the logo, click
 through the preview and confirm **every** hop stays under `/<companyKey>/`:
 a home **category card**, the cart's **"Go to Homepage"**, the **404 "Go
@@ -272,9 +290,9 @@ brand). Only then is the rebrand done.
 on the portal link (no merge needed); the new brand name and content
 highlights; any follow-up (e.g. a placeholder logo pending the real
 asset). **Do not emit this report while the background-color applied
-check (above) is unresolved** — a home surface still on the base cream is
-a hard FAIL that blocks the report the same way a losing welcome-panel
-token does; fix it, re-check, then report.
+check (above) is unresolved** — a home surface still resolving to
+`baseSurfaceHex` is a hard FAIL that blocks the report the same way a
+losing welcome-panel token does; fix it, re-check, then report.
 
 **The Step 4 handoff carries no asset question and no blocker.** Deliver
 the completion report and the portal link on their own. Do not bundle Q1/Q2

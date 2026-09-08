@@ -29,6 +29,7 @@ import {
 const FLAGS_WITH_VALUE = new Set([
   'customer-key', 'group-by', 'limit', 'min-assets', 'secrets-file',
   'aem-env-id', 'report-file', 'fixture', 'access-level', 'display-name',
+  'category-labels',
 ]);
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force']);
 
@@ -47,6 +48,7 @@ export function parseArgs(argv) {
     reportFile: null,
     fixture: null,
     displayName: null,
+    categoryLabels: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -71,6 +73,12 @@ export function parseArgs(argv) {
         case 'report-file': opts.reportFile = value; break;
         case 'fixture': opts.fixture = value; break;
         case 'display-name': opts.displayName = value; break;
+        case 'category-labels':
+          // JSON slug->label map, e.g. '{"iphone":"iPhone","ipad":"iPad"}'. Lets the
+          // source-derived contract's proper-noun casing (iPhone/iPad/AirPods) flow into
+          // collection titles instead of the title-cased default (Iphone/Ipad/Airpods).
+          try { opts.categoryLabels = JSON.parse(value); } catch { opts.categoryLabels = null; }
+          break;
         default: break;
       }
     }
@@ -107,7 +115,7 @@ export async function createCollectionsRun({
   options, client, assets: seededAssets = null, log = console,
 }) {
   const {
-    customerKey, groupBy, limit, minAssets, accessLevel, dryRun, displayName,
+    customerKey, groupBy, limit, minAssets, accessLevel, dryRun, displayName, categoryLabels,
   } = options;
 
   const assets = seededAssets
@@ -135,7 +143,11 @@ export async function createCollectionsRun({
   }
 
   const specs = planCollections(assets, {
-    company: customerKey, facet: groupBy, minAssets, titlePrefix: displayName || undefined,
+    company: customerKey,
+    facet: groupBy,
+    minAssets,
+    titlePrefix: displayName || undefined,
+    labels: categoryLabels || undefined,
   });
 
   if (specs.length === 0) {

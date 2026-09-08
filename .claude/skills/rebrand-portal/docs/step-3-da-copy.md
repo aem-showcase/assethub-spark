@@ -1,5 +1,11 @@
 # Step 3 — Copy existing DA content into `/<companyKey>` (`da-content-copied`)
 
+> **Run from the worktree.** This and every later step run with cwd =
+> `customer.worktreePath` (the demo's git worktree from Step 2), not the
+> main checkout. `copy-folder.sh` reads `token.env` (symlinked into the
+> worktree in Step 2) and resolves the repo root from cwd — so running it
+> in the worktree targets the worktree's files.
+
 **This step is MANDATORY. It must not be skipped, deferred, or assumed
 away.** The demo's whole point is rebranding a *copy of the real DA
 content*, so you must actually look at the real content with an
@@ -66,6 +72,13 @@ from Step 2. It reads `DA_TOKEN` from `token.env` (never printed) and:
   "/<companyKey>"` and mark `da-content-copied` `done`. Do not pre-mark
   `done` before the verification loop finishes — an interrupted session
   would resume past an unverified step.
+  - **Publish-guard note.** `copy-folder.sh` copies DA content; it does not
+    publish, so the publish guard does not gate the copy itself. If a later
+    step's publish call is blocked because `customer.daFolder` is still
+    `null` in state, that is the signal to complete this step first (run the
+    copy, verify, set `daFolder`) — not to hand-set `daFolder` to unblock the
+    guard ahead of a verified copy. The guard is correct; the fix is to
+    finish Step 3.
 - `3` — **and only `3`** means genuinely empty (list returned HTTP 200,
   zero documents). Only then may you say there's nothing to copy; say you
   confirmed it via the authenticated list (name the org/repo checked).

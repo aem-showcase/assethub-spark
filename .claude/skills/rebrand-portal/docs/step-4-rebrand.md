@@ -1,5 +1,11 @@
 # Step 4 — Rebrand `/<companyKey>` + repo, publish, open the PR
 
+> **Run from the worktree.** All code edits here — design tokens,
+> `cloudflare/src/config.js`, logo/asset swaps — happen in
+> `customer.worktreePath` (Step 2's git worktree), never the main checkout.
+> Invoke `excat-complete-design-expert` and the packaged scripts with cwd =
+> the worktree so they edit the worktree's files.
+
 **Gate — do not start until both `customer.demoBranch` and
 `customer.daFolder` are set** (Steps 2 and 3 `done`). Do not invoke
 `excat-complete-design-expert` or touch any file until both are set.
@@ -84,6 +90,18 @@ mint result:
    (status N)", not "the token can't mint". Do not offer fallback token
    paths.
 
+**Publish path/ref convention (avoids the guard/ref confusion).** DA-managed
+content previews and publishes with **`REF=main`** and the full DA path
+`/<companyKey>/en/<doc>`, i.e.
+`https://admin.hlx.page/{preview|live}/{org}/{repo}/main/<companyKey>/en/<doc>`
+— **not** the demo branch as the ref. The publish guard's URL regex reads the
+segment after `{org}/{repo}` as the ref; if you pass the demo branch (or a
+`/`-containing branch like `demo/apple-2`) as that segment it mis-parses the
+company folder as part of the path. Use **explicit per-path publish calls**
+(one URL per doc) rather than a shell loop over a variable — the guard
+deliberately blocks shell-variable paths, and explicit paths also make the
+per-path publish report auditable.
+
 **Capture the base brand's current values — before any edit.** Every
 later residue/applied check in this skill needs to know what the
 *current* base-brand values are, on THIS repo, right now — not a fixed
@@ -162,6 +180,15 @@ split it across turns:
      substituted via `var()` — that was a real bug in an earlier revision.
      Leaving these unset keeps the frescopa coffee panel + "world's finest
      coffee" tagline on the customer's login.
+   - **Sign-in link target — `/auth/login`, NOT `/<companyKey>/auth/login`.**
+     If the welcome doc carries a Sign in link/button, author its `href` as
+     **`/auth/login`**. The worker's auth routes are hardcoded at `/auth/*`
+     (`AUTH_PREFIX = '/auth'` in `cloudflare/src/auth.js` is **not** prefixed
+     with `DEMO_BASE_PATH`), so a `/<companyKey>/auth/login` link falls
+     through the auth router, hits `withAuthentication` unauthenticated, and
+     redirects back to the welcome page — an infinite loop with no way to
+     sign in. This shipped broken on a live demo; Step 4g's sign-in redirect
+     check is the gate that catches it.
 2. **Brand assets + hardcoded colors** — separately in scope, and the
    most-missed step:
    - **Logo/wordmark swap (all instances) — MANDATORY, and the single

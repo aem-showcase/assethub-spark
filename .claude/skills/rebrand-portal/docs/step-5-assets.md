@@ -1,5 +1,12 @@
 # Step 5 — Upload and enrich the company's assets
 
+> **Run from the worktree** (`customer.worktreePath`). The controller
+> `enrich-assets.js` resolves the repo root from cwd and reads
+> `cloudflare/.secrets` (asset creds) + `cloudflare/src/config.js` (AEM env
+> id, demo scope) from there — both present in the worktree (`.secrets`
+> symlinked in Step 2, config.js rebranded in Step 4). Run it in the main
+> checkout and it would read the wrong config.js.
+
 ## Step 5 preflight — rebrand verification gate
 
 Before any `--dry-run` or live asset enrichment, assert all of these are
@@ -125,6 +132,24 @@ source-site evidence, now including `autogen:subject` as a high-confidence
 signal (see `docs/asset-enrichment.md`). `company`, `dam:status=approved`,
 and `allowedCountries=["global"]` are stamped by the controller only when
 missing.
+
+**The metadata write goes through the controller.**
+`enrich-assets.js` / `writeSlingAssetMetadata` is the path that stamps
+`company`, `dam:status=approved`, `allowedCountries`, and `productCategory`;
+it writes each multivalue field with the correct `@TypeHint=String[]` type.
+Let the controller do the write — a value written any other way that omits
+`@TypeHint=String[]` lands as a single scalar string that the controller then
+has to self-heal on a later run.
+
+**"No assets ready" is a discovery result, not a processing signal.** If the
+controller reports no assets to enrich, that means folder discovery returned
+nothing — check the enumerate output, re-run the controller, or widen source
+discovery (more source URLs). It does **not** mean the assets are still
+processing: `dam:assetState=processed` is read directly from the asset's JCR
+node (`jcr:content.json`) and is immediately consistent, so there is no
+"wait for search indexing" step to insert before enrichment. A freshly
+bring-in run resolves each asset's id from the upload response itself, so a
+lagging search index never blocks it.
 
 **Never read or write `dam:roles`.** It is rights/licensing metadata, not
 a classification or title/description signal — do not reference it in
@@ -303,15 +328,22 @@ returned success:
    zero-asset contract category, so a `(0)` here means a coverage/indexing
    drift — confirm the assets carry `company`, `productCategory`,
    `dam:status=approved`, `allowedCountries=global`, then retry after indexing.
-4. **Card visuals are real customer assets.** Every card (carousel and the
-   secondary section) uses its `cardImageUrl` from `report.cards`; no
-   base-brand placeholder icons, stale imagery, or missing-image circles
-   remain. Each card image belongs to the same category the card links to.
-   **Check the rendered `<img>` src on the published page**: it must be a
-   Helix `media_<hash>.<ext>` path (proof Helix actually processed the
+4. **Card visuals are real customer assets — verified in a browser, not
+   inferred.** Every card (carousel and the secondary section) uses its
+   `cardImageUrl` from `report.cards`; no base-brand placeholder icons, stale
+   imagery, or missing-image circles remain. Each card image belongs to the
+   same category the card links to. **This is a hard gate: actually load the
+   *published* `/<companyKey>/en/index` in a browser and look at every tile.**
+   A DA-admin `200`, an upload `200`, or a `content.da.live` fetch returning
+   bytes is **not** proof the card renders — the Apple demo shipped with
+   working uploads but broken card images because only the login page was
+   checked. **Check the rendered `<img>` src on the published page**: it must
+   be a Helix `media_<hash>.<ext>` path (proof Helix actually processed the
    uploaded bytes). A literal `content.da.live/...` or `/api/adobe/assets/...`
-   src surviving in the *published* page is a fail — it means publish didn't
-   run, or the old worker-proxy pattern crept back in.
+   src surviving in the *published* page, or any blank/broken tile, is a fail
+   — it means publish didn't run, or the old worker-proxy pattern crept back
+   in. Do not mark Step 5 done until every homepage tile visibly renders its
+   real image.
 5. **Every landing tile — carousel and secondary — is authored from
    `report.cards`.** The page carries exactly the two canonical blocks
    (`carousel tiles` + `cards`), both regenerated from the report; there are
