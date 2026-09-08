@@ -11,6 +11,18 @@
   it only from the gitignored file at call time. If a secret appears in
   chat, treat it as compromised — tell them to rotate it (by name only,
   never reproducing the value) and don't use it.
+  **Never print a secret file to stdout, and never "redact" one.** Do not
+  `cat`/`sed`/`awk`/`echo` `token.env`, `cloudflare/.secrets`, or `secret.env`
+  to inspect it — a length-bounded regex leaves the rest of a long token intact,
+  and redacting a secret is a losing game (multiline, base64, an error path that
+  dumps the raw line). Check its *shape* without emitting the value:
+  `grep -c '^DA_TOKEN=' token.env` (present?),
+  `awk -F= '/^DA_TOKEN=/{print length($2)}' token.env` (length only),
+  `wc -c token.env` / `ls -la token.env`, or prove it live with an authenticated
+  status probe (`curl -s -o /dev/null -w '%{http_code}' -H "Authorization:
+  Bearer $DA_TOKEN" <url>` after `set -a; . ./token.env; set +a`). A `PreToolUse`
+  hook (`hooks/guard-secret-read.sh`) blocks the dumping shapes as a second line
+  of defense — don't rely on it instead of following this rule.
 - **I3 — The demo is delivered from the OPEN PR, not a merge.** DA content
   goes live when published; repo code reaches *production* only on merge —
   but the demo does not need production. **Every PR auto-deploys a
