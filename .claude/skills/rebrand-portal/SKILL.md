@@ -21,7 +21,7 @@ Nothing is provisioned. Dedicated portal path: disabled — see `NON-DEMO-DISABL
 ## Invariants
 
 ⚠️ **Read `docs/invariants.md` in full before acting.** The rules there
-(I1–I6) govern every step and are not repeated below.
+(I1–I10) govern every step and are not repeated below.
 
 ## Missing required inputs
 

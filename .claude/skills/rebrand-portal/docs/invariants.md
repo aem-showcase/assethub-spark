@@ -48,3 +48,34 @@
   names such as `companies`, `en`, `ja`, `config`, `public`, `api`, `auth`,
   `tools`, `scripts`, `styles`, `blocks`, `icons`, `media`, and `fonts`.
   Use a specific slug instead, e.g. `acme-demo`.
+- **I7 — A fix to a skill file is a skill change, not a demo artifact.**
+  Steps 3–6 run in the demo worktree (`demo/<companyKey>` branch), so an edit
+  you make there to a file under `.claude/skills/rebrand-portal/` (a script,
+  doc, or hook) ships only on that demo's PR — the maintained skill is
+  untouched and the **next demo re-hits the same bug**. When a run forces you
+  to fix shared tooling (a scraper/classifier/verify bug, not company content),
+  land that fix on the maintained skill on the main checkout too, not only on
+  the `demo/<companyKey>` branch. A tooling fix that lives only on a demo
+  branch is not done.
+- **I8 — Publish every copied path, not a hand-picked subset.** Step 3 copies
+  the whole site; Step 4's publish must cover **all** of it. After publishing,
+  reconcile the published set against everything Step 3 copied (enumerate the
+  copied `/companies/<companyKey>/...` paths and confirm each was
+  previewed+published) — a page that was copied but never published 404s for
+  the customer and is a defect, not "out of scope." Do not maintain the publish
+  list by hand from memory.
+- **I9 — DA_TOKEN is short-lived; refresh in place, don't stall.** The token
+  can expire mid-run, including partway through a single long copy/enrich
+  (I2 still applies — never echo or read it back). On a mid-run 401, refresh it
+  in **this** worktree's `token.env` and resume the same idempotent step — do
+  not send the customer to the main checkout, and do not treat the 401 as a
+  dead end. Where a long operation is about to run, a quick token sanity-check
+  first beats a 401 halfway through.
+- **I10 — COPY worktree secrets, never symlink.** Seed `token.env` and
+  `cloudflare/.secrets` into a new worktree as **real copies** (per
+  `step-1-2-branch.md`), so each demo owns independent files and two parallel
+  demos never share or clobber a token. If memory or prior practice says
+  "symlink so refresh propagates," that guidance is stale — follow the doc
+  (copy) and flag the conflict in one line; never silently symlink, and never
+  defend a symlink setup as correct when asked where to edit — the answer is
+  always this worktree's own file.
