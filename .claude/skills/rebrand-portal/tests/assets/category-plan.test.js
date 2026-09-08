@@ -127,4 +127,20 @@ describe('category-plan', () => {
     );
     expect(classify(evidence).slug).toBe('diabetes');
   });
+
+  it('matches evidence in the singular against a plural contract label (and vice versa)', () => {
+    const APPLIANCES = [
+      { slug: 'refrigerators', label: 'Refrigerators' },
+      { slug: 'dishwashers', label: 'Dishwashers' },
+    ];
+    const classify = deterministicClassifier(APPLIANCES);
+    // Source alt text says "Dishwasher" (singular); the contract label is "Dishwashers"
+    // (plural) — a literal substring check alone scores zero for this asset.
+    const evidence = assetEvidence(
+      { repoName: 'silver-44-b-e-y1.jpg', altText: '15 Place Settings - Dishwasher' },
+      {},
+      {},
+    );
+    expect(classify(evidence).slug).toBe('dishwashers');
+  });
 });

@@ -25,10 +25,10 @@ describe('uploadCardImage', () => {
 
     expect(result).toEqual({
       ok: true,
-      daSourceUrl: 'https://content.da.live/acme-org/acme-repo/acme/en/media_oncology.jpg',
+      daSourceUrl: 'https://content.da.live/acme-org/acme-repo/companies/acme/en/media_oncology.jpg',
     });
     expect(putCalls).toHaveLength(1);
-    expect(putCalls[0].url).toBe('https://admin.da.live/source/acme-org/acme-repo/acme/en/media_oncology.jpg');
+    expect(putCalls[0].url).toBe('https://admin.da.live/source/acme-org/acme-repo/companies/acme/en/media_oncology.jpg');
     expect(putCalls[0].opts.method).toBe('PUT');
     expect(putCalls[0].opts.headers.Authorization).toBe('Bearer secret-token');
     // The DA token must appear exactly once (the Authorization header) — never duplicated
@@ -48,7 +48,7 @@ describe('uploadCardImage', () => {
       client, daToken: 't', org: 'o', repo: 'r', companyKey: 'acme', rep: { assetId: 'a1', productCategory: 'vaccines' }, fetchFn,
     });
 
-    expect(result.daSourceUrl).toBe('https://content.da.live/o/r/acme/en/media_vaccines.png');
+    expect(result.daSourceUrl).toBe('https://content.da.live/o/r/companies/acme/en/media_vaccines.png');
   });
 
   it('falls back to jpg when content-type is missing/unrecognized', async () => {
@@ -61,7 +61,7 @@ describe('uploadCardImage', () => {
       client, daToken: 't', org: 'o', repo: 'r', companyKey: 'acme', rep: { assetId: 'a1', productCategory: 'rare-disease' }, fetchFn,
     });
 
-    expect(result.daSourceUrl).toBe('https://content.da.live/o/r/acme/en/media_rare-disease.jpg');
+    expect(result.daSourceUrl).toBe('https://content.da.live/o/r/companies/acme/en/media_rare-disease.jpg');
   });
 
   it('returns a failure (not a throw) when the DA upload responds non-2xx', async () => {
@@ -118,7 +118,7 @@ describe('materializeCardImages', () => {
   it('uploads an image for every representative missing one, preserving already-set ones', async () => {
     const alreadySet = {
       items: {
-        oncology: { assetId: 'a1', productCategory: 'oncology', cardImageUrl: 'https://content.da.live/o/r/acme/en/media_oncology.jpg' },
+        oncology: { assetId: 'a1', productCategory: 'oncology', cardImageUrl: 'https://content.da.live/o/r/companies/acme/en/media_oncology.jpg' },
         vaccines: { assetId: 'a2', productCategory: 'vaccines' },
       },
     };
@@ -133,9 +133,9 @@ describe('materializeCardImages', () => {
 
     expect(failures).toEqual([]);
     // oncology already had a cardImageUrl — untouched, no upload attempted for it.
-    expect(items.oncology.cardImageUrl).toBe('https://content.da.live/o/r/acme/en/media_oncology.jpg');
+    expect(items.oncology.cardImageUrl).toBe('https://content.da.live/o/r/companies/acme/en/media_oncology.jpg');
     // vaccines had none — uploaded.
-    expect(items.vaccines.cardImageUrl).toBe('https://content.da.live/o/r/acme/en/media_vaccines.jpg');
+    expect(items.vaccines.cardImageUrl).toBe('https://content.da.live/o/r/companies/acme/en/media_vaccines.jpg');
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
@@ -167,7 +167,7 @@ describe('materializeCardImages', () => {
       client, daToken: 't', org: 'o', repo: 'r', companyKey: 'acme', representatives, fetchFn,
     });
 
-    expect(items.oncology.cardImageUrl).toBe('https://content.da.live/o/r/acme/en/media_oncology.jpg');
+    expect(items.oncology.cardImageUrl).toBe('https://content.da.live/o/r/companies/acme/en/media_oncology.jpg');
     expect(items.vaccines.cardImageUrl).toBeUndefined();
     expect(failures).toEqual([{ slug: 'vaccines', error: 'no rendition bytes available' }]);
   });

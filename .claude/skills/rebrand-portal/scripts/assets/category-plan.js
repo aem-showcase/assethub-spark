@@ -109,6 +109,20 @@ function contractTokens(entry) {
 }
 
 /**
+ * A token and its simple singular/plural counterpart, so evidence written in one form
+ * (e.g. a source page's alt text saying "Dishwasher") still matches a contract token in
+ * the other form (e.g. the category label "Dishwashers") — a plain substring check on
+ * only the literal token silently scores zero for this common mismatch, which starves
+ * classification of real evidence for no reason tied to actual category relevance.
+ */
+function tokenVariants(tok) {
+  if (tok.endsWith('ies') && tok.length > 4) return [tok, `${tok.slice(0, -3)}y`];
+  if (tok.endsWith('es') && tok.length > 3) return [tok, tok.slice(0, -2), tok.slice(0, -1)];
+  if (tok.endsWith('s') && tok.length > 3) return [tok, tok.slice(0, -1)];
+  return [tok, `${tok}s`];
+}
+
+/**
  * Deterministic fallback classifier: pick the contract category whose slug/label tokens
  * overlap the asset's evidence most; ties and no-overlap fall back to the first contract
  * entry so assignment is always defined (mandatory single-category, never unclassified).
@@ -126,8 +140,9 @@ export function deterministicClassifier(contract = []) {
       const tokens = contractTokens(entry);
       let score = 0;
       for (const tok of tokens) {
-        if (smart.includes(tok)) score += 2;
-        else if (blob.includes(tok)) score += 1;
+        const variants = tokenVariants(tok);
+        if (variants.some((v) => smart.includes(v))) score += 2;
+        else if (variants.some((v) => blob.includes(v))) score += 1;
       }
       if (score > bestScore) {
         bestScore = score;
