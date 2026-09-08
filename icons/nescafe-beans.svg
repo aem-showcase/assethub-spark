@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Nescafé">
+  <title>Nescafé</title>
+  <!-- Red mug body -->
+  <path d="M26 46 h52 v22 a26 26 0 0 1 -26 26 h0 a26 26 0 0 1 -26 -26 z" fill="#DA291C"/>
+  <!-- Mug handle -->
+  <path d="M78 52 h10 a13 13 0 0 1 0 26 h-10" fill="none" stroke="#DA291C" stroke-width="7"/>
+  <!-- Saucer -->
+  <ellipse cx="52" cy="99" rx="40" ry="7" fill="#5C3B22"/>
+  <!-- Steam -->
+  <path d="M42 38 q-6 -9 0 -18" fill="none" stroke="#D9A441" stroke-width="4" stroke-linecap="round"/>
+  <path d="M56 38 q-6 -9 0 -18" fill="none" stroke="#D9A441" stroke-width="4" stroke-linecap="round"/>
+  <path d="M70 38 q-6 -9 0 -18" fill="none" stroke="#D9A441" stroke-width="4" stroke-linecap="round"/>
+</svg>
