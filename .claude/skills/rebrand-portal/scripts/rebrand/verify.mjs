@@ -127,7 +127,10 @@ export async function checkNav404Loop(previewHost, company) {
     return { name: 'nav-404-loop', pass: false, reason: 'needs --preview and --company' };
   }
   const base = previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
-  const missing = `${base}/${company}/en/__definitely-missing-${Date.now()}`;
+  // Foldered demos are served under /companies/<company>/en/; probe there, not the flat
+  // top-level /<company>/en/ (which 404s simply because nothing is served at the root, giving
+  // a meaningless result for the real portal route).
+  const missing = `${base}/companies/${company}/en/__definitely-missing-${Date.now()}`;
   try {
     const r1 = await fetchNoRedirect(missing);
     if (r1.status !== 302 && r1.status !== 301) {
