@@ -38,6 +38,7 @@ import { AuthorClient } from './author-client.js';
 import { createFixtureClient } from './fixture-client.js';
 import {
   STATUS_APPROVED, buildHosts, buildAuthorHost, BRING_IN_MIN_TARGET_IMAGES, MIN_CARDS,
+  companyBasePath,
 } from './constants.js';
 import { mapWithConcurrency } from './concurrency.js';
 import {
@@ -423,8 +424,8 @@ export async function enrichAssets({
     contract,
     categoryCoverage,
     representatives,
-    // The portal is served under /<companyKey>; scope the facet hrefs to /<companyKey>/en.
-    basePath: `/${customerKey}/en`,
+    // The portal is served under /companies/<companyKey>; scope the facet hrefs there.
+    basePath: `${companyBasePath(customerKey)}/en`,
   }));
 
   const writable = [];
@@ -537,14 +538,14 @@ function patchDemoCompany(customerKey, { dryRun = false } = {}) {
   );
   patched = patched.replace(
     /DEMO_BASE_PATH:\s*(?:null|'[^']*'|"[^"]*")/,
-    `DEMO_BASE_PATH: '/${customerKey}'`,
+    `DEMO_BASE_PATH: '${companyBasePath(customerKey)}'`,
   );
   if (patched === original) {
     console.warn('[agent] DEMO_COMPANY + DEMO_BASE_PATH already set correctly — no patch needed');
     return;
   }
   writeFileSync(configPath, patched, 'utf8');
-  console.warn(`[agent] patched cloudflare/src/config.js → DEMO_COMPANY: '${customerKey}', DEMO_BASE_PATH: '/${customerKey}'`);
+  console.warn(`[agent] patched cloudflare/src/config.js → DEMO_COMPANY: '${customerKey}', DEMO_BASE_PATH: '${companyBasePath(customerKey)}'`);
   console.warn('[agent] local dev server will pick this up automatically on next request');
   console.warn('[agent] the per-PR worker deploy applies it to the preview URL');
 }

@@ -19,7 +19,7 @@
   worker is the demo URL — it does login/auth, proxies the portal search,
   and applies the company scope from the PR's bundled
   `cloudflare/src/config.js`. (The raw
-  `https://<branch>--<repo>--<org>.aem.page/<company>/…` is only the
+  `https://<branch>--<repo>--<org>.aem.page/companies/<company>/…` is only the
   content origin — no login or search there — so never hand it out as the
   portal.) The result is fully viewable straight from the open PR.
   **Merging is not required and not preferred.** Only call something "live
@@ -39,8 +39,12 @@
   **ask first**, then create a **new** branch and a **new** PR, leaving
   the existing one untouched.
 - **I6 — Company key must not collide with site/runtime paths.**
-  `customer.companyKey` becomes both the DA folder (`/<companyKey>`) and
-  the asset folder (`/content/dam/<companyKey>`). Reject empty slugs and
-  reserved route names such as `en`, `ja`, `config`, `public`, `api`,
-  `auth`, `tools`, `scripts`, `styles`, `blocks`, `icons`, and `fonts`.
+  `customer.companyKey` becomes the DA content folder and portal base path
+  **`/companies/<companyKey>`** (foldered demos live under one `companies`
+  container so the DA root stays uncluttered — `customer.daFolder =
+  "/companies/<companyKey>"`), and the asset folder
+  **`/content/dam/<companyKey>`** (the DAM path stays FLAT — assets are scoped
+  by the `company` metadata tag, not by URL). Reject empty slugs and reserved
+  names such as `companies`, `en`, `ja`, `config`, `public`, `api`, `auth`,
+  `tools`, `scripts`, `styles`, `blocks`, `icons`, `media`, and `fonts`.
   Use a specific slug instead, e.g. `acme-demo`.

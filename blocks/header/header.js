@@ -268,7 +268,7 @@ function createMyAccount(t) {
         ${getUserInitials()}
         ${impersonationIndicator}
       </div>
-      ${t('myAccount', 'My Account')}
+      <span class="my-account-label">${t('myAccount', 'My Account')}</span>
       <span class="down-arrow-icon"></span>
     `;
 

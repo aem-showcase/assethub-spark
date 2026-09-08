@@ -317,8 +317,10 @@ header .nav-brand {
 }
 
 header nav .nav-brand img {
-  width: 180px;
+  width: auto;
+  max-width: 180px;
   height: auto;
+  max-height: calc(var(--nav-bar-height) - 24px);
 }
 
 /* Brand logo authored as an EDS icon (:frescopa-icon:) - let it render full size */
@@ -338,10 +340,17 @@ header .nav-brand .icon {
   display: inline-flex;
 }
 
+/* Constrain the brand logo by max-height against the nav bar, NOT a fixed width +
+   height:auto. A fixed width renders a square-aspect mark (e.g. a 1:1 or ~1.6:1 wordmark)
+   far taller than the header, spilling over the hero/search below it on narrow viewports
+   (shipped live on a demo whose logo was less wide/flat than the base). max-height keeps any
+   aspect ratio within the bar; max-width still caps a very wide wordmark. */
 header .nav-brand .icon img,
 header .nav-brand .icon svg {
-  width: 150px;
+  width: auto;
+  max-width: 150px;
   height: auto;
+  max-height: calc(var(--nav-bar-height) - 24px);
 }
 
 /* sections */
@@ -658,6 +667,36 @@ header nav .nav-tools .nav-download-icon,
 header nav .nav-tools .nav-message-icon,
 header nav .nav-tools .nav-reports-icon {
   padding: 0;
+}
+
+/* Narrow viewports: the fixed-position icon cluster (reports/notifications/download/cart +
+   My Account) can grow wider than the space right of the brand logo and overlap it. Tighten
+   gaps, shrink icon-button padding, and drop the "My Account" text label (keep the avatar)
+   so the cluster stays clear of the logo. Fixes the shared template for every brand, not one
+   logo's aspect ratio — see the header logo-size guard in the rebrand-portal skill. */
+@media (width < 480px) {
+  header nav .nav-tools {
+    gap: 4px;
+  }
+
+  header nav .nav-tools .nav-icons-wrapper {
+    gap: 0;
+  }
+
+  header nav .nav-tools .nav-cart-icon button,
+  header nav .nav-tools .nav-download-icon button,
+  header nav .nav-tools .nav-message-icon button,
+  header nav .nav-tools .nav-reports-icon button {
+    padding: 2px;
+  }
+
+  header nav .my-account-button {
+    padding: 6px;
+  }
+
+  header nav .my-account-label {
+    display: none;
+  }
 }
 
 @media (width >=900px) {

@@ -227,7 +227,7 @@ row per contract category: `label`, `blurb`, `href`, `cardImageUrl`). Author
 the landing page directly from it — no hand-built URLs, no per-run improvising.
 
 **Preserve the existing block structure; only regenerate its rows.** The
-copied `/<companyKey>/en/index` already carries the landing blocks:
+copied `/companies/<companyKey>/en/index` already carries the landing blocks:
 `<div class="carousel tiles">` for "Browse by category" (N slides, paginated)
 and `<div class="cards">` for the secondary "Top" section. Both are already
 generic in count and already wire whole-card clickability off each tile's
@@ -268,7 +268,7 @@ facet `Browse →` link (col 1).
 - The card href facet slug equals the asset's `productCategory` (both are the
   contract slug); never rewrite only the visible label.
 - **Images are DA-hosted page images — never the worker proxy.**
-  `cardImageUrl` is a `https://content.da.live/<org>/<repo>/<companyKey>/en/
+  `cardImageUrl` is a `https://content.da.live/<org>/<repo>/companies/<companyKey>/en/
   media_<categorySlug>.<ext>` URL, uploaded once per contract category by
   `.claude/skills/rebrand-portal/scripts/assets/da-card-images.js` during
   enrichment (fetches the representative asset's real bytes via the same
@@ -290,7 +290,7 @@ facet `Browse →` link (col 1).
   authenticated portal shell, a genuinely different code path); this
   restriction is scoped to landing-card images only.
 
-Publish the updated company-scoped `/<companyKey>/en/index` after rewriting the
+Publish the updated company-scoped `/companies/<companyKey>/en/index` after rewriting the
 rows. The visible outcome is real customer imagery on every landing card —
 carousel and secondary section — each clickable to a non-zero facet search.
 
@@ -298,7 +298,7 @@ carousel and secondary section — each clickable to a non-zero facet search.
 
 So the demo shows **only** this company's assets, the scope lives in
 `cloudflare/src/config.js`: `DEMO_COMPANY: '<companyKey>'` (search filter)
-and `DEMO_BASE_PATH: '/<companyKey>'` (routing/login base) — default
+and `DEMO_BASE_PATH: '/companies/<companyKey>'` (routing/login base) — default
 `null`/`''` = unchanged. `.claude/skills/rebrand-portal/scripts/assets/enrich-assets.js` writes both keys
 automatically during enrichment; if Step 4 already set them (it should),
 confirm they equal `<companyKey>`. The worker injects a
@@ -333,7 +333,7 @@ returned success:
    `cardImageUrl` from `report.cards`; no base-brand placeholder icons, stale
    imagery, or missing-image circles remain. Each card image belongs to the
    same category the card links to. **This is a hard gate: actually load the
-   *published* `/<companyKey>/en/index` in a browser and look at every tile.**
+   *published* `/companies/<companyKey>/en/index` in a browser and look at every tile.**
    A DA-admin `200`, an upload `200`, or a `content.da.live` fetch returning
    bytes is **not** proof the card renders — the Apple demo shipped with
    working uploads but broken card images because only the login page was
@@ -344,6 +344,17 @@ returned success:
    — it means publish didn't run, or the old worker-proxy pattern crept back
    in. Do not mark Step 5 done until every homepage tile visibly renders its
    real image.
+   **Scriptable pre-check against the report** — before the browser pass, run:
+   ```
+   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+     --report <step-5-report.json> --only stale-card-images
+   ```
+   `stale-card-images` FAILs if any `report.cards[].cardImageUrl` still points
+   at a base-template asset (`firefly_*`, the base repo's `north-roast`/
+   `quiet-leaf` sample brands, `frescopa`, a `reward-banner`, etc.) — the "Top
+   Brands" stale-placeholder case (verified live). A FAIL means drop the
+   section or source a real per-item image; never ship the stand-in. The
+   browser pass then confirms what the report can't (actual render).
 5. **Every landing tile — carousel and secondary — is authored from
    `report.cards`.** The page carries exactly the two canonical blocks
    (`carousel tiles` + `cards`), both regenerated from the report; there are

@@ -113,7 +113,7 @@ customer chose to leave enrichment for a later step — see Entry flow Q2 —
 and resume to `pending` on a later "now enrich the assets" follow-up
 request).
 `customer.companyKey` is the slug of `customer.name` (lowercase, hyphens);
-`daFolder` is `/<companyKey>`. `customer.worktreePath` is the demo's
+`daFolder` is `/companies/<companyKey>`. `customer.worktreePath` is the demo's
 dedicated git worktree (`../assethub-spark.worktrees/demo-<companyKey>`,
 set in Step 2); **Steps 3–6 run with cwd = this worktree**, not the main
 checkout, so parallel demos never contend over one working tree. `customer.assetsLane` is
@@ -300,29 +300,29 @@ reuse, recreate, or delete it (I5).** Record `customer.demoBranch` and
 
 ---
 
-## Step 3 — Copy existing DA content into `/<companyKey>` (`da-content-copied`)
+## Step 3 — Copy existing DA content into `/companies/<companyKey>` (`da-content-copied`)
 
 **MANDATORY — never skipped, deferred, or assumed away.** Copy the site's
-real DA content into `/<companyKey>` with the packaged
+real DA content into `/companies/<companyKey>` with the packaged
 `scripts/da/copy-folder.sh` (never hand-rolled). Conclude "empty" **only**
 from exit code `3` (authenticated list, zero docs); `404`/`403` is never
 empty. Path-by-path verification, extensions preserved (access sheets must
 land as `.json`, not `.xlsx`). On success set `customer.daFolder =
-"/<companyKey>"` and mark `da-content-copied` `done`.
+"/companies/<companyKey>"` and mark `da-content-copied` `done`.
 
 ▶ **Read now, before acting** (script contract, exit codes, sheet-format &
 nav checks): `.claude/skills/rebrand-portal/docs/step-3-da-copy.md`
 
 ---
 
-## Step 4 — Rebrand `/<companyKey>` + repo, publish, open the PR
+## Step 4 — Rebrand `/companies/<companyKey>` + repo, publish, open the PR
 
 **Gate: do not start — do not invoke `excat-complete-design-expert` or touch
 any file — until both `customer.demoBranch` and `customer.daFolder` are set
 (Steps 2 & 3 `done`).** One comprehensive delegation: design tokens +
 full-palette rebrand via Catalyst, brand-asset/logo swap (all instances),
-content-register rewrite scoped to `/<companyKey>` only, publish only
-`/<companyKey>/...` paths, set the demo scope in `cloudflare/src/config.js`
+content-register rewrite scoped to `/companies/<companyKey>` only, publish only
+`/companies/<companyKey>/...` paths, set the demo scope in `cloudflare/src/config.js`
 (`DEMO_COMPANY`/`DEMO_BASE_PATH` = companyKey), and land one PR (open, never
 merge — I3; never close/delete — I5). Token setup is Step 4a (`token.env`,
 `DA_TOKEN` only). Marks `rebranded`, `demo-company-set`, `published`,
@@ -361,7 +361,7 @@ Pass the Step 4 category contract via `--categories <slugs>` (one shared
 vocabulary, no hardcoded list); every asset is mapped to exactly one contract
 category. The run emits `report.cards` (label + blurb + facet href + proxy
 image per category) and a **card gate** that fails on a zero-asset category or
-fewer than `MIN_CARDS` cards. Author the copied `/<companyKey>/en/index`
+fewer than `MIN_CARDS` cards. Author the copied `/companies/<companyKey>/en/index`
 carousel + cards rows from `report.cards` (via `update-index-cards.js`),
 preserving the block wrappers. Scope the portal via config.js.
 Marks `assets-uploaded`, `assets-enriched`, `search-scoped`. Then continue

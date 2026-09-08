@@ -1,0 +1,26 @@
+{
+  "context": "Guards the debugging heuristic: when a user names a redirect destination (/company/404.html), the agent should reason about whether that destination resolves and identify the company-prefixed 404 redirect as the loop, rather than tracing the whole auth/login flow first. Fixture index.js has the buggy company-prefixed 404 redirect.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Identifies the 404 destination as unprovisioned / looping",
+      "max_score": 35,
+      "description": "The agent explains that /volkswagen/404.html itself 404s (404.html is a shared root static file, not copied per-company) so the redirect re-triggers the handler — an infinite loop."
+    },
+    {
+      "name": "Pinpoints the company-prefixed 404 redirect as the bug",
+      "max_score": 30,
+      "description": "The agent names cloudflare/src/index.js redirectToBasePath(request, '/404.html') (prefixing BASE on the shared 404 page) as the root cause."
+    },
+    {
+      "name": "Checks the destination before over-tracing auth",
+      "max_score": 25,
+      "description": "The agent reasons about the named destination (/volkswagen/404.html) resolving, rather than spending the investigation on the auth callback, Referer header, or cookies before considering the destination."
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 10,
+      "description": "No internal terms are surfaced unnecessarily to the customer (I1)."
+    }
+  ]
+}
