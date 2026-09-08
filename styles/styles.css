@@ -12,19 +12,26 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --light-color: #EAF5FE;
+  --dark-color: #032D60;
+  --text-color: #032D60;
+  --text-primary: #032D60;
+  --link-color: #0176D3;
+  --link-hover-color: #014486;
+  --primary-color: #0176D3;
+  --primary-color-hover: #014486;
+  --color-red: #0B5CAB;
+  --color-dark-red: #014486;
+  --accent-secondary: #00A1E0;
+  --accent-tertiary: #1B96FF;
+  --secondary-color: #0176D3;
+
+  /* Welcome/login split-screen brand panel (Salesforce theme) */
+  --welcome-panel-bg: #032D60;
+  --welcome-panel-accent-rgb: 0 161 224;
+  --welcome-panel-mark-image: url('/icons/salesforce-beans.svg');
+  --welcome-tagline-line1: '"The #1 AI CRM,';
+  --welcome-tagline-line2: 'with agents built in."';
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -208,9 +215,9 @@ body.appear {
 
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
+  /* Welcome/login split-screen brand panel is themeable via these tokens (set in :root);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #032D60);
   overflow: hidden;
 }
 
@@ -236,14 +243,14 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Dark navy brand background with the cloud mark as a large decorative element */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #032D60);
   background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
+    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 0 161 224) / 22%) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 0 161 224) / 10%) 0%, transparent 100%),
+    var(--welcome-panel-mark-image, url('/icons/salesforce-beans.svg'));
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
   background-position: bottom left, top right, center 40%;
@@ -258,7 +265,7 @@ body:has(.section.welcome) > main::before {
    the line. Keeping the \A here, outside any custom property, avoids that class of bug
    regardless of what a per-company override sets each line to. */
 body:has(.section.welcome) > main::after {
-  content: var(--welcome-tagline-line1, '"The world\'s finest coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertips."');
+  content: var(--welcome-tagline-line1, '"The #1 AI CRM,') "\A" var(--welcome-tagline-line2, 'with agents built in."');
   white-space: pre;
   font-family: baskerville, serif;
   font-size: 1rem;
@@ -302,7 +309,7 @@ body:has(.section.welcome) > main::after {
 }
 
 /* Brand mark — larger on the auth panel. Brand-agnostic: targets any icon shortcode the
-   welcome doc carries (e.g. :frescopa-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
+   welcome doc carries (e.g. :salesforce-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
 .section.welcome p:has(.icon) {
   margin: 0 0 var(--spacing-medium);
   max-width: none;
@@ -1614,23 +1621,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.salesforce-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.salesforce-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.salesforce-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.salesforce-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.salesforce-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1659,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.salesforce-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.salesforce-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.salesforce-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.salesforce-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.salesforce-background-black {
   background-color: var(--dark-color);
 }
 
