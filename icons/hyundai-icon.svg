@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1391" height="378" viewBox="0 0 1391 378" role="img" aria-label="Hyundai">
+  <rect width="1391" height="378" fill="#fff" opacity="0"/>
+  <!-- Hyundai oval-H emblem -->
+  <g transform="translate(170 189) rotate(-16)">
+    <ellipse cx="0" cy="0" rx="150" ry="104" fill="none" stroke="#002C5F" stroke-width="26"/>
+    <path d="M-92 -46 h34 v34 h116 v-34 h34 v92 h-34 v-34 h-116 v34 h-34 z" fill="#002C5F"/>
+  </g>
+  <!-- HYUNDAI wordmark -->
+  <text x="400" y="252" font-family="'Helvetica Neue',Arial,sans-serif" font-size="176"
+        font-weight="700" letter-spacing="14" fill="#002C5F">HYUNDAI</text>
+</svg>

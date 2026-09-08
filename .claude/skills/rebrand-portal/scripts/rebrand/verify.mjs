@@ -145,13 +145,21 @@ export function checkResidue(repoRoot, baseBrand) {
   const matchers = (baseBrand.oldHexes || []).flatMap((h) => oldHexMatchers(h));
   const slug = baseBrand.baseSlug;
   const hits = [];
+  // The per-branch preview worker deploys to `<branch>.dev.frescopamedia.com` (see I3), so
+  // `frescopamedia` is the shared DEPLOY-HOST domain — infrastructure, not base branding —
+  // and legitimately appears in the PDF-embed client-id host map (adobe-pdf-viewer.js), both as
+  // the domain key and in its `REPLACE_WITH_FRESCOPA_PDF_EMBED_CLIENT_ID` placeholder. Neither is
+  // a rebrand target and both are identical on every demo; strip them before the slug test so
+  // they never register as un-rebranded residue.
+  const INFRA_DOMAINS = /frescopamedia|frescopa_pdf_embed_client_id/gi;
   for (const f of files) {
     const text = readFileSync(f, 'utf8');
     const upper = text.toUpperCase();
     for (const m of matchers) {
       if (m.test(upper, text)) hits.push(`${f}: old hex ${m.label}`);
     }
-    if (slug && new RegExp(slug, 'i').test(text)) hits.push(`${f}: baseSlug '${slug}'`);
+    const slugText = text.replace(INFRA_DOMAINS, '');
+    if (slug && new RegExp(slug, 'i').test(slugText)) hits.push(`${f}: baseSlug '${slug}'`);
   }
   if (hits.length) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };
