@@ -319,8 +319,9 @@ header .nav-brand {
 header nav .nav-brand img {
   width: auto;
   max-width: 180px;
-  height: auto;
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-height) - 24px);
+  max-height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
 }
 
 /* Brand logo authored as an EDS icon (:meta-icon:) - let it render full size */
@@ -331,13 +332,15 @@ header .nav-brand p {
 header .nav-brand a {
   display: inline-flex;
   align-items: center;
+  height: var(--nav-height);
   text-decoration: none;
 }
 
 header .nav-brand .icon {
   width: auto;
-  height: auto;
+  height: 100%;
   display: inline-flex;
+  align-items: center;
 }
 
 /* Constrain the brand logo by max-height against the nav bar, NOT a fixed width +
@@ -349,8 +352,9 @@ header .nav-brand .icon img,
 header .nav-brand .icon svg {
   width: auto;
   max-width: 150px;
-  height: auto;
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-height) - 24px);
+  max-height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
 }
 
 /* sections */
