@@ -12,19 +12,19 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
+  --light-color: #D7EAFC;
+  --dark-color: #021A38;
+  --text-color: #022043;
+  --text-primary: #022043;
+  --link-color: #022043;
+  --link-hover-color: #0057AE;
+  --primary-color: #022043;
+  --primary-color-hover: #0057AE;
   --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --color-dark-red: #0057AE;
+  --accent-secondary: #0875E1;
+  --accent-tertiary: #9FCFFF;
+  --secondary-color: #0057AE;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -208,9 +208,9 @@ body.appear {
 
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
+  /* Welcome/login split-screen brand panel is themeable via these tokens (Workday demo values);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #022043);
   overflow: hidden;
 }
 
@@ -236,14 +236,14 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Deep navy background with the Workday mark as a large decorative mark */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #022043);
   background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
+    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 8 117 225) / 22%) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 8 117 225) / 10%) 0%, transparent 100%),
+    var(--welcome-panel-mark-image, url('/icons/workday-beans.svg'));
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
   background-position: bottom left, top right, center 40%;
@@ -258,14 +258,14 @@ body:has(.section.welcome) > main::before {
    the line. Keeping the \A here, outside any custom property, avoids that class of bug
    regardless of what a per-company override sets each line to. */
 body:has(.section.welcome) > main::after {
-  content: var(--welcome-tagline-line1, '"The world\'s finest coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertips."');
+  content: var(--welcome-tagline-line1, '"Put AI agents to work') "\A" var(--welcome-tagline-line2, 'for your people."');
   white-space: pre;
   font-family: baskerville, serif;
   font-size: 1rem;
   font-style: italic;
   line-height: 1.6;
   letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  color: rgb(215 234 252 / 55%);
   position: absolute;
   bottom: 48px;
   left: 0;
@@ -302,7 +302,7 @@ body:has(.section.welcome) > main::after {
 }
 
 /* Brand mark — larger on the auth panel. Brand-agnostic: targets any icon shortcode the
-   welcome doc carries (e.g. :frescopa-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
+   welcome doc carries (e.g. :workday-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
 .section.welcome p:has(.icon) {
   margin: 0 0 var(--spacing-medium);
   max-width: none;
@@ -948,7 +948,7 @@ main .section.full-width > div {
   border-radius: 12px;
 }
 
-/* Frescopa landing hero: compact, elegant, beige; the search pill is the focal point */
+/* Company landing hero: compact, elegant, beige; the search pill is the focal point */
 main .section.search-hero {
   background: var(--light-color) url('backgrounds/big.svg') no-repeat center top / cover;
   color: var(--text-color);
@@ -1614,23 +1614,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.workday-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.workday-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.workday-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.workday-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.workday-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1652,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.workday-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.workday-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.workday-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.workday-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.workday-background-black {
   background-color: var(--dark-color);
 }
 

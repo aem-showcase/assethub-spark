@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="329" height="329" viewBox="0 0 329 329">
+  <g id="Workday_Mark">
+    <circle cx="164.5" cy="164.5" r="150" fill="none" stroke="#0057AE" stroke-width="10" opacity="0.35"/>
+    <circle cx="164.5" cy="164.5" r="105" fill="#0057AE" opacity="0.12"/>
+    <path d="M90 130 L130 250 L164 155 L198 250 L238 130 L204 130 L182 210 L164 152 L146 210 L124 130 Z" fill="#022043"/>
+  </g>
+</svg>
