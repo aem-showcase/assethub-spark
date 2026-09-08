@@ -12,19 +12,19 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --light-color: #F0F2F5;
+  --dark-color: #1C1E21;
+  --text-color: #1C1E21;
+  --text-primary: #1C1E21;
+  --link-color: #0457CB;
+  --link-hover-color: #0064E0;
+  --primary-color: #0064E0;
+  --primary-color-hover: #0457CB;
+  --color-red: #E41E3F;
+  --color-dark-red: #C1121F;
+  --accent-secondary: #0866FF;
+  --accent-tertiary: #7B8794;
+  --secondary-color: #42B72A;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -120,7 +120,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: #0457CB;
 
   /* label colors */
   --label-color: var(--text-color);
@@ -141,6 +141,13 @@
   --line-height-05: 1.6;
   --line-height-06: 1.25;
   --line-height-07: 1.1;
+
+  /* Meta demo — welcome/login split-screen brand panel overrides */
+  --welcome-panel-bg: #18191A;
+  --welcome-panel-accent-rgb: 0 100 224;
+  --welcome-panel-mark-image: url('/icons/meta-beans.svg');
+  --welcome-tagline-line1: "Connect with the people";
+  --welcome-tagline-line2: "and communities that matter to you.";
 }
 
 /* fallback fonts */
@@ -208,9 +215,10 @@ body.appear {
 
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
-     a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  /* Welcome/login split-screen brand panel is themeable via these tokens (see :root
+     overrides above); a company demo overrides --welcome-panel-* + --welcome-tagline-* to
+     rebrand the login. */
+  background-color: var(--welcome-panel-bg);
   overflow: hidden;
 }
 
@@ -236,14 +244,14 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Dark background with the brand mark as a large decorative accent */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg);
   background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
+    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb) / 22%) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb) / 10%) 0%, transparent 100%),
+    var(--welcome-panel-mark-image);
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
   background-position: bottom left, top right, center 40%;
@@ -265,7 +273,7 @@ body:has(.section.welcome) > main::after {
   font-style: italic;
   line-height: 1.6;
   letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  color: rgb(255 255 255 / 55%);
   position: absolute;
   bottom: 48px;
   left: 0;
@@ -302,7 +310,7 @@ body:has(.section.welcome) > main::after {
 }
 
 /* Brand mark — larger on the auth panel. Brand-agnostic: targets any icon shortcode the
-   welcome doc carries (e.g. :frescopa-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
+   welcome doc carries (e.g. :meta-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
 .section.welcome p:has(.icon) {
   margin: 0 0 var(--spacing-medium);
   max-width: none;
@@ -948,7 +956,7 @@ main .section.full-width > div {
   border-radius: 12px;
 }
 
-/* Frescopa landing hero: compact, elegant, beige; the search pill is the focal point */
+/* Landing hero: compact, elegant surface; the search pill is the focal point */
 main .section.search-hero {
   background: var(--light-color) url('backgrounds/big.svg') no-repeat center top / cover;
   color: var(--text-color);
@@ -1614,23 +1622,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.meta-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.meta-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.meta-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.meta-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.meta-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1660,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.meta-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.meta-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.meta-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.meta-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.meta-background-black {
   background-color: var(--dark-color);
 }
 
