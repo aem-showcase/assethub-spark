@@ -1,0 +1,10 @@
+{
+  "cards": [
+    { "slug": "electric", "label": "Electric", "cardImageUrl": "https://content.da.live/aem-showcase/assethub-spark/volkswagen/en/media_electric.jpg" },
+    { "slug": "suv", "label": "SUV", "cardImageUrl": "https://content.da.live/aem-showcase/assethub-spark/volkswagen/en/media_suv.jpg" }
+  ],
+  "topBrands": [
+    { "label": "VW ID Series", "cardImageUrl": "https://content.da.live/aem-showcase/assethub-spark/en/.index/firefly_gemini_234572.png" },
+    { "label": "VW Golf", "cardImageUrl": "https://content.da.live/aem-showcase/assethub-spark/en/brands/.north-roast-coffee/coffee%20hero.png" }
+  ]
+}

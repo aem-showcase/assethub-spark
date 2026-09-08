@@ -20,17 +20,18 @@ import {
   getEffectiveFacetBucketSize,
 } from '../../clients/dynamicmedia-client.js';
 import { parseContentAIResponse } from '../../../../scripts/asset-transformers.js';
+import { getCurrentLocale } from '../../../../scripts/locale-utils.js';
 import { createActionDropdown } from '../action-dropdown.js';
 import { escapeHtml } from '../../utils/dom-utils.js';
 
 /**
- * Get locale from URL path (e.g., /en/search/all -> 'en', /ja/search/all -> 'ja')
+ * Get locale from URL path. Handles both the root site (/en/search/...) and a foldered
+ * company demo (/companies/<company>/en/search/...) by delegating to the shared locale util,
+ * which resolves the locale after any company base rather than assuming the first segment.
  * @returns {string} Locale code from URL path, defaults to 'en'
  */
 function getLocaleFromUrl() {
-  const pathSegments = window.location.pathname.split('/').filter(Boolean);
-  // First segment is the locale (e.g., 'en', 'ja')
-  return pathSegments[0] || 'en';
+  return getCurrentLocale();
 }
 
 /**

@@ -96,16 +96,59 @@ describe('sling-metadata', () => {
     expect(plan.kept.map((k) => k.field)).toEqual(expect.arrayContaining(['dc:title', 'productCategory']));
   });
 
-  it('reports conflicting scope metadata instead of overwriting it', () => {
+  it('reports conflicting scalar scope metadata instead of overwriting it', () => {
+    // company/dam:status are conflictOnDifferent scalars: a genuinely different existing
+    // value (other!=acme, draft!=approved) is kept and reported, never overwritten.
+    // allowedCountries is a multivalue field and self-heals instead of conflicting
+    // (asserted separately below).
     const plan = buildSlingMetadataUpdate(
       { title: 'A', productCategory: 'products' },
       { company: 'acme', status: 'approved', allowedCountries: ['global'] },
-      { company: 'other', 'dam:status': 'draft', allowedCountries: 'us' },
+      { company: 'other', 'dam:status': 'draft', allowedCountries: ['us'] },
     );
-    expect(plan.conflicts.map((c) => c.field)).toEqual(['company', 'dam:status', 'allowedCountries']);
+    expect(plan.conflicts.map((c) => c.field)).toEqual(['company', 'dam:status']);
     expect(plan.entries.map((entry) => entry.name)).not.toContain('./company');
     expect(plan.entries.map((entry) => entry.name)).not.toContain('./dam:status');
-    expect(plan.entries.map((entry) => entry.name)).not.toContain('./allowedCountries');
+  });
+
+  it('self-heals a scalar allowedCountries into a proper String[] (no conflict)', () => {
+    // A prior hand-rolled Sling POST left allowedCountries as a scalar string (or the
+    // corrupt JSON-string form). The controller must rewrite it to String[] = union of
+    // the carried token and the required/desired values, not record a hard conflict.
+    for (const corrupt of ['global', '["global"]']) {
+      const plan = buildSlingMetadataUpdate(
+        {},
+        { company: 'acme', status: 'approved', allowedCountries: ['global'] },
+        { company: 'acme', 'dam:status': 'approved', allowedCountries: corrupt },
+      );
+      expect(plan.conflicts.map((c) => c.field)).not.toContain('allowedCountries');
+      expect(plan.entries).toEqual(
+        expect.arrayContaining([
+          { name: './allowedCountries@TypeHint', value: 'String[]' },
+          { name: './allowedCountries', value: 'global' },
+        ]),
+      );
+      // idempotent: re-running against a proper array is a no-op for allowedCountries
+      const arr = buildSlingMetadataUpdate(
+        {},
+        { company: 'acme', status: 'approved', allowedCountries: ['global'] },
+        { company: 'acme', 'dam:status': 'approved', allowedCountries: ['global'] },
+      );
+      expect(arr.entries.map((e) => e.name)).not.toContain('./allowedCountries');
+    }
+  });
+
+  it('self-heals a multi-token corrupt allowedCountries preserving carried values', () => {
+    const plan = buildSlingMetadataUpdate(
+      {},
+      { company: 'acme', status: 'approved', allowedCountries: ['global'] },
+      { company: 'acme', 'dam:status': 'approved', allowedCountries: '["us","in"]' },
+    );
+    expect(plan.conflicts.map((c) => c.field)).not.toContain('allowedCountries');
+    const values = plan.entries
+      .filter((e) => e.name === './allowedCountries')
+      .map((e) => e.value);
+    expect(values).toEqual(expect.arrayContaining(['us', 'in', 'global']));
   });
 
   it('serializes repeated Sling form fields', () => {

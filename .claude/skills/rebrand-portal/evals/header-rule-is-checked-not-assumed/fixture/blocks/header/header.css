@@ -1,0 +1,10 @@
+header nav .nav-brand img {
+  width: 180px;
+  height: auto;
+}
+
+header .nav-brand .icon img,
+header .nav-brand .icon svg {
+  width: 150px;
+  height: auto;
+}

@@ -20,6 +20,7 @@
  */
 
 import { AEM_ASSETS_FRONTEND_API_KEY, DAM_ROOT, BRING_IN_MAX_IMAGES } from './constants.js';
+import { mapWithConcurrency } from './concurrency.js';
 
 // ---------------------------------------------------------------------------
 // Shared path helpers
@@ -97,7 +98,13 @@ export class RepositoryUploadStrategy {
     return { created: true, status: res.status };
   }
 
-  /** Step 1: Create the asset placeholder (empty POST with ;api=create). */
+  /**
+   * Step 1: Create the asset placeholder (empty POST with ;api=create).
+   * A 409 means the asset already exists (e.g. a re-run after a prior partial upload);
+   * that is not an error — signal it so uploadAsset can skip the binary upload and
+   * resolve the existing asset id instead. The 409 response carries no asset-id header
+   * (verified live), so the id is resolved separately via the JCR node's jcr:uuid.
+   */
   async createAsset(folderPath, fileName, contentType) {
     const url = [
       `${this.client.authorHost}/adobe/repository`,
@@ -107,6 +114,10 @@ export class RepositoryUploadStrategy {
     const res = await this.repoFetch('POST', url, {
       headers: { 'Content-Type': contentType || 'application/octet-stream' },
     });
+    if (res.status === 409) {
+      await res.text().catch(() => {});
+      return { alreadyExists: true };
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       throw new Error(`repository create ${fileName} -> ${res.status} ${body}`.trim());
@@ -114,6 +125,33 @@ export class RepositoryUploadStrategy {
     const assetId = res.headers?.get?.('asset-id') || '';
     const etag = res.headers?.get?.('etag') || '"0"';
     return { assetId, etag };
+  }
+
+  /**
+   * Resolve an existing asset's id from its DAM node's jcr:uuid, formatted as the same
+   * urn:aaid:aem:<uuid> the Assets API returns (verified live: the enumerate/search
+   * assetId URN's uuid segment equals the node's jcr:uuid). Used for a re-run 409 where
+   * the create call returns no asset-id header. Returns '' if it can't be read — the
+   * caller degrades to no-rendition rather than failing the asset.
+   */
+  async resolveExistingAssetId(folderPath, fileName) {
+    const url = [
+      this.client.authorHost,
+      encodeSegments(folderPath),
+      `/${encodeURIComponent(fileName)}.json`,
+    ].join('');
+    try {
+      const res = await this.repoFetch('GET', url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) {
+        await res.text().catch(() => {});
+        return '';
+      }
+      const json = await res.json();
+      const uuid = json?.['jcr:uuid'];
+      return uuid ? `urn:aaid:aem:${uuid}` : '';
+    } catch {
+      return '';
+    }
   }
 
   /** Step 2: Initiate block upload; returns SAS URLs, finalize URL, and preferred block size. */
@@ -204,7 +242,16 @@ export class RepositoryUploadStrategy {
   async uploadAsset({
     folderPath, fileName, bytes, contentType,
   }) {
-    const { assetId, etag } = await this.createAsset(folderPath, fileName, contentType);
+    const created = await this.createAsset(folderPath, fileName, contentType);
+    // Re-run 409: the binary already exists — skip the block upload, just resolve the
+    // existing id so the asset still flows into the enrichment pipeline.
+    if (created.alreadyExists) {
+      const assetId = await this.resolveExistingAssetId(folderPath, fileName);
+      return {
+        assetId, repoPath: `${folderPath}/${fileName}`, repoName: fileName, alreadyExisted: true,
+      };
+    }
+    const { assetId, etag } = created;
     const {
       blockUrls, finalizeUrl, preferredBlockSize, bodyForFinalize,
     } = await this.initiateBlockUpload(folderPath, fileName, bytes, contentType, etag);
@@ -213,9 +260,7 @@ export class RepositoryUploadStrategy {
     return { assetId, repoPath: repoPath || `${folderPath}/${fileName}`, repoName: fileName };
   }
 
-  async uploadImages({ folderPath, images }) {
-    const uploaded = [];
-    const failures = [];
+  async uploadImages({ folderPath, images, concurrency = 4 }) {
     // Hard run-wide cap: any caller (packaged scrape or an ad-hoc multi-page script) can
     // reach this point with more than BRING_IN_MAX_IMAGES already collected — e.g. a loop
     // over several source pages that caps each page individually but never the combined
@@ -223,28 +268,40 @@ export class RepositoryUploadStrategy {
     const capped = images.length > BRING_IN_MAX_IMAGES
       ? images.slice(0, BRING_IN_MAX_IMAGES)
       : images;
-    for (const img of capped) {
+
+    // Bounded-parallel: each uploadAsset call is self-contained (the strategy holds no
+    // per-upload mutable state), so N run concurrently. mapWithConcurrency preserves input
+    // order and caps in-flight uploads at `concurrency` (default 4, matching the enrichment
+    // phase). Results are partitioned after so uploaded[] order is stable.
+    const results = await mapWithConcurrency(capped, concurrency, async (img) => {
+      const {
+        bytes, fileName, contentType, ...evidence
+      } = img;
       try {
-        const {
-          bytes, fileName, contentType, ...evidence
-        } = img;
         const res = await this.uploadAsset({
-          folderPath,
-          fileName,
-          bytes,
-          contentType,
+          folderPath, fileName, bytes, contentType,
         });
-        uploaded.push({
-          ...evidence,
-          fileName,
-          contentType,
-          assetId: res.assetId,
-          repoPath: res.repoPath,
-          repoName: res.repoName,
-        });
+        return {
+          ok: true,
+          record: {
+            ...evidence,
+            fileName,
+            contentType,
+            assetId: res.assetId,
+            repoPath: res.repoPath,
+            repoName: res.repoName,
+          },
+        };
       } catch (err) {
-        failures.push({ fileName: img.fileName, error: String(err.message || err) });
+        return { ok: false, failure: { fileName, error: String(err.message || err) } };
       }
+    });
+
+    const uploaded = [];
+    const failures = [];
+    for (const r of results) {
+      if (r.ok) uploaded.push(r.record);
+      else failures.push(r.failure);
     }
     return { uploaded, failures };
   }

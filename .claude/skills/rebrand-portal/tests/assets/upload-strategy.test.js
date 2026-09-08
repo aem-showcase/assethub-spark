@@ -249,17 +249,16 @@ describe('RepositoryUploadStrategy', () => {
 
   it('uploadImages captures per-file failures without aborting', async () => {
     const client = fakeClient();
-    let callCount = 0;
     const { fetchFn } = buildFetch();
     const origFetch = fetchFn.getMockImplementation();
+    // Fail by fileName, not call order — uploads run in parallel so call order is
+    // non-deterministic.
     fetchFn.mockImplementation(async (url, opts) => {
-      if ((opts?.method || 'GET') === 'POST' && url.includes(';api=create')) {
-        callCount += 1;
-        if (callCount === 1) {
-          return {
-            ok: false, status: 500, headers: { get: () => null }, text: async () => 'err',
-          };
-        }
+      if ((opts?.method || 'GET') === 'POST' && url.includes(';api=create')
+          && url.includes('path=fail.png')) {
+        return {
+          ok: false, status: 500, headers: { get: () => null }, text: async () => 'err',
+        };
       }
       return origFetch(url, opts);
     });
@@ -285,6 +284,75 @@ describe('RepositoryUploadStrategy', () => {
       sourcePage: 'https://x/ok',
     });
     expect(res.uploaded[0]).not.toHaveProperty('bytes');
+  });
+
+  it('uploadImages preserves input order regardless of parallel completion', async () => {
+    const client = fakeClient();
+    const { fetchFn } = buildFetch();
+    const strategy = new RepositoryUploadStrategy({ client, fetchFn });
+    const images = Array.from({ length: 6 }, (_, i) => ({
+      fileName: `img-${i}.png`, bytes: smallPng, contentType: 'image/png',
+    }));
+    const res = await strategy.uploadImages({ folderPath: '/content/dam/acme', images, concurrency: 4 });
+    expect(res.uploaded.map((u) => u.fileName)).toEqual(images.map((i) => i.fileName));
+  });
+
+  it('uploadAsset: a 409 (already exists) resolves the id via jcr:uuid, no block upload', async () => {
+    const client = fakeClient();
+    const putCalls = [];
+    const fetchFn = vi.fn(async (url, opts) => {
+      const method = opts?.method || 'GET';
+      // create → 409 conflict, no asset-id header
+      if (method === 'POST' && url.includes(';api=create')) {
+        return {
+          ok: false,
+          status: 409,
+          headers: { get: () => null },
+          text: async () => JSON.stringify({ title: 'Conflict', status: 409 }),
+        };
+      }
+      // GET <name>.json → node with jcr:uuid
+      if (method === 'GET' && url.endsWith('/hero.png.json')) {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({ 'jcr:uuid': 'abc-123' }),
+        };
+      }
+      if (method === 'PUT') { putCalls.push(url); return { ok: true, status: 201, headers: { get: () => null }, text: async () => '' }; }
+      return { ok: false, status: 404, headers: { get: () => null }, text: async () => '' };
+    });
+    const strategy = new RepositoryUploadStrategy({ client, fetchFn });
+    const res = await strategy.uploadAsset({
+      folderPath: '/content/dam/acme', fileName: 'hero.png', bytes: smallPng, contentType: 'image/png',
+    });
+    expect(res.assetId).toBe('urn:aaid:aem:abc-123');
+    expect(res.repoPath).toBe('/content/dam/acme/hero.png');
+    expect(res.repoName).toBe('hero.png');
+    expect(res.alreadyExisted).toBe(true);
+    expect(putCalls).toHaveLength(0); // binary already present — no block upload
+  });
+
+  it('uploadAsset: a 409 with an unreadable node still returns the asset (empty id)', async () => {
+    const client = fakeClient();
+    const fetchFn = vi.fn(async (url, opts) => {
+      const method = opts?.method || 'GET';
+      if (method === 'POST' && url.includes(';api=create')) {
+        return { ok: false, status: 409, headers: { get: () => null }, text: async () => '{}' };
+      }
+      if (method === 'GET' && url.endsWith('.json')) {
+        return { ok: false, status: 403, headers: { get: () => null }, text: async () => '' };
+      }
+      return { ok: false, status: 404, headers: { get: () => null }, text: async () => '' };
+    });
+    const strategy = new RepositoryUploadStrategy({ client, fetchFn });
+    const res = await strategy.uploadAsset({
+      folderPath: '/content/dam/acme', fileName: 'x.png', bytes: smallPng, contentType: 'image/png',
+    });
+    expect(res.assetId).toBe('');
+    expect(res.repoPath).toBe('/content/dam/acme/x.png');
+    expect(res.alreadyExisted).toBe(true);
   });
 
   it('caps uploads at BRING_IN_MAX_IMAGES even when the caller collected more', async () => {
