@@ -18,15 +18,17 @@ const GOOD_HEADER = `
 header nav .nav-brand img {
   width: auto;
   max-width: 180px;
-  height: auto;
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-height) - 24px);
+  max-height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
 }
 header .nav-brand .icon img,
 header .nav-brand .icon svg {
   width: auto;
   max-width: 150px;
-  height: auto;
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-height) - 24px);
+  max-height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
 }
 `;
 
@@ -42,8 +44,26 @@ header .nav-brand .icon svg {
 }
 `;
 
+// The invisible-logo regression: max-height present, width:auto — looks fine to
+// the old check — but height:auto collapses to 0×0 in the nested flex chain.
+const COLLAPSE_HEADER = `
+header nav .nav-brand img {
+  width: auto;
+  max-width: 180px;
+  height: auto;
+  max-height: calc(var(--nav-height) - 24px);
+}
+header .nav-brand .icon img,
+header .nav-brand .icon svg {
+  width: auto;
+  max-width: 150px;
+  height: auto;
+  max-height: calc(var(--nav-height) - 24px);
+}
+`;
+
 describe('verify: header-logo', () => {
-  it('PASSES when logo rules use max-height', () => {
+  it('PASSES when logo rules have max-height AND an explicit non-auto height', () => {
     const root = makeRepo();
     try {
       writeFileSync(join(root, 'blocks', 'header', 'header.css'), GOOD_HEADER);
@@ -51,13 +71,23 @@ describe('verify: header-logo', () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
-  it('FAILS when a logo rule is fixed-width with no max-height (the shipped regression)', () => {
+  it('FAILS when a logo rule is fixed-width with no max-height (the overflow regression)', () => {
     const root = makeRepo();
     try {
       writeFileSync(join(root, 'blocks', 'header', 'header.css'), BAD_HEADER);
       const r = checkHeaderLogo(root);
       expect(r.pass).toBe(false);
       expect(r.reason).toMatch(/max-height/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('FAILS when height:auto alone lets the logo collapse to 0×0 (the invisible-logo regression)', () => {
+    const root = makeRepo();
+    try {
+      writeFileSync(join(root, 'blocks', 'header', 'header.css'), COLLAPSE_HEADER);
+      const r = checkHeaderLogo(root);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/explicit non-auto height|0×0/);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });
@@ -76,10 +106,22 @@ describe('verify: residue', () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
-  it('PASSES when the tree is fully rebranded (no old hex, no slug)', () => {
+  it('FAILS on the decimal rgb() form of an old hex (#58181D -> rgb(88 24 29 …))', () => {
     const root = makeRepo();
     try {
-      writeFileSync(join(root, 'styles', 'styles.css'), '.x{color:#022043;}');
+      // No literal #hex anywhere — only the decimal rgb() forms the plain grep missed.
+      writeFileSync(join(root, 'styles', 'styles.css'), '.a{box-shadow:0 12px 30px rgb(88 24 29 / 14%);}');
+      writeFileSync(join(root, 'styles', 'more.css'), '.b{background:rgb(235, 164, 57);}'); // #EBA439 not in set
+      const r = checkResidue(root, { baseSlug: 'frescopa', oldHexes: ['#58181D'] });
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/rgb\(88 24 29\)/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when the tree is fully rebranded (no old hex in #hex OR rgb() form, no slug)', () => {
+    const root = makeRepo();
+    try {
+      writeFileSync(join(root, 'styles', 'styles.css'), '.x{color:#022043;box-shadow:0 0 1px rgb(2 32 67 / 10%);}');
       writeFileSync(join(root, 'icons', 'workday-icon.svg'), '<svg fill="#022043"/>');
       expect(checkResidue(root, baseBrand).pass).toBe(true);
     } finally { rmSync(root, { recursive: true, force: true }); }

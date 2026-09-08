@@ -43,9 +43,16 @@ function loadBaseBrand(repoRoot) {
 }
 
 // ---- CHECK: header-logo (tree) --------------------------------------------------
-// The brand-logo rule must constrain by max-height against --nav-bar-height, NOT a fixed
-// `width` + `height: auto` (which renders a square-aspect mark far taller than the header,
-// spilling over the hero/search — shipped live). Reads the ACTUAL rule; fails on fixed-width.
+// Two live-shipped failure modes, both caught here by reading the ACTUAL rule:
+//   1. Fixed `width` + `height: auto` with no max-height — renders a square-aspect
+//      mark far taller than the header, spilling over the hero.
+//   2. `width: auto` + `height: auto` (relying only on max-height) — inside the
+//      nested inline-flex brand chain (nav-brand > a > span.icon > img) the image
+//      has no definite height to resolve against and COLLAPSES to 0×0, so the logo
+//      renders invisible (not broken — just gone). The fix that works is an
+//      explicit non-auto `height` (e.g. calc(var(--nav-height) - N) or 100%),
+//      typically with object-fit:contain. So a brand-logo img/svg rule MUST carry
+//      an explicit non-auto height, not height:auto alone.
 export function checkHeaderLogo(repoRoot) {
   const cssPath = join(repoRoot, 'blocks', 'header', 'header.css');
   if (!existsSync(cssPath)) return { name: 'header-logo', pass: false, reason: 'blocks/header/header.css not found' };
@@ -62,21 +69,31 @@ export function checkHeaderLogo(repoRoot) {
     const body = m[1];
     const hasFixedWidth = /(?:^|[;{\s])width\s*:\s*\d+px/.test(body);
     const hasMaxHeight = /max-height\s*:/.test(body);
+    // Does the rule set an explicit, non-auto `height`? (e.g. calc(...), NNpx, 100%)
+    const heightDecl = body.match(/(?:^|[;{\s])height\s*:\s*([^;}]+)/);
+    const hasExplicitHeight = Boolean(heightDecl) && !/^\s*auto\s*$/i.test(heightDecl[1]);
     if (hasFixedWidth && !hasMaxHeight) {
       problems.push(`a brand-logo rule uses fixed width without max-height:\n${body.trim()}`);
     }
     if (!hasMaxHeight) {
-      problems.push('a brand-logo rule has no max-height bound against --nav-bar-height');
+      problems.push('a brand-logo rule has no max-height bound against --nav-height');
+    }
+    if (!hasExplicitHeight) {
+      problems.push(
+        'a brand-logo img/svg rule has no explicit non-auto height (height:auto alone '
+        + 'collapses to 0×0 in the nested nav-brand flex chain — invisible logo, shipped live)',
+      );
     }
   }
   if (problems.length) {
     return {
       name: 'header-logo',
       pass: false,
-      reason: `${problems.join('; ')} — fix header.css to width:auto; max-width; max-height:calc(var(--nav-bar-height) - N)`,
+      reason: `${problems.join('; ')} — fix header.css: width:auto; max-width:<px>; `
+        + 'height:calc(var(--nav-height) - N); max-height:calc(var(--nav-height) - N); object-fit:contain',
     };
   }
-  return { name: 'header-logo', pass: true, reason: 'brand-logo rules constrained by max-height' };
+  return { name: 'header-logo', pass: true, reason: 'brand-logo rules bound by max-height and carry an explicit non-auto height' };
 }
 
 // ---- CHECK: residue (tree) ------------------------------------------------------
@@ -94,25 +111,52 @@ function walk(dir, exts, acc = []) {
   return acc;
 }
 
+// A hex like #58181D also survives as the decimal rgb() form the browser and
+// many hand-authored rules use: `rgb(88 24 29 / 14%)` or `rgb(88, 24, 29)`. The
+// plain `#rrggbb` grep misses those entirely (verified live: 15+ decimal-form
+// survivors passed a clean residue run). Match both forms.
+function hexToRgbTriplet(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = m[1];
+  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+}
+
+// Build a matcher for one old hex that hits `#rrggbb` (any case) and the
+// `rgb(r g b …)` / `rgb(r,g,b …)` decimal forms, tolerant of space/comma
+// separators and an optional `/ alpha`. Anchored on the three components in
+// order so it won't false-hit an unrelated number run.
+function oldHexMatchers(hex) {
+  const upper = hex.toUpperCase().startsWith('#') ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
+  const matchers = [{ label: upper, test: (upperText) => upperText.includes(upper) }];
+  const rgb = hexToRgbTriplet(hex);
+  if (rgb) {
+    const [r, g, b] = rgb;
+    const re = new RegExp(`rgba?\\(\\s*${r}\\s*[ ,]\\s*${g}\\s*[ ,]\\s*${b}\\b`, 'i');
+    matchers.push({ label: `rgb(${r} ${g} ${b})`, test: (_u, rawText) => re.test(rawText) });
+  }
+  return matchers;
+}
+
 export function checkResidue(repoRoot, baseBrand) {
   if (!baseBrand) return { name: 'residue', pass: false, reason: 'no baseBrand in state — run capture-base.mjs first' };
   const dirs = ['icons', 'styles', 'blocks', join('scripts', 'analytics')].map((d) => join(repoRoot, d));
   const files = dirs.flatMap((d) => walk(d, ['.css', '.svg', '.js', '.scss']));
-  const hexes = (baseBrand.oldHexes || []).map((h) => h.toUpperCase());
+  const matchers = (baseBrand.oldHexes || []).flatMap((h) => oldHexMatchers(h));
   const slug = baseBrand.baseSlug;
   const hits = [];
   for (const f of files) {
     const text = readFileSync(f, 'utf8');
     const upper = text.toUpperCase();
-    for (const hex of hexes) {
-      if (upper.includes(hex)) hits.push(`${f}: old hex ${hex}`);
+    for (const m of matchers) {
+      if (m.test(upper, text)) hits.push(`${f}: old hex ${m.label}`);
     }
     if (slug && new RegExp(slug, 'i').test(text)) hits.push(`${f}: baseSlug '${slug}'`);
   }
   if (hits.length) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };
   }
-  return { name: 'residue', pass: true, reason: `no old-brand hex/slug in ${files.length} files` };
+  return { name: 'residue', pass: true, reason: `no old-brand hex/slug (incl. rgb() form) in ${files.length} files` };
 }
 
 // ---- CHECK: nav-404-loop (preview) ----------------------------------------------

@@ -319,8 +319,9 @@ header .nav-brand {
 header nav .nav-brand img {
   width: auto;
   max-width: 180px;
-  height: auto;
+  height: calc(var(--nav-bar-height) - 24px);
   max-height: calc(var(--nav-bar-height) - 24px);
+  object-fit: contain;
 }
 
 /* Brand logo authored as an EDS icon (:frescopa-icon:) - let it render full size */
@@ -331,26 +332,32 @@ header .nav-brand p {
 header .nav-brand a {
   display: inline-flex;
   align-items: center;
+  height: var(--nav-bar-height);
   text-decoration: none;
 }
 
 header .nav-brand .icon {
   width: auto;
-  height: auto;
+  height: 100%;
   display: inline-flex;
+  align-items: center;
 }
 
-/* Constrain the brand logo by max-height against the nav bar, NOT a fixed width +
-   height:auto. A fixed width renders a square-aspect mark (e.g. a 1:1 or ~1.6:1 wordmark)
-   far taller than the header, spilling over the hero/search below it on narrow viewports
-   (shipped live on a demo whose logo was less wide/flat than the base). max-height keeps any
-   aspect ratio within the bar; max-width still caps a very wide wordmark. */
+/* Constrain the brand logo against the nav bar. Two live-shipped failures this guards:
+   (1) a fixed `width` + `height:auto` renders a square-aspect mark far taller than the
+   header, spilling over the hero; (2) `width:auto` + `height:auto` (max-height only) has
+   no definite height to resolve against in the nested nav-brand > a > span.icon > img
+   flex chain and COLLAPSES to 0×0 — the logo renders invisible (shipped live). Fix: an
+   explicit non-auto `height` (tied to --nav-bar-height) with object-fit:contain so the
+   image scales proportionally within the bar; max-width still caps a very wide wordmark.
+   Verified by scripts/rebrand/verify.mjs --only header-logo. */
 header .nav-brand .icon img,
 header .nav-brand .icon svg {
   width: auto;
   max-width: 150px;
-  height: auto;
+  height: calc(var(--nav-bar-height) - 24px);
   max-height: calc(var(--nav-bar-height) - 24px);
+  object-fit: contain;
 }
 
 /* sections */
