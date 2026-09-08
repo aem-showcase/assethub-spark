@@ -43,7 +43,10 @@ function looksLikeThumbnail(url) {
 function getAttr(tag, name) {
   const m = tag.match(ATTR_RE(name));
   if (!m) return null;
-  return (m[2] ?? m[3] ?? m[4] ?? '').trim();
+  // Decode HTML entities in the attribute value — a src/href authored as
+  // `...?media_id=X&amp;version=Y` must become `&`, or the query string breaks and
+  // the download 404s (verified live: 19/21 Meta CDN URLs failed on the raw &amp;).
+  return decodeEntities((m[2] ?? m[3] ?? m[4] ?? '').trim());
 }
 
 function decodeEntities(value) {
@@ -383,6 +386,14 @@ export async function scrapeSiteImages({
   fetchFn = fetch,
   log = console,
 }) {
+  // Browser-like headers for the IMAGE downloads below (not the page fetch — adding a
+  // UA to the page GET tripped a WAF path on some sites, verified live). Many CDNs 404 an
+  // image unless the request carries a real User-Agent and a Referer of the page it came
+  // from (session/hotlink protection); the plain Accept-only fetch that shipped got 404s
+  // on exactly those URLs even though a browser loaded them fine.
+  const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+    + '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
   const pageRes = await fetchFn(pageUrl, { headers: { Accept: 'text/html' } });
   if (!pageRes.ok) {
     throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
@@ -404,7 +415,9 @@ export async function scrapeSiteImages({
       log.info?.(`[agent] resolved original: ${candidateUrl} -> ${url}`);
     }
     try {
-      const res = await fetchFn(url, { headers: { Accept: '*/*' } });
+      const res = await fetchFn(url, {
+        headers: { Accept: '*/*', 'User-Agent': BROWSER_UA, Referer: pageUrl },
+      });
       if (!res.ok) {
         log.warn?.(`[agent] skip ${url} -> ${res.status}`);
         continue;

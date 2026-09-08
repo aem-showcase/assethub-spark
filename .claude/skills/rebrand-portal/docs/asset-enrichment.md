@@ -234,7 +234,7 @@ Example:
         "assetPath": "/content/dam/acme/hero.jpg",
         "repoName": "hero.jpg",
         "title": "Hero",
-        "cardImageUrl": "https://content.da.live/org/repo/acme/en/media_derived-slug.jpg"
+        "cardImageUrl": "https://content.da.live/org/repo/companies/acme/en/media_derived-slug.jpg"
       }
     }
   },
@@ -244,8 +244,8 @@ Example:
       "label": "Derived Label",
       "assetCount": 12,
       "blurb": "Derived Label product and campaign imagery.",
-      "href": "/en/search?facetFilters=%7B%22productCategory%22%3A%7B%22derived-slug%22%3Atrue%7D%7D",
-      "cardImageUrl": "https://content.da.live/org/repo/acme/en/media_derived-slug.jpg"
+      "href": "/companies/acme/en/search?facetFilters=%7B%22productCategory%22%3A%7B%22derived-slug%22%3Atrue%7D%7D",
+      "cardImageUrl": "https://content.da.live/org/repo/companies/acme/en/media_derived-slug.jpg"
     }
   ]
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="329" height="230" viewBox="0 0 329 230" role="img" aria-label="Hyundai emblem">
+  <g transform="translate(164.5 115) rotate(-16)">
+    <ellipse cx="0" cy="0" rx="150" ry="104" fill="none" stroke="#002C5F" stroke-width="26"/>
+    <path d="M-92 -46 h34 v34 h116 v-34 h34 v92 h-34 v-34 h-116 v34 h-34 z" fill="#002C5F"/>
+  </g>
+</svg>

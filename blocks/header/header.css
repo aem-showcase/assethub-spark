@@ -317,11 +317,14 @@ header .nav-brand {
 }
 
 header nav .nav-brand img {
-  width: 180px;
-  height: auto;
+  width: auto;
+  max-width: 180px;
+  height: calc(var(--nav-bar-height) - 24px);
+  max-height: calc(var(--nav-bar-height) - 24px);
+  object-fit: contain;
 }
 
-/* Brand logo authored as an EDS icon (:frescopa-icon:) - let it render full size */
+/* Brand logo authored as an EDS icon (:hyundai-icon:) - let it render full size */
 header .nav-brand p {
   margin: 0;
 }
@@ -329,19 +332,32 @@ header .nav-brand p {
 header .nav-brand a {
   display: inline-flex;
   align-items: center;
+  height: var(--nav-bar-height);
   text-decoration: none;
 }
 
 header .nav-brand .icon {
   width: auto;
-  height: auto;
+  height: 100%;
   display: inline-flex;
+  align-items: center;
 }
 
+/* Constrain the brand logo against the nav bar. Two live-shipped failures this guards:
+   (1) a fixed `width` + `height:auto` renders a square-aspect mark far taller than the
+   header, spilling over the hero; (2) `width:auto` + `height:auto` (max-height only) has
+   no definite height to resolve against in the nested nav-brand > a > span.icon > img
+   flex chain and COLLAPSES to 0×0 — the logo renders invisible (shipped live). Fix: an
+   explicit non-auto `height` (tied to --nav-bar-height) with object-fit:contain so the
+   image scales proportionally within the bar; max-width still caps a very wide wordmark.
+   Verified by scripts/rebrand/verify.mjs --only header-logo. */
 header .nav-brand .icon img,
 header .nav-brand .icon svg {
-  width: 150px;
-  height: auto;
+  width: auto;
+  max-width: 150px;
+  height: calc(var(--nav-bar-height) - 24px);
+  max-height: calc(var(--nav-bar-height) - 24px);
+  object-fit: contain;
 }
 
 /* sections */
@@ -660,6 +676,36 @@ header nav .nav-tools .nav-reports-icon {
   padding: 0;
 }
 
+/* Narrow viewports: the fixed-position icon cluster (reports/notifications/download/cart +
+   My Account) can grow wider than the space right of the brand logo and overlap it. Tighten
+   gaps, shrink icon-button padding, and drop the "My Account" text label (keep the avatar)
+   so the cluster stays clear of the logo. Fixes the shared template for every brand, not one
+   logo's aspect ratio — see the header logo-size guard in the rebrand-portal skill. */
+@media (width < 480px) {
+  header nav .nav-tools {
+    gap: 4px;
+  }
+
+  header nav .nav-tools .nav-icons-wrapper {
+    gap: 0;
+  }
+
+  header nav .nav-tools .nav-cart-icon button,
+  header nav .nav-tools .nav-download-icon button,
+  header nav .nav-tools .nav-message-icon button,
+  header nav .nav-tools .nav-reports-icon button {
+    padding: 2px;
+  }
+
+  header nav .my-account-button {
+    padding: 6px;
+  }
+
+  header nav .my-account-label {
+    display: none;
+  }
+}
+
 @media (width >=900px) {
   header nav .nav-tools {
     position: static;
@@ -698,7 +744,7 @@ header nav .nav-tools .nav-cart-icon button:focus-visible,
 header nav .nav-tools .nav-download-icon button:focus-visible,
 header nav .nav-tools .nav-message-icon button:focus-visible,
 header nav .nav-tools .nav-reports-icon button:focus-visible {
-  box-shadow: var(--focus-ring, 0 0 0 3px #00647D);
+  box-shadow: var(--focus-ring, 0 0 0 3px #002C5F);
   border-radius: 6px;
 }
 
