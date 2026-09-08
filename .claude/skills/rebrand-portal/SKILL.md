@@ -289,8 +289,9 @@ Resolve `customer.name` + `customer.companyKey` (apply I6 for empty/reserved
 slugs). Resolve `{org}/{repo}` from the origin remote (this shared repo, not
 a fork). Demo branch is `demo/<companyKey>`, created in its **own git
 worktree** (`../assethub-spark.worktrees/demo-<companyKey>`) — not the main
-checkout — so parallel demos don't contend. Symlink the gitignored
-`token.env` + `cloudflare/.secrets` into it. **Always check for an existing
+checkout — so parallel demos don't contend. Copy the gitignored
+`token.env` + `cloudflare/.secrets` into it (each worktree fully
+independent; nothing shared back to the main checkout). **Always check for an existing
 brand branch first and ASK continue-vs-new if one is found — never silently
 reuse, recreate, or delete it (I5).** Record `customer.demoBranch` and
 `customer.worktreePath`; mark `branch-resolved` `done`.

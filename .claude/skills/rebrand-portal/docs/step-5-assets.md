@@ -4,7 +4,7 @@
 > `enrich-assets.js` resolves the repo root from cwd and reads
 > `cloudflare/.secrets` (asset creds) + `cloudflare/src/config.js` (AEM env
 > id, demo scope) from there — both present in the worktree (`.secrets`
-> symlinked in Step 2, config.js rebranded in Step 4). Run it in the main
+> copied in Step 2, config.js rebranded in Step 4). Run it in the main
 > checkout and it would read the wrong config.js.
 
 ## Step 5 preflight — rebrand verification gate

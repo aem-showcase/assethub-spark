@@ -61,23 +61,26 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
   Disney's copy in progress — keep building on that one, or start a
   brand-new one and leave the existing as-is?" Honor the answer.
 
-**Seed the gitignored secrets into the worktree (symlink, not copy).** A
-fresh `git worktree add` starts without `token.env` (DA_TOKEN, used from
-Step 3) or `cloudflare/.secrets` (asset creds, used from Step 5) — both
-are gitignored, so git does not carry them. Symlink them back to the main
-checkout so a mid-run DA_TOKEN refresh (they expire — Step 4a) propagates
-to every worktree automatically, instead of going stale per copy:
+**Seed the gitignored secrets into the worktree (copy — each worktree is
+fully independent).** A fresh `git worktree add` starts without `token.env`
+(DA_TOKEN, used from Step 3) or `cloudflare/.secrets` (asset creds, used
+from Step 5) — both are gitignored, so git does not carry them. **Copy**
+them in (do not symlink): each demo owns its own real files, so two
+concurrent demos never share or overwrite each other's secrets or state.
 
 ```
-ln -s <mainRoot>/token.env \
+cp <mainRoot>/token.env \
   ../assethub-spark.worktrees/demo-<companyKey>/token.env
-ln -s <mainRoot>/cloudflare/.secrets \
+cp <mainRoot>/cloudflare/.secrets \
   ../assethub-spark.worktrees/demo-<companyKey>/cloudflare/.secrets
 ```
 
-(If `token.env` doesn't exist yet in `<mainRoot>`, Step 4a creates it there
-— symlink after it exists. `.internal/onboarding-state.json` is *not*
-seeded: each worktree keeps its own fresh per-demo state record.)
+(If `token.env` doesn't exist yet in `<mainRoot>`, Step 4a creates it in
+the worktree directly — copy only if it already exists. If a DA_TOKEN
+expires mid-run, refresh it in *this* worktree's `token.env`; it doesn't
+propagate to or from any other worktree, by design.
+`.internal/onboarding-state.json` is likewise never seeded: each worktree
+keeps its own fresh per-demo state record.)
 
 Record the chosen branch in `customer.demoBranch` and the worktree path in
 `customer.worktreePath`. **All rebrand code edits and every later step
