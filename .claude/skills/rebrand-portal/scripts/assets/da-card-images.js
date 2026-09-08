@@ -19,6 +19,7 @@
  */
 
 import { fetchRenditionBytes } from './rendition.js';
+import { companyBasePath } from './constants.js';
 
 const DA_ADMIN_BASE = process.env.DA_ADMIN_BASE || 'https://admin.da.live';
 
@@ -59,7 +60,7 @@ export async function uploadCardImage({
 
   const ext = extFromContentType(rendition.contentType);
   const fileName = `media_${rep.productCategory}.${ext}`;
-  const daPath = `companies/${companyKey}/en/${fileName}`;
+  const daPath = `${companyBasePath(companyKey).slice(1)}/en/${fileName}`;
   const url = `${DA_ADMIN_BASE}/source/${org}/${repo}/${daPath}`;
 
   const form = new FormData();
@@ -97,7 +98,7 @@ export async function materializeCardImages({
     if (dryRun) {
       items[slug] = {
         ...rep,
-        cardImageUrl: `[dry-run] would upload media_${slug}.jpg from asset ${rep.assetId} to /companies/${companyKey}/en/`,
+        cardImageUrl: `[dry-run] would upload media_${slug}.jpg from asset ${rep.assetId} to ${companyBasePath(companyKey)}/en/`,
       };
       continue;
     }
