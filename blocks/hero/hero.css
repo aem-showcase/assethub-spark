@@ -180,20 +180,20 @@ main > .section.hero-container {
 
 .hero .button-container .button:not(.secondary):any-link:hover,
 .hero .button-container .button:not(.secondary):any-link:focus-visible {
-  background-color: #f9f0e5;
-  border-color: #f9f0e5;
+  background-color: #eaf3fe;
+  border-color: #eaf3fe;
 }
 
 .hero .button-container .button.secondary:any-link {
   background-color: transparent;
-  border-color: rgb(244 233 220 / 70%);
+  border-color: rgb(215 234 252 / 70%);
   color: var(--light-color);
 }
 
 .hero .button-container .button.secondary:any-link:hover,
 .hero .button-container .button.secondary:any-link:focus-visible {
-  background-color: rgb(244 233 220 / 10%);
-  border-color: rgb(244 233 220 / 90%);
+  background-color: rgb(215 234 252 / 10%);
+  border-color: rgb(215 234 252 / 90%);
 }
 
 @media (width >= 900px) {

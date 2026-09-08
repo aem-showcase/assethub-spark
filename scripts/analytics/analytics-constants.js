@@ -104,9 +104,9 @@ export const KNOWN_ROLES = ['Associate', 'Agency', 'Partner'];
  * Color scheme for roles in charts
  */
 export const ROLE_COLORS = {
-  Associate: '#00647D',
-  Agency: '#EBA439',
-  Partner: '#58181D',
+  Associate: '#022043',
+  Agency: '#9FCFFF',
+  Partner: '#0057AE',
   Other: '#b8b8b8',
 };
 
@@ -230,11 +230,11 @@ export const CHART_INIT_DELAY = 100;
  * Geography colors for charts (used across all reports)
  */
 export const GEO_COLORS = [
-  '#00647D',
-  '#004d61',
-  '#EBA439',
-  '#DC6E52',
-  '#58181D',
+  '#022043',
+  '#0057AE',
+  '#9FCFFF',
+  '#0875E1',
+  '#3D6EA3',
   '#666',
   '#8f8f8f',
   '#b8b8b8',
@@ -269,9 +269,9 @@ export const ANALYTICS_MAX_YEAR = 2030; // Max year for validation (prevent inva
  * Search type colors for stacked charts
  */
 export const SEARCH_TYPE_COLORS = {
-  all: '#00647D',
-  assets: '#EBA439',
-  products: '#58181D',
+  all: '#022043',
+  assets: '#9FCFFF',
+  products: '#0057AE',
   templates: '#b8b8b8',
 };
 
@@ -279,16 +279,16 @@ export const SEARCH_TYPE_COLORS = {
  * Resource type colors (for downloads)
  */
 export const RESOURCE_TYPE_COLORS = {
-  Asset: '#00647D',
-  Template: '#EBA439',
+  Asset: '#022043',
+  Template: '#9FCFFF',
 };
 
 /**
  * User type colors (matches role colors for consistency)
  */
 export const USER_TYPE_COLORS = {
-  Associate: '#00647D',
-  Agency: '#EBA439',
-  Partner: '#58181D',
+  Associate: '#022043',
+  Agency: '#9FCFFF',
+  Partner: '#0057AE',
   Other: '#b8b8b8',
 };
