@@ -36,6 +36,25 @@ function sameToken(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
 
+// Split a scalar multivalue field back into tokens. Handles a plain scalar ('global')
+// and the corrupt JSON-string form a hand-rolled Sling POST can leave when it omits
+// @TypeHint=String[] ('["global"]' / '["global","us"]'), which AEM stores and reads
+// back as a single non-array string. Used to self-heal such a value into a proper
+// String[] instead of hard-conflicting on it.
+function parseScalarTokens(value) {
+  if (value == null) return [];
+  const s = String(value).trim();
+  if (!s) return [];
+  const bracketed = s.match(/^\[(.*)\]$/);
+  if (bracketed) {
+    return bracketed[1]
+      .split(',')
+      .map((t) => t.replace(/^\s*"?|"?\s*$/g, '').trim())
+      .filter(Boolean);
+  }
+  return [s];
+}
+
 function uniqueStrings(values) {
   const seen = new Set();
   const out = [];
@@ -105,7 +124,7 @@ function addScalarIfMissing({
 }
 
 function addArrayIfMissingOrAppend({
-  entries, kept, conflicts, existing, field, values, requiredValues = [],
+  entries, kept, existing, field, values, requiredValues = [],
 }) {
   const desired = uniqueStrings(values);
   if (desired.length === 0) return;
@@ -120,9 +139,20 @@ function addArrayIfMissingOrAppend({
   recordKept(kept, field, current);
 
   if (!Array.isArray(current)) {
-    const missingRequired = uniqueStrings(requiredValues)
-      .filter((value) => !sameToken(current, value));
-    missingRequired.forEach((value) => recordConflict(conflicts, field, current, value));
+    // Self-heal a scalar (or corrupt JSON-string) value into a proper String[]. These
+    // fields (allowedCountries, dc:subject) are controller-stamped, not user-authored:
+    // a scalar here is a prior mis-write (e.g. a hand-rolled POST without
+    // @TypeHint=String[]) or an equivalent single value, never data worth preserving
+    // as-is. Rewrite deterministically to the union of any real token it carried plus
+    // the required + desired values. Idempotent: the next run sees a proper array and
+    // hits the append no-op path below.
+    const union = uniqueStrings([
+      ...parseScalarTokens(current),
+      ...normalizeStringArray(requiredValues),
+      ...desired,
+    ]);
+    addControl(entries, field, '@TypeHint', 'String[]');
+    union.forEach((value) => addEntry(entries, field, value));
     return;
   }
 

@@ -100,34 +100,78 @@ function evidenceBlob(evidence) {
     .join(' ');
 }
 
-/** Contract entry -> comparable tokens (slug words + label words). */
+/**
+ * Contract entry -> comparable tokens (slug words + label words + alias words).
+ * Aliases are source-derived evidence tokens (e.g. body-type slug "sedan" carries model names
+ * "verna","aura") so model-named assets classify to the right body-type card on the FIRST
+ * write — without them the classifier scores 0 for every card whose label ≠ the asset naming
+ * and dumps everything into the first contract slug (verified live on Hyundai/Honda runs).
+ * Alias tokens keep the length>2 filter of slug/label words relaxed to length>1 so short but
+ * distinctive model tokens ("i10","i20","ev") still count.
+ */
 function contractTokens(entry) {
-  return `${entry.slug} ${entry.label || ''}`
+  const base = `${entry.slug} ${entry.label || ''}`
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length > 2);
+  const aliasTokens = (Array.isArray(entry.aliases) ? entry.aliases : [])
+    .join(' ')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 1);
+  return [...new Set([...base, ...aliasTokens])];
+}
+
+/** Strip a common plural suffix so "accessories"/"accessory" and "glasses"/"glass" match. */
+function singularize(word) {
+  if (word.endsWith('ies') && word.length > 4) return `${word.slice(0, -3)}y`;
+  if (word.endsWith('ses') && word.length > 4) return word.slice(0, -2);
+  if (word.endsWith('es') && word.length > 3) return word.slice(0, -2);
+  if (word.endsWith('s') && word.length > 3) return word.slice(0, -1);
+  return word;
+}
+
+/**
+ * Word-boundary evidence text as a set of singularized tokens, for token-vs-token matching
+ * (not a raw substring test, which both false-MISSES on plural/singular pairs like
+ * "accessories" vs "accessory" and false-HITS on unrelated substrings like "class" inside
+ * "glasses"). Verified live: a substring classifier scored "accessory"-heavy assets 0 for
+ * the "Accessories" slug and dumped everything into the first contract category.
+ */
+function wordSet(text) {
+  const words = String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const set = new Set();
+  for (const w of words) {
+    set.add(w);
+    set.add(singularize(w));
+  }
+  return set;
 }
 
 /**
  * Deterministic fallback classifier: pick the contract category whose slug/label tokens
  * overlap the asset's evidence most; ties and no-overlap fall back to the first contract
  * entry so assignment is always defined (mandatory single-category, never unclassified).
- * Smart-tag hits count double (AEM's own processing output is stronger signal).
+ * Smart-tag hits count double (AEM's own processing output is stronger signal). Matching is
+ * word-for-word (via `wordSet`, singular/plural-normalized), not substring, so a plural
+ * contract label ("Accessories") still matches singular evidence ("accessory") without
+ * false-hitting on unrelated substrings.
  */
 export function deterministicClassifier(contract = []) {
   const entries = contract.filter((c) => c && c.slug);
   return (evidence) => {
     if (entries.length === 0) return null;
-    const blob = evidenceBlob(evidence);
-    const smart = evidence.smartTags.join(' ');
+    const blobWords = wordSet(evidenceBlob(evidence));
+    const smartWords = wordSet(evidence.smartTags.join(' '));
     let best = entries[0].slug;
     let bestScore = -1;
     for (const entry of entries) {
       const tokens = contractTokens(entry);
       let score = 0;
       for (const tok of tokens) {
-        if (smart.includes(tok)) score += 2;
-        else if (blob.includes(tok)) score += 1;
+        const tokSingular = singularize(tok);
+        if (smartWords.has(tok) || smartWords.has(tokSingular)) score += 2;
+        else if (blobWords.has(tok) || blobWords.has(tokSingular)) score += 1;
       }
       if (score > bestScore) {
         bestScore = score;

@@ -42,6 +42,7 @@ export function planCollections(assets, options = {}) {
     facet = 'productCategory',
     minAssets = 1,
     titlePrefix,
+    labels,
   } = options;
 
   if (!GROUP_FACETS.includes(facet)) {
@@ -64,7 +65,9 @@ export function planCollections(assets, options = {}) {
   for (const [facetValue, idSet] of buckets) {
     const assetIds = [...idSet];
     if (assetIds.length < minAssets) continue;
-    const label = humanize(facetValue);
+    // Prefer a supplied display label (the source-derived contract's proper-noun casing,
+    // e.g. iPhone/iPad/AirPods) over the title-cased default (Iphone/Ipad/Airpods).
+    const label = (labels && labels[facetValue]) || humanize(facetValue);
     specs.push({
       facetValue,
       title: prefix ? `${prefix} — ${label}` : label,

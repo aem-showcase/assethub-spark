@@ -127,4 +127,48 @@ describe('category-plan', () => {
     );
     expect(classify(evidence).slug).toBe('diabetes');
   });
+
+  // Regression: the live Meta run's plural/singular miss. Contract label is the
+  // PLURAL "Accessories"; the asset evidence is the SINGULAR "accessory". A raw
+  // substring test scored this 0 for every category and dumped it into the first
+  // slug (smart-glasses). Word-boundary + singularization must route it correctly.
+  const META = [
+    { slug: 'smart-glasses', label: 'Smart Glasses' },
+    { slug: 'accessories', label: 'Accessories' },
+  ];
+
+  it('classifies singular evidence into a plural contract slug (accessory -> accessories)', () => {
+    const classify = deterministicClassifier(META);
+    const evidence = assetEvidence(
+      { repoName: 'ray-ban-case.jpg' },
+      { 'autogen:subject': ['eyeglass case', 'accessory', 'eyewear'] },
+      {},
+    );
+    expect(classify(evidence).slug).toBe('accessories');
+  });
+
+  it('does not false-hit an unrelated substring ("class" must not match "glasses")', () => {
+    const classify = deterministicClassifier([
+      { slug: 'smart-glasses', label: 'Smart Glasses' },
+      { slug: 'classroom', label: 'Classroom' },
+    ]);
+    // Evidence mentions "glasses" only — must land in smart-glasses, not classroom
+    // (a substring test would match "class" inside "glasses").
+    const evidence = assetEvidence(
+      { repoName: 'wayfarer.jpg' },
+      { 'autogen:subject': ['glasses', 'sunglasses'] },
+      {},
+    );
+    expect(classify(evidence).slug).toBe('smart-glasses');
+  });
+
+  it('applyCategoryPlan spreads assets across slugs instead of dumping into the first', () => {
+    const planned = [
+      { asset: { assetId: 'a1', repoName: 'wayfarer.jpg' }, fields: {}, existingMetadata: { 'autogen:subject': ['sunglasses', 'eyewear'] } },
+      { asset: { assetId: 'a2', repoName: 'case.jpg' }, fields: {}, existingMetadata: { 'autogen:subject': ['accessory', 'eyeglass case'] } },
+    ];
+    const out = applyCategoryPlan(planned, { contract: META });
+    expect(out[0].fields.productCategory).toBe('smart-glasses');
+    expect(out[1].fields.productCategory).toBe('accessories');
+  });
 });

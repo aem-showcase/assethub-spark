@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 5,
+  "intent": "full",
+  "customer": {
+    "name": "Volkswagen",
+    "companyKey": "volkswagen",
+    "demoBranch": "demo/volkswagen",
+    "daFolder": "/volkswagen"
+  },
+  "steps": {
+    "demo-confirmed": "done",
+    "branch-resolved": "done",
+    "da-content-copied": "done",
+    "rebranded": "done",
+    "demo-company-set": "done",
+    "published": "done",
+    "landed-via-pr": "done",
+    "assets-uploaded": "done",
+    "assets-enriched": "done",
+    "search-scoped": "done",
+    "collections-created": "done"
+  }
+}

@@ -1,4 +1,10 @@
-# Step 4 — Rebrand `/<companyKey>` + repo, publish, open the PR
+# Step 4 — Rebrand `/companies/<companyKey>` + repo, publish, open the PR
+
+> **Run from the worktree.** All code edits here — design tokens,
+> `cloudflare/src/config.js`, logo/asset swaps — happen in
+> `customer.worktreePath` (Step 2's git worktree), never the main checkout.
+> Invoke `excat-complete-design-expert` and the packaged scripts with cwd =
+> the worktree so they edit the worktree's files.
 
 **Gate — do not start until both `customer.demoBranch` and
 `customer.daFolder` are set** (Steps 2 and 3 `done`). Do not invoke
@@ -14,7 +20,7 @@ until the plugin is loaded.
 
 If a source website URL is present, that URL is the design source. Invoke
 `excat-complete-design-expert` directly in Complete Migration mode with the
-source URL and the copied `/<companyKey>/...` verification targets.
+source URL and the copied `/companies/<companyKey>/...` verification targets.
 
 **Do not ask how to source the look when a source URL is already present.**
 Do not ask the user for colors or a palette while Catalyst is available.
@@ -62,45 +68,59 @@ The script verifies `DA_TOKEN`, reuses an existing valid `HLX_ADMIN_TOKEN`
 if present, otherwise mints a new Helix Admin API key from `DA_TOKEN`,
 writes it back to `token.env`, and verifies Helix Admin status. It never
 prints token values. If DA validation fails, stop and say the DA token is
-expired or does not have access to this site. If minting fails or returns no
-token value, stop and say the DA token works for DA but the user cannot mint
-the publish token for this site; ask for a DA token from a user with the
-required site admin/config rights. Do not offer fallback token paths.
+expired or does not have access to this site.
 
-Known quirk: a `admin.hlx.page` preview/publish can `401` even with valid
-tokens — forward the DA token via an `x-content-source-authorization`
-header rather than assuming it's wrong.
+**Minting can 403 and that is NOT a publish blocker.** Minting a separate
+`HLX_ADMIN_TOKEN` needs site admin/config rights the DA token may lack, but
+`admin.hlx.page` preview/publish accepts `DA_TOKEN` forwarded directly — so
+a mint failure says nothing about whether you can publish. When minting
+fails or returns no token value, do **not** stop and do **not** ask the user
+for a different token. Decide publish capability by a real probe, not by the
+mint result:
+
+1. Run one real `admin.hlx.page` **preview** call against a
+   `/companies/<companyKey>/...` path, forwarding `DA_TOKEN` as
+   `Authorization: Bearer $DA_TOKEN`; assert on the HTTP status.
+2. If that returns non-2xx, retry the same call forwarding `DA_TOKEN` via an
+   `x-content-source-authorization` header instead (a known `admin.hlx.page`
+   quirk: it can `401` on the `Authorization` form even with a valid token).
+3. A 2xx on either form means `DA_TOKEN` can publish — proceed; the mint 403
+   is irrelevant. Only if **both** header forms return non-2xx is there a
+   real blocker — and surface it as "publish failed against `admin.hlx.page`
+   (status N)", not "the token can't mint". Do not offer fallback token
+   paths.
+
+**Publish path/ref convention (avoids the guard/ref confusion).** DA-managed
+content previews and publishes with **`REF=main`** and the full DA path
+`/companies/<companyKey>/en/<doc>`, i.e.
+`https://admin.hlx.page/{preview|live}/{org}/{repo}/main/companies/<companyKey>/en/<doc>`
+— **not** the demo branch as the ref. The publish guard's URL regex reads the
+segment after `{org}/{repo}` as the ref; if you pass the demo branch (or a
+`/`-containing branch like `demo/apple-2`) as that segment it mis-parses the
+company folder as part of the path. Use **explicit per-path publish calls**
+(one URL per doc) rather than a shell loop over a variable — the guard
+deliberately blocks shell-variable paths, and explicit paths also make the
+per-path publish report auditable.
 
 **Capture the base brand's current values — before any edit.** Every
-later residue/applied check in this skill needs to know what the
-*current* base-brand values are, on THIS repo, right now — not a fixed
-value frozen into this document. Read them directly from the unedited
-tree before Step 4b touches anything:
+later residue/applied check needs the base brand's values as they are on
+THIS repo right now — never a value frozen into this doc. **Do not read or
+copy any brand hex from this document** (there are none, deliberately). Run
+the capture script from the worktree, before Step 4b touches anything:
 
-- **Base slug** — the brand name string currently present in the copied
-  `/<companyKey>/...` docs and repo icon filenames (e.g. read from
-  `icons/*-icon.svg` / `icons/*-beans.svg` filenames, or the `nav`/
-  `footer` copy). Call this `baseSlug`.
-- **Base surface/background values** — the current `--light-color` value
-  and any other section-background custom property in `styles/styles.css`
-  `:root`. Call this `baseSurfaceHex`.
-- **Base welcome-panel values** — the current literal fallback in
-  `body:has(.section.welcome)` rules (`--welcome-panel-bg`'s fallback,
-  `--welcome-panel-accent-rgb`'s fallback) if the `var(..., <fallback>)`
-  pattern is present, otherwise the literal `background-color` there.
-- **Base action-color values** — the current secondary-button
-  `background-color`/hover values in `styles/styles.css`.
+```
+node .claude/skills/rebrand-portal/scripts/rebrand/capture-base.mjs
+```
 
-At the time of writing, this repo's base demo brand is "frescopa" and
-these values are `baseSlug = frescopa`, `baseSurfaceHex = #F4E9DC`,
-welcome-panel `#2f2318` / `234 163 58`, action colors `#95351D` /
-`#7a2b17` — **shown here only as the illustrative current example**, not
-as fixed matching targets. If this template's base demo brand is ever
-replaced, every check below must key off the values read from the tree
-at run-time, not off this paragraph's example values. Every mention of
-`frescopa` or these specific hexes later in this document means "the base
-brand's actual current value, read from the tree" — treat it as shorthand
-for `baseSlug`/`baseSurfaceHex`/etc., not as a literal to match forever.
+It reads `styles/styles.css` and `icons/` and writes a `baseBrand` block
+into `.internal/onboarding-state.json`:
+`baseBrand.baseSlug`, `baseBrand.baseSurfaceHex`,
+`baseBrand.tokens.*` (light/primary/secondary/text/link/accent),
+`baseBrand.welcomePanelBg`, `baseBrand.welcomePanelAccentRgb`,
+`baseBrand.navHeight`, and `baseBrand.oldHexes` (the old→new residue map's
+old side). Every check below keys off these state fields. When the
+template's base brand changes, nothing in this doc changes — the script
+reads whatever the tree holds.
 
 Also confirm the brand inputs before the delegation: the new brand name
 (`customer.name`), the source site to extract the look from, and that the
@@ -117,27 +137,29 @@ split it across turns:
    in **Complete Migration** mode (site design system + all blocks),
    naming the source site if given. Its CSS is branch-global (correct —
    the demo previews on this branch). Point its visual verification at the
-   copied `/<companyKey>/...` pages. Do not substitute manual `styles.css`
+   copied `/companies/<companyKey>/...` pages. Do not substitute manual `styles.css`
    edits. **Rebrand the FULL palette, not just the accent** — primary,
    secondary, **background/surface tokens, and every decorative brand
    background** (e.g. a coffee-bean hero/section background, a tinted
    filter/facets panel). The base site ships a themed background (cream
-   sections + a decorative bean SVG); if only the primary color changes,
-   those backgrounds survive off-brand. Name `baseSlug` (captured above)
-   so the agent knows exactly what to replace.
+   sections + a decorative brand SVG); if only the primary color changes,
+   those backgrounds survive off-brand. Name `baseBrand.baseSlug` (from the
+   capture step) so the agent knows exactly what to replace.
    **Name the exact base surface tokens/assets that MUST change (not just
-   `--primary-color`)** — verified still-cream live:
-   - `--light-color` (`#F4E9DC`, `styles/styles.css`) — the cream surface
-     behind the search hero (`blocks/search-bar/search-bar.css`), the
-     **filter/facets panel**, and section backgrounds. This is the single
-     token behind gap "filter background is off-brand"; if it is not
-     rebranded the whole portal stays cream.
-   - the `.frescopa-background-*` section-style classes and
-     `styles/backgrounds/big.svg` (the decorative bean).
+   `--primary-color`)** — verified still-base-surface live:
+   - `--light-color` (value = `baseBrand.baseSurfaceHex`, in
+     `styles/styles.css`) — the base surface behind the search hero
+     (`blocks/search-bar/search-bar.css`), the **filter/facets panel**, and
+     section backgrounds. This is the single token behind gap "filter
+     background is off-brand"; if it is not rebranded the whole portal stays
+     the base surface color.
+   - the `.<baseSlug>-background-*` section-style classes and
+     `styles/backgrounds/big.svg` (the decorative brand mark).
    - **Login/welcome split-screen tokens.** The left brand panel is themed
-     by CSS variables with frescopa defaults — set them in the brand theme
-     so the login rebrands: `--welcome-panel-bg` (panel colour, base
-     `#2f2318`), `--welcome-panel-accent-rgb` (glow, base `234 163 58`),
+     by CSS variables with the base brand's defaults — set them in the brand
+     theme so the login rebrands: `--welcome-panel-bg` (panel colour, base =
+     `baseBrand.welcomePanelBg`), `--welcome-panel-accent-rgb` (glow, base =
+     `baseBrand.welcomePanelAccentRgb`),
      `--welcome-panel-mark-image` (→ `url('/icons/<companyKey>-beans.svg')`),
      and the tagline — set as **two separate line properties**,
      `--welcome-tagline-line1` and `--welcome-tagline-line2` (each a quoted
@@ -147,8 +169,17 @@ split it across turns:
      a line-break escape only renders when parsed directly in a stylesheet
      content string, not when it's stored inside a custom property and
      substituted via `var()` — that was a real bug in an earlier revision.
-     Leaving these unset keeps the frescopa coffee panel + "world's finest
-     coffee" tagline on the customer's login.
+     Leaving these unset keeps the base brand's panel colour + tagline
+     (the CSS defaults) on the customer's login.
+   - **Sign-in link target — `/auth/login`, NOT `/companies/<companyKey>/auth/login`.**
+     If the welcome doc carries a Sign in link/button, author its `href` as
+     **`/auth/login`**. The worker's auth routes are hardcoded at `/auth/*`
+     (`AUTH_PREFIX = '/auth'` in `cloudflare/src/auth.js` is **not** prefixed
+     with `DEMO_BASE_PATH`), so a `/companies/<companyKey>/auth/login` link falls
+     through the auth router, hits `withAuthentication` unauthenticated, and
+     redirects back to the welcome page — an infinite loop with no way to
+     sign in. This shipped broken on a live demo; Step 4g's sign-in redirect
+     check is the gate that catches it.
 2. **Brand assets + hardcoded colors** — separately in scope, and the
    most-missed step:
    - **Logo/wordmark swap (all instances) — MANDATORY, and the single
@@ -162,7 +193,7 @@ split it across turns:
         the look); if none is available, generate a minimal wordmark SVG
         from the brand name. Register it in the repo as
         `/icons/<companyKey>-icon.svg`. **The base uses TWO marks —
-        `frescopa-icon` (nav/wordmark) AND `frescopa-beans` (the large
+        `<baseSlug>-icon` (nav/wordmark) AND `<baseSlug>-beans` (the large
         login-panel mark) — so you MUST create BOTH `/icons/<companyKey>-icon.svg`
         AND `/icons/<companyKey>-beans.svg`.** A shortcode with no matching
         SVG renders an empty circle / broken image (verified live on the
@@ -170,19 +201,19 @@ split it across turns:
         resolves to a missing icon; confirm both files exist before publish.
         **Never add a per-company CSS size override for the nav logo** (e.g.
         a new `.icon-<companyKey>-icon` selector) — `header.css`'s
-        `.nav-brand .icon img` rule already constrains by `max-height`
+        `.nav-brand .icon img` rule is meant to constrain by `max-height`
         against `--nav-bar-height` so any logo aspect ratio (wide wordmark
-        or square mark) fits the header row; a brand-specific pixel
-        override is a sign the shared rule regressed, not something this
-        step should work around (Step 4g checks this).
+        or square mark) fits the header row. A brand-specific pixel override
+        is a sign the shared rule regressed; fix the shared rule instead
+        (Step 4g's `verify.mjs --only header-logo` checks the actual rule).
      2. **Swap the icon shortcode in EVERY DA doc that carries it** — the
         base brand's logo appears in **multiple** places: the DA `nav` doc,
         the DA **`footer`** doc, AND the login/`welcome` page, as EDS icon
-        shortcodes like `:frescopa-icon:` / `:frescopa-beans:` (rendered
-        `class="icon icon-frescopa-icon"`). Replace each with the new
+        shortcodes like `:<baseSlug>-icon:` / `:<baseSlug>-beans:` (rendered
+        `class="icon icon-<baseSlug>-icon"`). Replace each with the new
         brand's shortcode (`:<companyKey>-icon:` etc.) in nav AND footer AND
         welcome. A swapped header with a stale footer or welcome logo is the
-        classic failure — verified live to still read `icon-frescopa-*`.
+        classic failure — verified live to still read `icon-<baseSlug>-*`.
      3. **Repoint every repo asset + CSS reference** — `<baseSlug>_logo.svg`,
         `<baseSlug>-beans.svg`, CSS `url('/icons/<baseSlug>…')`,
         `.icon-<baseSlug>…`.
@@ -196,48 +227,60 @@ split it across turns:
         current `aria-label`/`fill` on the unedited `favicon.svg` before
         Step 4b; either still present afterward is a giveaway it wasn't
         replaced.
-   - **Hardcoded fills / embedded raster.** SVG icons with a literal
-     `fill="#hex"` or background SVGs with embedded raster don't follow CSS
-     variables — each needs its own file edited to the new palette.
-   - **Zero-residue rule.** After the swap, grepping the **base brand slug**
-     (`frescopa`) across the repo (`icons/`, `styles/`, `blocks/`) AND the
-     copied `/<companyKey>/…` DA docs must return **nothing** except a
-     documented, intentional placeholder — any other hit is an un-rebranded
-     asset or string.
+   - **Hardcoded fills / embedded raster — replace them as part of THIS
+     edit, not as a later 4g discovery.** SVG icons with a literal
+     `fill="#hex"` or background SVGs with embedded raster, and CSS/JS
+     literals not wired to a token (the search-results `theme.css` scale,
+     `hero.css` tints, chart palettes in `scripts/analytics/*`), don't follow
+     the `:root` tokens — each needs its own file edited to the new palette.
+     **Hand the design agent the old→new hex map up front:** the old side is
+     `baseBrand.oldHexes` (captured above); instruct it to grep-and-replace
+     every one across `icons/`, `styles/`, `blocks/`, and `scripts/analytics/`
+     **before returning**, including the known-repeat-miss files listed in
+     `docs/step-4g-verification.md`. Doing this in the edit step (not
+     reactively at 4g) is the difference between 4g finding zero residue and
+     4g finding forty (verified live: a token-only rebrand left ~40 literals
+     that 4g then had to hunt across two commits).
+   - **Zero-residue rule.** After the swap, grepping `baseBrand.baseSlug` and
+     every `baseBrand.oldHexes` value across the repo (`icons/`, `styles/`,
+     `blocks/`, `scripts/analytics/`) AND the copied `/companies/<companyKey>/…` DA docs
+     must return **nothing** except a documented, intentional placeholder.
+     `scripts/rebrand/verify.mjs --only residue` runs exactly this grep — it
+     must pass.
 3. **Content-register rewrite** — rewrite the **DA documents copied in
    Step 3**, i.e. the authored page content, **not** source-code strings.
    **Scoped to the company folder only** (`customer.daFolder`): rewrite
-   the pages under `/<companyKey>/...`, never the shared root. For each
+   the pages under `/companies/<companyKey>/...`, never the shared root. For each
    page rewrite the actual copy to match the new brand's real subject
    matter, not just a name swap. Show a before/after diff before
    publishing. Express it as a **scoped page-URL update**: hand the design
-   skill/agent the **explicit list of `/<companyKey>/…` page URLs** with
-   scope restrictions — change *only* pages **inside** `/<companyKey>`; do **not** touch the
+   skill/agent the **explicit list of `/companies/<companyKey>/…` page URLs** with
+   scope restrictions — change *only* pages **inside** `/companies/<companyKey>`; do **not** touch the
    shared **root** (`/en/...`, `/nav`, `/footer`) or any page outside
-   `/<companyKey>`; have it identify the files first and report modified
+   `/companies/<companyKey>`; have it identify the files first and report modified
    files after. **The rewrite list MUST include the company-scoped `nav`,
    `footer`, and login/welcome copies** —
-   `/<companyKey>/en/nav`, `/<companyKey>/en/footer`, and
-   `/<companyKey>/public/welcome`. These are **copies** (Step 3), not the
+   `/companies/<companyKey>/en/nav`, `/companies/<companyKey>/en/footer`, and
+   `/companies/<companyKey>/public/welcome`. These are **copies** (Step 3), not the
    shared root, and they carry the brand logo shortcode, tagline, contact
    details, and copyright — rewriting the pages but skipping the footer is
    exactly how a Fréscopa footer (logo + "© … Fréscopa") survives on an
    otherwise-rebranded portal. Rewrite the copy AND swap the logo shortcode
    in each. (Only the **shared root** nav/footer are off-limits; the
-   `/<companyKey>` copies are in scope.) Never hand it "the whole site" or
+   `/companies/<companyKey>` copies are in scope.) Never hand it "the whole site" or
    an un-prefixed path.
 
    **Preserve the login page's `welcome` section style — never flatten it.**
    The split-screen login (left brand panel / right sign-in) is driven
    purely by the `.section.welcome` section style (a `Section Metadata`
-   `Style: welcome` on `/<companyKey>/public/welcome`) plus the
+   `Style: welcome` on `/companies/<companyKey>/public/welcome`) plus the
    `--welcome-panel-*` tokens from step 1. The rewrite MUST keep the
    `welcome` **section wrapper and its Section Metadata** intact and swap
    BOTH marks (`:<companyKey>-icon:` and `:<companyKey>-beans:`) — it must
    NOT collapse the page to plain paragraphs. A rewrite that drops the
    section style renders the login as a single off-brand column with broken
    marks (verified live). After rewrite, the published
-   `/<companyKey>/public/welcome.plain.html` must still contain
+   `/companies/<companyKey>/public/welcome.plain.html` must still contain
    `<div class="welcome">` (i.e. `.section.welcome`).
    (The site-wide design tokens from step 1 are the deliberate global
    exception; this per-page content step stays scoped.)
@@ -252,6 +295,21 @@ split it across turns:
    generic category set when source-site categories are clear. Normalize
    labels to stable lowercase slugs and keep `{slug, label, evidence}` for
    each category in the working notes handed to Step 5.
+
+   **While deriving the contract, capture two extra per-category maps for
+   Step 5 — you already have the nav open, so do it once here, not by
+   re-crawling page-by-page in Step 5:**
+   - **Source URL per category** — the model/section/product page that carries
+     that category's imagery. Step 5 passes the full set to the scraper as a
+     single `--source-urls a,b,c` run instead of one invocation per page. This
+     is the single biggest Step-5 time saver.
+   - **Alias tokens per category** — the model/product names that live *under*
+     a body-type/label slug (e.g. `sedan → verna, aura`; `suv → creta, venue`).
+     Step 5 passes these as `--category-aliases "sedan=verna,aura;..."` so the
+     classifier tags model-named assets correctly on the **first** write.
+     Without this, a label like `sedan` has no token overlap with `verna.jpg`,
+     so the classifier dumps everything into the first slug — and
+     `productCategory` is write-once, so it can't be repaired afterward.
 
    **Category floor — propose at least 5 real candidates.** This initial
    contract must name **at least 5** real, source-derived candidate
@@ -282,15 +340,15 @@ split it across turns:
      `file://` URLs — e.g. the `nav` logo link was authored
      `href="file:////en/"`. The header only re-scopes links inside
      `.nav-brand`/`.nav-sections`, so a logo link in a `data-role="tools"`
-     block stays `/en/…`, lands **outside** `/<companyKey>/`, and 404s.
+     block stays `/en/…`, lands **outside** `/companies/<companyKey>/`, and 404s.
      Rewrite every internal link in the copied `nav`/`footer`/`welcome` to
      drop any `file:` scheme and prefix the company folder: `/en/…` →
-     `/<companyKey>/en/…` (the logo/brand link included). Do this for
+     `/companies/<companyKey>/en/…` (the logo/brand link included). Do this for
      **every copied page, not just nav/footer/welcome** — the home page's
      category cards, "Browse" links, and hero CTAs also carry bare `/en/…`
      links that drop the company folder. After rewrite, **no** copied doc
      may contain a `file:` link or a bare `/en/…` link. (The worker now
-     also self-heals a stray root-locale link — `/en/*`→`/<companyKey>/en/*`
+     also self-heals a stray root-locale link — `/en/*`→`/companies/<companyKey>/en/*`
      — so navigation no longer falls out of the folder, but scoping the
      links avoids a redirect flash and keeps the content correct.)
    - **Filter/facet slugs → the enrichment vocabulary.** The home "Browse
@@ -303,32 +361,32 @@ split it across turns:
      campaign/channel) slug from the source-derived category contract, then
      hand that exact contract to Step 5 so the cards and tagged assets agree
      by construction. Never publish a card whose slug is not in the contract.
-4. **Publish** — publish **only `/<companyKey>/...` paths** via Helix
+4. **Publish** — publish **only `/companies/<companyKey>/...` paths** via Helix
    Admin (`admin.hlx.page` preview+publish with `HLX_ADMIN_TOKEN`), over
    exactly the documents copied in Step 3 and rewritten in step 3 above —
-   **including the login page `/<companyKey>/public/welcome` and the
-   `/<companyKey>/config` tree — which MUST include
-   `/<companyKey>/config/access/application` and
-   `/<companyKey>/config/access/users`** (without these the foldered
+   **including the login page `/companies/<companyKey>/public/welcome` and the
+   `/companies/<companyKey>/config` tree — which MUST include
+   `/companies/<companyKey>/config/access/application` and
+   `/companies/<companyKey>/config/access/users`** (without these the foldered
    portal's login is broken/unbranded). **The worker reads the
    COMPANY-scoped access sheets** (`companyBasePath()/config/access/*`, not
    the root ones) for login and permission gating, so if those sheets are
-   missing/unpublished under `/<companyKey>` — or landed as `.xlsx` media
+   missing/unpublished under `/companies/<companyKey>` — or landed as `.xlsx` media
    instead of a `.json` sheet — login fails with "User not allowed to
    access this application" (verified live). This is **ours**, not excat's. It is **never**
    `not-applicable` — Step 3 already proved content exists. Build the
-   publish list from the copied `/<companyKey>/...` paths — never "the
+   publish list from the copied `/companies/<companyKey>/...` paths — never "the
    whole site," never a root path. **Guard:** before publishing, assert
    every path is prefixed with `customer.daFolder`; abort if any isn't
    (the `guard-da-publish.sh` hook enforces this independently). Poll each
    job to completion and report confirmed per-path success/failure.
 5. **Apply the demo scope config (`demo-company-set`)** — edit
    `cloudflare/src/config.js`: set **`DEMO_COMPANY: '<companyKey>'`** and
-   **`DEMO_BASE_PATH: '/<companyKey>'`** (the same key as the branch, the
+   **`DEMO_BASE_PATH: '/companies/<companyKey>'`** (the same key as the branch, the
    DA folder, and the asset company). This is **mandatory and must be
    committed to the PR** — the per-PR worker (I3) is built from this file,
    so it is what makes the preview's company filter, `/<company>` routing,
-   and `/<company>/public/welcome` login actually work.
+   and `/companies/<company>/public/welcome` login actually work.
    `.claude/skills/rebrand-portal/scripts/assets/enrich-assets.js` also writes both keys in Step 5, but
    do it here too so the preview is scoped and working immediately after
    Step 4, even when asset enrichment is deferred to a later step. Mark
@@ -364,7 +422,7 @@ split it across turns:
    `demo-microsoft.dev.frescopamedia.com`, no quotes/no trailing `/*`).
    Report it plainly: "Here's the pull request: <pr-url>. The live preview
    is deploying — once it finishes you can open it here:
-   `https://$HOST/<companyKey>/en/`."
+   `https://$HOST/companies/<companyKey>/en/`."
    If the deploy job hasn't completed yet (log line absent), say building
    is still in progress and give the Actions run URL as a fallback watch
    link, framed as "you can watch the build here: <url>" — don't block the
