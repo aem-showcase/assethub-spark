@@ -317,8 +317,10 @@ header .nav-brand {
 }
 
 header nav .nav-brand img {
-  width: 180px;
+  width: auto;
+  max-width: 180px;
   height: auto;
+  max-height: calc(var(--nav-bar-height) - 24px);
 }
 
 /* Brand logo authored as an EDS icon (:workday-icon:) - let it render full size */
@@ -340,8 +342,10 @@ header .nav-brand .icon {
 
 header .nav-brand .icon img,
 header .nav-brand .icon svg {
-  width: 150px;
+  width: auto;
+  max-width: 150px;
   height: auto;
+  max-height: calc(var(--nav-bar-height) - 24px);
 }
 
 /* sections */
@@ -658,6 +662,36 @@ header nav .nav-tools .nav-download-icon,
 header nav .nav-tools .nav-message-icon,
 header nav .nav-tools .nav-reports-icon {
   padding: 0;
+}
+
+/* Narrow viewports: the icon cluster (reports/notifications/download/cart +
+   My Account) doesn't fit next to the brand logo at its full width — tighten
+   gaps and drop the "My Account" text (keep the avatar) so the fixed-position
+   tools row stays within the space right of the logo instead of extending
+   under it. */
+@media (width < 480px) {
+  header nav .nav-tools {
+    gap: 4px;
+  }
+
+  header nav .nav-tools .nav-icons-wrapper {
+    gap: 0;
+  }
+
+  header nav .nav-tools .nav-cart-icon button,
+  header nav .nav-tools .nav-download-icon button,
+  header nav .nav-tools .nav-message-icon button,
+  header nav .nav-tools .nav-reports-icon button {
+    padding: 2px;
+  }
+
+  header nav .my-account-button {
+    padding: 6px;
+  }
+
+  header nav .my-account-label {
+    display: none;
+  }
 }
 
 @media (width >=900px) {

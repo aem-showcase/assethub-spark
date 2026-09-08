@@ -67,12 +67,6 @@ const { preflight, corsify } = cors({
 // route, and (via auth.js) LOGIN_PAGE — all from the single config.DEMO_BASE_PATH value.
 const BASE = companyBasePath();
 
-function redirectToBasePath(request, path) {
-  const url = new URL(request.url);
-  const suffix = path.startsWith('/') ? path : `/${path}`;
-  return Response.redirect(`${url.origin}${BASE}${suffix}`, 302);
-}
-
 const router = Router({
   before: [withTlsCheck, preflight, withPreviewOrigin],
   finally: [corsify],
@@ -168,7 +162,11 @@ router
     const response = await originHelix(request, env);
 
     if (response.status === 404) {
-      return redirectToBasePath(request, '/404.html');
+      // 404.html is a shared static repo file (like favicon/styles), never copied
+      // per-company (Step 3's DA copy allowlist is en/config/public only) — redirecting
+      // to a company-prefixed /<company>/404.html would itself 404 and loop forever.
+      const url = new URL(request.url);
+      return Response.redirect(`${url.origin}/404.html`, 302);
     }
 
     const contentType = response.headers.get('content-type') || '';
@@ -186,7 +184,7 @@ router
       console.warn(
         `[PageAccess] Denied ${request.user.email} from ${new URL(request.url).pathname} (user roles: ${request.user.roles}, excluded: ${JSON.stringify(exclusions)})`,
       );
-      return redirectToBasePath(request, '/404.html');
+      return Response.redirect(`${new URL(request.url).origin}/404.html`, 302);
     }
 
     return response;
