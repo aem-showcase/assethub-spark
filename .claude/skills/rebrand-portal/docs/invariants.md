@@ -71,6 +71,13 @@
   not send the customer to the main checkout, and do not treat the 401 as a
   dead end. Where a long operation is about to run, a quick token sanity-check
   first beats a 401 halfway through.
+  Handle the 401 as **one plain instruction, not a multiple-choice question**:
+  "The DA token expired — paste a fresh one into `<worktree>/token.env` and say
+  'done', and I'll resume (the copy/enrich is idempotent and skips what already
+  landed)." A refreshed token is the only real path (only the customer can mint
+  one), so do **not** offer a menu, and never offer "re-copy the token from the
+  main checkout" as an option — that re-shares one token across worktrees, which
+  I10 forbids. Just ask for the refresh and wait.
 - **I10 — COPY worktree secrets, never symlink.** Seed `token.env` and
   `cloudflare/.secrets` into a new worktree as **real copies** (per
   `step-1-2-branch.md`), so each demo owns independent files and two parallel
