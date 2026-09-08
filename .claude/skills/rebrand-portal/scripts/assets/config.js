@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'secrets-file', 'limit',
   'concurrency', 'report-file', 'fixture', 'aem-env-id', 'categories',
-  'org', 'repo', 'da-token-file',
+  'category-aliases', 'org', 'repo', 'da-token-file',
 ]);
 
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'bring-in']);
@@ -131,6 +131,10 @@ export function parseArgs(argv) {
     // --categories dermatology,cancer,diabetes,obesity,alzheimers. normalizeContract() in
     // enrich-assets.js parses this into [{slug,label}].
     categoryContract: null,
+    // Optional per-category source-derived alias tokens (classifier evidence, never shown to
+    // users). Form: "slug=tok tok;slug2=tok tok" — merged into the contract by enrich-assets.
+    // Lets a body-type slug (e.g. sedan) match model-named assets (verna, aura).
+    categoryAliases: null,
     // DA org/repo (same as the GitHub org/repo — resolved by the calling flow from the git
     // remote, same as scripts/da/copy-folder.sh's <org> <repo> args) and the token file
     // (default token.env at repo root) — needed to upload representative card images to DA
@@ -164,6 +168,7 @@ export function parseArgs(argv) {
         case 'fixture': opts.fixture = value; break;
         case 'aem-env-id': opts.aemEnvId = value; break;
         case 'categories': opts.categoryContract = value; break;
+        case 'category-aliases': opts.categoryAliases = value; break;
         case 'org': opts.org = value; break;
         case 'repo': opts.repo = value; break;
         case 'da-token-file': opts.daTokenFile = value; break;

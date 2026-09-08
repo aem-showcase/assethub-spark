@@ -100,9 +100,20 @@ function evidenceBlob(evidence) {
     .join(' ');
 }
 
-/** Contract entry -> comparable tokens (slug words + label words). */
+/**
+ * Contract entry -> comparable tokens (slug words + label words + optional alias words).
+ * `aliases` carries source-derived evidence vocabulary that differs from the display label —
+ * e.g. a body-type category "Sedans" whose real assets are named by model ("verna", "aura").
+ * Without aliases the token-overlap classifier can't connect model-named evidence to a
+ * body-type slug, so every asset ties at 0 and dumps into the first contract entry (verified
+ * live: a Hyundai run put all 50 assets in "suv" because no filename said "sedan"/"hatchback").
+ * Aliases may be a space/comma string or an array of tokens.
+ */
 function contractTokens(entry) {
-  return `${entry.slug} ${entry.label || ''}`
+  const aliasText = Array.isArray(entry.aliases)
+    ? entry.aliases.join(' ')
+    : (entry.aliases || '');
+  return `${entry.slug} ${entry.label || ''} ${aliasText}`
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length > 2);

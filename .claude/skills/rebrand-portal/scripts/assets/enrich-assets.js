@@ -51,6 +51,13 @@ export { mapWithConcurrency };
  * Normalize the source-derived category contract into [{slug,label}]. Accepts an array of
  * {slug,label}|string, or a comma-separated string of slugs (the --categories CLI form).
  */
+/** Coerce an alias value (array | space/comma string | nullish) to a token array. */
+function tokenizeAliases(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return value.trim().split(/[\s,]+/).filter(Boolean);
+  return [];
+}
+
 export function normalizeContract(input) {
   let entries = [];
   if (Array.isArray(input)) entries = input;
@@ -63,9 +70,39 @@ export function normalizeContract(input) {
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
     const label = (raw.label && String(raw.label).trim()) || humanizeCategorySlug(slug);
-    out.push({ slug, label });
+    // Optional source-derived alias tokens (extra classifier evidence, not shown to users) —
+    // lets a body-type slug like "sedan" match model-named assets ("verna", "aura").
+    const aliases = tokenizeAliases(raw.aliases);
+    out.push(aliases.length ? { slug, label, aliases } : { slug, label });
   }
   return out;
+}
+
+/**
+ * Parse the --category-aliases CLI value ("slug=tok tok;slug2=tok tok") into a
+ * { slug: [tokens] } map, then merge onto a normalized contract's entries. Alias tokens are
+ * extra classifier evidence (never shown to users) that connect a body-type/topic slug to the
+ * source's own naming (e.g. sedan -> verna, aura) so the token-overlap classifier stops
+ * dumping every asset into the first contract entry.
+ */
+export function parseCategoryAliases(input) {
+  const map = {};
+  if (!input || typeof input !== 'string') return map;
+  for (const part of input.split(';')) {
+    const [slugRaw, toksRaw] = part.split('=');
+    const slug = slugifyCategory(slugRaw || '');
+    if (!slug || !toksRaw) continue;
+    const toks = toksRaw.trim().split(/[\s,]+/).filter(Boolean);
+    if (toks.length) map[slug] = (map[slug] || []).concat(toks);
+  }
+  return map;
+}
+
+export function mergeContractAliases(contract, aliasMap) {
+  if (!aliasMap || !Object.keys(aliasMap).length) return contract;
+  return contract.map((entry) => (aliasMap[entry.slug]
+    ? { ...entry, aliases: (entry.aliases || []).concat(aliasMap[entry.slug]) }
+    : entry));
 }
 
 /**
@@ -380,7 +417,10 @@ export async function enrichAssets({
   // (options.categoryContract) via the injected classifier (agent/LLM live; deterministic
   // stub in tests) — no hardcoded keyword vocabulary. Assignment is mandatory; each asset
   // lands in exactly one contract slug.
-  const contract = normalizeContract(options.categoryContract);
+  const contract = mergeContractAliases(
+    normalizeContract(options.categoryContract),
+    parseCategoryAliases(options.categoryAliases),
+  );
   const categorized = applyCategoryPlan(planned, { contract, classifier });
   const withMetadataPlans = categorized.map((p) => {
     if (!p || p.error || p.skip || !p.fields) return p;
