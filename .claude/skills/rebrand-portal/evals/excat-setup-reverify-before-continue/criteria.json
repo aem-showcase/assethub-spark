@@ -1,0 +1,32 @@
+{
+  "context": "Guards that after the operator installs/enables the excat plugin and reports back, the agent re-checks invokability before proceeding — neither trusting the operator blindly nor repeating the install steps again.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Re-checks plugin/skill availability",
+      "max_score": 35,
+      "description": "The agent runs claude plugin list or claude skill list (via Bash tool) or otherwise actively confirms excat-complete-design-expert is invokable before proceeding. Does not skip this check and trust the operator's message alone."
+    },
+    {
+      "name": "Confirms invokable and unblocks rebrand",
+      "max_score": 25,
+      "description": "Having confirmed the skill is available, the agent unblocks the rebrand step (sets rebranded back to pending or proceeds directly into Step 4).",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.rebranded",
+        "notEquals": "blocked"
+      }
+    },
+    {
+      "name": "Proceeds into design work",
+      "max_score": 25,
+      "description": "The agent moves forward into Step 4 design work rather than stopping again or repeating install/enable instructions."
+    },
+    {
+      "name": "Does not repeat install instructions",
+      "max_score": 15,
+      "description": "The agent does not output the clone/npm/plugin install steps again as if the operator hadn't already followed them."
+    }
+  ]
+}

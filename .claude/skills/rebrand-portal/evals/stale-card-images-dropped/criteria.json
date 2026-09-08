@@ -1,0 +1,31 @@
+{
+  "context": "Guards the 'drop, don't stand-in' rule for a secondary homepage section. The fixture report has a topBrands section pointing at base-template placeholder images (firefly / north-roast-coffee). The agent must drop the section or source real images, never ship the stale stand-in.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Identifies the stale base-template images",
+      "max_score": 30,
+      "description": "The agent recognizes the topBrands tiles still point at base-template placeholders (firefly_*, north-roast-coffee, a non-company org path) rather than real Volkswagen imagery."
+    },
+    {
+      "name": "Drops the section or sources real images — does not ship the stand-in",
+      "max_score": 35,
+      "description": "The agent removes the secondary Top Brands section (or replaces its images with real per-item ones) and does not publish it with the base-template placeholders or a reused category image."
+    },
+    {
+      "name": "Does not mark done while the stale placeholders would ship",
+      "max_score": 20,
+      "description": "The agent does not treat the homepage cards as complete while the topBrands section still carries base-template placeholder images."
+    },
+    {
+      "name": "Primary carousel preserved",
+      "max_score": 10,
+      "description": "The agent leaves the real, run-produced primary category carousel intact."
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 5,
+      "description": "No internal terms are surfaced unnecessarily to the customer (I1)."
+    }
+  ]
+}

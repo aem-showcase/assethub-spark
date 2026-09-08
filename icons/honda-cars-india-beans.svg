@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Honda Cars India">
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#E60121" stroke-width="10" opacity="0.9"/>
+  <path d="M120 220 L120 140 M280 220 L280 140 M120 180 L280 180"
+        stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
+</svg>

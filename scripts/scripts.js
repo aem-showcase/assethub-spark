@@ -209,7 +209,7 @@ function buildAutoBlocks(main) {
  * @param {Element} main The main element
  */
 function loadErrorPage(main) {
-  // Base-aware locale prefix (handles /<locale>/... and /<company>/<locale>/...) so
+  // Base-aware locale prefix (handles /<locale>/... and /companies/<company>/<locale>/...) so
   // error fragments stay inside the company folder on a foldered demo.
   const localePrefix = getLocalePrefixFromPath();
 

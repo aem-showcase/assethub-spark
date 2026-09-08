@@ -19,6 +19,7 @@ export const RESERVED_CUSTOMER_KEYS = new Set([
   'api',
   'auth',
   'blocks',
+  'companies',
   'config',
   'en',
   'fonts',
