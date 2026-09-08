@@ -141,6 +141,13 @@
   --line-height-05: 1.6;
   --line-height-06: 1.25;
   --line-height-07: 1.1;
+
+  /* Honda Cars India — welcome/login split-screen brand panel overrides */
+  --welcome-panel-bg: #141517;
+  --welcome-panel-accent-rgb: 230 1 33;
+  --welcome-panel-mark-image: url('/icons/honda-cars-india-beans.svg');
+  --welcome-tagline-line1: "The Future of Mobility from Honda.";
+  --welcome-tagline-line2: "Designed for a new era.";
 }
 
 /* fallback fonts */
@@ -205,15 +212,6 @@ body.appear {
 /* Welcome / Sign-In Page — Split-Screen Layout                     */
 
 /* ================================================================ */
-
-:root {
-  /* Honda Cars India — welcome/login split-screen brand panel overrides */
-  --welcome-panel-bg: #141517;
-  --welcome-panel-accent-rgb: 230 1 33;
-  --welcome-panel-mark-image: url('/icons/honda-cars-india-beans.svg');
-  --welcome-tagline-line1: "The Future of Mobility from Honda.";
-  --welcome-tagline-line2: "Designed for a new era.";
-}
 
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
