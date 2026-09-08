@@ -12,19 +12,19 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --light-color: #F0F0F0;
+  --dark-color: #141517;
+  --text-color: #2C2E3F;
+  --text-primary: #2C2E3F;
+  --link-color: #E60121;
+  --link-hover-color: #AF3D20;
+  --primary-color: #E60121;
+  --primary-color-hover: #AF3D20;
+  --color-red: #E60121;
+  --color-dark-red: #AF3D20;
+  --accent-secondary: #262628;
+  --accent-tertiary: #8C8C8C;
+  --secondary-color: #2C2E3F;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -60,7 +60,7 @@
 
   /* Semantic aliases */
   --background-color: var(--color-neutral-50);
-  --color-secondary-light-sky-blue: rgb(0 100 125 / 12%);
+  --color-secondary-light-sky-blue: rgb(230 1 33 / 12%);
   --color-secondary: var(--text-color);
   --color-medium-grey: var(--color-neutral-400);
   --color-dark-blue: var(--primary-color);
@@ -93,9 +93,9 @@
 
   /* status badge colors */
   --status-not-started: var(--primary-color);
-  --status-not-started-bg: rgb(0 100 125 / 12%);
+  --status-not-started-bg: rgb(230 1 33 / 12%);
   --status-in-progress: var(--accent-tertiary);
-  --status-in-progress-bg: rgb(235 164 57 / 12%);
+  --status-in-progress-bg: rgb(20 21 23 / 12%);
   --status-completed: #7fb078;
   --status-completed-bg: rgb(127 176 120 / 12%);
   --status-cancelled: var(--color-red);
@@ -120,7 +120,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: #AF3D20;
 
   /* label colors */
   --label-color: var(--text-color);
@@ -206,11 +206,20 @@ body.appear {
 
 /* ================================================================ */
 
+:root {
+  /* Honda Cars India — welcome/login split-screen brand panel overrides */
+  --welcome-panel-bg: #141517;
+  --welcome-panel-accent-rgb: 230 1 33;
+  --welcome-panel-mark-image: url('/icons/honda-cars-india-beans.svg');
+  --welcome-tagline-line1: "The Future of Mobility from Honda.";
+  --welcome-tagline-line2: "Designed for a new era.";
+}
+
 /* Prevent flash: match the dark left panel colour from first paint */
 body:has(.section.welcome) {
-  /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
+  /* Welcome/login split-screen brand panel is themeable via these tokens (per-company defaults);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #141517);
   overflow: hidden;
 }
 
@@ -239,11 +248,11 @@ body:has(.section.welcome) > main {
 /* Dark coffee background with the gold beans icon as a large decorative mark */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #141517);
   background-image:
     radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
     radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
+    var(--welcome-panel-mark-image, url('/icons/honda-cars-india-beans.svg'));
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
   background-position: bottom left, top right, center 40%;
@@ -265,7 +274,7 @@ body:has(.section.welcome) > main::after {
   font-style: italic;
   line-height: 1.6;
   letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  color: rgb(255 255 255 / 55%);
   position: absolute;
   bottom: 48px;
   left: 0;
@@ -302,7 +311,7 @@ body:has(.section.welcome) > main::after {
 }
 
 /* Brand mark — larger on the auth panel. Brand-agnostic: targets any icon shortcode the
-   welcome doc carries (e.g. :frescopa-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
+   welcome doc carries (e.g. :honda-cars-india-beans:, :<company>-beans:) so a rebrand needs no CSS edit. */
 .section.welcome p:has(.icon) {
   margin: 0 0 var(--spacing-medium);
   max-width: none;
@@ -948,7 +957,7 @@ main .section.full-width > div {
   border-radius: 12px;
 }
 
-/* Frescopa landing hero: compact, elegant, beige; the search pill is the focal point */
+/* Landing hero: compact, elegant, neutral; the search pill is the focal point */
 main .section.search-hero {
   background: var(--light-color) url('backgrounds/big.svg') no-repeat center top / cover;
   color: var(--text-color);
@@ -1012,13 +1021,13 @@ main .section.search-hero .query-input-container {
 
 main .section.search-hero .query-input-bar {
   background: #fff;
-  box-shadow: 0 12px 30px rgb(88 24 29 / 14%);
+  box-shadow: 0 12px 30px rgb(175 61 32 / 14%);
 }
 
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(235 164 57 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  background: rgb(20 21 23 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
   text-align: center;
 }
 
@@ -1054,15 +1063,15 @@ main .section.category-tiles .cards > ul > li {
   flex-direction: column;
   text-align: left;
   background: var(--color-neutral-50);
-  border: 1px solid rgb(88 24 29 / 8%);
+  border: 1px solid rgb(175 61 32 / 8%);
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
+  box-shadow: 0 8px 22px rgb(175 61 32 / 8%);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 main .section.category-tiles .cards > ul > li:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
+  box-shadow: 0 12px 26px rgb(175 61 32 / 12%);
 }
 
 /* Text-only tile (no image cell) collapses to its body — never reserve a blank
@@ -1614,23 +1623,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.honda-cars-india-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.honda-cars-india-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.honda-cars-india-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.honda-cars-india-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.honda-cars-india-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1661,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.honda-cars-india-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.honda-cars-india-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.honda-cars-india-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.honda-cars-india-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.honda-cars-india-background-black {
   background-color: var(--dark-color);
 }
 
