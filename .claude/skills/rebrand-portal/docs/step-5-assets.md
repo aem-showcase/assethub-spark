@@ -65,10 +65,24 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   --customer-key <companyKey> \
   [--dam-path /content/dam/<companyKey>] \
   [--source-url <url>] \
+  [--source-urls <url1,url2,url3,...>] \
+  [--categories <slug1,slug2,...>] \
+  [--category-aliases "<slug>=<tok>,<tok>;<slug2>=<tok>"] \
   [--dry-run] [--force] \
   [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
 ```
+
+**Scrape every category's source page in ONE run — do not loop the script
+page-by-page.** In Step 4 you already derived the category contract from the
+source nav; while you're there, capture the *source URL for each category*
+(the model/section page that carries that category's imagery) and the
+*alias tokens per category* (model/product names, e.g. `sedan=verna,aura`).
+Pass the full page list as `--source-urls` (combined with `--source-url` and
+deduped; `--limit` still caps total downloads across all pages) and the alias
+map as `--category-aliases`. This removes the single biggest Step-5 time sink:
+the serial "scrape one page → discover a thin category → scrape the next page"
+loop. Front-loading the map turns ~10 serial passes into one.
 
 - `<companyKey>` is the same slug as Steps 2–4 (`customer.companyKey`) —
   it drives both the DAM folder `/content/dam/<companyKey>` and the
@@ -186,6 +200,19 @@ is preferred over a blank card, so there is no "unclassified/FAILED" bucket in
 normal operation. Because assignment is mandatory, every populated contract
 category has a representative and the card set is complete.
 
+**Pass `--category-aliases` when the card *labels* differ from the *asset
+naming* — this is the fix for the write-once misclassification.**
+`productCategory` is write-once: whatever slug an asset lands in on its first
+metadata write is permanent (`--force` re-runs the classifier but never
+overwrites an existing `productCategory`). So if a body-type/label slug
+(`sedan`) has no token overlap with a model-named asset (`verna.jpg`), the
+classifier scores 0 for every card and dumps everything into the *first* slug —
+and you cannot repair it afterward. Give the classifier the source-derived
+model/product names as alias evidence so the first write is right:
+`--category-aliases "sedan=verna,aura;suv=creta,venue,exter;hatchback=i10,i20,nios;electric=ioniq,ev"`.
+Derive this map in Step 4 from the same nav you built the contract from.
+Aliases are classifier evidence only — never shown to users.
+
 **Category floor: minimum 5 real categories, hard floor — this is a gate, not
 a target.** `MIN_CARDS` in `scripts/assets/constants.js` is `5`. This is
 checked at two points, not one:
@@ -201,7 +228,13 @@ checked at two points, not one:
      category pages, disease-and-conditions-style pages, etc.) — verified
      live on a real demo: a category with no obvious gallery page still
      needed 5 separate source-URL attempts across different site sections
-     before its real absence was confirmed. Don't stop at one try.
+     before its real absence was confirmed. Don't stop at one try. Add the
+     extra pages to a single re-run via `--source-urls` (not one script
+     invocation per page); if the category's assets *were* downloaded but
+     landed in the wrong slug, that's a missing-alias problem, not a
+     discovery problem — fix it with `--category-aliases` on a category whose
+     assets are not yet written, since write-once means an already-written
+     `productCategory` can't be reclassified.
    - **If dropping the category would take the total below 5**, the drop is
      not allowed until a real replacement category is found — keep widening
      discovery, or find an additional real category to add in its place.

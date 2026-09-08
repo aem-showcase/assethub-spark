@@ -177,6 +177,20 @@ export function resolveOriginalUrl(url) {
       return parsed.href;
     }
 
+    // [1b] Next.js image-optimization proxy — /_next/image?url=<encoded-original>&w=...&q=...
+    // Stripping only the resize params (w/q) leaves a request to /_next/image with no width,
+    // which the Next.js image API rejects (400) — the real original lives inside the url= param
+    // and must be decoded and resolved on its own, recursively (the inner URL can itself be
+    // relative to the same origin, or carry further transform suffixes). Verified live on
+    // hondacarindia.com: without this, 0 of 97 candidate images downloaded (all 400).
+    if (/\/_next\/image$/i.test(parsed.pathname) && parsed.searchParams.has('url')) {
+      const inner = parsed.searchParams.get('url');
+      try {
+        const innerAbsolute = new URL(inner, parsed.origin).href;
+        return resolveOriginalUrl(innerAbsolute);
+      } catch { /* fall through to generic handling below */ }
+    }
+
     // [2] CDN resize query params — remove known sizing keys.
     const RESIZE_PARAMS = ['w', 'h', 'width', 'height', 'size', 'quality', 'q', 'format', 'fit', 'dpr', 'auto', 'crop'];
     let changed = false;

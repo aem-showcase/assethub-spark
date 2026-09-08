@@ -68,17 +68,22 @@ SECRET_FILE = re.compile(r"(?:^|[\s/=('\"])(?:token\.env|secret\.env|\.secrets)\
 if not SECRET_FILE.search(command):
     sys.exit(0)
 
-# Content-dumping tools that would put the file's bytes on stdout. `echo`/`printf`
-# are included because a common leak shape is `echo $(cat token.env | sed ...)`;
-# `grep`/`rg` because a bare `grep DA_TOKEN token.env` prints the whole matching
-# line (the value) — only a counting/quiet grep is safe (handled below).
+# Content-dumping tools that would put the file's bytes on stdout. `grep`/`rg` are here
+# because a bare `grep DA_TOKEN token.env` prints the whole matching line (the value) — only
+# a counting/quiet grep is safe (handled below). `echo`/`printf` are NOT in this set: they
+# emit their literal arguments, not a file's contents, so `echo "==="; . ./token.env; curl`
+# (a legitimate probe with a status banner) must pass. The one echo/printf leak shape —
+# command-substitution that dumps the secret, e.g. `echo $(cat token.env)` — is already
+# caught by `cat` being in this set. Passing the secret filename as a *flag argument* to a
+# tool that is not a dumping tool (e.g. `script --token-file token.env`, `cp`, `ls`, `mv`,
+# `ln`, `find`) never puts the value on stdout, so those pass too.
 DUMP = re.compile(
     r"\b(?:cat|head|tail|sed|awk|less|more|most|xxd|od|hexdump|strings|nl|tac|"
-    r"rev|cut|tr|printf|echo|base64|tee|grep|egrep|fgrep|rg)\b"
+    r"rev|cut|tr|base64|tee|grep|egrep|fgrep|rg)\b"
 )
 if not DUMP.search(command):
-    # No dumping tool touching the secret (e.g. `ls -la token.env`,
-    # `wc -c token.env`, `. ./token.env`). Allow.
+    # No dumping tool in the command (e.g. `ls -la token.env`, `wc -c token.env`,
+    # `. ./token.env`, `script --token-file token.env`, `cp token.env dst`). Allow.
     sys.exit(0)
 
 # Safe exception: a counting/quiet grep prints only a number or nothing, never

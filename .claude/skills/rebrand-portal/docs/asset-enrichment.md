@@ -104,8 +104,10 @@ workflow widens source discovery rather than publishing an empty card.
 node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   --customer-key <customerKey> \
   --categories <slug1,slug2,...> \
+  [--category-aliases "<slug>=<tok>,<tok>;<slug2>=<tok>"] \
   [--dam-path /content/dam/<customerKey>] \
   [--source-url <url>] \
+  [--source-urls <url1,url2,...>] \
   [--dry-run] [--force] \
   [--concurrency <n>] \
   [--limit <n>] \
@@ -114,6 +116,18 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   [--report-file <path.json>] \
   [--org <githubOrg>] [--repo <githubRepo>] [--da-token-file token.env]
 ```
+
+`--source-urls` takes a comma/space/newline list of additional source pages;
+it is combined with `--source-url` and deduped, so ONE run scrapes every
+per-category page (downloaded assets are deduped by file name across pages).
+`--limit` still caps the total across all pages. Prefer this over invoking the
+script once per page.
+
+`--category-aliases` adds source-derived classifier evidence tokens per slug —
+shape `"sedan=verna,aura;suv=creta,venue"` (semicolon-separated `slug=tokens`
+groups, comma/space tokens). It lets a body-type/label slug match
+model/product-named assets so `productCategory` (write-once) is correct on the
+first metadata write. Aliases are evidence only and are never shown to users.
 
 `--org`/`--repo` (the same GitHub org/repo as the DA content, resolved from
 the git remote) and `--da-token-file` (default `token.env`) enable card-image

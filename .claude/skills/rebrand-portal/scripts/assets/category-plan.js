@@ -100,12 +100,26 @@ function evidenceBlob(evidence) {
     .join(' ');
 }
 
-/** Contract entry -> comparable tokens (slug words + label words). */
+/**
+ * Contract entry -> comparable tokens (slug words + label words + alias words).
+ * Aliases are source-derived evidence tokens (e.g. body-type slug "sedan" carries model names
+ * "verna","aura") so model-named assets classify to the right body-type card on the FIRST
+ * write — without them the classifier scores 0 for every card whose label ≠ the asset naming
+ * and dumps everything into the first contract slug (verified live on Hyundai/Honda runs).
+ * Alias tokens keep the length>2 filter of slug/label words relaxed to length>1 so short but
+ * distinctive model tokens ("i10","i20","ev") still count.
+ */
 function contractTokens(entry) {
-  return `${entry.slug} ${entry.label || ''}`
+  const base = `${entry.slug} ${entry.label || ''}`
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length > 2);
+  const aliasTokens = (Array.isArray(entry.aliases) ? entry.aliases : [])
+    .join(' ')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 1);
+  return [...new Set([...base, ...aliasTokens])];
 }
 
 /** Strip a common plural suffix so "accessories"/"accessory" and "glasses"/"glass" match. */

@@ -47,9 +47,40 @@ import {
 
 export { mapWithConcurrency };
 
+/** Coerce an alias value (array | space/comma string | nullish) to a token array. */
+function tokenizeAliases(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return value.trim().split(/[\s,]+/).filter(Boolean);
+  return [];
+}
+
 /**
- * Normalize the source-derived category contract into [{slug,label}]. Accepts an array of
- * {slug,label}|string, or a comma-separated string of slugs (the --categories CLI form).
+ * The ordered, deduped list of bring-in source pages for one run. Combines --source-url
+ * (single) and --source-urls (comma/space/newline list); the singular stays first so
+ * single-URL runs behave exactly as before. Front-loading all per-category pages into one
+ * run is what removes the serial page-by-page scraping loop in Step 5.
+ */
+export function resolveSourceUrls(options = {}) {
+  const list = [];
+  const push = (u) => {
+    const v = String(u || '').trim();
+    if (v && !list.includes(v)) list.push(v);
+  };
+  if (options.sourceUrl) push(options.sourceUrl);
+  if (options.sourceUrls) {
+    const many = Array.isArray(options.sourceUrls)
+      ? options.sourceUrls
+      : String(options.sourceUrls).split(/[\s,]+/);
+    many.forEach(push);
+  }
+  return list;
+}
+
+/**
+ * Normalize the source-derived category contract into [{slug,label,aliases?}]. Accepts an
+ * array of {slug,label,aliases}|string, or a comma-separated string of slugs (the --categories
+ * CLI form). Aliases are optional source-derived classifier evidence tokens (model/product
+ * names) that let a body-type slug like "sedan" match model-named assets ("verna","aura").
  */
 export function normalizeContract(input) {
   let entries = [];
@@ -63,9 +94,36 @@ export function normalizeContract(input) {
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
     const label = (raw.label && String(raw.label).trim()) || humanizeCategorySlug(slug);
-    out.push({ slug, label });
+    const aliases = tokenizeAliases(raw.aliases);
+    out.push(aliases.length ? { slug, label, aliases } : { slug, label });
   }
   return out;
+}
+
+/**
+ * Parse the --category-aliases CLI form into { slug: [tokens] }.
+ * Shape: "slug=tok1,tok2;slug2=tokA tokB" — semicolon-separated groups, each `slug=tokens`
+ * with comma/space-separated tokens. Slugs are slugified so they line up with the contract.
+ */
+export function parseCategoryAliases(input) {
+  const map = {};
+  if (!input || typeof input !== 'string') return map;
+  for (const part of input.split(';')) {
+    const [slugRaw, toksRaw] = part.split('=');
+    const slug = slugifyCategory(slugRaw || '');
+    if (!slug || !toksRaw) continue;
+    const toks = tokenizeAliases(toksRaw);
+    if (toks.length) map[slug] = (map[slug] || []).concat(toks);
+  }
+  return map;
+}
+
+/** Fold a parsed alias map into a normalized contract (appends aliases per matching slug). */
+export function mergeContractAliases(contract, aliasMap) {
+  if (!aliasMap || !Object.keys(aliasMap).length) return contract;
+  return contract.map((entry) => (aliasMap[entry.slug]
+    ? { ...entry, aliases: (entry.aliases || []).concat(aliasMap[entry.slug]) }
+    : entry));
 }
 
 /**
@@ -230,15 +288,47 @@ function findRepoRoot(startDir) {
 async function discoverTargetAssets({
   options, client, folderPath, report, log,
 }) {
-  if (options.sourceUrl) {
-    const scraped = await scrapeSiteImages({
-      pageUrl: options.sourceUrl,
-      maxImages: options.limit || undefined,
-      fetchFn: options.fetchFn || fetch,
-      log,
-    });
+  const sourceUrls = resolveSourceUrls(options);
+  if (sourceUrls.length) {
+    // Scrape every source page in ONE invocation, deduping downloaded assets by file name
+    // across pages (the same hero/model image often recurs on several pages). Front-loading
+    // the full per-category source map here — instead of the agent re-running the script
+    // once per page and serially hunting for a thin category — is the single biggest
+    // time saver in Step 5 (verified: ~10 serial passes on the Honda/Hyundai runs). The
+    // overall --limit still caps total downloads across all pages.
+    const overallLimit = options.limit && Number.isFinite(options.limit) ? options.limit : null;
+    const merged = [];
+    const seenNames = new Set();
+    let totalCandidates = 0;
+    for (const pageUrl of sourceUrls) {
+      if (overallLimit && merged.length >= overallLimit) break;
+      const remaining = overallLimit ? overallLimit - merged.length : undefined;
+      let scraped;
+      try {
+        scraped = await scrapeSiteImages({
+          pageUrl,
+          maxImages: remaining,
+          fetchFn: options.fetchFn || fetch,
+          log,
+        });
+      } catch (err) {
+        // One unreachable page must not sink the whole multi-source pass — record and move on.
+        log.warn?.(`[agent] skip source page ${pageUrl} -> ${String(err.message || err)}`);
+        continue;
+      }
+      totalCandidates += scraped.candidates;
+      for (const img of scraped.images) {
+        const key = img.fileName.toLowerCase();
+        if (seenNames.has(key)) continue;
+        seenNames.add(key);
+        merged.push(img);
+        if (overallLimit && merged.length >= overallLimit) break;
+      }
+    }
+    const scraped = { images: merged, candidates: totalCandidates };
     report.setContext({
-      sourceUrl: options.sourceUrl,
+      sourceUrl: sourceUrls.length === 1 ? sourceUrls[0] : undefined,
+      sourceUrls,
       scrapedCandidates: scraped.candidates,
       downloadedAssets: scraped.images.length,
     });
@@ -380,7 +470,10 @@ export async function enrichAssets({
   // (options.categoryContract) via the injected classifier (agent/LLM live; deterministic
   // stub in tests) — no hardcoded keyword vocabulary. Assignment is mandatory; each asset
   // lands in exactly one contract slug.
-  const contract = normalizeContract(options.categoryContract);
+  const contract = mergeContractAliases(
+    normalizeContract(options.categoryContract),
+    parseCategoryAliases(options.categoryAliases),
+  );
   const categorized = applyCategoryPlan(planned, { contract, classifier });
   const withMetadataPlans = categorized.map((p) => {
     if (!p || p.error || p.skip || !p.fields) return p;
