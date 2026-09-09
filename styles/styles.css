@@ -12,19 +12,19 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #FFFFFF;
+  --light-color: #FFF;
   --dark-color: #2C2C2C;
-  --text-color: #333333;
-  --text-primary: #333333;
-  --link-color: #333333;
+  --text-color: #333;
+  --text-primary: #333;
+  --link-color: #333;
   --link-hover-color: #D40511;
   --primary-color: #D40511;
   --primary-color-hover: #B30410;
   --color-red: #D40511;
   --color-dark-red: #B30410;
-  --accent-secondary: #FFCC00;
-  --accent-tertiary: #FFCC00;
-  --secondary-color: #FFCC00;
+  --accent-secondary: #FC0;
+  --accent-tertiary: #FC0;
+  --secondary-color: #FC0;
 
   /* Welcome/login split-screen brand-panel tokens (DHL) */
   --welcome-panel-bg: #D40511;

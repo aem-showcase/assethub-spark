@@ -396,7 +396,7 @@ html.base-panel-open {
 }
 
 .cart-panel .asset-type .type-val {
-  color: #333333;
+  color: #333;
   font-family: var(--body-font-family), sans-serif;
 }
 
