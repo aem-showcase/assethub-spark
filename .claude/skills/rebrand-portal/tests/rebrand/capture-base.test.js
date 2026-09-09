@@ -112,5 +112,41 @@ describe('capture-base reader helpers', () => {
         rmSync(root, { recursive: true, force: true });
       }
     });
+
+    it('captures allBaseHexes repo-wide, including a one-off literal outside styles.css :root', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'caps-root2-'));
+      try {
+        mkdirSync(join(root, 'styles'), { recursive: true });
+        mkdirSync(join(root, 'icons'), { recursive: true });
+        mkdirSync(join(root, 'blocks', 'search-results', 'styles'), { recursive: true });
+        mkdirSync(join(root, '.internal'), { recursive: true });
+        writeFileSync(join(root, 'styles', 'styles.css'), ROOT_CSS);
+        writeFileSync(join(root, 'icons', 'frescopa-beans.svg'), '<svg/>');
+        writeFileSync(join(root, 'icons', 'frescopa-icon.svg'), '<svg/>');
+        // A one-off literal in block-level CSS, not one of the 11 named tokens —
+        // exactly the class of value oldHexes never sees but allBaseHexes must.
+        writeFileSync(
+          join(root, 'blocks', 'search-results', 'styles', 'theme.css'),
+          '.pressed { background-color: #003d4d; }',
+        );
+        writeFileSync(
+          join(root, '.internal', 'onboarding-state.json'),
+          JSON.stringify({ schemaVersion: 4, customer: {}, steps: {} }),
+        );
+        const { execFileSync } = await import('node:child_process');
+        const script = new URL('../../scripts/rebrand/capture-base.mjs', import.meta.url).pathname;
+        execFileSync('node', [script, '--repo-root', root], { stdio: 'pipe' });
+        const state = JSON.parse(
+          (await import('node:fs')).readFileSync(join(root, '.internal', 'onboarding-state.json'), 'utf8'),
+        );
+        expect(state.baseBrand.oldHexes).not.toContain('#003D4D');
+        const hit = state.baseBrand.allBaseHexes.find((e) => e.hex === '#003D4D');
+        expect(hit).toBeDefined();
+        expect(hit.file).toBe(join('blocks', 'search-results', 'styles', 'theme.css'));
+        expect(hit.selector).toBe('.pressed');
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

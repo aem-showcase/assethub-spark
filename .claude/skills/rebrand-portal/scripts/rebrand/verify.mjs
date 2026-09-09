@@ -10,18 +10,26 @@
  *
  *   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
  *     [--repo-root <dir>] [--preview <host>] [--company <companyKey>] \
- *     [--report <report.json>] [--only <check,check>]
+ *     [--report <report.json>] [--only <check,check>] [--write-report <path.json>]
  *
- * Tree-only checks (no --preview needed): header-logo, residue, icon-render.
+ * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
+ *   icon-reference-resolution, welcome-header-home-link, icon-render.
  * Preview checks (need --preview + --company): nav-404-loop, applied-css.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
  *
+ * --write-report writes a JSON report ({ checkedAt, checkedCommit, results }) for
+ * whatever ran, so hooks/guard-step5-verify-gate.sh has a structured, staleness-
+ * checkable artifact to read instead of re-parsing stderr.
+ *
  * Exit 0 = every applicable check passed; 1 = a check FAILED; 2 = usage/setup error.
  */
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import {
+  readFileSync, existsSync, readdirSync, writeFileSync,
+} from 'node:fs';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { walk, captureAllBaseHexes } from './fs-walk.mjs';
 
 function resolveRepoRoot(arg) {
   if (arg) return resolve(arg);
@@ -99,17 +107,6 @@ export function checkHeaderLogo(repoRoot) {
 // ---- CHECK: residue (tree) ------------------------------------------------------
 // Grep the captured old brand hexes + baseSlug across icons/, styles/, blocks/,
 // scripts/analytics/. Any hit is un-rebranded residue.
-function walk(dir, exts, acc = []) {
-  if (!existsSync(dir)) return acc;
-  for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry === '__tests__') continue;
-    const p = join(dir, entry);
-    const st = statSync(p);
-    if (st.isDirectory()) walk(p, exts, acc);
-    else if (exts.some((e) => entry.endsWith(e))) acc.push(p);
-  }
-  return acc;
-}
 
 // A hex like #58181D also survives as the decimal rgb() form the browser and
 // many hand-authored rules use: `rgb(88 24 29 / 14%)` or `rgb(88, 24, 29)`. The
@@ -157,6 +154,189 @@ export function checkResidue(repoRoot, baseBrand) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };
   }
   return { name: 'residue', pass: true, reason: `no old-brand hex/slug (incl. rgb() form) in ${files.length} files` };
+}
+
+// ---- CHECK: structural-residue (tree) -------------------------------------------
+// checkResidue only catches the 11 named :root tokens. capture-base.mjs also
+// captures EVERY hex literal repo-wide (baseBrand.allBaseHexes), tagged by
+// file+selector. Comparing "is this hex unchanged" across the WHOLE repo is
+// too broad on its own — most of the repo's hexes are neutral UI chrome
+// (#1E1E1E strokes, #707070/#333 greys, pure #FFF) that legitimately never
+// change on any rebrand, and flagging all of them would flood every run with
+// noise no agent could act on. So this check narrows the comparison to
+// BRAND-ADJACENT FILES ONLY: a file qualifies if it contains at least one hex
+// from baseBrand.oldHexes (the 11 named brand tokens) in EITHER the pre-capture
+// baseline or the current tree — i.e. a file already known to carry brand
+// color at all. Within a qualifying file, any hex that is byte-identical to
+// the pre-capture baseline AT THE SAME selector is residue. This is exactly
+// the Woolworths case: theme.css carries #00647D/#004d61 (named brand tokens,
+// qualifying the file) alongside #003d4d (a one-off literal, never a named
+// token, invisible to checkResidue) — once the file qualifies, #003d4d
+// surviving unchanged is now caught.
+function loadSemanticAllowlist(repoRoot) {
+  const p = join(repoRoot, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand', 'semantic-color-allowlist.json');
+  if (!existsSync(p)) return { selectorPatterns: [], filePatterns: [] };
+  try {
+    const raw = JSON.parse(readFileSync(p, 'utf8'));
+    return {
+      selectorPatterns: (raw.selectorPatterns || []).map((s) => new RegExp(s, 'i')),
+      filePatterns: (raw.filePatterns || []).map((s) => new RegExp(s, 'i')),
+    };
+  } catch {
+    return { selectorPatterns: [], filePatterns: [] };
+  }
+}
+
+function isAllowlisted(allowlist, file, selector) {
+  if (allowlist.filePatterns.some((re) => re.test(file))) return true;
+  if (selector && allowlist.selectorPatterns.some((re) => re.test(selector))) return true;
+  return false;
+}
+
+export function checkStructuralResidue(repoRoot, baseBrand) {
+  if (!baseBrand) {
+    return { name: 'structural-residue', pass: false, reason: 'no baseBrand in state — run capture-base.mjs first' };
+  }
+  const baseline = baseBrand.allBaseHexes;
+  if (!Array.isArray(baseline)) {
+    return {
+      name: 'structural-residue',
+      pass: false,
+      reason: 'no baseBrand.allBaseHexes in state — re-run capture-base.mjs (needs the repo-wide hex capture)',
+    };
+  }
+  const namedBrandHexes = new Set((baseBrand.oldHexes || []).map((h) => h.toUpperCase()));
+  if (namedBrandHexes.size === 0) {
+    return {
+      name: 'structural-residue',
+      pass: false,
+      reason: 'baseBrand.oldHexes is empty — cannot determine which files are brand-adjacent',
+    };
+  }
+  const allowlist = loadSemanticAllowlist(repoRoot);
+  const current = captureAllBaseHexes(repoRoot);
+
+  // A file "qualifies" (is brand-adjacent) if it carries at least one named
+  // brand hex, in either the baseline or the current tree.
+  const qualifyingFiles = new Set();
+  for (const entry of baseline) if (namedBrandHexes.has(entry.hex)) qualifyingFiles.add(entry.file);
+  for (const entry of current) if (namedBrandHexes.has(entry.hex)) qualifyingFiles.add(entry.file);
+
+  // Index the pre-capture baseline by "file::selector" -> Set(hex) for O(1) lookup.
+  const byKey = new Map();
+  for (const entry of baseline) {
+    const key = `${entry.file}::${entry.selector || ''}`;
+    if (!byKey.has(key)) byKey.set(key, new Set());
+    byKey.get(key).add(entry.hex);
+  }
+  const hits = [];
+  for (const entry of current) {
+    if (!qualifyingFiles.has(entry.file)) continue;
+    if (isAllowlisted(allowlist, entry.file, entry.selector)) continue;
+    const key = `${entry.file}::${entry.selector || ''}`;
+    const wasHere = byKey.get(key);
+    if (wasHere && wasHere.has(entry.hex)) {
+      hits.push(`${entry.file} (${entry.selector || 'top-level'}): unchanged old-brand hex ${entry.hex}`);
+    }
+  }
+  if (hits.length) {
+    return {
+      name: 'structural-residue',
+      pass: false,
+      reason: `${hits.length} structural residue hit(s) in ${qualifyingFiles.size} brand-adjacent file(s) — a hex `
+        + `at this file+selector matches the pre-rebrand baseline exactly and was never `
+        + `changed:\n  ${hits.slice(0, 40).join('\n  ')}`,
+    };
+  }
+  return {
+    name: 'structural-residue',
+    pass: true,
+    reason: `no unchanged old-brand hex at any pre-captured file+selector across ${qualifyingFiles.size} brand-adjacent file(s)`,
+  };
+}
+
+// ---- CHECK: icon-reference-resolution (tree) ------------------------------------
+// No check today diffs CSS `url(/icons/...)` references against what actually
+// exists in icons/. checkIconRender only validates ONE hardcoded file
+// (icons/<company>-icon.svg). A referenced-but-missing icon (chevron-down.svg,
+// image-placeholder.svg, cart-icon-failure.svg were exactly this — referenced
+// in CSS, never present on disk) renders as a silently blank/broken icon.
+export function checkIconReferenceResolution(repoRoot) {
+  const iconsDir = join(repoRoot, 'icons');
+  const existing = new Set(existsSync(iconsDir) ? readdirSync(iconsDir) : []);
+  const files = walk(join(repoRoot, 'styles'), ['.css', '.scss'])
+    .concat(walk(join(repoRoot, 'blocks'), ['.css', '.scss']));
+  const urlRe = /url\(\s*['"]?\/icons\/([^'")\s]+)['"]?\s*\)/g;
+  const missing = [];
+  for (const f of files) {
+    const text = readFileSync(f, 'utf8');
+    let m;
+    // eslint-disable-next-line no-cond-assign
+    while ((m = urlRe.exec(text)) !== null) {
+      const iconFile = m[1];
+      if (!existing.has(iconFile)) {
+        missing.push(`${f}: references /icons/${iconFile} (not found in icons/)`);
+      }
+    }
+  }
+  if (missing.length) {
+    return {
+      name: 'icon-reference-resolution',
+      pass: false,
+      reason: `${missing.length} referenced-but-missing icon(s):\n  ${missing.slice(0, 40).join('\n  ')}`,
+    };
+  }
+  return { name: 'icon-reference-resolution', pass: true, reason: `every CSS icon reference in ${files.length} files resolves to a file in icons/` };
+}
+
+// ---- CHECK: welcome-header-home-link (tree) -------------------------------------
+// blocks/header/header.js's `getMetadata('header') === 'no'` minimal-header path
+// (welcome/login pages) renders a raw template literal that historically hardcoded
+// href="/" — never run through localizePath(), unlike every other link in this
+// file. On a foldered demo (/companies/<company>/<locale>/...) a bare "/" does not
+// resolve to the company's home even when the icon renders. checkResidue cannot
+// reach this — "/" carries no brand hex or slug signature, so it's not residue.
+export function checkWelcomeHeaderHomeLink(repoRoot) {
+  const headerPath = join(repoRoot, 'blocks', 'header', 'header.js');
+  if (!existsSync(headerPath)) {
+    return { name: 'welcome-header-home-link', pass: false, reason: 'blocks/header/header.js not found' };
+  }
+  const js = readFileSync(headerPath, 'utf8');
+  const anchor = js.indexOf("getMetadata('header') === 'no'");
+  if (anchor === -1) {
+    return {
+      name: 'welcome-header-home-link',
+      pass: false,
+      reason: "header.js no longer has a getMetadata('header') === 'no' minimal-header path — "
+        + 'update this check if the welcome-header mechanism moved, do not silently skip it',
+    };
+  }
+  // The minimal-header block sets its home link's href a few lines after the anchor,
+  // either as a template-literal attribute or via setAttribute — either form must
+  // resolve through localizePath(), never a bare "/" literal (which does not land on
+  // the company's home on a foldered /companies/<company>/<locale>/... demo).
+  const block = js.slice(anchor, anchor + 800);
+  const bareHrefPatterns = [
+    /<a\s+href=(["'`])\/\1/, // <a href="/">
+    /setAttribute\(\s*['"]href['"]\s*,\s*(["'`])\/\1\s*\)/, // .setAttribute('href', '/')
+  ];
+  if (bareHrefPatterns.some((re) => re.test(block))) {
+    return {
+      name: 'welcome-header-home-link',
+      pass: false,
+      reason: 'welcome-header home link is a bare "/" literal — never run through localizePath(), so it does not '
+        + "resolve to the company's home on a foldered demo. Fix: localizePath('/').",
+    };
+  }
+  if (!block.includes('localizePath')) {
+    return {
+      name: 'welcome-header-home-link',
+      pass: false,
+      reason: 'welcome-header block does not call localizePath() for its home link — '
+        + "cannot confirm it resolves to the company's home on a foldered demo.",
+    };
+  }
+  return { name: 'welcome-header-home-link', pass: true, reason: 'welcome-header home link resolves via localizePath(), not a bare "/" literal' };
 }
 
 // ---- CHECK: nav-404-loop (preview) ----------------------------------------------
@@ -352,9 +532,19 @@ export function checkHeroQuality(reportPath) {
   return { name: 'hero-quality', pass: true, reason: `${measurable.length} card hero(es) carry AEM smart-tag signal` };
 }
 
+function currentCommit(repoRoot) {
+  try {
+    return execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const opt = { repoRoot: null, preview: null, company: null, report: null, only: null };
+  const opt = {
+    repoRoot: null, preview: null, company: null, report: null, only: null, writeReport: null,
+  };
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
     if (a === '--repo-root') { opt.repoRoot = args[++i]; }
@@ -362,6 +552,7 @@ async function main() {
     else if (a === '--company') { opt.company = args[++i]; }
     else if (a === '--report') { opt.report = args[++i]; }
     else if (a === '--only') { opt.only = args[++i].split(',').map((s) => s.trim()); }
+    else if (a === '--write-report') { opt.writeReport = args[++i]; }
   }
   const repoRoot = resolveRepoRoot(opt.repoRoot);
   const baseBrand = loadBaseBrand(repoRoot);
@@ -371,6 +562,9 @@ async function main() {
 
   if (want('header-logo')) results.push(checkHeaderLogo(repoRoot));
   if (want('residue')) results.push(checkResidue(repoRoot, baseBrand));
+  if (want('structural-residue')) results.push(checkStructuralResidue(repoRoot, baseBrand));
+  if (want('icon-reference-resolution')) results.push(checkIconReferenceResolution(repoRoot));
+  if (want('welcome-header-home-link')) results.push(checkWelcomeHeaderHomeLink(repoRoot));
   if (want('icon-render')) results.push(checkIconRender(repoRoot, opt.company));
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
@@ -388,6 +582,16 @@ async function main() {
     process.stderr.write('no checks ran (pass --preview/--report for preview checks)\n');
     process.exit(2);
   }
+
+  if (opt.writeReport) {
+    const report = {
+      checkedAt: new Date().toISOString(),
+      checkedCommit: currentCommit(repoRoot),
+      results: Object.fromEntries(results.map((r) => [r.name, { pass: r.pass, reason: r.reason }])),
+    };
+    writeFileSync(opt.writeReport, `${JSON.stringify(report, null, 2)}\n`);
+  }
+
   process.exit(failed ? 1 : 0);
 }
 

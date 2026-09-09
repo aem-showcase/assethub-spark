@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   checkHeaderLogo, checkResidue, checkStaleCardImages,
+  checkStructuralResidue, checkIconReferenceResolution, checkWelcomeHeaderHomeLink,
 } from '../../scripts/rebrand/verify.mjs';
 
 function makeRepo() {
@@ -162,6 +163,193 @@ describe('verify: stale-card-images', () => {
     ]);
     try {
       expect(checkStaleCardImages(p).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('verify: structural-residue', () => {
+  const THEME_FILE = join('blocks', 'search-results', 'styles', 'theme.css');
+
+  it('FAILS when a block-level CSS literal is byte-identical to the pre-capture baseline at the same file+selector, in a file that also carries a named brand hex', () => {
+    const root = makeRepo();
+    try {
+      mkdirSync(join(root, 'blocks', 'search-results', 'styles'), { recursive: true });
+      // Mirrors the real Woolworths case: theme.css carries a named brand token
+      // (#00647D, qualifying the file as brand-adjacent) alongside a one-off
+      // literal (#003d4d) that was never one of the 11 named tokens.
+      writeFileSync(
+        join(root, 'blocks', 'search-results', 'styles', 'theme.css'),
+        '.active { color: #00647D; } .pressed { background-color: #003d4d; }',
+      );
+      const baseBrand = {
+        oldHexes: ['#00647D'],
+        allBaseHexes: [
+          { hex: '#00647D', file: THEME_FILE, selector: '.active' },
+          { hex: '#003D4D', file: THEME_FILE, selector: '.pressed' },
+        ],
+      };
+      const r = checkStructuralResidue(root, baseBrand);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/#003D4D/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when the same file+selector now carries a new/changed hex', () => {
+    const root = makeRepo();
+    try {
+      mkdirSync(join(root, 'blocks', 'search-results', 'styles'), { recursive: true });
+      writeFileSync(
+        join(root, 'blocks', 'search-results', 'styles', 'theme.css'),
+        '.active { color: #008446; } .pressed { background-color: #0a3d23; }',
+      );
+      const baseBrand = {
+        oldHexes: ['#00647D'],
+        allBaseHexes: [
+          { hex: '#00647D', file: THEME_FILE, selector: '.active' },
+          { hex: '#003D4D', file: THEME_FILE, selector: '.pressed' },
+        ],
+      };
+      expect(checkStructuralResidue(root, baseBrand).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('does NOT flag an unchanged neutral hex in a file that carries no named brand hex at all', () => {
+    const root = makeRepo();
+    try {
+      // A generic icon file that never references any brand token — the
+      // exact false-positive case a whole-repo byte-diff would otherwise
+      // flood on (black strokes, greys, pure white), which this check must
+      // not do since the file never "qualifies" as brand-adjacent.
+      writeFileSync(join(root, 'icons', 'arrow.svg'), '<svg><path stroke="#1E1E1E"/></svg>');
+      const baseBrand = {
+        oldHexes: ['#00647D'],
+        allBaseHexes: [{ hex: '#1E1E1E', file: join('icons', 'arrow.svg'), selector: 'top-level' }],
+      };
+      expect(checkStructuralResidue(root, baseBrand).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('does not flag a hex whose selector matches the semantic-color allowlist, even in a qualifying file', () => {
+    const root = makeRepo();
+    try {
+      mkdirSync(join(root, 'blocks', 'header'), { recursive: true });
+      mkdirSync(join(root, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand'), { recursive: true });
+      writeFileSync(
+        join(root, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand', 'semantic-color-allowlist.json'),
+        JSON.stringify({ selectorPatterns: ['\\.editing-mode'], filePatterns: [] }),
+      );
+      // .brand's color has already been rebranded (was #00647D, now #008446, so
+      // the file still "qualifies" as brand-adjacent via the pre-capture baseline)
+      // — only the allowlisted editing-mode amber is unchanged, and must not FAIL.
+      writeFileSync(
+        join(root, 'blocks', 'header', 'profile.css'),
+        '.brand { color: #008446; } .profile-modal.editing-mode .edit-button { background: #ffeaa7; }',
+      );
+      const profilePath = join('blocks', 'header', 'profile.css');
+      const baseBrand = {
+        oldHexes: ['#00647D'],
+        allBaseHexes: [
+          { hex: '#00647D', file: profilePath, selector: '.brand' },
+          { hex: '#FFEAA7', file: profilePath, selector: '.profile-modal.editing-mode .edit-button' },
+        ],
+      };
+      expect(checkStructuralResidue(root, baseBrand).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('FAILS with a clear message when baseBrand.allBaseHexes is missing', () => {
+    const root = makeRepo();
+    try {
+      expect(checkStructuralResidue(root, {}).pass).toBe(false);
+      expect(checkStructuralResidue(root, null).pass).toBe(false);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('FAILS with a clear message when baseBrand.oldHexes is empty', () => {
+    const root = makeRepo();
+    try {
+      const r = checkStructuralResidue(root, { oldHexes: [], allBaseHexes: [] });
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/oldHexes is empty/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('verify: icon-reference-resolution', () => {
+  it('FAILS when CSS references an icon file that does not exist', () => {
+    const root = makeRepo();
+    writeFileSync(
+      join(root, 'styles', 'styles.css'),
+      ".dropdown-arrow { background: url('/icons/chevron-down.svg'); }",
+    );
+    try {
+      const r = checkIconReferenceResolution(root);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/chevron-down\.svg/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when every referenced icon exists on disk', () => {
+    const root = makeRepo();
+    writeFileSync(join(root, 'icons', 'chevron-down.svg'), '<svg/>');
+    writeFileSync(
+      join(root, 'styles', 'styles.css'),
+      ".dropdown-arrow { background: url('/icons/chevron-down.svg'); }",
+    );
+    try {
+      expect(checkIconReferenceResolution(root).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('verify: welcome-header-home-link', () => {
+  const WITH_BARE_HREF = `
+export default async function decorate(block) {
+  if (getMetadata('header') === 'no') {
+    const homeLink = document.createElement('a');
+    homeLink.setAttribute('href', '/');
+    welcomeBar.append(homeLink);
+    return;
+  }
+}
+`;
+
+  const WITH_LOCALIZED_HREF = `
+export default async function decorate(block) {
+  if (getMetadata('header') === 'no') {
+    const homeLink = document.createElement('a');
+    homeLink.setAttribute('href', localizePath('/'));
+    welcomeBar.append(homeLink);
+    return;
+  }
+}
+`;
+
+  it('FAILS when the welcome-header home link is a bare "/" literal', () => {
+    const root = makeRepo();
+    writeFileSync(join(root, 'blocks', 'header', 'header.js'), WITH_BARE_HREF);
+    try {
+      const r = checkWelcomeHeaderHomeLink(root);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/bare/i);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when the welcome-header home link resolves via localizePath()', () => {
+    const root = makeRepo();
+    writeFileSync(join(root, 'blocks', 'header', 'header.js'), WITH_LOCALIZED_HREF);
+    try {
+      expect(checkWelcomeHeaderHomeLink(root).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('FAILS with a clear message when header.js has no header:no minimal-header path', () => {
+    const root = makeRepo();
+    writeFileSync(join(root, 'blocks', 'header', 'header.js'), 'export default async function decorate() {}');
+    try {
+      const r = checkWelcomeHeaderHomeLink(root);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/no longer has/);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });

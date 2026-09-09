@@ -1,0 +1,16 @@
+{
+  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "selectorPatterns": [
+    "\\.editing-mode",
+    "\\.impersonating",
+    "\\[aria-invalid\\]",
+    "--warning-",
+    "--error-",
+    "--success-",
+    "--chart-",
+    "--data-viz-"
+  ],
+  "filePatterns": [
+    "^scripts/analytics/"
+  ]
+}

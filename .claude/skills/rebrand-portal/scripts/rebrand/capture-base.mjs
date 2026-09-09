@@ -24,6 +24,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { captureAllBaseHexes } from './fs-walk.mjs';
 
 function fail(msg) {
   process.stderr.write(`ERROR: ${msg}\n`);
@@ -119,6 +120,12 @@ function main() {
       .map((h) => h.toUpperCase()),
   )];
 
+  // allBaseHexes — every hex literal repo-wide (icons/, styles/, blocks/), tagged
+  // with file+selector. Wider and noisier than oldHexes by design: it's the
+  // baseline checkStructuralResidue (verify.mjs) diffs against post-rebrand to
+  // catch one-off literals in block-level CSS the named-token list never sees.
+  const allBaseHexes = captureAllBaseHexes(repoRoot);
+
   const baseBrand = {
     baseSlug,
     baseSurfaceHex,
@@ -127,6 +134,7 @@ function main() {
     welcomePanelAccentRgb,
     navHeight,
     oldHexes,
+    allBaseHexes,
     capturedAt: new Date().toISOString(),
   };
 
@@ -144,7 +152,8 @@ function main() {
 
   process.stderr.write(
     `>> captured baseBrand: slug=${baseSlug}, surface=${baseSurfaceHex}, `
-    + `${oldHexes.length} brand hex(es) -> ${statePath}\n`,
+    + `${oldHexes.length} brand hex(es), ${allBaseHexes.length} repo-wide hex `
+    + `literal(s) -> ${statePath}\n`,
   );
   if (doPrint) process.stdout.write(`${JSON.stringify(baseBrand, null, 2)}\n`);
 }

@@ -296,20 +296,20 @@ split it across turns:
    labels to stable lowercase slugs and keep `{slug, label, evidence}` for
    each category in the working notes handed to Step 5.
 
-   **While deriving the contract, capture two extra per-category maps for
+   **While deriving the contract, capture the source URL per category for
    Step 5 — you already have the nav open, so do it once here, not by
    re-crawling page-by-page in Step 5:**
    - **Source URL per category** — the model/section/product page that carries
      that category's imagery. Step 5 passes the full set to the scraper as a
      single `--source-urls a,b,c` run instead of one invocation per page. This
      is the single biggest Step-5 time saver.
-   - **Alias tokens per category** — the model/product names that live *under*
-     a body-type/label slug (e.g. `sedan → verna, aura`; `suv → creta, venue`).
-     Step 5 passes these as `--category-aliases "sedan=verna,aura;..."` so the
-     classifier tags model-named assets correctly on the **first** write.
-     Without this, a label like `sedan` has no token overlap with `verna.jpg`,
-     so the classifier dumps everything into the first slug — and
-     `productCategory` is write-once, so it can't be repaired afterward.
+
+   In Step 5 you'll assign each asset to a category by writing a
+   `fileName -> slug` map (`--category-map`) from the dry-run report — no need to
+   pre-derive alias tokens here. Just knowing which model/product names belong to
+   which body-type slug (e.g. `verna`, `aura` are sedans) is enough to fill that
+   map correctly; `productCategory` is write-once, so the map is what makes the
+   first write right.
 
    **Category floor — propose at least 5 real candidates.** This initial
    contract must name **at least 5** real, source-derived candidate

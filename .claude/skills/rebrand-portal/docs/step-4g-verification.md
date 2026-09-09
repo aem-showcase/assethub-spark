@@ -41,8 +41,12 @@ what the site *serves*, not by looking at a picture of it:
      --report .internal/<companyKey>-assets-report.json
    ```
    Checks and what each catches:
-   - `residue`, `header-logo`, `applied-css`, `nav-404-loop` — colors, logo
-     sizing, applied CSS, 404 loop (as before).
+   - `residue`, `structural-residue`, `icon-reference-resolution`,
+     `welcome-header-home-link`, `header-logo`, `applied-css`,
+     `nav-404-loop` — colors (including one-off literals in block-level CSS
+     that were never a named `:root` token), CSS icon references that don't
+     resolve to a file, the welcome-header home link resolving through
+     `localizePath()`, logo sizing, applied CSS, 404 loop.
    - `icon-render` (tree) — header wordmark is vector, not blank `<text>`.
    - `card-count` (report) — every populated contract category has a card
      with an href + image (catches "only 4 of 6 categories show"; the
@@ -55,13 +59,27 @@ what the site *serves*, not by looking at a picture of it:
    enrichment produces the report — the icon/CSS/nav checks run at 4g before
    Step 5, the card checks run once the report exists.
 
-   **Non-blocking + self-healing — a FAIL never halts the demo.** On a FAIL:
-   fix the cause in place and continue — regenerate a `<text>` icon as
-   vector; re-author the index so every category is a carousel card; re-pick
-   a flat hero. Only if a fix is genuinely impossible (e.g. a category has no
-   non-logo asset at all) do you record a one-line follow-up in the
-   completion report and proceed — same "note and continue, never loop" rule
-   as the screenshot step below. Do not stop the run waiting on a human.
+   **`residue`, `structural-residue`, `icon-reference-resolution`, and
+   `welcome-header-home-link` mechanically block Step 5.** A
+   `PreToolUse` hook (`hooks/guard-step5-verify-gate.sh`) reads a
+   `verify.mjs --write-report` output and refuses to run
+   `enrich-assets.js` unless these checks (plus `header-logo` and
+   `icon-render`) all passed against the current commit. A FAIL here must
+   be fixed, not noted and skipped — write the report with:
+   ```
+   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+     --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+     --write-report .internal/verify-report.json
+   ```
+
+   **`card-count` and `hero-quality` stay self-healing — a FAIL on these
+   two never halts the demo.** On a FAIL: fix the cause in place and
+   continue — re-author the index so every category is a carousel card;
+   re-pick a flat hero. Only if a fix is genuinely impossible (e.g. a
+   category has no non-logo asset at all) do you record a one-line
+   follow-up in the completion report and proceed — same "note and
+   continue, never loop" rule as the screenshot step below. Do not stop
+   the run waiting on a human for these two specifically.
 2. **Rendered DOM, only when a check needs the authenticated page.** If a
    gate needs the logged-in view (the facets/search page) and you cannot
    reach it, run local dev with the auth bypass (below) and read the served
@@ -74,6 +92,19 @@ what the site *serves*, not by looking at a picture of it:
    thing a screenshot adds over the served-CSS check is catching a
    third-party widget state that lives outside this repo's CSS (see the
    facets note below); everything else is already covered by steps 1–2.
+4. **Once the consolidated `verify.mjs` pass is clean, ask the user
+   directly before marking Step 4g done** — do not assume clean means no
+   remaining issue. Ask something like: "Static verification passed
+   (colors, icons, home navigation). Do you still see stale colors or
+   navigation issues on the live preview?" This is a real check-in, not a
+   formality — the deterministic checks cover what they cover (residue at
+   known selectors, icon file resolution, cascade for the landmarks named
+   above); they do not render the page. If the user says no issues,
+   proceed to Step 5. **If the user says yes, still stale, only then**
+   move to step 2 above (rendered DOM / local testing with the auth
+   bypass) to actually see the authenticated page and find the specific
+   remaining defect — don't reflexively boot local dev every run "just in
+   case."
 
 **Local testing without Entra login.** The deployed PR worker is the
 default verification target and needs no login bypass — Entra login works
@@ -131,9 +162,10 @@ residue grep moot:
    selector blocks Step 5 the same way a missing welcome-panel token does
    (Step 4b–4f item 1) — go back and fix the losing declaration (check for
    a later `background-color` override, an `!important`, or a
-   more-specific selector winning; see the known-repeat-misses list below
-   for files this has hit before), then re-check. Do not downgrade this to
-   a screenshot judgment call — it is binary pass/fail per selector.
+   more-specific selector winning — `structural-residue` below flags an
+   unchanged literal at the same selector, which is often the cause), then
+   re-check. Do not downgrade this to a screenshot judgment call — it is
+   binary pass/fail per selector.
 4. **Anti-regression: no surface may still be the base cream.** In addition
    to the expected-value match, assert that the computed `background-color`
    on every surface selector (especially the two home-page surfaces added
@@ -149,74 +181,36 @@ manual eyeball pass has missed real cases). Run the whole checklist twice:
 once right after the step 1–2 edits, and again against the preview URL.
 
 1. **Build the old→new hex map** from step 1's token diff.
-2. **Grep every value in that map**, case-insensitive, across every
-   `*.svg`, `*.css`, `*.scss` — report every hit. Check icon SVGs for
-   `fill="#..."`, background assets for embedded raster, hardcoded panel
-   colors. **Explicitly include the background/surface tokens and the
-   filter/facets panel** — not just the accent. Grep the base
-   background/surface hexes (the cream section/hero surface and any
-   decorative brand-background SVG) across `styles/*.css`, the home
-   hero/section CSS, AND the search-results **facets/filter panel** CSS.
-   A rebrand that changes only the primary/accent leaves the home hero and
-   the filter panel on the base cream surface (verified live) — that is a
-   FAIL, not a pass. **Explicitly grep the base surface names captured
-   before Step 4b** (`--light-color` and `baseSurfaceHex`, the
-   facets/search-panel surface value if it's a separate hardcoded literal
-   rather than the `--light-color` token, `${baseSlug}-background` (the
-   `.${baseSlug}-background-*` section classes), and `backgrounds/big.svg`
-   if it still carries the base brand's decorative artwork). Any of these
-   still present with the captured base value is the "filter background
-   off-brand" gap. Every base surface token and decorative base-brand
-   background must be gone. Also confirm the welcome-panel tokens were set
-   (see item 5). Also grep the base action-color values captured before
-   Step 4b (the base secondary-button `background-color`/hover hexes) that
-   commonly survive through component overrides, and every other red/gold
-   value in the token diff. Any remaining hit must be either changed to a
-   semantic token from the new palette or explicitly justified as a
-   deliberate new-brand choice; do not classify these old brand colors as
-   neutral chrome. **The old-hex set is `baseBrand.oldHexes`** (captured by
-   `capture-base.mjs`); this doc carries no hex literals to match — grep the
-   state's `oldHexes`, never a value copied from here.
-   `scripts/rebrand/verify.mjs --only residue` runs exactly this grep across
-   `icons/`, `styles/`, `blocks/`, and `scripts/analytics/`.
-   Then run a **structural hardcoded-surface audit**, not just exact old
-   values: inspect every `background`, `background-color`, `border-color`,
-   token assignment, and SVG `fill`/`stroke` using a literal hex in
-   `styles/`, `blocks/search-results/`, `blocks/search-bar/`, and `icons/`.
-   Classify each hit as **neutral UI chrome** (`#fff`, greys, focus ring),
-   **semantic token fallback**, or **brand/off-brand surface**. Any
-   brand/off-brand hit must become a semantic token. Do not dismiss a color
-   as neutral until checking the rendered component it styles.
-   **Known repeat misses that must be checked explicitly before Step 5:**
-   `blocks/search-results/styles/facets.css .facet-filter-panel`
-   (`background-color` overrides earlier `background`), search-results
-   `theme.css` red token aliases (`--red-*`, invalid/pressed colors),
-   `blocks/search-results/styles/search-panel.css`,
-   `blocks/search-results/styles/cart-panel.css`,
-   `blocks/search-results/styles/date-picker.css`,
-   `styles/add-to-collection-modal.css`, and `styles/styles.css`
-   secondary button base/hover colors. If a rule has both
-   `background: #...` and later `background-color: #...`, the later
-   declaration wins; inspect the computed result and fix the winning
-   declaration, not just the first one.
-3. **Grep `baseSlug`** (captured before Step 4b; `frescopa` at the time of
-   writing) — case-insensitive, across
-   the whole repo (`icons/`, `styles/`, `blocks/`, `head.html`) — catching
-   a renamed icon whose class still reads `.icon-<baseSlug>-mark`, a CSS
-   `url('/icons/<baseSlug>…')` decorative background, or a stray copy
-   string. Must be **zero** hits (barring a documented placeholder).
-4. **Diff every file touched** against its pre-edit version and flag any
+2. **Run the consolidated `verify.mjs` pass** (already shown above,
+   `--only residue,structural-residue,icon-reference-resolution,welcome-header-home-link`
+   to isolate just these four). Between them these checks now cover what
+   used to be manual instruction here: `residue` greps `baseBrand.oldHexes`
+   (the 11 named tokens) and `baseSlug` across `icons/`, `styles/`,
+   `blocks/`, `scripts/analytics/`; `structural-residue` re-derives the
+   full repo-wide hex capture (`baseBrand.allBaseHexes`) and fails on any
+   hex unchanged at the same file+selector in a file that already carries
+   a named brand hex — this is what catches a one-off literal in
+   `theme.css`/`facets.css`/`cart-panel.css`/`date-picker.css`/etc. that
+   was never one of the 11 named tokens, without needing a hardcoded list
+   of "known miss" files to remember by hand; `icon-reference-resolution`
+   catches any CSS `url(/icons/...)` reference that doesn't resolve to a
+   real file. A hand-curated exclude list for genuinely semantic (not
+   brand) colors — warning/error states, chart palettes — lives in
+   `scripts/rebrand/semantic-color-allowlist.json`; extend that file, not
+   this doc, if a new legitimate semantic color needs excluding.
+3. **Diff every file touched** against its pre-edit version and flag any
    changed line not explained by the intended token/color/name swap
    (catches a linter auto-fix riding along).
 
-5. **Welcome-panel token check.** Confirm the brand theme sets
+4. **Welcome-panel token check.** Confirm the brand theme sets
    `--welcome-panel-bg`, `--welcome-panel-accent-rgb`,
    `--welcome-panel-mark-image` (→ `/icons/<companyKey>-beans.svg`), and
    `--welcome-tagline-line1` + `--welcome-tagline-line2`; otherwise the
    login's left panel keeps the base brand's panel colour, mark, and
-   tagline (the CSS defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
-   `/icons/<companyKey>-beans.svg` exist — **and that the header wordmark
-   actually RENDERS, not just exists.** A wordmark SVG built from `<text>`
+   tagline (the CSS defaults). `icon-reference-resolution` (above) already
+   confirms every icon file a CSS reference points at exists — **also
+   confirm the header wordmark actually RENDERS, not just exists.** A
+   wordmark SVG built from `<text>`
    renders blank when loaded via an icon shortcode (which the header does as
    an `<img>`): the font does not load in the isolated SVG context, so the
    letters vanish while the file is present and non-empty (verified live —
@@ -225,10 +219,13 @@ once right after the step 1–2 edits, and again against the preview URL.
    `icon-render` check (below) FAILs on a `<text>` wordmark; on a FAIL,
    regenerate the icon as outlines and continue — do not ship the blank logo.
 
-Not every hardcoded fill is wrong (a neutral icon that turns brand-colored
-on hover is fine) — confirm a flagged file reads off-brand before fixing by
-reading the rule it lands in and the selector's computed result (served
-CSS), not by assuming. Fix real misses and re-run both passes clean.
+Not every `structural-residue` hit is wrong — a genuinely semantic color
+(warning/error/success state) that happens to sit in a brand-adjacent file
+will FAIL until it's added to `semantic-color-allowlist.json`. Before
+adding an entry, confirm the flagged rule really is a semantic-state
+color, not brand, by reading the selector and its computed result (served
+CSS) — do not add to the allowlist just to make a FAIL go away. Fix real
+misses and re-run clean.
 
 **Brand-residue check on the copied DA docs — the footer/logo guard.**
 The asset sweep covers the *repo*; this covers the *content*. Fetch each
