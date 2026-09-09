@@ -1,5 +1,12 @@
 # Step 5 — Upload and enrich the company's assets
 
+> **Run from the worktree** (`customer.worktreePath`). The controller
+> `enrich-assets.js` resolves the repo root from cwd and reads
+> `cloudflare/.secrets` (asset creds) + `cloudflare/src/config.js` (AEM env
+> id, demo scope) from there — both present in the worktree (`.secrets`
+> copied in Step 2, config.js rebranded in Step 4). Run it in the main
+> checkout and it would read the wrong config.js.
+
 ## Step 5 preflight — rebrand verification gate
 
 Before any `--dry-run` or live asset enrichment, assert all of these are
@@ -27,6 +34,17 @@ searching and filtering on what's in each one." `customer.assetsLane`
   surface in search and facets. Runs now if `assetsEnrichNow = true`
   (Entry flow Q2); otherwise `assets-uploaded` marks `done` and
   enrichment itself stays `deferred` until a later request.
+
+  **Detect first, then say plainly what's needed — some assets may already
+  be searchable.** The tool checks each existing asset and reuses the ones
+  that are already searchable/filterable as-is; it only labels the ones that
+  aren't (this is per-asset — a folder is rarely all-or-nothing). Tell the
+  customer the real split in outcome language, no internal terms: if all are
+  already searchable, "your N assets are already searchable and filterable —
+  using them as they are"; if some aren't, "N of your assets are already
+  searchable; I'll label the other M so they're findable too." An asset
+  counted as already-searchable (reported `skipped`, reason `already-enriched`)
+  is **reused work, not a failure** — never present it as an error or re-do it.
 - **Bring-in** (`assetsLane = bring-in`) — the customer named a source
   website; pull sample images and linked documents from it into the
   folder first using the AEM UI's repository blob-upload API, then label
@@ -58,10 +76,22 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   --customer-key <companyKey> \
   [--dam-path /content/dam/<companyKey>] \
   [--source-url <url>] \
+  [--source-urls <url1,url2,url3,...>] \
+  [--categories <slug1,slug2,...>] \
+  [--category-map .internal/<companyKey>-category-map.json] \
   [--dry-run] [--force] \
   [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
 ```
+
+**Scrape every category's source page in ONE run — do not loop the script
+page-by-page.** In Step 4 you already derived the category contract from the
+source nav; while you're there, capture the *source URL for each category*
+(the model/section page that carries that category's imagery). Pass the full
+page list as `--source-urls` (combined with `--source-url` and deduped;
+`--limit` still caps total downloads across all pages). This removes the single
+biggest Step-5 time sink: the serial "scrape one page → discover a thin category
+→ scrape the next page" loop. Front-loading turns ~10 serial passes into one.
 
 - `<companyKey>` is the same slug as Steps 2–4 (`customer.companyKey`) —
   it drives both the DAM folder `/content/dam/<companyKey>` and the
@@ -120,11 +150,28 @@ incomplete data). Once processed, the primary evidence for `dc:title`,
 signal from AEM's asset processing, not a guess. Filename tokens and
 `xcm:machineKeywords` hints are last-resort only, used per-field when the
 corresponding `autogen:*` value is still empty after processing.
-`productCategory` is assigned separately from existing metadata and
-source-site evidence, now including `autogen:subject` as a high-confidence
-signal (see `docs/asset-enrichment.md`). `company`, `dam:status=approved`,
-and `allowedCountries=["global"]` are stamped by the controller only when
-missing.
+`productCategory` is assigned separately, via the agent's `--category-map`
+written from the dry-run evidence (see `docs/asset-enrichment.md`).
+`company`, `dam:status=approved`, and `allowedCountries=["global"]` are
+stamped by the controller only when missing.
+
+**The metadata write goes through the controller.**
+`enrich-assets.js` / `writeSlingAssetMetadata` is the path that stamps
+`company`, `dam:status=approved`, `allowedCountries`, and `productCategory`;
+it writes each multivalue field with the correct `@TypeHint=String[]` type.
+Let the controller do the write — a value written any other way that omits
+`@TypeHint=String[]` lands as a single scalar string that the controller then
+has to self-heal on a later run.
+
+**"No assets ready" is a discovery result, not a processing signal.** If the
+controller reports no assets to enrich, that means folder discovery returned
+nothing — check the enumerate output, re-run the controller, or widen source
+discovery (more source URLs). It does **not** mean the assets are still
+processing: `dam:assetState=processed` is read directly from the asset's JCR
+node (`jcr:content.json`) and is immediately consistent, so there is no
+"wait for search indexing" step to insert before enrichment. A freshly
+bring-in run resolves each asset's id from the upload response itself, so a
+lagging search index never blocks it.
 
 **Never read or write `dam:roles`.** It is rights/licensing metadata, not
 a classification or title/description signal — do not reference it in
@@ -154,12 +201,40 @@ assignment.** Pass the source-derived contract in via `--categories
 links, asset `productCategory`, and collections all use these slugs. There is
 **no hardcoded keyword table** (a fixed list can't be generic across
 verticals) and no second list to keep in sync. Every asset is mapped to
-**exactly one** contract category from its real metadata
-(`autogen:subject`/`predictedTags` smart tags, `dc:*`, generated
-title/description/keywords, filename, source page) — a low-confidence mapping
-is preferred over a blank card, so there is no "unclassified/FAILED" bucket in
-normal operation. Because assignment is mandatory, every populated contract
-category has a representative and the card set is complete.
+**exactly one** contract category by the agent's `--category-map` (written from
+the dry-run evidence — `autogen:title`/`autogen:description`, `autogen:subject`
+smart tags, filename) with a round-robin fallback for anything the map omits — a
+low-confidence mapping is preferred over a blank card, so there is no
+"unclassified/FAILED" bucket in normal operation. Because assignment is
+mandatory, every populated contract category has a representative and the card
+set is complete.
+
+**The card hero per category is auto-ranked, not first-come.**
+`representatives.js` picks the highest-content-signal asset in each category as
+the card image — scored by AEM's own smart-tag count on the asset (the same
+evidence the classifier uses), so a real photograph outranks a flat
+logo/wordmark or a piece of site chrome (a nav banner, a menu graphic) that
+merely sorted first. This is signal-based, never a filename denylist. The
+scraper also drops extreme-aspect strips (wider/taller than 4:1 — banner/rail
+chrome) and sub-100px images before upload, so chrome rarely enters the DAM at
+all. `verify.mjs --only hero-quality` FAILs a hero with zero AEM smart-tag
+signal (a likely logo/chrome pick); on a FAIL, re-pick — widen discovery if the
+category genuinely has no real photo, or note it and continue if not.
+
+**Write `--category-map` from the dry-run report — this is how you get the
+write-once category right on the first write.** `productCategory` is write-once:
+whatever slug an asset lands in on its first metadata write is permanent
+(`--force` re-runs the pipeline but never overwrites an existing
+`productCategory`). So the category must be correct on the FIRST live run. The
+dry-run report lists each asset's `fileName`, `title` + `description` (AEM's
+`autogen:title`/`autogen:description`), `smartTags` (`autogen:subject`), and the
+slug round-robin would pick (`categoryConfidence: "fallback"`). Read it, and for any
+asset whose category isn't obvious from its filename — merchandise like
+`Cap_Desktop.png`, or a model-named `verna.jpg` under a body-type slug `sedan` —
+state the slug directly in a JSON map:
+`{ "Cap_Desktop.png": "accessories", "verna.jpg": "sedan" }`. Pass it as
+`--category-map`. Assets you don't list round-robin across the contract, so no
+card is empty. Same map → same assignment every run.
 
 **Category floor: minimum 5 real categories, hard floor — this is a gate, not
 a target.** `MIN_CARDS` in `scripts/assets/constants.js` is `5`. This is
@@ -176,7 +251,13 @@ checked at two points, not one:
      category pages, disease-and-conditions-style pages, etc.) — verified
      live on a real demo: a category with no obvious gallery page still
      needed 5 separate source-URL attempts across different site sections
-     before its real absence was confirmed. Don't stop at one try.
+     before its real absence was confirmed. Don't stop at one try. Add the
+     extra pages to a single re-run via `--source-urls` (not one script
+     invocation per page); if the category's assets *were* downloaded but
+     landed in the wrong slug, that's a `--category-map` problem, not a
+     discovery problem — set those filenames explicitly in the map on a
+     category whose assets are not yet written, since write-once means an
+     already-written `productCategory` can't be reclassified.
    - **If dropping the category would take the total below 5**, the drop is
      not allowed until a real replacement category is found — keep widening
      discovery, or find an additional real category to add in its place.
@@ -202,7 +283,7 @@ row per contract category: `label`, `blurb`, `href`, `cardImageUrl`). Author
 the landing page directly from it — no hand-built URLs, no per-run improvising.
 
 **Preserve the existing block structure; only regenerate its rows.** The
-copied `/<companyKey>/en/index` already carries the landing blocks:
+copied `/companies/<companyKey>/en/index` already carries the landing blocks:
 `<div class="carousel tiles">` for "Browse by category" (N slides, paginated)
 and `<div class="cards">` for the secondary "Top" section. Both are already
 generic in count and already wire whole-card clickability off each tile's
@@ -214,6 +295,16 @@ block's rows from `report.cards`, keeping the wrappers. Each row is authored in
 the exact shape the base index uses: image cell (col 0) + heading + blurb +
 facet `Browse →` link (col 1).
 
+- **ALL contract categories go in the carousel — leave `topAreasCount` at its
+  default 0.** Do **not** pass `topAreasCount > 0` to spill the "extra"
+  categories into the secondary `.cards`/"Top Brands" block. The carousel is
+  paginated and absorbs any N; carving categories out of it produces the exact
+  verified failure (Nescafé: `topAreasCount:2` left only 4 of 6 categories in
+  the carousel and dumped the other 2 into "Top Brands" as image-only orphans
+  with no brand names). The secondary section is for a *distinct* curated
+  brand/featured set with its own 1:1 images (see the drop-by-default rule
+  below) — never for category-card overflow. `verify.mjs --only card-count`
+  FAILs if a populated category has no carousel card.
 - **Count is whatever the contract yields, above the 5-category floor** — the
   carousel absorbs any N ≥ 5. The **card gate** in the enrichment run already
   fails when a contract category has zero assets or fewer than `MIN_CARDS`
@@ -243,7 +334,7 @@ facet `Browse →` link (col 1).
 - The card href facet slug equals the asset's `productCategory` (both are the
   contract slug); never rewrite only the visible label.
 - **Images are DA-hosted page images — never the worker proxy.**
-  `cardImageUrl` is a `https://content.da.live/<org>/<repo>/<companyKey>/en/
+  `cardImageUrl` is a `https://content.da.live/<org>/<repo>/companies/<companyKey>/en/
   media_<categorySlug>.<ext>` URL, uploaded once per contract category by
   `.claude/skills/rebrand-portal/scripts/assets/da-card-images.js` during
   enrichment (fetches the representative asset's real bytes via the same
@@ -253,6 +344,18 @@ facet `Browse →` link (col 1).
   other authored image in this template uses. On preview/publish, Helix
   automatically rewrites this into its own public `media_<hash>.<ext>` path;
   that is the real, non-auth-gated URL a visitor's browser loads.
+
+  **Card images work identically on both lanes — including already-uploaded
+  assets.** The upload fetches the category hero's bytes from AEM by its
+  `assetId`, which every asset in the folder has regardless of how it got there
+  (enumerated on enrich-existing, or from the upload response on bring-in). An
+  already-enriched/skipped asset is still an eligible hero and still produces a
+  card image. So there is no separate card-image path for the enrich-existing
+  lane. Two requirements are lane-agnostic and still apply: the chosen hero must
+  have a resolvable `assetId` (folder enumeration provides it), and
+  `--org`/`--repo` + a DA token (`--da-token-file`, default `token.env`) must be
+  passed — without them `da-card-images.js` is skipped and every card fails the
+  card gate on a missing image, already-uploaded assets included.
 
   **The worker proxy (`/api/adobe/assets/<assetId>/as/<fileName>.jpg?width=
   <N>`) is never used for card images, full stop — verified broken live.**
@@ -265,7 +368,7 @@ facet `Browse →` link (col 1).
   authenticated portal shell, a genuinely different code path); this
   restriction is scoped to landing-card images only.
 
-Publish the updated company-scoped `/<companyKey>/en/index` after rewriting the
+Publish the updated company-scoped `/companies/<companyKey>/en/index` after rewriting the
 rows. The visible outcome is real customer imagery on every landing card —
 carousel and secondary section — each clickable to a non-zero facet search.
 
@@ -273,7 +376,7 @@ carousel and secondary section — each clickable to a non-zero facet search.
 
 So the demo shows **only** this company's assets, the scope lives in
 `cloudflare/src/config.js`: `DEMO_COMPANY: '<companyKey>'` (search filter)
-and `DEMO_BASE_PATH: '/<companyKey>'` (routing/login base) — default
+and `DEMO_BASE_PATH: '/companies/<companyKey>'` (routing/login base) — default
 `null`/`''` = unchanged. `.claude/skills/rebrand-portal/scripts/assets/enrich-assets.js` writes both keys
 automatically during enrichment; if Step 4 already set them (it should),
 confirm they equal `<companyKey>`. The worker injects a
@@ -303,15 +406,33 @@ returned success:
    zero-asset contract category, so a `(0)` here means a coverage/indexing
    drift — confirm the assets carry `company`, `productCategory`,
    `dam:status=approved`, `allowedCountries=global`, then retry after indexing.
-4. **Card visuals are real customer assets.** Every card (carousel and the
-   secondary section) uses its `cardImageUrl` from `report.cards`; no
-   base-brand placeholder icons, stale imagery, or missing-image circles
-   remain. Each card image belongs to the same category the card links to.
-   **Check the rendered `<img>` src on the published page**: it must be a
-   Helix `media_<hash>.<ext>` path (proof Helix actually processed the
+4. **Card visuals are real customer assets — verified in a browser, not
+   inferred.** Every card (carousel and the secondary section) uses its
+   `cardImageUrl` from `report.cards`; no base-brand placeholder icons, stale
+   imagery, or missing-image circles remain. Each card image belongs to the
+   same category the card links to. **This is a hard gate: actually load the
+   *published* `/companies/<companyKey>/en/index` in a browser and look at every tile.**
+   A DA-admin `200`, an upload `200`, or a `content.da.live` fetch returning
+   bytes is **not** proof the card renders — the Apple demo shipped with
+   working uploads but broken card images because only the login page was
+   checked. **Check the rendered `<img>` src on the published page**: it must
+   be a Helix `media_<hash>.<ext>` path (proof Helix actually processed the
    uploaded bytes). A literal `content.da.live/...` or `/api/adobe/assets/...`
-   src surviving in the *published* page is a fail — it means publish didn't
-   run, or the old worker-proxy pattern crept back in.
+   src surviving in the *published* page, or any blank/broken tile, is a fail
+   — it means publish didn't run, or the old worker-proxy pattern crept back
+   in. Do not mark Step 5 done until every homepage tile visibly renders its
+   real image.
+   **Scriptable pre-check against the report** — before the browser pass, run:
+   ```
+   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+     --report <step-5-report.json> --only stale-card-images
+   ```
+   `stale-card-images` FAILs if any `report.cards[].cardImageUrl` still points
+   at a base-template asset (`firefly_*`, the base repo's `north-roast`/
+   `quiet-leaf` sample brands, `frescopa`, a `reward-banner`, etc.) — the "Top
+   Brands" stale-placeholder case (verified live). A FAIL means drop the
+   section or source a real per-item image; never ship the stand-in. The
+   browser pass then confirms what the report can't (actual render).
 5. **Every landing tile — carousel and secondary — is authored from
    `report.cards`.** The page carries exactly the two canonical blocks
    (`carousel tiles` + `cards`), both regenerated from the report; there are
@@ -330,7 +451,10 @@ pass.
 **Completion report** (I1, outcomes only): which assets are now in the
 portal and searchable; that filtering works (name the facets that lit up);
 that the demo shows only this company's assets; any per-asset items that
-couldn't be brought in. Once enrichment actually runs, do not stop here:
+couldn't be brought in. On the enrich-existing lane, distinguish **already
+searchable (reused as-is)** from **newly labeled** in plain language — e.g.
+"N of your assets were already searchable; I made the other M findable too" —
+so the customer sees their prior work was reused, not redone. Once enrichment actually runs, do not stop here:
 continue directly to Step 6 and create the ready-made collections. The demo
 is shareable **without merging** — the portal link serves the rebranded,
 company-scoped portal; that link is the deliverable. Promoting to production

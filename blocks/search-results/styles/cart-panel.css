@@ -396,7 +396,7 @@ html.base-panel-open {
 }
 
 .cart-panel .asset-type .type-val {
-  color: #0e202e;
+  color: #333;
   font-family: var(--body-font-family), sans-serif;
 }
 
@@ -902,7 +902,7 @@ html.base-panel-open {
 }
 
 .save-intended-use-btn:hover {
-  background-color: var(--primary-color-hover, #004d61);
+  background-color: var(--primary-color-hover, #B30410);
 }
 
 .save-intended-use-btn:disabled {
@@ -1490,7 +1490,7 @@ html.base-panel-open {
 }
 
 .download-asset-item.selected {
-  background-color: #f0f7ff;
+  background-color: #FFF5F5;
 }
 
 .download-asset-item .asset-info {

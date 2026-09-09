@@ -1,0 +1,42 @@
+{
+  "context": "Guards that the Step 4g verification actually reads blocks/header/header.js's welcome-header (header:no) path and catches two live defects there: a hardcoded base-brand icon class/file, and a bare href=\"/\" never run through localizePath(). Fixture header.js has both regressions; the agent must detect and fix them, not assume this file is out of scope because Step 4 only documents header.css.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Identifies the hardcoded base-brand icon reference from the actual file",
+      "max_score": 25,
+      "description": "The agent reads blocks/header/header.js and states that the welcome-header block hardcodes the base brand's icon class (icon-frescopa-icon) and icon file (frescopa-icon.svg), not the company's."
+    },
+    {
+      "name": "Identifies the bare href=\"/\" as not localized",
+      "max_score": 25,
+      "description": "The agent states that the welcome-header home link is a bare href=\"/\" never passed through localizePath(), unlike other links in the same file, and that this breaks navigation on a foldered demo."
+    },
+    {
+      "name": "Fixes the home link to resolve via localizePath()",
+      "max_score": 20,
+      "description": "blocks/header/header.js no longer sets the welcome-header home link to a bare \"/\" literal — it resolves through localizePath('/') or an equivalent non-literal expression.",
+      "check": {
+        "type": "fileNotMatches",
+        "file": "blocks/header/header.js",
+        "value": "href=[\"'`]/[\"'`]"
+      }
+    },
+    {
+      "name": "Removes the hardcoded base-brand icon reference",
+      "max_score": 20,
+      "description": "blocks/header/header.js no longer references frescopa-icon anywhere in the welcome-header block.",
+      "check": {
+        "type": "fileNotMatches",
+        "file": "blocks/header/header.js",
+        "value": "frescopa-icon",
+        "flags": "i"
+      }
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 10,
+      "description": "No internal terms are surfaced unnecessarily to the customer (I1)."
+    }
+  ]
+}

@@ -64,3 +64,55 @@ echo '{"tool_input":{"command":"curl -X POST https://admin.hlx.page/live/o/r/mai
 ```
 
 Requires `python3` on PATH (used only for JSON parsing).
+
+# Step 5 verify gate hook (`guard-step5-verify-gate.sh`)
+
+A `PreToolUse` hook that blocks invoking Step 5's asset-enrichment script
+(`scripts/assets/enrich-assets.js`) unless a fresh, passing `verify.mjs`
+report exists for the worktree's current commit.
+
+**Why this exists:** `docs/step-4g-verification.md` documents Step 4g as a
+"hard gate before Step 5," and `verify.mjs`'s checks (`residue`,
+`structural-residue`, `icon-reference-resolution`,
+`welcome-header-home-link`, `header-logo`, `icon-render`) already catch the
+defects that class of gate is meant to catch — but nothing ever enforced
+it mechanically. `verify.mjs`'s exit code was never read by anything, so
+an agent could run it, see a FAIL, and proceed to Step 5 anyway. This hook
+makes that impossible: it reads `.internal/verify-report.json` (written by
+`verify.mjs --write-report`) and blocks unless every mandatory check
+passed against the current commit.
+
+**Producing the report:**
+
+```bash
+node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+  --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+  --write-report .internal/verify-report.json
+```
+
+**Scope / limitations (defense-in-depth, not a sandbox):**
+- Pattern-based over the tool input, same caveats as `guard-da-publish.sh`.
+- A stale report (checked commit ≠ current HEAD) is treated as no report
+  at all — any edit after the last verify.mjs run re-blocks Step 5 until
+  it's re-run.
+- Only guards `enrich-assets.js` — other Step 5/6 scripts are not in scope
+  for this hook.
+
+## Registration
+
+This repo registers the hook for Claude Code in `.claude/settings.json`,
+alongside the other three rebrand-portal hooks.
+
+## Verifying
+
+```bash
+# block: no report present
+echo '{"tool_input":{"command":"node scripts/assets/enrich-assets.js --dry-run"}}' \
+  | CLAUDE_PROJECT_DIR=/path/to/repo ./guard-step5-verify-gate.sh; echo "exit=$?"   # 2
+
+# allow: fresh report, all mandatory checks passing
+# (write .internal/verify-report.json with checkedCommit == `git rev-parse HEAD`
+#  and every mandatory check's pass:true, then re-run the command above)   # 0
+```
+
+Requires `python3` on PATH (used only for JSON parsing).

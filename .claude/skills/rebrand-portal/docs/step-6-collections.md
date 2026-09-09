@@ -1,5 +1,9 @@
 # Step 6 — Build collections from the searchable assets (`collections-created`)
 
+> **Run from the worktree** (`customer.worktreePath`).
+> `create-collections.js` reads `cloudflare/.secrets` + config.js from the
+> repo root it resolves from cwd — the worktree, same as Step 5.
+
 Once Step 5's assets are searchable, turn them into **ready-made
 collections** so the demo opens with the company's assets already
 organized — one collection per category (the same `productCategory` slugs
