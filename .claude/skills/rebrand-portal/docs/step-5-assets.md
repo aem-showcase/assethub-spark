@@ -200,6 +200,18 @@ is preferred over a blank card, so there is no "unclassified/FAILED" bucket in
 normal operation. Because assignment is mandatory, every populated contract
 category has a representative and the card set is complete.
 
+**The card hero per category is auto-ranked, not first-come.**
+`representatives.js` picks the highest-content-signal asset in each category as
+the card image — scored by AEM's own smart-tag count on the asset (the same
+evidence the classifier uses), so a real photograph outranks a flat
+logo/wordmark or a piece of site chrome (a nav banner, a menu graphic) that
+merely sorted first. This is signal-based, never a filename denylist. The
+scraper also drops extreme-aspect strips (wider/taller than 4:1 — banner/rail
+chrome) and sub-100px images before upload, so chrome rarely enters the DAM at
+all. `verify.mjs --only hero-quality` FAILs a hero with zero AEM smart-tag
+signal (a likely logo/chrome pick); on a FAIL, re-pick — widen discovery if the
+category genuinely has no real photo, or note it and continue if not.
+
 **Pass `--category-aliases` when the card *labels* differ from the *asset
 naming* — this is the fix for the write-once misclassification.**
 `productCategory` is write-once: whatever slug an asset lands in on its first
@@ -272,6 +284,16 @@ block's rows from `report.cards`, keeping the wrappers. Each row is authored in
 the exact shape the base index uses: image cell (col 0) + heading + blurb +
 facet `Browse →` link (col 1).
 
+- **ALL contract categories go in the carousel — leave `topAreasCount` at its
+  default 0.** Do **not** pass `topAreasCount > 0` to spill the "extra"
+  categories into the secondary `.cards`/"Top Brands" block. The carousel is
+  paginated and absorbs any N; carving categories out of it produces the exact
+  verified failure (Nescafé: `topAreasCount:2` left only 4 of 6 categories in
+  the carousel and dumped the other 2 into "Top Brands" as image-only orphans
+  with no brand names). The secondary section is for a *distinct* curated
+  brand/featured set with its own 1:1 images (see the drop-by-default rule
+  below) — never for category-card overflow. `verify.mjs --only card-count`
+  FAILs if a populated category has no carousel card.
 - **Count is whatever the contract yields, above the 5-category floor** — the
   carousel absorbs any N ≥ 5. The **card gate** in the enrichment run already
   fails when a contract category has zero assets or fewer than `MIN_CARDS`

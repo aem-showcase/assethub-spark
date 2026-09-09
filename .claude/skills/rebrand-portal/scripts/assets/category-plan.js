@@ -51,7 +51,7 @@ function stringArray(value) {
   return [];
 }
 
-function autogenSubjectTerms(metadata = {}) {
+export function autogenSubjectTerms(metadata = {}) {
   return [
     ...stringArray(metadata[AUTOGEN_FIELD.SUBJECT]),
     ...stringArray(metadata[AUTOGEN_FIELD.PREDICTED_TAGS]),

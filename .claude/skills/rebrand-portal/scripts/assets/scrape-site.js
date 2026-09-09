@@ -240,11 +240,18 @@ export function extractImageUrls(html, baseUrl) {
     }
   }
 
-  // [2] <img> tags — skip those whose declared dimensions are clearly tiny (icons/flags).
+  // [2] <img> tags — skip those whose declared dimensions mark them as non-content:
+  //   - clearly tiny in either axis (icons/flags), OR
+  //   - an extreme aspect ratio (a wide strip / tall rail = a logo banner, nav bar, or
+  //     decorative divider, not a product photo). This is a dimension signal, not a
+  //     filename denylist: a real hero is never 6:1. The 4:1 cutoff keeps ordinary
+  //     landscape/portrait heroes while dropping banner chrome (e.g. a 1100×180 wordmark
+  //     strip). Only applied when BOTH dimensions are declared, so unmeasured imgs pass.
   for (const tag of html.match(IMG_TAG_RE) || []) {
     const w = parseInt(getAttr(tag, 'width') || '0', 10);
     const h = parseInt(getAttr(tag, 'height') || '0', 10);
     if ((w > 0 && w < 100) || (h > 0 && h < 100)) continue;
+    if (w > 0 && h > 0 && (w / h > 4 || h / w > 4)) continue;
 
     addTo(srcUrls, getAttr(tag, 'src'));
     addTo(srcUrls, getAttr(tag, 'data-src'));

@@ -29,10 +29,39 @@ Every color/surface/logo/link assertion in this section is proven by reading
 what the site *serves*, not by looking at a picture of it:
 
 1. **Deterministic checks are the gate.** `scripts/rebrand/verify.mjs`
-   (residue, header-logo, applied-css, nav-404-loop) plus `curl` of the
-   served CSS and `.plain.html` give a binary pass/fail. This is what
-   "done" means. The rendered colors are fully determined by the served
-   stylesheet — resolve the cascade, do not eyeball it.
+   plus `curl` of the served CSS and `.plain.html` give a binary pass/fail.
+   This is what "done" means. The rendered colors are fully determined by the
+   served stylesheet — resolve the cascade, do not eyeball it.
+
+   **Run it as ONE consolidated pass**, not scattered greps. All checks in a
+   single invocation (tree + preview + report):
+   ```
+   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+     --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+     --report .internal/<companyKey>-assets-report.json
+   ```
+   Checks and what each catches:
+   - `residue`, `header-logo`, `applied-css`, `nav-404-loop` — colors, logo
+     sizing, applied CSS, 404 loop (as before).
+   - `icon-render` (tree) — header wordmark is vector, not blank `<text>`.
+   - `card-count` (report) — every populated contract category has a card
+     with an href + image (catches "only 4 of 6 categories show"; the
+     missing ones must NOT be carved into a "Top Brands" section).
+   - `hero-quality` (report) — no card hero is a flat logo/wordmark/chrome
+     (scored by AEM's own smart-tag signal, not a filename list).
+
+   **`card-count` and `hero-quality` need the Step-5 report**, so re-run
+   verify.mjs (or just those two `--only card-count,hero-quality`) after
+   enrichment produces the report — the icon/CSS/nav checks run at 4g before
+   Step 5, the card checks run once the report exists.
+
+   **Non-blocking + self-healing — a FAIL never halts the demo.** On a FAIL:
+   fix the cause in place and continue — regenerate a `<text>` icon as
+   vector; re-author the index so every category is a carousel card; re-pick
+   a flat hero. Only if a fix is genuinely impossible (e.g. a category has no
+   non-logo asset at all) do you record a one-line follow-up in the
+   completion report and proceed — same "note and continue, never loop" rule
+   as the screenshot step below. Do not stop the run waiting on a human.
 2. **Rendered DOM, only when a check needs the authenticated page.** If a
    gate needs the logged-in view (the facets/search page) and you cannot
    reach it, run local dev with the auth bypass (below) and read the served
@@ -186,7 +215,15 @@ once right after the step 1–2 edits, and again against the preview URL.
    `--welcome-tagline-line1` + `--welcome-tagline-line2`; otherwise the
    login's left panel keeps the base brand's panel colour, mark, and
    tagline (the CSS defaults). Confirm both `/icons/<companyKey>-icon.svg` AND
-   `/icons/<companyKey>-beans.svg` exist.
+   `/icons/<companyKey>-beans.svg` exist — **and that the header wordmark
+   actually RENDERS, not just exists.** A wordmark SVG built from `<text>`
+   renders blank when loaded via an icon shortcode (which the header does as
+   an `<img>`): the font does not load in the isolated SVG context, so the
+   letters vanish while the file is present and non-empty (verified live —
+   blank Nescafé header logo). Header wordmarks MUST be vector `<path>`
+   outlines, or embed the real logo as `<image>` — never `<text>`. The
+   `icon-render` check (below) FAILs on a `<text>` wordmark; on a FAIL,
+   regenerate the icon as outlines and continue — do not ship the blank logo.
 
 Not every hardcoded fill is wrong (a neutral icon that turns brand-colored
 on hover is fine) — confirm a flagged file reads off-brand before fixing by

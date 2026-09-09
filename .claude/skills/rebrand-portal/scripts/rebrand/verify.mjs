@@ -12,9 +12,9 @@
  *     [--repo-root <dir>] [--preview <host>] [--company <companyKey>] \
  *     [--report <report.json>] [--only <check,check>]
  *
- * Tree-only checks (no --preview needed): header-logo, residue.
+ * Tree-only checks (no --preview needed): header-logo, residue, icon-render.
  * Preview checks (need --preview + --company): nav-404-loop, applied-css.
- * Report check (needs --report + --preview): stale-card-images.
+ * Report checks (need --report): stale-card-images, card-count, hero-quality.
  *
  * Exit 0 = every applicable check passed; 1 = a check FAILED; 2 = usage/setup error.
  */
@@ -248,6 +248,110 @@ export function checkStaleCardImages(reportPath) {
   return { name: 'stale-card-images', pass: true, reason: `${cards.length} card image(s) all run-produced` };
 }
 
+// ---- CHECK: icon-render (tree) --------------------------------------------------
+// The header wordmark icon must actually RENDER when loaded as an <img> (which EDS icon
+// shortcodes do). An SVG built from <text> renders blank there because the font does not
+// load in the isolated <img> SVG context — it must carry drawable geometry (<path>, and a
+// text-only wordmark with no path is the verified blank-logo trap). Step 4g item 5 already
+// asserts the file EXISTS; existence is not rendering.
+export function checkIconRender(repoRoot, company) {
+  if (!company) return { name: 'icon-render', pass: false, reason: 'needs --company' };
+  const iconPath = join(repoRoot, 'icons', `${company}-icon.svg`);
+  if (!existsSync(iconPath)) {
+    return { name: 'icon-render', pass: false, reason: `icons/${company}-icon.svg not found` };
+  }
+  const svg = readFileSync(iconPath, 'utf8');
+  // A <text> element is the blank-render trap: it needs a font that does not load in the
+  // isolated <img> SVG context, so the wordmark disappears. Decorative <rect>/<line> bars do
+  // NOT redeem it — the actual letterforms are the text. Any <text> in a wordmark icon fails;
+  // the fix is vector letterform <path>s (or embedding the real logo asset), not adding shapes
+  // around the text. An <image> href (embedded raster logo) is fine, as is a pure-<path> mark.
+  if (/<text\b/i.test(svg)) {
+    return {
+      name: 'icon-render',
+      pass: false,
+      reason: `icons/${company}-icon.svg renders its wordmark with <text> — blank as an <img> (font not loaded). Regenerate the letterforms as vector <path> outlines, or embed the real logo.`,
+    };
+  }
+  const hasDrawableGeometry = /<(?:path|polygon|polyline|circle|ellipse|image)\b/i.test(svg);
+  if (!hasDrawableGeometry) {
+    return { name: 'icon-render', pass: false, reason: `icons/${company}-icon.svg has no drawable geometry (no <path>/<image>) — nothing to render` };
+  }
+  return { name: 'icon-render', pass: true, reason: `icons/${company}-icon.svg carries drawable vector geometry (no <text>)` };
+}
+
+// ---- CHECK: card-count (report) -------------------------------------------------
+// Every source-derived contract category must render as a card in the carousel, each with an
+// image and a facet link. Guards the "only 4 of 6 categories show / the rest got carved into
+// a stale Top Brands section" failure: report.cards must cover every category the enrichment
+// found, and no card may be missing its href or image.
+export function checkCardCount(reportPath) {
+  if (!reportPath || !existsSync(reportPath)) {
+    return { name: 'card-count', pass: false, reason: 'needs --report <report.json>' };
+  }
+  let report;
+  try { report = JSON.parse(readFileSync(reportPath, 'utf8')); } catch (e) {
+    return { name: 'card-count', pass: false, reason: `bad report json: ${e.message}` };
+  }
+  const cards = report.cards || [];
+  const covered = ((report.categoryCoverage || {}).categories || [])
+    .filter((c) => (c.assetCount || 0) > 0);
+  if (covered.length && cards.length < covered.length) {
+    const cardSlugs = new Set(cards.map((c) => c.slug));
+    const dropped = covered.map((c) => c.slug).filter((s) => !cardSlugs.has(s));
+    return {
+      name: 'card-count',
+      pass: false,
+      reason: `${cards.length} card(s) but ${covered.length} populated categor(ies) — missing card(s) for: ${dropped.join(', ')}. All contract categories belong in the carousel, not a secondary section.`,
+    };
+  }
+  const brokenCards = cards.filter((c) => !c.href || !(c.cardImageUrl || c.image));
+  if (brokenCards.length) {
+    return {
+      name: 'card-count',
+      pass: false,
+      reason: `${brokenCards.length} card(s) missing href or image: ${brokenCards.map((c) => c.slug).join(', ')}`,
+    };
+  }
+  return { name: 'card-count', pass: true, reason: `${cards.length} card(s), one per populated category, all with href + image` };
+}
+
+// ---- CHECK: hero-quality (report) -----------------------------------------------
+// A card's representative (hero image) must be real imagery, not a flat logo/wordmark/UI
+// chrome. Signal = AEM's own smart-tag count on the chosen representative (the same evidence
+// representatives.js ranks by); AEM's vision pipeline tags a photograph richly and a flat
+// graphic barely or not at all. Advisory: a zero-signal hero is flagged so it can be re-picked
+// or noted — never a filename denylist.
+export function checkHeroQuality(reportPath) {
+  if (!reportPath || !existsSync(reportPath)) {
+    return { name: 'hero-quality', pass: false, reason: 'needs --report <report.json>' };
+  }
+  let report;
+  try { report = JSON.parse(readFileSync(reportPath, 'utf8')); } catch (e) {
+    return { name: 'hero-quality', pass: false, reason: `bad report json: ${e.message}` };
+  }
+  const items = Object.entries((report.representatives || {}).items || {});
+  // Only reps that actually carry the smartTags field are measurable. A rep without it comes
+  // from an older report that predates the field — unmeasurable, not a failure (noted, not
+  // failed). A rep WITH the field but zero tags = AEM's vision pipeline found no content =
+  // a flat logo/wordmark/chrome hero → fail so it gets re-picked.
+  const measurable = items.filter(([, rep]) => Array.isArray(rep.smartTags));
+  const flat = measurable
+    .filter(([, rep]) => rep.smartTags.length === 0)
+    .map(([slug, rep]) => `${slug} (${rep.repoName || rep.assetId || '?'})`);
+  if (flat.length) {
+    return {
+      name: 'hero-quality',
+      pass: false,
+      reason: `card hero(es) with no AEM smart-tag signal (likely logo/wordmark/chrome), re-pick a real photo: ${flat.join('; ')}`,
+    };
+  }
+  if (!measurable.length) {
+    return { name: 'hero-quality', pass: true, reason: `${items.length} hero(es) but none carry smartTags (older report) — unmeasurable, re-run enrichment to record signal` };
+  }
+  return { name: 'hero-quality', pass: true, reason: `${measurable.length} card hero(es) carry AEM smart-tag signal` };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const opt = { repoRoot: null, preview: null, company: null, report: null, only: null };
@@ -267,9 +371,12 @@ async function main() {
 
   if (want('header-logo')) results.push(checkHeaderLogo(repoRoot));
   if (want('residue')) results.push(checkResidue(repoRoot, baseBrand));
+  if (want('icon-render')) results.push(checkIconRender(repoRoot, opt.company));
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
   if (opt.report && want('stale-card-images')) results.push(checkStaleCardImages(opt.report));
+  if (opt.report && want('card-count')) results.push(checkCardCount(opt.report));
+  if (opt.report && want('hero-quality')) results.push(checkHeroQuality(opt.report));
 
   let failed = 0;
   for (const r of results) {
