@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'source-urls', 'secrets-file', 'limit',
-  'concurrency', 'report-file', 'fixture', 'aem-env-id', 'categories', 'category-aliases',
+  'concurrency', 'report-file', 'fixture', 'aem-env-id', 'categories', 'category-map',
   'org', 'repo', 'da-token-file',
 ]);
 
@@ -135,11 +135,11 @@ export function parseArgs(argv) {
     // --categories dermatology,cancer,diabetes,obesity,alzheimers. normalizeContract() in
     // enrich-assets.js parses this into [{slug,label}].
     categoryContract: null,
-    // Source-derived alias tokens per category slug (extra classifier evidence, not shown to
-    // users). Shape: "sedan=verna,aura;suv=creta,venue". Lets a body-type/label slug match
-    // model/product-named assets on the FIRST write, so productCategory (write-once) is right
-    // the first time instead of needing a re-classification pass that --force can't do.
-    categoryAliases: null,
+    // Path to the agent's category map: JSON object of `fileName|assetId -> slug`, written from
+    // the dry-run evidence. buildMapClassifier() turns it into the injected classifier so each
+    // asset gets the agent's stated category verbatim. Assets absent from the map round-robin
+    // into the contract. Reproducible: same map file -> same assignment.
+    categoryMap: null,
     // DA org/repo (same as the GitHub org/repo — resolved by the calling flow from the git
     // remote, same as scripts/da/copy-folder.sh's <org> <repo> args) and the token file
     // (default token.env at repo root) — needed to upload representative card images to DA
@@ -174,7 +174,7 @@ export function parseArgs(argv) {
         case 'fixture': opts.fixture = value; break;
         case 'aem-env-id': opts.aemEnvId = value; break;
         case 'categories': opts.categoryContract = value; break;
-        case 'category-aliases': opts.categoryAliases = value; break;
+        case 'category-map': opts.categoryMap = value; break;
         case 'org': opts.org = value; break;
         case 'repo': opts.repo = value; break;
         case 'da-token-file': opts.daTokenFile = value; break;

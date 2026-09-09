@@ -30,6 +30,7 @@ import {
   categorySearchUrl,
   humanizeCategorySlug,
   slugifyCategory,
+  autogenSubjectTerms,
 } from './category-plan.js';
 import { scrapeSiteImages } from './scrape-site.js';
 import { createUploadStrategy } from './upload-strategy.js';
@@ -46,13 +47,6 @@ import {
 } from './config.js';
 
 export { mapWithConcurrency };
-
-/** Coerce an alias value (array | space/comma string | nullish) to a token array. */
-function tokenizeAliases(value) {
-  if (Array.isArray(value)) return value.filter(Boolean);
-  if (typeof value === 'string' && value.trim()) return value.trim().split(/[\s,]+/).filter(Boolean);
-  return [];
-}
 
 /**
  * The ordered, deduped list of bring-in source pages for one run. Combines --source-url
@@ -77,10 +71,8 @@ export function resolveSourceUrls(options = {}) {
 }
 
 /**
- * Normalize the source-derived category contract into [{slug,label,aliases?}]. Accepts an
- * array of {slug,label,aliases}|string, or a comma-separated string of slugs (the --categories
- * CLI form). Aliases are optional source-derived classifier evidence tokens (model/product
- * names) that let a body-type slug like "sedan" match model-named assets ("verna","aura").
+ * Normalize the source-derived category contract into [{slug,label}]. Accepts an array of
+ * {slug,label}|string, or a comma-separated string of slugs (the --categories CLI form).
  */
 export function normalizeContract(input) {
   let entries = [];
@@ -94,36 +86,32 @@ export function normalizeContract(input) {
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
     const label = (raw.label && String(raw.label).trim()) || humanizeCategorySlug(slug);
-    const aliases = tokenizeAliases(raw.aliases);
-    out.push(aliases.length ? { slug, label, aliases } : { slug, label });
+    out.push({ slug, label });
   }
   return out;
 }
 
 /**
- * Parse the --category-aliases CLI form into { slug: [tokens] }.
- * Shape: "slug=tok1,tok2;slug2=tokA tokB" — semicolon-separated groups, each `slug=tokens`
- * with comma/space-separated tokens. Slugs are slugified so they line up with the contract.
+ * Parse the --category-map file (JSON object of `fileName|assetId -> slug`) into a lookup
+ * classifier for applyCategoryPlan. The agent writes this map from the dry-run evidence — it
+ * reads each asset's title + description (AEM's autogen:title/autogen:description), smart tags
+ * (autogen:subject/predictedTags), and filename, then states the category directly — the
+ * agent's judgment applied verbatim: no token-overlap guessing, no plural/singular or alias
+ * handling. The map is keyed by fileName (assetId as a fallback) because that is the
+ * identifier the agent writes down, not because filename is the only evidence. An asset absent
+ * from the map falls through to the round-robin fallback.
  */
-export function parseCategoryAliases(input) {
-  const map = {};
-  if (!input || typeof input !== 'string') return map;
-  for (const part of input.split(';')) {
-    const [slugRaw, toksRaw] = part.split('=');
-    const slug = slugifyCategory(slugRaw || '');
-    if (!slug || !toksRaw) continue;
-    const toks = tokenizeAliases(toksRaw);
-    if (toks.length) map[slug] = (map[slug] || []).concat(toks);
+export function buildMapClassifier(map) {
+  if (!map || typeof map !== 'object') return undefined;
+  const lookup = {};
+  for (const [key, slug] of Object.entries(map)) {
+    if (key && slug) lookup[String(key).trim()] = slugifyCategory(slug);
   }
-  return map;
-}
-
-/** Fold a parsed alias map into a normalized contract (appends aliases per matching slug). */
-export function mergeContractAliases(contract, aliasMap) {
-  if (!aliasMap || !Object.keys(aliasMap).length) return contract;
-  return contract.map((entry) => (aliasMap[entry.slug]
-    ? { ...entry, aliases: (entry.aliases || []).concat(aliasMap[entry.slug]) }
-    : entry));
+  if (Object.keys(lookup).length === 0) return undefined;
+  return (evidence) => {
+    const slug = lookup[evidence.fileName] || lookup[evidence.assetId] || null;
+    return slug ? { slug, confidence: 'mapped' } : null;
+  };
 }
 
 /**
@@ -467,13 +455,10 @@ export async function enrichAssets({
   );
 
   // Category assignment maps every asset onto the source-derived contract
-  // (options.categoryContract) via the injected classifier (agent/LLM live; deterministic
-  // stub in tests) — no hardcoded keyword vocabulary. Assignment is mandatory; each asset
-  // lands in exactly one contract slug.
-  const contract = mergeContractAliases(
-    normalizeContract(options.categoryContract),
-    parseCategoryAliases(options.categoryAliases),
-  );
+  // (options.categoryContract) via the injected classifier (real run: the agent's
+  // fileName->slug map). Assignment is mandatory; anything the map omits round-robins into a
+  // contract slug so every homepage card stays non-empty.
+  const contract = normalizeContract(options.categoryContract);
   const categorized = applyCategoryPlan(planned, { contract, classifier });
   const withMetadataPlans = categorized.map((p) => {
     if (!p || p.error || p.skip || !p.fields) return p;
@@ -558,11 +543,24 @@ export async function enrichAssets({
 
   const preview = metadataPreview(writable);
 
-  // [5] Dry-run stops here
+  // [5] Dry-run stops here. Record everything the agent needs to write --category-map: the
+  // fileName (the map key) plus each asset's title + description (AEM's autogen:title/
+  // autogen:description via the generator) and smartTags (autogen:subject/predictedTags) — the
+  // per-asset classification signal. Plus the slug round-robin picked
+  // (categoryConfidence:'fallback' flags which to set explicitly). The agent reads this from
+  // --report-file, writes fileName->slug, re-runs.
   if (options.dryRun) {
     log.info?.(`[agent] DRY RUN - would update Sling metadata for ${writable.length} asset(s):`);
     log.info?.(preview);
-    writable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, { dryRun: true }));
+    writable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, {
+      dryRun: true,
+      fileName: p.asset.fileName || p.asset.repoName || null,
+      title: p.fields?.title || null,
+      description: p.fields?.description || null,
+      smartTags: autogenSubjectTerms(p.existingMetadata || {}),
+      productCategory: p.fields?.productCategory || null,
+      categoryConfidence: p.categoryAssignment?.confidence || null,
+    }));
     return {
       report, dryRun: true, metadataPreview: preview, patchPreview: preview,
     };
@@ -654,6 +652,16 @@ export async function main(argv = process.argv.slice(2)) {
 
   const generator = createAssetMetadataGenerator();
 
+  // The agent's fileName->slug map (--category-map) becomes the injected classifier. Absent,
+  // classification is left to the round-robin fallback in applyCategoryPlan (every card still
+  // fills, categories just aren't the agent's judgment).
+  let classifier;
+  if (options.categoryMap) {
+    const map = JSON.parse(readFileSync(options.categoryMap, 'utf8'));
+    classifier = buildMapClassifier(map);
+    console.warn(`[agent] using category map ${options.categoryMap} (${Object.keys(map).length} entries)`);
+  }
+
   // Dispatch:
   //  - --fixture: fully offline preview, forced dry-run.
   //  - otherwise: DM client_credentials against the AEM Assets Author API.
@@ -666,10 +674,9 @@ export async function main(argv = process.argv.slice(2)) {
       console.warn('[agent] --fixture is offline-only; forcing --dry-run.');
       options.dryRun = true;
     }
-    // No classifier injected here → applyCategoryPlan uses the deterministic token-overlap
-    // classifier over the contract. The agent/LLM can call enrichAssets({classifier}) directly
-    // for smarter mapping; the CLI default stays deterministic and offline-safe.
-    run = () => enrichAssets({ options, client, generator });
+    run = () => enrichAssets({
+      options, client, generator, classifier,
+    });
   } else {
     const aemEnvId = resolveAemEnvId({ aemEnvId: options.aemEnvId });
     let creds = null;
@@ -704,10 +711,9 @@ export async function main(argv = process.argv.slice(2)) {
     if (options.org && options.repo && !options.daToken) {
       console.warn('[agent] --org/--repo set but no DA_TOKEN found (token.env) — card image upload will be skipped');
     }
-    // No classifier injected here → applyCategoryPlan uses the deterministic token-overlap
-    // classifier over the contract. The agent/LLM can call enrichAssets({classifier}) directly
-    // for smarter mapping; the CLI default stays deterministic and offline-safe.
-    run = () => enrichAssets({ options, client, generator });
+    run = () => enrichAssets({
+      options, client, generator, classifier,
+    });
   }
 
   const { report } = await run();

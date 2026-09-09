@@ -7,8 +7,9 @@ import { makeRes, makeClient } from './helpers.js';
 
 const silent = { info: () => {}, warn: () => {} };
 
-// Source-derived category contract (Step 4). Fixtures below carry filename/keyword/smart-tag
-// evidence for "products"; the deterministic classifier maps them into this contract.
+// Source-derived category contract (Step 4). With no injected classifier, assets round-robin
+// across these slugs; a single-asset run lands in the first slug ("products"). Fixtures below
+// carry autogen:* / smart-tag evidence for those assets.
 const CONTRACT = [
   { slug: 'products', label: 'Products' },
   { slug: 'lifestyle', label: 'Lifestyle' },
