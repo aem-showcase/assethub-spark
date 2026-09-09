@@ -130,7 +130,12 @@
 
 .smart-collection-action-menu button {
   padding: 8px 12px;
-  font: inherit;
+  font-family: inherit;
+  font-size: var(--font-size-02);
+  font-style: normal;
+  font-weight: 400;
+  line-height: var(--line-height-02);
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   background: none;
