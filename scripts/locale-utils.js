@@ -56,26 +56,44 @@ export function getSavedLocalePreference() {
   return null;
 }
 
+// Container folder for foldered company demos. A demo is served under
+// /<COMPANIES_CONTAINER>/<company>/<locale>/... so the DA/content root stays uncluttered.
+// Keep in sync with COMPANIES_CONTAINER in the rebrand-portal skill's asset constants.
+const COMPANIES_CONTAINER = 'companies';
+
 /**
- * Checks if the current URL path has an explicit locale prefix.
- * @returns {boolean} True if the path starts with a supported locale
+ * Detects a foldered company demo base from the CURRENT URL, if present.
+ * A demo path is /companies/<company>/<locale>/..., so the base is the first TWO segments
+ * (/companies/<company>) and the locale is the THIRD. Returns the base and the index of the
+ * locale segment, or null when the current URL carries no company base.
+ * @returns {{ base: string, localeIndex: number } | null}
+ */
+function detectCompanyBaseFromPath() {
+  const segments = window.location.pathname.split('/');
+  const company = segments[2];
+  if (segments[1] === COMPANIES_CONTAINER && company && !SUPPORTED_LOCALES.includes(company)) {
+    // /companies/<company>/...  -> base is /companies/<company>, locale (if any) at index 3.
+    return { base: `/${COMPANIES_CONTAINER}/${company}`, localeIndex: 3 };
+  }
+  return null;
+}
+
+/**
+ * Returns the foldered-demo company base (e.g. '/companies/volkswagen') for the current URL,
+ * or '' on the root site. Remembers the last-seen base so boundary pages (e.g. /404.html)
+ * that drop the company segment can still keep localized links inside the company folder.
+ * @returns {string} The company base path, or '' when none.
  */
 export function getBasePrefix() {
-  const segments = window.location.pathname.split('/');
-  const seg1 = segments[1];
-  const seg2 = segments[2];
-  // A foldered company demo puts the locale one level deeper: /<company>/<locale>/...
-  // Detect it when segment 1 is NOT a locale but segment 2 IS. Remember it so boundary
-  // pages (e.g. /404.html) that drop the segment can still resolve the company folder.
-  if (seg1 && !SUPPORTED_LOCALES.includes(seg1) && seg2 && SUPPORTED_LOCALES.includes(seg2)) {
-    const base = `/${seg1}`;
+  const detected = detectCompanyBaseFromPath();
+  if (detected) {
     try {
-      sessionStorage.setItem(COMPANY_BASE_KEY, base);
+      sessionStorage.setItem(COMPANY_BASE_KEY, detected.base);
     } catch (e) { /* storage may be unavailable */ }
-    return base;
+    return detected.base;
   }
   // No company segment in the current URL: fall back to the last-seen base (if any) so a
-  // 404/root-served page keeps localized links inside /<company>. Empty on the root site.
+  // 404/root-served page keeps localized links inside /companies/<company>. Empty on root.
   try {
     return sessionStorage.getItem(COMPANY_BASE_KEY) || '';
   } catch (e) {
@@ -85,15 +103,16 @@ export function getBasePrefix() {
 
 /**
  * Checks if the current URL path has an explicit locale prefix. Handles both the
- * root site (/<locale>/...) and a foldered company demo (/<company>/<locale>/...).
+ * root site (/<locale>/...) and a foldered company demo (/companies/<company>/<locale>/...).
  * @returns {boolean} True if a supported locale is present in the path
  */
 export function hasLocalePrefix() {
   const segments = window.location.pathname.split('/');
-  const seg1 = segments[1];
-  const seg2 = segments[2];
-  if (seg1 && SUPPORTED_LOCALES.includes(seg1)) return true;
-  if (getBasePrefix() && seg2 && SUPPORTED_LOCALES.includes(seg2)) return true;
+  // Root site: /<locale>/...
+  if (segments[1] && SUPPORTED_LOCALES.includes(segments[1])) return true;
+  // Foldered demo: /companies/<company>/<locale>/...
+  const detected = detectCompanyBaseFromPath();
+  if (detected && SUPPORTED_LOCALES.includes(segments[detected.localeIndex])) return true;
   return false;
 }
 
@@ -134,23 +153,26 @@ export function getLocaleRedirectUrl() {
  */
 export function getExplicitLocalePrefix() {
   const segments = window.location.pathname.split('/');
-  const seg1 = segments[1];
-  const seg2 = segments[2];
 
   // Root site: /<locale>/...
-  if (seg1 && SUPPORTED_LOCALES.includes(seg1)) {
-    return `/${seg1}`;
+  if (segments[1] && SUPPORTED_LOCALES.includes(segments[1])) {
+    return `/${segments[1]}`;
   }
 
-  // Foldered company demo: /<company>/<locale>/... -> keep the company base in the prefix
-  // so every localized link/fetch stays inside the company folder.
+  // Foldered company demo: /companies/<company>/<locale>/... -> keep the company base in the
+  // prefix so every localized link/fetch stays inside the company folder.
+  const detected = detectCompanyBaseFromPath();
+  if (detected) {
+    const locale = segments[detected.localeIndex];
+    if (SUPPORTED_LOCALES.includes(locale)) {
+      return `${detected.base}/${locale}`;
+    }
+  }
+
+  // Boundary page in a foldered demo (e.g. /404.html): the URL has no company/locale segment,
+  // but a remembered company base exists -> keep localized links inside the company default
+  // locale.
   const base = getBasePrefix();
-  if (base && seg2 && SUPPORTED_LOCALES.includes(seg2)) {
-    return `${base}/${seg2}`;
-  }
-
-  // Boundary page in a foldered demo (e.g. /404.html): the URL has no locale segment, but a
-  // remembered company base exists -> keep localized links inside the company default locale.
   if (base) {
     return `${base}/${DEFAULT_LOCALE}`;
   }

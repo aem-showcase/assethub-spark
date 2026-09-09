@@ -231,6 +231,45 @@ describe('scrapeSiteImages', () => {
     expect(out.images[0].bytes.byteLength).toBe(4);
   });
 
+  it('decodes &amp; in a src before downloading (query-string URLs must not break)', async () => {
+    // No width/resize param here, so resolveOriginalUrl is a no-op and the fetched URL
+    // is exactly the decoded candidate — isolating the &amp; -> & decode.
+    const encoded = '/media?id=X&amp;version=Y&amp;token=abc';
+    const decoded = 'https://x.com/media?id=X&version=Y&token=abc';
+    const seen = [];
+    const fetchFn = vi.fn(async (url) => {
+      seen.push(url);
+      if (url === 'https://x.com/page') return htmlRes(`<img src="${encoded}">`);
+      return imgRes(png, 'image/jpeg');
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0,
+    });
+    // The download must hit the decoded URL, never the literal &amp; form.
+    expect(seen).toContain(decoded);
+    expect(seen.some((u) => u.includes('&amp;'))).toBe(false);
+    expect(out.images).toHaveLength(1);
+  });
+
+  it('sends a browser User-Agent + Referer on image downloads (not on the page fetch)', async () => {
+    const calls = [];
+    const fetchFn = vi.fn(async (url, opts) => {
+      calls.push({ url, headers: (opts && opts.headers) || {} });
+      if (url === 'https://x.com/page') return htmlRes('<img src="/a.png">');
+      return imgRes(png);
+    });
+    await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0,
+    });
+    const page = calls.find((c) => c.url === 'https://x.com/page');
+    const img = calls.find((c) => c.url === 'https://x.com/a.png');
+    // Page fetch stays plain (adding a UA there tripped a WAF path live).
+    expect(page.headers['User-Agent']).toBeUndefined();
+    // Image download carries the browser UA + the page as Referer.
+    expect(img.headers['User-Agent']).toMatch(/Mozilla\/5\.0/);
+    expect(img.headers.Referer).toBe('https://x.com/page');
+  });
+
   it('carries source evidence into downloaded assets', async () => {
     const fetchFn = vi.fn(async (url) => {
       if (url === 'https://x.com/page') {

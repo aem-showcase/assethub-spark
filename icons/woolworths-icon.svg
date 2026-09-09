@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Woolworths">
+  <title>Woolworths</title>
+  <!-- Woolworths "W" apple-leaf mark: three green swooshes forming a W, with a sprouting leaf -->
+  <g fill="#008446">
+    <path d="M20 34c-1 33 12 60 28 71 5 3 11 1 12-5 3-11-2-24-9-40-7-16-11-30-11-42 0-6-3-9-8-9s-2 15-12 25z"/>
+    <path d="M54 58c-1 24 6 42 12 52 3 5 9 5 12 0 6-10 13-28 12-52 0-6-4-10-8-10s-6 4-6 10c0 12-3 22-6 30-3-8-6-18-6-30 0-6-3-10-7-10s-8 4-9 10z"/>
+    <path d="M108 34c1 33-12 60-28 71-5 3-11 1-12-5-3-11 2-24 9-40 7-16 11-30 11-42 0-6 3-9 8-9s2 15 12 25z"/>
+  </g>
+  <!-- sprout leaf rising from the centre notch -->
+  <path d="M64 52c-3-16 3-30 15-38-4 14-6 26-5 38-3 2-7 2-10 0z" fill="#4CAF50"/>
+</svg>

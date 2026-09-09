@@ -43,7 +43,10 @@ function looksLikeThumbnail(url) {
 function getAttr(tag, name) {
   const m = tag.match(ATTR_RE(name));
   if (!m) return null;
-  return (m[2] ?? m[3] ?? m[4] ?? '').trim();
+  // Decode HTML entities in the attribute value — a src/href authored as
+  // `...?media_id=X&amp;version=Y` must become `&`, or the query string breaks and
+  // the download 404s (verified live: 19/21 Meta CDN URLs failed on the raw &amp;).
+  return decodeEntities((m[2] ?? m[3] ?? m[4] ?? '').trim());
 }
 
 function decodeEntities(value) {
@@ -174,6 +177,20 @@ export function resolveOriginalUrl(url) {
       return parsed.href;
     }
 
+    // [1b] Next.js image-optimization proxy — /_next/image?url=<encoded-original>&w=...&q=...
+    // Stripping only the resize params (w/q) leaves a request to /_next/image with no width,
+    // which the Next.js image API rejects (400) — the real original lives inside the url= param
+    // and must be decoded and resolved on its own, recursively (the inner URL can itself be
+    // relative to the same origin, or carry further transform suffixes). Verified live on
+    // hondacarindia.com: without this, 0 of 97 candidate images downloaded (all 400).
+    if (/\/_next\/image$/i.test(parsed.pathname) && parsed.searchParams.has('url')) {
+      const inner = parsed.searchParams.get('url');
+      try {
+        const innerAbsolute = new URL(inner, parsed.origin).href;
+        return resolveOriginalUrl(innerAbsolute);
+      } catch { /* fall through to generic handling below */ }
+    }
+
     // [2] CDN resize query params — remove known sizing keys.
     const RESIZE_PARAMS = ['w', 'h', 'width', 'height', 'size', 'quality', 'q', 'format', 'fit', 'dpr', 'auto', 'crop'];
     let changed = false;
@@ -223,11 +240,18 @@ export function extractImageUrls(html, baseUrl) {
     }
   }
 
-  // [2] <img> tags — skip those whose declared dimensions are clearly tiny (icons/flags).
+  // [2] <img> tags — skip those whose declared dimensions mark them as non-content:
+  //   - clearly tiny in either axis (icons/flags), OR
+  //   - an extreme aspect ratio (a wide strip / tall rail = a logo banner, nav bar, or
+  //     decorative divider, not a product photo). This is a dimension signal, not a
+  //     filename denylist: a real hero is never 6:1. The 4:1 cutoff keeps ordinary
+  //     landscape/portrait heroes while dropping banner chrome (e.g. a 1100×180 wordmark
+  //     strip). Only applied when BOTH dimensions are declared, so unmeasured imgs pass.
   for (const tag of html.match(IMG_TAG_RE) || []) {
     const w = parseInt(getAttr(tag, 'width') || '0', 10);
     const h = parseInt(getAttr(tag, 'height') || '0', 10);
     if ((w > 0 && w < 100) || (h > 0 && h < 100)) continue;
+    if (w > 0 && h > 0 && (w / h > 4 || h / w > 4)) continue;
 
     addTo(srcUrls, getAttr(tag, 'src'));
     addTo(srcUrls, getAttr(tag, 'data-src'));
@@ -383,6 +407,14 @@ export async function scrapeSiteImages({
   fetchFn = fetch,
   log = console,
 }) {
+  // Browser-like headers for the IMAGE downloads below (not the page fetch — adding a
+  // UA to the page GET tripped a WAF path on some sites, verified live). Many CDNs 404 an
+  // image unless the request carries a real User-Agent and a Referer of the page it came
+  // from (session/hotlink protection); the plain Accept-only fetch that shipped got 404s
+  // on exactly those URLs even though a browser loaded them fine.
+  const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+    + '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
   const pageRes = await fetchFn(pageUrl, { headers: { Accept: 'text/html' } });
   if (!pageRes.ok) {
     throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
@@ -404,7 +436,9 @@ export async function scrapeSiteImages({
       log.info?.(`[agent] resolved original: ${candidateUrl} -> ${url}`);
     }
     try {
-      const res = await fetchFn(url, { headers: { Accept: '*/*' } });
+      const res = await fetchFn(url, {
+        headers: { Accept: '*/*', 'User-Agent': BROWSER_UA, Referer: pageUrl },
+      });
       if (!res.ok) {
         log.warn?.(`[agent] skip ${url} -> ${res.status}`);
         continue;

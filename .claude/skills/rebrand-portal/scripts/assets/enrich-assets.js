@@ -30,6 +30,7 @@ import {
   categorySearchUrl,
   humanizeCategorySlug,
   slugifyCategory,
+  autogenSubjectTerms,
 } from './category-plan.js';
 import { scrapeSiteImages } from './scrape-site.js';
 import { createUploadStrategy } from './upload-strategy.js';
@@ -38,6 +39,7 @@ import { AuthorClient } from './author-client.js';
 import { createFixtureClient } from './fixture-client.js';
 import {
   STATUS_APPROVED, buildHosts, buildAuthorHost, BRING_IN_MIN_TARGET_IMAGES, MIN_CARDS,
+  companyBasePath,
 } from './constants.js';
 import { mapWithConcurrency } from './concurrency.js';
 import {
@@ -45,6 +47,28 @@ import {
 } from './config.js';
 
 export { mapWithConcurrency };
+
+/**
+ * The ordered, deduped list of bring-in source pages for one run. Combines --source-url
+ * (single) and --source-urls (comma/space/newline list); the singular stays first so
+ * single-URL runs behave exactly as before. Front-loading all per-category pages into one
+ * run is what removes the serial page-by-page scraping loop in Step 5.
+ */
+export function resolveSourceUrls(options = {}) {
+  const list = [];
+  const push = (u) => {
+    const v = String(u || '').trim();
+    if (v && !list.includes(v)) list.push(v);
+  };
+  if (options.sourceUrl) push(options.sourceUrl);
+  if (options.sourceUrls) {
+    const many = Array.isArray(options.sourceUrls)
+      ? options.sourceUrls
+      : String(options.sourceUrls).split(/[\s,]+/);
+    many.forEach(push);
+  }
+  return list;
+}
 
 /**
  * Normalize the source-derived category contract into [{slug,label}]. Accepts an array of
@@ -68,6 +92,29 @@ export function normalizeContract(input) {
 }
 
 /**
+ * Parse the --category-map file (JSON object of `fileName|assetId -> slug`) into a lookup
+ * classifier for applyCategoryPlan. The agent writes this map from the dry-run evidence — it
+ * reads each asset's title + description (AEM's autogen:title/autogen:description), smart tags
+ * (autogen:subject/predictedTags), and filename, then states the category directly — the
+ * agent's judgment applied verbatim: no token-overlap guessing, no plural/singular or alias
+ * handling. The map is keyed by fileName (assetId as a fallback) because that is the
+ * identifier the agent writes down, not because filename is the only evidence. An asset absent
+ * from the map falls through to the round-robin fallback.
+ */
+export function buildMapClassifier(map) {
+  if (!map || typeof map !== 'object') return undefined;
+  const lookup = {};
+  for (const [key, slug] of Object.entries(map)) {
+    if (key && slug) lookup[String(key).trim()] = slugifyCategory(slug);
+  }
+  if (Object.keys(lookup).length === 0) return undefined;
+  return (evidence) => {
+    const slug = lookup[evidence.fileName] || lookup[evidence.assetId] || null;
+    return slug ? { slug, confidence: 'mapped' } : null;
+  };
+}
+
+/**
  * Build ready-to-author landing card rows — one per contract category (any N). Each row
  * carries exactly what a carousel slide / cards tile needs: label, blurb, facet href, and
  * the DA-hosted image URL of the category's representative asset (see da-card-images.js —
@@ -80,7 +127,9 @@ export function normalizeContract(input) {
  * evidence for classification only (see docs/asset-enrichment.md); truncating it into card
  * copy produced garbled mid-sentence fragments on a real demo ("adding con", "Subtle wi").
  */
-export function buildCardRows({ contract = [], categoryCoverage = {}, representatives = {} }) {
+export function buildCardRows({
+  contract = [], categoryCoverage = {}, representatives = {}, basePath,
+}) {
   const counts = new Map((categoryCoverage.categories || []).map((c) => [c.slug, c.assetCount]));
   const reps = representatives.items || {};
   // Contract order is the authored order; only categories with a representative asset become
@@ -100,7 +149,10 @@ export function buildCardRows({ contract = [], categoryCoverage = {}, representa
         label,
         assetCount: counts.get(slug) || 0,
         blurb,
-        href: categorySearchUrl(slug),
+        // Foldered demos serve under /<companyKey>, so the facet search must be
+        // /<companyKey>/en/search?… — not the default /en/search?… which 404s under the
+        // folder. basePath is passed through from the enrichment run (undefined → default).
+        href: basePath ? categorySearchUrl(slug, { basePath }) : categorySearchUrl(slug),
         cardImageUrl: rep.cardImageUrl || null,
       };
     });
@@ -224,15 +276,47 @@ function findRepoRoot(startDir) {
 async function discoverTargetAssets({
   options, client, folderPath, report, log,
 }) {
-  if (options.sourceUrl) {
-    const scraped = await scrapeSiteImages({
-      pageUrl: options.sourceUrl,
-      maxImages: options.limit || undefined,
-      fetchFn: options.fetchFn || fetch,
-      log,
-    });
+  const sourceUrls = resolveSourceUrls(options);
+  if (sourceUrls.length) {
+    // Scrape every source page in ONE invocation, deduping downloaded assets by file name
+    // across pages (the same hero/model image often recurs on several pages). Front-loading
+    // the full per-category source map here — instead of the agent re-running the script
+    // once per page and serially hunting for a thin category — is the single biggest
+    // time saver in Step 5 (verified: ~10 serial passes on the Honda/Hyundai runs). The
+    // overall --limit still caps total downloads across all pages.
+    const overallLimit = options.limit && Number.isFinite(options.limit) ? options.limit : null;
+    const merged = [];
+    const seenNames = new Set();
+    let totalCandidates = 0;
+    for (const pageUrl of sourceUrls) {
+      if (overallLimit && merged.length >= overallLimit) break;
+      const remaining = overallLimit ? overallLimit - merged.length : undefined;
+      let scraped;
+      try {
+        scraped = await scrapeSiteImages({
+          pageUrl,
+          maxImages: remaining,
+          fetchFn: options.fetchFn || fetch,
+          log,
+        });
+      } catch (err) {
+        // One unreachable page must not sink the whole multi-source pass — record and move on.
+        log.warn?.(`[agent] skip source page ${pageUrl} -> ${String(err.message || err)}`);
+        continue;
+      }
+      totalCandidates += scraped.candidates;
+      for (const img of scraped.images) {
+        const key = img.fileName.toLowerCase();
+        if (seenNames.has(key)) continue;
+        seenNames.add(key);
+        merged.push(img);
+        if (overallLimit && merged.length >= overallLimit) break;
+      }
+    }
+    const scraped = { images: merged, candidates: totalCandidates };
     report.setContext({
-      sourceUrl: options.sourceUrl,
+      sourceUrl: sourceUrls.length === 1 ? sourceUrls[0] : undefined,
+      sourceUrls,
       scrapedCandidates: scraped.candidates,
       downloadedAssets: scraped.images.length,
     });
@@ -257,11 +341,12 @@ async function discoverTargetAssets({
       };
     }
 
-    const uploader = createUploadStrategy('repository', { client });
+    const uploader = createUploadStrategy('repository', { client, fetchFn: options.fetchFn });
     await uploader.ensureFolder({ folderPath });
     const { uploaded, failures } = await uploader.uploadImages({
       folderPath,
       images: scraped.images,
+      concurrency: options.concurrency,
     });
     failures.forEach((f) => {
       report.record(f.fileName, OUTCOME.FAILED, { stage: 'upload', error: f.error });
@@ -270,22 +355,24 @@ async function discoverTargetAssets({
       log.warn?.(`[agent] only uploaded ${uploaded.length} asset(s); target at least ${BRING_IN_MIN_TARGET_IMAGES} for credible category coverage`);
     }
 
-    log.info?.('[agent] resolving uploaded file asset ids from folder enumeration');
-    const recovered = await enumerateFolder({ client, folderPath });
-    const byPath = new Map(recovered.assets.map((asset) => [asset.repoPath, asset]));
-    const byName = new Map(recovered.assets.map((asset) => [asset.repoName, asset]));
-    const unresolved = [];
-    const resolved = [];
-    for (const asset of uploaded) {
-      const match = byPath.get(asset.repoPath) || byName.get(asset.repoName);
-      if (match?.assetId) resolved.push({ ...asset, ...match });
-      else unresolved.push(asset);
-    }
-    unresolved.forEach((asset) => {
-      report.record(asset.repoPath || asset.repoName || asset.fileName, OUTCOME.FAILED, {
+    // uploaded[] already carries assetId + repoPath + repoName + scrape evidence per
+    // asset (createAsset returns the asset-id header on a fresh create, or resolves the
+    // existing jcr:uuid on a re-run 409). Return it directly — do NOT re-enumerate via
+    // the Author search API here: that index lags right after upload, so a recovery scan
+    // returns 0 for freshly-uploaded assets and would mark them FAILED even though every
+    // downstream step (waitForAssetProcessed, the Sling metadata write) keys off repoPath,
+    // which is already known. Discovery via search stays for the enrich-existing lane
+    // below, where no upload just happened.
+    const resolved = uploaded.filter((asset) => {
+      if (asset.assetId) return true;
+      // Rare: neither the create header nor the 409 jcr:uuid lookup yielded an id. The
+      // asset can still be enriched (metadata keys off repoPath); only the rendition
+      // fetch is skipped. Note it, keep it.
+      report.record(asset.repoPath || asset.repoName || asset.fileName, OUTCOME.SKIPPED, {
         stage: 'upload-id',
-        error: 'uploaded asset was not found by folder enumeration',
+        reason: 'no asset id resolved; enriching without rendition evidence',
       });
+      return true;
     });
     return {
       assets: resolved,
@@ -368,9 +455,9 @@ export async function enrichAssets({
   );
 
   // Category assignment maps every asset onto the source-derived contract
-  // (options.categoryContract) via the injected classifier (agent/LLM live; deterministic
-  // stub in tests) — no hardcoded keyword vocabulary. Assignment is mandatory; each asset
-  // lands in exactly one contract slug.
+  // (options.categoryContract) via the injected classifier (real run: the agent's
+  // fileName->slug map). Assignment is mandatory; anything the map omits round-robins into a
+  // contract slug so every homepage card stays non-empty.
   const contract = normalizeContract(options.categoryContract);
   const categorized = applyCategoryPlan(planned, { contract, classifier });
   const withMetadataPlans = categorized.map((p) => {
@@ -411,7 +498,13 @@ export async function enrichAssets({
   report.setRepresentatives(representatives);
   // Ready-to-author landing card rows (one per contract category, any N) — the DA-index
   // edit consumes these directly. Built from coverage + representatives, no hand URLs.
-  report.setCards(buildCardRows({ contract, categoryCoverage, representatives }));
+  report.setCards(buildCardRows({
+    contract,
+    categoryCoverage,
+    representatives,
+    // The portal is served under /companies/<companyKey>; scope the facet hrefs there.
+    basePath: `${companyBasePath(customerKey)}/en`,
+  }));
 
   const writable = [];
   withMetadataPlans.forEach((p) => {
@@ -450,11 +543,24 @@ export async function enrichAssets({
 
   const preview = metadataPreview(writable);
 
-  // [5] Dry-run stops here
+  // [5] Dry-run stops here. Record everything the agent needs to write --category-map: the
+  // fileName (the map key) plus each asset's title + description (AEM's autogen:title/
+  // autogen:description via the generator) and smartTags (autogen:subject/predictedTags) — the
+  // per-asset classification signal. Plus the slug round-robin picked
+  // (categoryConfidence:'fallback' flags which to set explicitly). The agent reads this from
+  // --report-file, writes fileName->slug, re-runs.
   if (options.dryRun) {
     log.info?.(`[agent] DRY RUN - would update Sling metadata for ${writable.length} asset(s):`);
     log.info?.(preview);
-    writable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, { dryRun: true }));
+    writable.forEach((p) => report.record(p.asset.assetId, OUTCOME.ENRICHED, {
+      dryRun: true,
+      fileName: p.asset.fileName || p.asset.repoName || null,
+      title: p.fields?.title || null,
+      description: p.fields?.description || null,
+      smartTags: autogenSubjectTerms(p.existingMetadata || {}),
+      productCategory: p.fields?.productCategory || null,
+      categoryConfidence: p.categoryAssignment?.confidence || null,
+    }));
     return {
       report, dryRun: true, metadataPreview: preview, patchPreview: preview,
     };
@@ -523,14 +629,14 @@ function patchDemoCompany(customerKey, { dryRun = false } = {}) {
   );
   patched = patched.replace(
     /DEMO_BASE_PATH:\s*(?:null|'[^']*'|"[^"]*")/,
-    `DEMO_BASE_PATH: '/${customerKey}'`,
+    `DEMO_BASE_PATH: '${companyBasePath(customerKey)}'`,
   );
   if (patched === original) {
     console.warn('[agent] DEMO_COMPANY + DEMO_BASE_PATH already set correctly — no patch needed');
     return;
   }
   writeFileSync(configPath, patched, 'utf8');
-  console.warn(`[agent] patched cloudflare/src/config.js → DEMO_COMPANY: '${customerKey}', DEMO_BASE_PATH: '/${customerKey}'`);
+  console.warn(`[agent] patched cloudflare/src/config.js → DEMO_COMPANY: '${customerKey}', DEMO_BASE_PATH: '${companyBasePath(customerKey)}'`);
   console.warn('[agent] local dev server will pick this up automatically on next request');
   console.warn('[agent] the per-PR worker deploy applies it to the preview URL');
 }
@@ -546,6 +652,16 @@ export async function main(argv = process.argv.slice(2)) {
 
   const generator = createAssetMetadataGenerator();
 
+  // The agent's fileName->slug map (--category-map) becomes the injected classifier. Absent,
+  // classification is left to the round-robin fallback in applyCategoryPlan (every card still
+  // fills, categories just aren't the agent's judgment).
+  let classifier;
+  if (options.categoryMap) {
+    const map = JSON.parse(readFileSync(options.categoryMap, 'utf8'));
+    classifier = buildMapClassifier(map);
+    console.warn(`[agent] using category map ${options.categoryMap} (${Object.keys(map).length} entries)`);
+  }
+
   // Dispatch:
   //  - --fixture: fully offline preview, forced dry-run.
   //  - otherwise: DM client_credentials against the AEM Assets Author API.
@@ -558,10 +674,9 @@ export async function main(argv = process.argv.slice(2)) {
       console.warn('[agent] --fixture is offline-only; forcing --dry-run.');
       options.dryRun = true;
     }
-    // No classifier injected here → applyCategoryPlan uses the deterministic token-overlap
-    // classifier over the contract. The agent/LLM can call enrichAssets({classifier}) directly
-    // for smarter mapping; the CLI default stays deterministic and offline-safe.
-    run = () => enrichAssets({ options, client, generator });
+    run = () => enrichAssets({
+      options, client, generator, classifier,
+    });
   } else {
     const aemEnvId = resolveAemEnvId({ aemEnvId: options.aemEnvId });
     let creds = null;
@@ -596,10 +711,9 @@ export async function main(argv = process.argv.slice(2)) {
     if (options.org && options.repo && !options.daToken) {
       console.warn('[agent] --org/--repo set but no DA_TOKEN found (token.env) — card image upload will be skipped');
     }
-    // No classifier injected here → applyCategoryPlan uses the deterministic token-overlap
-    // classifier over the contract. The agent/LLM can call enrichAssets({classifier}) directly
-    // for smarter mapping; the CLI default stays deterministic and offline-safe.
-    run = () => enrichAssets({ options, client, generator });
+    run = () => enrichAssets({
+      options, client, generator, classifier,
+    });
   }
 
   const { report } = await run();

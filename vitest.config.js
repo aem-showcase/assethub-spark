@@ -25,6 +25,7 @@ export default defineConfig({
             'scripts/**/__tests__/**/*.test.js',
             'blocks/**/__tests__/**/*.test.js',
             '.claude/skills/rebrand-portal/tests/assets/**/*.test.js',
+            '.claude/skills/rebrand-portal/tests/rebrand/**/*.test.js',
           ],
           exclude: [
             'scripts/**/__tests__/**/*.dom.test.js',

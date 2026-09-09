@@ -18,13 +18,13 @@
 #   .claude/skills/rebrand-portal/scripts/da/copy-folder.sh <org> <repo> <companyKey> [--token-file <path>]
 #
 #   <org>/<repo>   the DA org and site (same as the GitHub org/repo).
-#   <companyKey>   destination folder name, e.g. "acme" -> /acme.
+#   <companyKey>   company slug; content lands under /companies/<companyKey>.
 #   --token-file   path to the env file holding DA_TOKEN (default: ./token.env
 #                  resolved from the repo root).
 #
 # Reads DA_TOKEN (never printed). Copies ONLY the en/config/public top-level
 # trees under /{org}/{repo} (allowlist; override via DA_COPY_ALLOW) into
-# /{org}/{repo}/<companyKey>/..., then verifies by a recursive re-list. Sibling
+# /{org}/{repo}/companies/<companyKey>/..., then verifies by a recursive re-list. Sibling
 # company demo folders and stray root entries are intentionally NOT copied.
 #
 # Exit codes: 0 = copied + verified; 1 = usage/auth error; 2 = copy failed;
@@ -46,10 +46,17 @@ case "$COMPANY" in
     ;;
 esac
 
-RESERVED_COMPANY_KEYS="api auth blocks config en fonts icons ja media public scripts styles tools"
+RESERVED_COMPANY_KEYS="api auth blocks companies config en fonts icons ja media public scripts styles tools"
 for key in $RESERVED_COMPANY_KEYS; do
   [ "$COMPANY" = "$key" ] && die "companyKey '$COMPANY' is reserved; use a specific company slug like ${COMPANY}-demo"
 done
+
+# Foldered demos live under one container folder so the DA root stays uncluttered:
+# /companies/<companyKey>/... rather than N sibling /<companyKey> folders next to the real
+# content trees (en, config, public). DEST_ROOT is the single place the container prefix is
+# built; everything downstream (copy destination, verify/repair list) derives from it.
+CONTAINER="companies"
+DEST_ROOT="$CONTAINER/$COMPANY"
 
 STATE_FILE="$ROOT/.internal/onboarding-state.json"
 if [ -f "$STATE_FILE" ]; then
@@ -65,8 +72,8 @@ if isinstance(folder, str):
     if folder != "/":
         print(folder)
 ' "$STATE_FILE" || true)"
-  if [ -n "$STATE_DA_FOLDER" ] && [ "$STATE_DA_FOLDER" != "/$COMPANY" ]; then
-    die "companyKey '$COMPANY' does not match state company folder $STATE_DA_FOLDER"
+  if [ -n "$STATE_DA_FOLDER" ] && [ "$STATE_DA_FOLDER" != "/$DEST_ROOT" ]; then
+    die "companyKey '$COMPANY' -> /$DEST_ROOT does not match state company folder $STATE_DA_FOLDER"
   fi
 fi
 
@@ -184,7 +191,7 @@ recursive_files() {
 # copy_entry <relpath> — copy one entry (recursively for folders) into
 # /{company}/<relpath>, looping on the 206 continuation token until 204.
 copy_entry() {
-  local rel="$1" dest="/$ORG/$REPO/$COMPANY/$1" url="$ADMIN/copy/$ORG/$REPO/$1"
+  local rel="$1" dest="/$ORG/$REPO/$DEST_ROOT/$1" url="$ADMIN/copy/$ORG/$REPO/$1"
   local tok="" code tmp
   while :; do
     tmp="$(mktemp)"
@@ -214,12 +221,12 @@ if [ -z "${TOP//[$'\n\t ']/}" ]; then
   exit 3
 fi
 
-echo ">> Copying top-level entries into /$COMPANY ..."
+echo ">> Copying top-level entries into /$DEST_ROOT ..."
 COPIED=0; ELIGIBLE=0
 while IFS=$'\t' read -r typ rel; do
   [ -z "${typ:-}" ] && continue
   if ! is_allowed_top "$rel"; then echo "   - skip $rel (only en/config/public are copied)"; continue; fi
-  echo "   - copy $rel -> /$COMPANY/$rel"
+  echo "   - copy $rel -> /$DEST_ROOT/$rel"
   copy_entry "$rel"
   COPIED=$((COPIED+1))
   if [ "$typ" = "F" ]; then ELIGIBLE=$((ELIGIBLE+1)); else ELIGIBLE=$((ELIGIBLE + $(recursive_count "$rel") )); fi
@@ -227,9 +234,9 @@ done <<< "$TOP"
 
 [ "$COPIED" -gt 0 ] || die "none of the expected top-level trees (en/config/public) were found under /$ORG/$REPO — check the org/repo and DA_TOKEN"
 
-echo ">> Verifying copy under /$COMPANY (path-by-path — every source doc must have a copy) ..."
+echo ">> Verifying copy under /$DEST_ROOT (path-by-path — every source doc must have a copy) ..."
 # Enumerate every eligible SOURCE file relpath (skipping the company folder + dotfolders),
-# then assert each one exists under /$COMPANY/<relpath>. A count check is NOT enough: a
+# then assert each one exists under /$DEST_ROOT/<relpath>. A count check is NOT enough: a
 # single over-counted subtree (e.g. /en) can mask a whole missing one (e.g. /public or the
 # /config folder that carries the access-control sheet) — exactly how the login/welcome
 # page and config/access silently went missing before.
@@ -255,8 +262,8 @@ compute_missing() {
   done < <(sort -u "$SRC_FILES")
 }
 
-# Destination file set, with the leading "$COMPANY/" stripped so paths line up with source.
-recursive_files "$COMPANY" | sed "s#^$COMPANY/##" | sort -u > "$DST_SET"
+# Destination file set, with the leading "$DEST_ROOT/" stripped so paths line up with source.
+recursive_files "$DEST_ROOT" | sed "s#^$DEST_ROOT/##" | sort -u > "$DST_SET"
 
 MISS="$(mktemp)"
 compute_missing "$DST_SET" > "$MISS"
@@ -272,18 +279,18 @@ if [ "$MISSING" -gt 0 ]; then
   echo ">> $MISSING document(s) not present after the bulk copy — repairing by copying each one individually ..." >&2
   while IFS= read -r rel; do
     [ -z "$rel" ] && continue
-    echo "   - repair-copy $rel -> /$COMPANY/$rel" >&2
+    echo "   - repair-copy $rel -> /$DEST_ROOT/$rel" >&2
     copy_entry "$rel" || echo "   - WARN: repair copy of $rel failed" >&2
   done < "$MISS"
   # Re-list the destination and recompute what is still missing after repair.
-  recursive_files "$COMPANY" | sed "s#^$COMPANY/##" | sort -u > "$DST_SET"
+  recursive_files "$DEST_ROOT" | sed "s#^$DEST_ROOT/##" | sort -u > "$DST_SET"
   compute_missing "$DST_SET" > "$MISS"
   MISSING="$(grep -c . "$MISS" || true)"
 fi
 
 if [ "$MISSING" -gt 0 ]; then
   while IFS= read -r rel; do
-    [ -n "$rel" ] && echo "   - MISSING at destination: /$COMPANY/$rel" >&2
+    [ -n "$rel" ] && echo "   - MISSING at destination: /$DEST_ROOT/$rel" >&2
   done < "$MISS"
 fi
 
@@ -292,8 +299,8 @@ DST_N="$(grep -c . "$DST_SET" || true)"
 rm -f "$SRC_FILES" "$DST_SET" "$MISS"
 
 if [ "$MISSING" -gt 0 ]; then
-  echo "ERROR: verification failed — $MISSING of $SRC_N source document(s) are STILL missing under /$COMPANY after the repair pass. Copy is INCOMPLETE; not marking done." >&2
+  echo "ERROR: verification failed — $MISSING of $SRC_N source document(s) are STILL missing under /$DEST_ROOT after the repair pass. Copy is INCOMPLETE; not marking done." >&2
   exit 4
 fi
-echo ">> OK: all $SRC_N source document(s) have a copy under /$COMPANY ($DST_N doc(s) present). Copy verified path-by-path (incl. /config)."
+echo ">> OK: all $SRC_N source document(s) have a copy under /$DEST_ROOT ($DST_N doc(s) present). Copy verified path-by-path (incl. /config)."
 exit 0
