@@ -2711,11 +2711,17 @@ async function bindEvents(callbacks) {
   });
 
   const smartCollectionsTabBtn = containerElement.querySelector('#smart-collections-tab');
-  smartCollectionsTabBtn?.addEventListener('click', () => {
+  smartCollectionsTabBtn?.addEventListener('click', (event) => {
     if (activeFacetTab === 'smartCollections') return;
+    event.preventDefault();
     activeFacetTab = 'smartCollections';
-    render(callbacks);
-    refreshSmartCollections().then(() => render(callbacks));
+
+    // Render on the next frame to avoid "click-through" from the tab click
+    // opening the first row action menu in some browsers.
+    requestAnimationFrame(() => {
+      render(callbacks);
+      refreshSmartCollections().then(() => render(callbacks));
+    });
   });
 
   // Save as Smart Collection
