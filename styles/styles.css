@@ -210,7 +210,7 @@ body.appear {
 body:has(.section.welcome) {
   /* Welcome/login split-screen brand panel is themeable via these tokens (base template defaults);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #000000);
+  background-color: var(--welcome-panel-bg, #000);
   overflow: hidden;
 }
 
@@ -239,7 +239,7 @@ body:has(.section.welcome) > main {
 /* Dark coffee background with the gold beans icon as a large decorative mark */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #000000);
+  background-color: var(--welcome-panel-bg, #000);
   background-image:
     radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 255 255 255) / 22%) 0%, transparent 100%),
     radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 255 255 255) / 10%) 0%, transparent 100%),
