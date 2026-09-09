@@ -4,9 +4,9 @@ import {
   buildCategoryCoverage,
   slugifyCategory,
   categorySearchUrl,
-  deterministicClassifier,
-  assetEvidence,
+  roundRobinFallback,
 } from '../../scripts/assets/category-plan.js';
+import { buildMapClassifier } from '../../scripts/assets/enrich-assets.js';
 
 // Contracts are the source-derived vocabulary threaded in from Step 4 — no hardcoded list.
 const PHARMA = [
@@ -40,36 +40,28 @@ describe('category-plan', () => {
     expect(plan.categoryAssignment.reason).toBe('generated-field');
   });
 
-  it('classifies pharma assets into the contract from AEM smart tags (no keyword edits)', () => {
-    const [plan] = applyCategoryPlan([{
-      asset: { assetId: 'a1', repoName: 'discoid-eczema-0031.avif' },
-      fields: { title: 'Skin condition' },
-      existingMetadata: { 'autogen:subject': ['dermatology', 'psoriasis', 'skin'] },
-    }], { contract: PHARMA });
-    expect(plan.fields.productCategory).toBe('dermatology');
-    expect(plan.categoryAssignment.reason).toBe('classified');
-  });
-
-  it('classifies retail assets with the SAME code and a different contract', () => {
-    const [plan] = applyCategoryPlan([{
-      asset: { assetId: 'a1', repoName: 'espresso-machine.jpg', heading: 'Machines' },
-      fields: { title: 'Brewer' },
-      existingMetadata: { 'autogen:subject': ['machines'] },
-    }], { contract: RETAIL });
-    expect(plan.fields.productCategory).toBe('machines');
-  });
-
-  it('uses an injected classifier when provided', () => {
-    const classifier = () => ({ slug: 'cancer', confidence: 'high' });
+  it('uses an injected classifier (agent map) when provided', () => {
+    const classifier = () => ({ slug: 'cancer', confidence: 'mapped' });
     const [plan] = applyCategoryPlan([{
       asset: { assetId: 'a1', repoName: 'unknown.jpg' },
       fields: { title: 'X' },
       existingMetadata: {},
     }], { contract: PHARMA, classifier });
     expect(plan.fields.productCategory).toBe('cancer');
+    expect(plan.categoryAssignment.confidence).toBe('mapped');
   });
 
-  it('mandatory assignment: an evidence-less asset still lands in a contract slug (fallback)', () => {
+  it('the injected classifier drives the SAME code across different contracts', () => {
+    const classifier = () => ({ slug: 'machines', confidence: 'mapped' });
+    const [plan] = applyCategoryPlan([{
+      asset: { assetId: 'a1', repoName: 'espresso-machine.jpg' },
+      fields: { title: 'Brewer' },
+      existingMetadata: {},
+    }], { contract: RETAIL, classifier });
+    expect(plan.fields.productCategory).toBe('machines');
+  });
+
+  it('mandatory assignment: an unmapped asset still lands in a contract slug (round-robin)', () => {
     const [plan] = applyCategoryPlan([{
       asset: { assetId: 'a1', repoName: 'asset.bin' },
       fields: { title: 'Asset' },
@@ -79,29 +71,26 @@ describe('category-plan', () => {
     expect(plan.categoryAssignment.confidence).toBe('fallback');
   });
 
-  it('re-maps an injected slug outside the contract via the deterministic fallback', () => {
+  it('re-maps an injected slug outside the contract via the round-robin fallback', () => {
     const classifier = () => ({ slug: 'not-a-contract-slug' });
     const [plan] = applyCategoryPlan([{
       asset: { assetId: 'a1', repoName: 'psoriasis-patient.jpg' },
       fields: { title: 'X' },
-      existingMetadata: { 'autogen:subject': ['dermatology'] },
+      existingMetadata: {},
     }], { contract: PHARMA, classifier });
     expect(PHARMA.map((c) => c.slug)).toContain(plan.fields.productCategory);
+    expect(plan.categoryAssignment.confidence).toBe('fallback');
   });
 
-  it('builds coverage from assigned categories', () => {
+  it('builds coverage from map-assigned categories', () => {
+    const classifier = buildMapClassifier({
+      'cancer-story.jpg': 'cancer',
+      'diabetes-care.jpg': 'diabetes',
+    });
     const plans = applyCategoryPlan([
-      {
-        asset: { assetId: 'a1', repoName: 'cancer-story.jpg' },
-        fields: { title: 'A' },
-        existingMetadata: { 'autogen:subject': ['cancer'] },
-      },
-      {
-        asset: { assetId: 'a2', repoName: 'diabetes-care.jpg' },
-        fields: { title: 'B' },
-        existingMetadata: { 'autogen:subject': ['diabetes'] },
-      },
-    ], { contract: PHARMA });
+      { asset: { assetId: 'a1', fileName: 'cancer-story.jpg' }, fields: { title: 'A' }, existingMetadata: {} },
+      { asset: { assetId: 'a2', fileName: 'diabetes-care.jpg' }, fields: { title: 'B' }, existingMetadata: {} },
+    ], { contract: PHARMA, classifier });
     const coverage = buildCategoryCoverage(plans);
     const slugs = coverage.categories.map((c) => c.slug).sort();
     expect(slugs).toEqual(['cancer', 'diabetes']);
@@ -118,13 +107,34 @@ describe('category-plan', () => {
     );
   });
 
-  it('deterministicClassifier prefers smart-tag hits (double weight)', () => {
-    const classify = deterministicClassifier(PHARMA);
-    const evidence = assetEvidence(
-      { repoName: 'x.jpg' },
-      { 'autogen:subject': ['diabetes'] },
-      {},
-    );
-    expect(classify(evidence).slug).toBe('diabetes');
+  it('buildMapClassifier keys on fileName and falls back to assetId', () => {
+    const classifier = buildMapClassifier({ 'cap.png': 'accessories', 'asset-2': 'diabetes' });
+    expect(classifier({ fileName: 'cap.png', assetId: 'asset-1' }).slug).toBe('accessories');
+    expect(classifier({ fileName: 'other.png', assetId: 'asset-2' }).slug).toBe('diabetes');
+    expect(classifier({ fileName: 'none.png', assetId: 'asset-3' })).toBe(null);
+  });
+
+  it('map wins over round-robin; unmapped assets still spread across slugs', () => {
+    // Only the merchandise cap is mapped (the case the old overlap classifier got wrong).
+    const classifier = buildMapClassifier({ 'cap.png': 'accessories' });
+    const planned = [
+      { asset: { assetId: 'a1', fileName: 'cap.png' }, fields: {}, existingMetadata: {} },
+      { asset: { assetId: 'a2', fileName: 'unknown-1.png' }, fields: {}, existingMetadata: {} },
+      { asset: { assetId: 'a3', fileName: 'unknown-2.png' }, fields: {}, existingMetadata: {} },
+    ];
+    const META = [
+      { slug: 'smart-glasses', label: 'Smart Glasses' },
+      { slug: 'accessories', label: 'Accessories' },
+    ];
+    const out = applyCategoryPlan(planned, { contract: META, classifier });
+    expect(out[0].fields.productCategory).toBe('accessories');
+    // The two unmapped assets round-robin across BOTH slugs — neither card is empty.
+    const fallbackSlugs = [out[1].fields.productCategory, out[2].fields.productCategory];
+    expect(new Set(fallbackSlugs)).toEqual(new Set(['smart-glasses', 'accessories']));
+  });
+
+  it('roundRobinFallback cycles through the contract slugs in order', () => {
+    const next = roundRobinFallback([{ slug: 'a' }, { slug: 'b' }]);
+    expect([next().slug, next().slug, next().slug]).toEqual(['a', 'b', 'a']);
   });
 });

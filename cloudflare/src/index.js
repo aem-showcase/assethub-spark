@@ -67,10 +67,14 @@ const { preflight, corsify } = cors({
 // route, and (via auth.js) LOGIN_PAGE — all from the single config.DEMO_BASE_PATH value.
 const BASE = companyBasePath();
 
-function redirectToBasePath(request, path) {
+// The 404 page is a SHARED repo-root static file (./404.html), served like /favicon.ico —
+// it is NOT copied per-company (Step 3's DA copy allowlist is en/config/public only).
+// Redirect to the un-prefixed root /404.html: a company-prefixed /<company>/404.html does
+// not exist for a foldered demo, so it 404s and re-triggers this handler -> an infinite
+// redirect loop (shipped live on a demo; see rebrand-portal skill). Never prefix BASE here.
+function redirectTo404(request) {
   const url = new URL(request.url);
-  const suffix = path.startsWith('/') ? path : `/${path}`;
-  return Response.redirect(`${url.origin}${BASE}${suffix}`, 302);
+  return Response.redirect(`${url.origin}/404.html`, 302);
 }
 
 const router = Router({
@@ -168,7 +172,7 @@ router
     const response = await originHelix(request, env);
 
     if (response.status === 404) {
-      return redirectToBasePath(request, '/404.html');
+      return redirectTo404(request);
     }
 
     const contentType = response.headers.get('content-type') || '';
@@ -186,7 +190,7 @@ router
       console.warn(
         `[PageAccess] Denied ${request.user.email} from ${new URL(request.url).pathname} (user roles: ${request.user.roles}, excluded: ${JSON.stringify(exclusions)})`,
       );
-      return redirectToBasePath(request, '/404.html');
+      return redirectTo404(request);
     }
 
     return response;

@@ -40,6 +40,10 @@ The asset search functionality is implemented as a vanilla JS EDS block in `bloc
 
 A Cloudflare Worker is located in the [cloudflare](cloudflare) folder. This worker handles the site and sits in front of AEM Helix and Dynamic Media.
 
+## Rebrand portal skill
+
+To produce a branded demo of the portal for a company, see [docs/rebrand-quickstart.md](docs/rebrand-quickstart.md).
+
 ## Installation
 
 Install npm dependencies for the root project and cloudflare worker:
