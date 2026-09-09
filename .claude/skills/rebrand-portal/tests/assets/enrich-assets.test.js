@@ -7,8 +7,9 @@ import { makeRes, makeClient } from './helpers.js';
 
 const silent = { info: () => {}, warn: () => {} };
 
-// Source-derived category contract (Step 4). Fixtures below carry filename/keyword/smart-tag
-// evidence for "products"; the deterministic classifier maps them into this contract.
+// Source-derived category contract (Step 4). With no injected classifier, assets round-robin
+// across these slugs; a single-asset run lands in the first slug ("products"). Fixtures below
+// carry autogen:* / smart-tag evidence for those assets.
 const CONTRACT = [
   { slug: 'products', label: 'Products' },
   { slug: 'lifestyle', label: 'Lifestyle' },
@@ -137,6 +138,95 @@ describe('enrichAssets controller', () => {
       { slug: 'products', assetCount: 1 },
     ]);
     expect(out.metadataPreview).toContain('/content/dam/santander/hero.png');
+  });
+
+  it('source-url live: enriches uploaded assets without a search-API recovery scan (BUG 1)', async () => {
+    // The crux of BUG 1: after upload, the controller must NOT re-enumerate via the
+    // Author search API to "recover" asset ids — that index lags and returns 0 for
+    // freshly-uploaded assets. uploadAsset already returns assetId + repoPath, so the
+    // asset flows straight to waitForAssetProcessed + the Sling write. This client
+    // queues NO 'search' response for discovery; if the removed recovery hop were still
+    // there it would throw "no scripted response for search".
+    const repoPath = '/content/dam/santander/hero.png';
+    // client.request handles the sling ops planAsset/write need (jcr:content poll,
+    // metadata read, metadata write, and a final verify read). No 'search' op is queued.
+    let metadataWritten = false;
+    const client = {
+      calls: [],
+      async buildHeaders(extra = {}) { return { Authorization: 'Bearer t', ...extra }; },
+      async request(op, opts) {
+        this.calls.push({ op, opts });
+        const p = opts?.path || '';
+        if (op === 'sling' && p.includes('jcr:content.json')) return jcrContent('processed');
+        if (op === 'sling' && opts.method === 'POST' && p.includes('metadata')) {
+          metadataWritten = true;
+          return makeRes({ status: 200 });
+        }
+        // The post-write verify re-read must reflect the full enriched scope (as real
+        // AEM does) — isAlreadyEnriched requires company + title + approved + global +
+        // productCategory.
+        if (op === 'sling' && p.includes('metadata.json')) {
+          return metadataWritten
+            ? metadata({
+              company: 'santander',
+              'dam:status': 'approved',
+              'dc:title': 'Product Hero',
+              allowedCountries: ['global'],
+              productCategory: 'products',
+            })
+            : metadata();
+        }
+        if (op === 'rendition') return makeRes({ status: 404 });
+        throw new Error(`unexpected op ${op} ${p}`);
+      },
+    };
+    // fetchFn handles the scrape page + the repository upload protocol.
+    const fetchFn = async (url, opts = {}) => {
+      const method = opts.method || 'GET';
+      if (url === 'https://brand.example/products') {
+        return htmlRes('<title>P</title><h1>G</h1><img src="/hero.png" alt="Product hero">');
+      }
+      if (method === 'POST' && url.includes(';api=create')) {
+        return makeRes({ status: 200, headers: { 'asset-id': 'urn:aaid:aem:hero', etag: '"0"' } });
+      }
+      if (method === 'POST' && url.includes(';api=block_upload_finalize')) {
+        return makeRes({ status: 201, headers: { location: repoPath } });
+      }
+      if (method === 'POST' && url.includes(';api=block_upload')) {
+        return makeRes({
+          status: 200,
+          body: {
+            'repo:blocksize': 10 * 1024 * 1024,
+            _links: {
+              'http://ns.adobe.com/adobecloud/rel/block/transfer': [{ href: 'https://blob.test/b?1' }],
+              'http://ns.adobe.com/adobecloud/rel/block/finalize': { href: 'https://author/x;api=block_upload_finalize;token=t' },
+            },
+          },
+        });
+      }
+      if (method === 'PUT') return makeRes({ status: 201 });
+      // ensureFolder create + the image download both land here
+      if (method === 'POST' && url.includes(';api=create;path=santander')) return makeRes({ status: 200 });
+      return assetRes(new Uint8Array(12 * 1024).fill(1));
+    };
+
+    const out = await enrichAssets({
+      options: baseOptions({
+        dryRun: false,
+        sourceUrl: 'https://brand.example/products',
+        fetchFn,
+      }),
+      client,
+      generator,
+      log: silent,
+    });
+
+    // Discovery never used the search API...
+    expect(client.calls.some((c) => c.op === 'search')).toBe(false);
+    // ...and the uploaded asset was enriched (reached the Sling write), not marked
+    // "not found by folder enumeration".
+    expect(out.report.counts().enriched).toBe(1);
+    expect(out.report.toJSON().assets.every((a) => a.stage !== 'upload-id' || a.outcome !== 'failed')).toBe(true);
   });
 
   it('materializes DA card images when --org/--repo are set (dry-run: no network write)', async () => {
@@ -465,6 +555,21 @@ describe('buildCardRows', () => {
     // Blurb is always a short authored-style sentence, never rep.description (which is
     // autogen:description evidence, not customer-facing card copy — see buildCardRows doc).
     expect(rows[1].blurb).toBe('Cancer product and campaign imagery.');
+  });
+
+  it('scopes the facet href to a foldered base path (FIX 8)', () => {
+    const rows = buildCardRows({
+      contract, categoryCoverage, representatives, basePath: '/acme/en',
+    });
+    // Under a foldered demo the href must be /acme/en/search?…, not the default /en/search?…
+    expect(rows[0].href).toBe(
+      '/acme/en/search?facetFilters=%7B%22productCategory%22%3A%7B%22dermatology%22%3Atrue%7D%7D',
+    );
+  });
+
+  it('falls back to the default base path when none is given', () => {
+    const rows = buildCardRows({ contract, categoryCoverage, representatives });
+    expect(rows[0].href.startsWith('/en/search?')).toBe(true);
   });
 
   it('skips contract categories that have no representative', () => {

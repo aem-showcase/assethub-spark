@@ -158,7 +158,19 @@ export const STATUS_APPROVED = 'approved';
 export const MIN_CARDS = 5;
 
 // The DAM content root. The Assets HTTP API mirrors this tree under /api/assets.
+// NOTE: the DAM asset folder stays FLAT — /content/dam/<companyKey> — because assets are
+// scoped by the `company` metadata tag, not by URL path. Only the DA content path and portal
+// base path are nested under the companies container (see COMPANIES_CONTAINER below).
 export const DAM_ROOT = '/content/dam';
+
+// Foldered demos are served under one container folder so the DA root stays uncluttered:
+// the portal base path is /companies/<companyKey> (not a top-level /<companyKey>). This is
+// the single place the container prefix is defined for the asset scripts; companyBasePath()
+// builds the base path for facet hrefs and the worker DEMO_BASE_PATH.
+export const COMPANIES_CONTAINER = 'companies';
+export function companyBasePath(companyKey) {
+  return `/${COMPANIES_CONTAINER}/${companyKey}`;
+}
 
 // --- Bring-in (E3: scrape a site -> upload) limits ---
 // Sensible demo-scale bounds so a scrape can't run away or pull a huge binary.

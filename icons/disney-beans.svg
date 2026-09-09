@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 329 230" role="img" aria-label="Disney decorative mark">
+  <g fill="#2A60B3" opacity="0.9">
+    <!-- large four-point sparkle -->
+    <path d="M164 40 C176 88 188 100 236 112 C188 124 176 136 164 184 C152 136 140 124 92 112 C140 100 152 88 164 40 Z"/>
+    <!-- small sparkle top-right -->
+    <path d="M258 44 C263 62 268 67 286 72 C268 77 263 82 258 100 C253 82 248 77 230 72 C248 67 253 62 258 44 Z" opacity="0.75"/>
+    <!-- small sparkle bottom-left -->
+    <path d="M74 150 C78 164 82 168 96 172 C82 176 78 180 74 194 C70 180 66 176 52 172 C66 168 70 164 74 150 Z" opacity="0.7"/>
+  </g>
+</svg>

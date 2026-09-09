@@ -1,0 +1,47 @@
+{
+  "context": "Guards that when excat is not installed, the agent runs shell prep steps autonomously (clone, npm install, smoke-check) via Bash tool rather than printing them as instructions, then provides /plugin commands as explicit operator copy-paste. The distinction: shell steps = agent executes; /plugin commands = operator runs.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Executes clone via Bash tool",
+      "max_score": 20,
+      "description": "The agent calls a Bash tool to clone aem-experience-catalyst (or reuses existing clone with git pull), rather than only printing the git clone command as an instruction."
+    },
+    {
+      "name": "Executes npm run install:all via Bash tool",
+      "max_score": 20,
+      "description": "The agent calls a Bash tool to run npm run install:all inside resources/plugins/aem-excat-plugin/excat-marketplace."
+    },
+    {
+      "name": "Smoke-checks excatops-mcp via Bash tool",
+      "max_score": 10,
+      "description": "The agent calls a Bash tool to run npx . in excat/tools/excatops-mcp to verify it starts."
+    },
+    {
+      "name": "Provides /plugin commands as operator copy-paste",
+      "max_score": 20,
+      "description": "The agent gives the operator exact /plugin marketplace add <absolute-path>... and /plugin install excat@excat-marketplace commands to copy-paste — with the resolved absolute path filled in, not a placeholder."
+    },
+    {
+      "name": "Requires restart/reverify",
+      "max_score": 10,
+      "description": "The agent tells operator to restart if needed and reverify with /plugin list and claude skill list."
+    },
+    {
+      "name": "No hand-rolled rebrand",
+      "max_score": 15,
+      "description": "The agent does not edit styles.css, sweep hardcoded colors, or rewrite content as a substitute."
+    },
+    {
+      "name": "Rebrand left blocked",
+      "max_score": 5,
+      "description": "The rebrand phase is left blocked pending plugin loading.",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.rebranded",
+        "notEquals": "done"
+      }
+    }
+  ]
+}

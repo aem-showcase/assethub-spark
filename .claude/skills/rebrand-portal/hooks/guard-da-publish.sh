@@ -21,17 +21,21 @@ set -uo pipefail
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
-export STATE_FILE="${PROJECT_DIR}/.internal/onboarding-state.json"
+# Fallback state file only — the real resolution happens in Python below,
+# scoped to the worktree the command actually targets. This env value is
+# the last resort when no worktree can be parsed from the command.
+FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
+export FALLBACK_STATE_FILE="${FALLBACK_PROJECT_DIR}/.internal/onboarding-state.json"
 
 python3 <<'PY'
 import json
 import os
 import re
+import subprocess
 import sys
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
-state_file = os.environ.get("STATE_FILE", "")
+fallback_state_file = os.environ.get("FALLBACK_STATE_FILE", "")
 
 try:
     event = json.loads(blob) if blob.strip().startswith("{") else {}
@@ -45,6 +49,57 @@ tool_name = (
 )
 if tool_name in {"Write", "Edit", "MultiEdit", "NotebookEdit", "str_replace_editor"}:
     sys.exit(0)
+
+tool_input = (
+    event.get("tool_input")
+    or (event.get("tool") or {}).get("input")
+    or {}
+)
+command = tool_input.get("command", "") if isinstance(tool_input, dict) else ""
+
+
+def resolve_state_file():
+    """Pick the onboarding-state.json to enforce against.
+
+    The harness fixes CLAUDE_PROJECT_DIR (and the event `cwd`) to the main
+    checkout for the whole session, so neither tells us which worktree a
+    command actually targets. Each demo runs in its own git worktree with
+    its own .internal/onboarding-state.json (SKILL.md Step 2), so we derive
+    the worktree from a `cd <path>` or an absolute script/path token in the
+    command string, and read that worktree's state. Falls back to the main
+    checkout's file only when no worktree path can be parsed.
+    """
+    candidate_dirs = []
+
+    # A leading `cd <path> && ...` names the worktree the command runs in.
+    m = re.search(r"(?:^|[;&|]|\bcd\s)\s*cd\s+([^\s;&|]+)", command)
+    if not m:
+        m = re.search(r"(?:^|\s)cd\s+([^\s;&|]+)", command)
+    if m:
+        candidate_dirs.append(m.group(1).strip().strip("'\""))
+
+    # An absolute path to a repo file/script also identifies the worktree
+    # (e.g. /…/assethub-spark.worktrees/demo-acme/.claude/skills/…/copy-folder.sh).
+    for pm in re.finditer(r"(/[^\s;&|'\"]+/\.claude/skills/rebrand-portal/[^\s;&|'\"]+)", command):
+        candidate_dirs.append(os.path.dirname(pm.group(1)))
+
+    for d in candidate_dirs:
+        try:
+            root = subprocess.run(
+                ["git", "-C", d, "rev-parse", "--show-toplevel"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            root = ""
+        if root:
+            sf = os.path.join(root, ".internal", "onboarding-state.json")
+            if os.path.isfile(sf):
+                return sf
+
+    return fallback_state_file
+
+
+state_file = resolve_state_file()
 
 # Resolve the allowed company folder from the onboarding state file.
 da_folder = None
@@ -82,54 +137,78 @@ def deny(reason):
     sys.exit(2)
 
 
+# Only an executed shell command can publish/copy. Scan the Bash command
+# string, not the whole event JSON — this alone stops false positives from
+# tools that merely *contain* a path in their input (e.g. an
+# AskUserQuestion preview, or a `grep` whose argument happens to be a DA
+# URL / the copy-folder.sh path). If there is no command, there is nothing
+# to guard.
+scan = command or ""
+
+# A read-only inspection of the command text (grep/rg/cat/… over a script
+# or a heredoc that merely *mentions* these URLs) is not an invocation.
+# Require the DA-copy-helper match to sit in command/execution position,
+# not as an argument to another program.
 violations = []
 
-# 1) Helix Admin publish/preview/live: .../<verb>/{org}/{repo}/{ref}/<path>
-#    These are always writes to the hosted site -> enforce the path.
-for m in re.finditer(
-    r"admin\.hlx\.page/(?:preview|live|publish)/[^/\s\"']+/[^/\s\"']+/[^/\s\"']+((?:/[^\s\"'?#]+)*)",
-    blob,
-):
-    path = m.group(1) or "/"
-    if not under_folder(path):
-        violations.append("Helix publish -> " + path)
-
-# 2) DA source write (PUT/POST upload) to .../source/{org}/{repo}/<path>
-#    Only enforce when a write method/upload is present in the input.
-is_write = re.search(
-    r"(-X|--request)\s*(POST|PUT|DELETE)|--upload-file|(^|\s)-T\s|\"method\"\s*:\s*\"(POST|PUT|DELETE)\"",
-    blob,
-    re.IGNORECASE,
-)
-if is_write:
+if scan:
+    # 1) Helix Admin publish/preview/live: .../<verb>/{org}/{repo}/{ref}/<path>
+    #    These are always writes to the hosted site -> enforce the path.
     for m in re.finditer(
-        r"admin\.da\.live/source/[^/\s\"']+/[^/\s\"']+((?:/[^\s\"'?#]+)*)",
-        blob,
+        r"admin\.hlx\.page/(?:preview|live|publish)/[^/\s\"']+/[^/\s\"']+/[^/\s\"']+((?:/[^\s\"'?#]+)*)",
+        scan,
     ):
         path = m.group(1) or "/"
         if not under_folder(path):
-            violations.append("DA source write -> " + path)
+            violations.append("Helix publish -> " + path)
 
-# 3) DA copy: only the destination matters (source is a read). Destination
-#    may be a form field or JSON: destination=<path> / "destination":"<path>".
-for m in re.finditer(
-    r"destination[\"']?\s*[:=]\s*[\"']?(/[^\s\"',&]+)",
-    blob,
-    re.IGNORECASE,
-):
-    path = m.group(1)
-    if not under_folder(path):
-        violations.append("DA copy destination -> " + path)
+    # 2) DA source write (PUT/POST upload) to .../source/{org}/{repo}/<path>
+    #    Only enforce when a write method/upload is present in the command.
+    is_write = re.search(
+        r"(-X|--request)\s*(POST|PUT|DELETE)|--upload-file|(^|\s)-T\s",
+        scan,
+        re.IGNORECASE,
+    )
+    if is_write:
+        for m in re.finditer(
+            r"admin\.da\.live/source/[^/\s\"']+/[^/\s\"']+((?:/[^\s\"'?#]+)*)",
+            scan,
+        ):
+            path = m.group(1) or "/"
+            if not under_folder(path):
+                violations.append("DA source write -> " + path)
 
-# 4) Packaged DA copy helper. The helper builds the DA copy URLs internally,
-#    so enforce its <companyKey> arg before the script runs.
-for m in re.finditer(
-    r"(?:^|[\s\"'])(?:[^\s\"']*/)?(?:scripts/da-copy-folder\.sh|scripts/da/copy-folder\.sh)\s+[^\s\"']+\s+[^\s\"']+\s+([^\s\"']+)",
-    blob,
-):
-    company = "/" + m.group(1).strip().strip("/")
-    if not under_folder(company):
-        violations.append("DA copy script destination -> " + company)
+    # 3) DA copy: only the destination matters (source is a read). Require the
+    #    destination to sit alongside a real DA copy call (admin.da.live/copy
+    #    somewhere in the command), so a bare `destination=/x` in unrelated
+    #    text is not treated as a publish.
+    if re.search(r"admin\.da\.live/copy/", scan):
+        for m in re.finditer(
+            r"destination[\"']?\s*[:=]\s*[\"']?(/[^\s\"',&]+)",
+            scan,
+            re.IGNORECASE,
+        ):
+            path = m.group(1)
+            if not under_folder(path):
+                violations.append("DA copy destination -> " + path)
+
+    # 4) Packaged DA copy helper. Enforce its <companyKey> arg before the
+    #    script runs — but only when the script is actually *invoked*
+    #    (start of command, or after &&/;/|/`bash`/`sh`/`./`), never when its
+    #    path appears as an argument to grep/cat/rg/etc.
+    for m in re.finditer(
+        r"(?:^|[;&|]|\bbash\s+|\bsh\s+|(?<=\s)\./)\s*"
+        r"(?:[^\s\"';&|]*/)?(?:scripts/da-copy-folder\.sh|scripts/da/copy-folder\.sh)"
+        r"\s+[^\s\"';&|]+\s+[^\s\"';&|]+\s+([^\s\"';&|]+)",
+        scan,
+    ):
+        # The copy helper writes into the companies container: /companies/<companyKey>.
+        # Build the destination the same way the script does so it matches daFolder
+        # (which the skill sets to /companies/<companyKey>).
+        key = m.group(1).strip().strip("/")
+        company = "/companies/" + key
+        if not under_folder(company):
+            violations.append("DA copy script destination -> " + company)
 
 if violations:
     if not da_folder:

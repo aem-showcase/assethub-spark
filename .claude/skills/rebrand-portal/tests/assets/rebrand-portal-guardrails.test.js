@@ -115,13 +115,14 @@ describe('customer migration bring-in extraction', () => {
 
 describe('customer migration publish guard hook', () => {
   it('allows DA writes under the company folder and blocks root writes', () => {
+    // Foldered demos live under /companies/<companyKey>; daFolder is set to the nested path.
     const projectDir = tempProjectWithState({
-      customer: { daFolder: '/acme' },
+      customer: { daFolder: '/companies/acme' },
     });
 
     const allowed = runGuard(projectDir, {
       tool_input: {
-        command: 'curl -X POST https://admin.hlx.page/preview/org/repo/main/acme/en/',
+        command: 'curl -X POST https://admin.hlx.page/preview/org/repo/main/companies/acme/en/',
       },
     });
     expect(allowed.status).toBe(0);
@@ -134,13 +135,14 @@ describe('customer migration publish guard hook', () => {
     expect(blocked.status).toBe(2);
     expect(blocked.stderr).toContain('outside the company folder');
 
+    // The copy helper writes to /companies/<companyKey>; a mismatched key is blocked there.
     const blockedWrapper = runGuard(projectDir, {
       tool_input: {
         command: '.claude/skills/rebrand-portal/scripts/da/copy-folder.sh org repo other',
       },
     });
     expect(blockedWrapper.status).toBe(2);
-    expect(blockedWrapper.stderr).toContain('DA copy script destination -> /other');
+    expect(blockedWrapper.stderr).toContain('DA copy script destination -> /companies/other');
   });
 
   it('rejects reserved company keys in the DA copy script before token lookup', () => {
@@ -161,7 +163,7 @@ describe('customer migration publish guard hook', () => {
 
   it('rejects DA copy destinations that do not match existing migration state', () => {
     const projectDir = tempProjectWithState({
-      customer: { daFolder: '/acme' },
+      customer: { daFolder: '/companies/acme' },
     });
 
     const result = spawnSync(
@@ -179,6 +181,6 @@ describe('customer migration publish guard hook', () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("companyKey 'other' does not match state company folder /acme");
+    expect(result.stderr).toContain("companyKey 'other' -> /companies/other does not match state company folder /companies/acme");
   });
 });

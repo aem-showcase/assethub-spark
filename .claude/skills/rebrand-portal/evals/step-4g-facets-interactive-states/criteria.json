@@ -1,0 +1,37 @@
+{
+  "context": "Guards the Step 4g facets-panel verification requirement that every interactive state (default, hover, focus, checked/active, disabled) is checked — not just the resting appearance. A real regression: checked filter checkbox rendered old brand color while resting state was already correctly rebranded.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Opens deployed PR worker at desktop viewport",
+      "max_score": 10,
+      "description": "The agent opens the deployed PR worker URL (not the raw aem.page origin) at width >= 1440px with the filter panel visible."
+    },
+    {
+      "name": "Checks all five interactive states",
+      "max_score": 40,
+      "description": "The agent explicitly verifies default, hover, focus, checked/active, and disabled states for controls in the facets panel — not just resting/default. Must name the states checked, not just say 'looks good'."
+    },
+    {
+      "name": "Applies to every control type in the panel",
+      "max_score": 20,
+      "description": "The agent checks all interactive control types (checkboxes, toggles, buttons, tabs) — not only one named control type."
+    },
+    {
+      "name": "Fails and blocks Step 5 on any stale state",
+      "max_score": 20,
+      "description": "If any interactive state of any control shows a stale base-brand color, the agent blocks Step 5 and does not proceed.",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.assets-uploaded",
+        "notEquals": "done"
+      }
+    },
+    {
+      "name": "Does not proceed on a resting-only pass",
+      "max_score": 10,
+      "description": "The agent does not mark Step 4g complete based only on a screenshot or resting-state visual check. It must have verified computed values per state."
+    }
+  ]
+}
