@@ -324,7 +324,7 @@ header nav .nav-brand img {
   object-fit: contain;
 }
 
-/* Brand logo authored as an EDS icon (:frescopa-icon:) - let it render full size */
+/* Brand logo authored as an EDS icon (:woolworths-icon:) - let it render full size */
 header .nav-brand p {
   margin: 0;
 }
@@ -744,7 +744,7 @@ header nav .nav-tools .nav-cart-icon button:focus-visible,
 header nav .nav-tools .nav-download-icon button:focus-visible,
 header nav .nav-tools .nav-message-icon button:focus-visible,
 header nav .nav-tools .nav-reports-icon button:focus-visible {
-  box-shadow: var(--focus-ring, 0 0 0 3px #00647D);
+  box-shadow: var(--focus-ring, 0 0 0 3px #008446);
   border-radius: 6px;
 }
 

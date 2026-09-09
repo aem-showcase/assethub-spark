@@ -151,7 +151,11 @@ export function checkResidue(repoRoot, baseBrand) {
     for (const m of matchers) {
       if (m.test(upper, text)) hits.push(`${f}: old hex ${m.label}`);
     }
-    if (slug && new RegExp(slug, 'i').test(text)) hits.push(`${f}: baseSlug '${slug}'`);
+    // Strip the infra deploy-host domain ('<baseSlug>media') before the slug test —
+    // it's an infrastructure hostname, not brand residue, and must NOT be renamed
+    // (a '<company>media.com' domain doesn't exist). Only then test the bare slug.
+    const slugText = text.replace(new RegExp(`${slug}media`, 'gi'), '');
+    if (slug && new RegExp(slug, 'i').test(slugText)) hits.push(`${f}: baseSlug '${slug}'`);
   }
   if (hits.length) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };
