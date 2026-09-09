@@ -400,18 +400,45 @@ split it across turns:
    **opening** the PR (not merging) is the finish line — the branch
    preview serves it; do not merge, never close/delete it (I5). If CI
    blocks, only fix checks that fail on your branch but pass on `main`.
+
+   **Known-ignore check — never poll it, never investigate it, never wait
+   on it:**
+   ```
+   KNOWN_IGNORE_CHECKS = ["aem-psi-check"]
+   ```
+   `aem-psi-check` is an external PSI/Lighthouse-style status check, not a
+   workflow job in this repo — its `link` points to a static docs page
+   (`aem.live/developer/tutorial`), not an Actions run. It fails
+   permanently and pre-existing on unrelated PRs too (confirmed on #44 and
+   #49), independent of anything this flow does. Do not re-derive this by
+   checking main or other PRs each run — it is always safe to ignore. Only
+   `deploy` and `test` gate this step; don't surface `aem-psi-check` in
+   status updates unless the customer asks about it.
+
    **Immediately after `gh pr create` returns, give the customer the PR
    URL it prints** (plain sentence, e.g. "Here's the pull request: <url>")
    — this is the shareable result (I3), not an internal artifact, so I1
    does not apply to it.
 
-   **Then poll for the deploy job and hand over the actual portal URL, not
-   just the Actions run link.** The "Deploy branch worker" job's log line
-   contains the exact route the worker deploys to — the customer-facing
-   portal URL — so parse it instead of making the customer read the log
-   themselves:
+   **Then poll only the `deploy` and `test` checks by name — never
+   `gh pr checks <PR> --watch`,** which blocks on the full check suite
+   including `aem-psi-check` above and can sit long after the real gate
+   has resolved:
    ```
-   gh pr checks <PR> --watch   # wait for deploy to reach a terminal state
+   while true; do
+     STATE=$(gh pr checks <PR> --json name,state,link)
+     DEPLOY=$(echo "$STATE" | jq -r '.[] | select(.name=="deploy") | .state')
+     [ "$DEPLOY" = "SUCCESS" ] || [ "$DEPLOY" = "FAILURE" ] && break
+     sleep 10
+   done
+   ```
+   `deploy` and `test` reach a terminal state within ~1 minute (verified:
+   31s and 57s respectively on PR #49) — don't wait longer than that
+   before reporting back. Once `deploy` is `SUCCESS`, the "Deploy branch
+   worker" job's log line contains the exact route the worker deploys to
+   — the customer-facing portal URL — so parse it instead of making the
+   customer read the log themselves:
+   ```
    RUN_ID=$(gh run list --branch customer.demoBranch -L 1 --json databaseId --jq '.[0].databaseId')
    HOST=$(gh run view "$RUN_ID" --log 2>/dev/null \
      | grep -m1 -- '--route' \
