@@ -1025,7 +1025,7 @@ main .section.search-hero .query-input-bar {
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(255 194 32 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  background: rgb(0 132 70 / 6%); /* Woolworths green tint, for section-to-section color rhythm */
   text-align: center;
 }
 

@@ -472,7 +472,7 @@ body.asset-details-modal-open .asset-details-image-wrapper .add-to-collection-ov
 
 .details-metadata-value.custom-metadata-value,
 .asset-details-main-metadata-value.custom-metadata-value {
-  color: #0e202e;
+  color: #25251F;
   font-size: var(--font-size-01);
   font-weight: 700;
   line-height: var(--line-height-01);
