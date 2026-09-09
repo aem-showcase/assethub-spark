@@ -124,6 +124,10 @@
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 
+.smart-collection-action-menu[hidden] {
+  display: none;
+}
+
 .smart-collection-action-menu button {
   padding: 8px 12px;
   font: inherit;
