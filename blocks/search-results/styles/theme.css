@@ -4,8 +4,8 @@
 
 :root {
   /* Primary colors — align with global :root */
-  --primary-color-hover: #004d61;
-  --primary-color-active: #003d4d;
+  --primary-color-hover: #B30410;
+  --primary-color-active: #B30410;
   --primary-color-disabled: var(--color-neutral-300, #e8e8e8);
 
   /* Color scales (Light mode) */
@@ -15,12 +15,12 @@
   --gray-300: #b8b8b8;
   --gray-400: #8f8f8f;
   --gray-500: #666;
-  --purple-100: rgb(0 100 125 / 12%);
-  --purple-200: rgb(0 100 125 / 20%);
-  --purple-300: rgb(0 100 125 / 30%);
+  --purple-100: rgb(212 5 17 / 12%);
+  --purple-200: rgb(212 5 17 / 20%);
+  --purple-300: rgb(212 5 17 / 30%);
   --purple-400: var(--primary-color);
-  --purple-500: #004d61;
-  --purple-600: #003d4d;
+  --purple-500: #B30410;
+  --purple-600: #B30410;
   --red-100: rgb(163 53 50 / 12%);
   --red-200: rgb(163 53 50 / 25%);
   --red-300: var(--color-red);
@@ -48,11 +48,11 @@
   --button-background: var(--gray-50);
   --button-background-pressed: var(--light-color);
   --highlight-background: var(--primary-color);
-  --highlight-background-pressed: #004d61;
+  --highlight-background-pressed: #B30410;
   --highlight-background-invalid: var(--color-red);
   --highlight-foreground: white;
   --highlight-foreground-pressed: var(--light-color);
-  --highlight-overlay: rgb(0 100 125 / 15%);
+  --highlight-overlay: rgb(212 5 17 / 15%);
   --invalid-color: var(--color-red);
   --invalid-color-pressed: var(--color-dark-red);
 }
@@ -68,13 +68,13 @@
     --gray-400: #848484;
     --gray-500: #a7a7a7;
     --gray-600: #cfcfcf;
-    --purple-100: #003d4d;
-    --purple-200: #004d61;
-    --purple-300: #00647D;
-    --purple-400: #3d8fa3;
-    --purple-500: #6ab4c4;
-    --purple-600: #a8d4de;
-    --red-100: #5c1f1e;
+    --purple-100: #B30410;
+    --purple-200: #B30410;
+    --purple-300: #D40511;
+    --purple-400: #D40511;
+    --purple-500: #E8656E;
+    --purple-600: #F5B8BC;
+    --red-100: #B30410;
     --red-200: var(--color-dark-red);
     --red-300: var(--color-red);
     --red-400: var(--color-red);

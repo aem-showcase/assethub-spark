@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="DHL">
+  <!-- Large login-panel brand mark: yellow badge with red DHL wordmark (path glyphs) -->
+  <rect x="40" y="70" width="400" height="160" rx="24" fill="#FFCC00"/>
+  <g fill="#D40511" transform="translate(70,105)">
+    <!-- D -->
+    <path d="M0 0 h58 c40 0 66 18 66 45 0 27 -26 45 -66 45 h-58 z m40 30 v30 h18 c15 0 24 -6 24 -15 0 -9 -9 -15 -24 -15 z"/>
+    <!-- H -->
+    <path d="M160 0 h40 v30 h44 v-30 h40 v90 h-40 v-30 h-44 v30 h-40 z"/>
+    <!-- L -->
+    <path d="M350 0 h40 v60 h74 v30 h-114 z" transform="translate(-60,0)"/>
+  </g>
+</svg>

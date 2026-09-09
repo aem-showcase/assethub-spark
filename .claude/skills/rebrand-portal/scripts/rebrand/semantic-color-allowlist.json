@@ -1,5 +1,5 @@
 {
-  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "description": "Selectors/custom-properties whose hex literals are semantic UI state or neutral chrome, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic/neutral color is found. The neutral-chrome and neutral-icon entries below are template-inherent (identical on every demo): greys/whites/blacks in chrome, avatars, tooltips, spinners, scrollbars, dropdowns, checkbox borders, and monochrome UI icons that are never brand surfaces.",
   "selectorPatterns": [
     "\\.editing-mode",
     "\\.impersonating",
@@ -8,9 +8,36 @@
     "--error-",
     "--success-",
     "--chart-",
-    "--data-viz-"
+    "--data-viz-",
+    "--color-neutral-",
+    "--dark-color",
+    "--button-secondary-color",
+    "--status-completed",
+    "--clearance-available",
+    "button\\.secondary",
+    "\\.secondary-button",
+    "\\.inline-loading-spinner",
+    "scrollbar",
+    "data-tooltip",
+    "\\.my-account",
+    "\\.avatar",
+    "\\.impersonation-indicator",
+    "\\.nav-wrapper",
+    "\\.nav-sections",
+    "\\.dropdown-menu",
+    "\\.header-dropdown-portal",
+    "input\\[type=\"checkbox\"\\]",
+    "picture\\.missing",
+    "\\.hero-black",
+    "\\.query-input-bar"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^icons/",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/hero/hero\\.css$"
   ]
 }

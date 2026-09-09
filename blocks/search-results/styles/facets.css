@@ -92,7 +92,7 @@
 }
 
 .facet-filter-button:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #00647D);
+  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #D40511);
 }
 
 .facet-filter-button-search {
@@ -544,7 +544,7 @@
   border-radius: 40px;
   background: white;
   height: 30px;
-  border-color: #85b7d9;
+  border-color: #D40511;
   box-shadow: inset 0 0 0 0 rgb(34 36 38 / 35%);
   box-sizing: border-box;
   overflow: hidden;
@@ -729,7 +729,7 @@
   border-radius: 40px;
   background: white;
   height: 36px;
-  border-color: #85b7d9;
+  border-color: #D40511;
   box-sizing: border-box;
   overflow: hidden;
   flex: 1;

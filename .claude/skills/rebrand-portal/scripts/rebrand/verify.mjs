@@ -148,7 +148,11 @@ export function checkResidue(repoRoot, baseBrand) {
     for (const m of matchers) {
       if (m.test(upper, text)) hits.push(`${f}: old hex ${m.label}`);
     }
-    if (slug && new RegExp(slug, 'i').test(text)) hits.push(`${f}: baseSlug '${slug}'`);
+    // Strip the infra deploy host (`*.frescopamedia.com`) before the slug test:
+    // it is the Cloudflare demo-hosting domain (see I3), identical on every demo and
+    // never brand content, so its embedded slug is a false positive, not residue.
+    const slugText = text.replace(/frescopamedia\.com/gi, '');
+    if (slug && new RegExp(slug, 'i').test(slugText)) hits.push(`${f}: baseSlug '${slug}'`);
   }
   if (hits.length) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };

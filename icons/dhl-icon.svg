@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-label="DHL">
+  <rect width="640" height="180" fill="#FFCC00" rx="10"/>
+  <!-- DHL wordmark in brand red, drawn as filled path glyphs -->
+  <g fill="#D40511">
+    <!-- D -->
+    <path d="M60 45 h58 c40 0 66 18 66 45 0 27 -26 45 -66 45 h-58 z m40 30 v30 h18 c15 0 24 -6 24 -15 0 -9 -9 -15 -24 -15 z"/>
+    <!-- H -->
+    <path d="M220 45 h40 v30 h44 v-30 h40 v90 h-40 v-30 h-44 v30 h-40 z"/>
+    <!-- L -->
+    <path d="M410 45 h40 v60 h74 v30 h-114 z"/>
+  </g>
+  <!-- Speed lines echoing the DHL mark -->
+  <g fill="#D40511" opacity="0.85">
+    <rect x="548" y="60" width="52" height="9" rx="4"/>
+    <rect x="536" y="86" width="64" height="9" rx="4"/>
+    <rect x="548" y="112" width="52" height="9" rx="4"/>
+  </g>
+</svg>
