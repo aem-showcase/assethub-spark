@@ -148,7 +148,10 @@ export function checkResidue(repoRoot, baseBrand) {
     for (const m of matchers) {
       if (m.test(upper, text)) hits.push(`${f}: old hex ${m.label}`);
     }
-    if (slug && new RegExp(slug, 'i').test(text)) hits.push(`${f}: baseSlug '${slug}'`);
+    // Strip the infra deploy host (e.g. 'frescopamedia.com') before the slug test —
+    // it's the production domain baked into every checkout, not customer brand residue.
+    const slugTestText = text.replace(/frescopamedia(?:\.com)?/gi, '');
+    if (slug && new RegExp(slug, 'i').test(slugTestText)) hits.push(`${f}: baseSlug '${slug}'`);
   }
   if (hits.length) {
     return { name: 'residue', pass: false, reason: `${hits.length} residue hit(s):\n  ${hits.slice(0, 40).join('\n  ')}` };
