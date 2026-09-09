@@ -19,7 +19,7 @@ const config = {
   // the configured customer. Default is 'frescopa' (our own demo repo). When running the
   // enrichment agent for a prospect (e.g. 'santander'), the agent auto-patches this value
   // after a successful run. Value is the customer key, NOT the logged-in viewer's company.
-  DEMO_COMPANY: 'apple-india',
+  DEMO_COMPANY: 'apple',
 
   // Content base path for a foldered demo. DA content is shared across all branches of a
   // repo, so a per-company demo copies the site under one container folder,
