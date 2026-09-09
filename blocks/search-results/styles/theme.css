@@ -5,7 +5,7 @@
 :root {
   /* Primary colors — align with global :root */
   --primary-color-hover: #125430;
-  --primary-color-active: #003d4d;
+  --primary-color-active: #0a3d23;
   --primary-color-disabled: var(--color-neutral-300, #e8e8e8);
 
   /* Color scales (Light mode) */
@@ -20,7 +20,7 @@
   --purple-300: rgb(0 132 70 / 30%);
   --purple-400: var(--primary-color);
   --purple-500: #125430;
-  --purple-600: #003d4d;
+  --purple-600: #0a3d23;
   --red-100: rgb(163 53 50 / 12%);
   --red-200: rgb(163 53 50 / 25%);
   --red-300: var(--color-red);
@@ -68,7 +68,7 @@
     --gray-400: #848484;
     --gray-500: #a7a7a7;
     --gray-600: #cfcfcf;
-    --purple-100: #003d4d;
+    --purple-100: #0a3d23;
     --purple-200: #125430;
     --purple-300: #008446;
     --purple-400: #3d8fa3;
