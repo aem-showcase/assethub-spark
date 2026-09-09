@@ -34,6 +34,17 @@ searching and filtering on what's in each one." `customer.assetsLane`
   surface in search and facets. Runs now if `assetsEnrichNow = true`
   (Entry flow Q2); otherwise `assets-uploaded` marks `done` and
   enrichment itself stays `deferred` until a later request.
+
+  **Detect first, then say plainly what's needed — some assets may already
+  be searchable.** The tool checks each existing asset and reuses the ones
+  that are already searchable/filterable as-is; it only labels the ones that
+  aren't (this is per-asset — a folder is rarely all-or-nothing). Tell the
+  customer the real split in outcome language, no internal terms: if all are
+  already searchable, "your N assets are already searchable and filterable —
+  using them as they are"; if some aren't, "N of your assets are already
+  searchable; I'll label the other M so they're findable too." An asset
+  counted as already-searchable (reported `skipped`, reason `already-enriched`)
+  is **reused work, not a failure** — never present it as an error or re-do it.
 - **Bring-in** (`assetsLane = bring-in`) — the customer named a source
   website; pull sample images and linked documents from it into the
   folder first using the AEM UI's repository blob-upload API, then label
@@ -67,7 +78,7 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   [--source-url <url>] \
   [--source-urls <url1,url2,url3,...>] \
   [--categories <slug1,slug2,...>] \
-  [--category-aliases "<slug>=<tok>,<tok>;<slug2>=<tok>"] \
+  [--category-map .internal/<companyKey>-category-map.json] \
   [--dry-run] [--force] \
   [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
@@ -76,13 +87,11 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
 **Scrape every category's source page in ONE run — do not loop the script
 page-by-page.** In Step 4 you already derived the category contract from the
 source nav; while you're there, capture the *source URL for each category*
-(the model/section page that carries that category's imagery) and the
-*alias tokens per category* (model/product names, e.g. `sedan=verna,aura`).
-Pass the full page list as `--source-urls` (combined with `--source-url` and
-deduped; `--limit` still caps total downloads across all pages) and the alias
-map as `--category-aliases`. This removes the single biggest Step-5 time sink:
-the serial "scrape one page → discover a thin category → scrape the next page"
-loop. Front-loading the map turns ~10 serial passes into one.
+(the model/section page that carries that category's imagery). Pass the full
+page list as `--source-urls` (combined with `--source-url` and deduped;
+`--limit` still caps total downloads across all pages). This removes the single
+biggest Step-5 time sink: the serial "scrape one page → discover a thin category
+→ scrape the next page" loop. Front-loading turns ~10 serial passes into one.
 
 - `<companyKey>` is the same slug as Steps 2–4 (`customer.companyKey`) —
   it drives both the DAM folder `/content/dam/<companyKey>` and the
@@ -141,11 +150,10 @@ incomplete data). Once processed, the primary evidence for `dc:title`,
 signal from AEM's asset processing, not a guess. Filename tokens and
 `xcm:machineKeywords` hints are last-resort only, used per-field when the
 corresponding `autogen:*` value is still empty after processing.
-`productCategory` is assigned separately from existing metadata and
-source-site evidence, now including `autogen:subject` as a high-confidence
-signal (see `docs/asset-enrichment.md`). `company`, `dam:status=approved`,
-and `allowedCountries=["global"]` are stamped by the controller only when
-missing.
+`productCategory` is assigned separately, via the agent's `--category-map`
+written from the dry-run evidence (see `docs/asset-enrichment.md`).
+`company`, `dam:status=approved`, and `allowedCountries=["global"]` are
+stamped by the controller only when missing.
 
 **The metadata write goes through the controller.**
 `enrich-assets.js` / `writeSlingAssetMetadata` is the path that stamps
@@ -193,12 +201,13 @@ assignment.** Pass the source-derived contract in via `--categories
 links, asset `productCategory`, and collections all use these slugs. There is
 **no hardcoded keyword table** (a fixed list can't be generic across
 verticals) and no second list to keep in sync. Every asset is mapped to
-**exactly one** contract category from its real metadata
-(`autogen:subject`/`predictedTags` smart tags, `dc:*`, generated
-title/description/keywords, filename, source page) — a low-confidence mapping
-is preferred over a blank card, so there is no "unclassified/FAILED" bucket in
-normal operation. Because assignment is mandatory, every populated contract
-category has a representative and the card set is complete.
+**exactly one** contract category by the agent's `--category-map` (written from
+the dry-run evidence — `autogen:title`/`autogen:description`, `autogen:subject`
+smart tags, filename) with a round-robin fallback for anything the map omits — a
+low-confidence mapping is preferred over a blank card, so there is no
+"unclassified/FAILED" bucket in normal operation. Because assignment is
+mandatory, every populated contract category has a representative and the card
+set is complete.
 
 **The card hero per category is auto-ranked, not first-come.**
 `representatives.js` picks the highest-content-signal asset in each category as
@@ -212,18 +221,20 @@ all. `verify.mjs --only hero-quality` FAILs a hero with zero AEM smart-tag
 signal (a likely logo/chrome pick); on a FAIL, re-pick — widen discovery if the
 category genuinely has no real photo, or note it and continue if not.
 
-**Pass `--category-aliases` when the card *labels* differ from the *asset
-naming* — this is the fix for the write-once misclassification.**
-`productCategory` is write-once: whatever slug an asset lands in on its first
-metadata write is permanent (`--force` re-runs the classifier but never
-overwrites an existing `productCategory`). So if a body-type/label slug
-(`sedan`) has no token overlap with a model-named asset (`verna.jpg`), the
-classifier scores 0 for every card and dumps everything into the *first* slug —
-and you cannot repair it afterward. Give the classifier the source-derived
-model/product names as alias evidence so the first write is right:
-`--category-aliases "sedan=verna,aura;suv=creta,venue,exter;hatchback=i10,i20,nios;electric=ioniq,ev"`.
-Derive this map in Step 4 from the same nav you built the contract from.
-Aliases are classifier evidence only — never shown to users.
+**Write `--category-map` from the dry-run report — this is how you get the
+write-once category right on the first write.** `productCategory` is write-once:
+whatever slug an asset lands in on its first metadata write is permanent
+(`--force` re-runs the pipeline but never overwrites an existing
+`productCategory`). So the category must be correct on the FIRST live run. The
+dry-run report lists each asset's `fileName`, `title` + `description` (AEM's
+`autogen:title`/`autogen:description`), `smartTags` (`autogen:subject`), and the
+slug round-robin would pick (`categoryConfidence: "fallback"`). Read it, and for any
+asset whose category isn't obvious from its filename — merchandise like
+`Cap_Desktop.png`, or a model-named `verna.jpg` under a body-type slug `sedan` —
+state the slug directly in a JSON map:
+`{ "Cap_Desktop.png": "accessories", "verna.jpg": "sedan" }`. Pass it as
+`--category-map`. Assets you don't list round-robin across the contract, so no
+card is empty. Same map → same assignment every run.
 
 **Category floor: minimum 5 real categories, hard floor — this is a gate, not
 a target.** `MIN_CARDS` in `scripts/assets/constants.js` is `5`. This is
@@ -243,10 +254,10 @@ checked at two points, not one:
      before its real absence was confirmed. Don't stop at one try. Add the
      extra pages to a single re-run via `--source-urls` (not one script
      invocation per page); if the category's assets *were* downloaded but
-     landed in the wrong slug, that's a missing-alias problem, not a
-     discovery problem — fix it with `--category-aliases` on a category whose
-     assets are not yet written, since write-once means an already-written
-     `productCategory` can't be reclassified.
+     landed in the wrong slug, that's a `--category-map` problem, not a
+     discovery problem — set those filenames explicitly in the map on a
+     category whose assets are not yet written, since write-once means an
+     already-written `productCategory` can't be reclassified.
    - **If dropping the category would take the total below 5**, the drop is
      not allowed until a real replacement category is found — keep widening
      discovery, or find an additional real category to add in its place.
@@ -333,6 +344,18 @@ facet `Browse →` link (col 1).
   other authored image in this template uses. On preview/publish, Helix
   automatically rewrites this into its own public `media_<hash>.<ext>` path;
   that is the real, non-auth-gated URL a visitor's browser loads.
+
+  **Card images work identically on both lanes — including already-uploaded
+  assets.** The upload fetches the category hero's bytes from AEM by its
+  `assetId`, which every asset in the folder has regardless of how it got there
+  (enumerated on enrich-existing, or from the upload response on bring-in). An
+  already-enriched/skipped asset is still an eligible hero and still produces a
+  card image. So there is no separate card-image path for the enrich-existing
+  lane. Two requirements are lane-agnostic and still apply: the chosen hero must
+  have a resolvable `assetId` (folder enumeration provides it), and
+  `--org`/`--repo` + a DA token (`--da-token-file`, default `token.env`) must be
+  passed — without them `da-card-images.js` is skipped and every card fails the
+  card gate on a missing image, already-uploaded assets included.
 
   **The worker proxy (`/api/adobe/assets/<assetId>/as/<fileName>.jpg?width=
   <N>`) is never used for card images, full stop — verified broken live.**
@@ -428,7 +451,10 @@ pass.
 **Completion report** (I1, outcomes only): which assets are now in the
 portal and searchable; that filtering works (name the facets that lit up);
 that the demo shows only this company's assets; any per-asset items that
-couldn't be brought in. Once enrichment actually runs, do not stop here:
+couldn't be brought in. On the enrich-existing lane, distinguish **already
+searchable (reused as-is)** from **newly labeled** in plain language — e.g.
+"N of your assets were already searchable; I made the other M findable too" —
+so the customer sees their prior work was reused, not redone. Once enrichment actually runs, do not stop here:
 continue directly to Step 6 and create the ready-made collections. The demo
 is shareable **without merging** — the portal link serves the rebranded,
 company-scoped portal; that link is the deliverable. Promoting to production

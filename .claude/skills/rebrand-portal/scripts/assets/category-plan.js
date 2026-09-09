@@ -7,13 +7,15 @@
  * carry a hardcoded keyword vocabulary — a fixed keyword table can never be generic across
  * verticals (a retail term list silently drops every pharma/finance/etc. asset).
  *
- * Instead, each asset is mapped to exactly one contract slug by a classifier over the
- * asset's real metadata — AEM's own autogen:subject/predictedTags smart tags plus dc:* fields,
- * generated title/description/keywords, filename, and source-page evidence. The classifier
- * is dependency-injected (like `generator`): the live path uses the agent/LLM; tests inject
- * a deterministic stub. A built-in deterministic classifier (token overlap against the
- * contract labels) is the offline default and the fallback when the injected classifier
- * declines an asset — assignment is mandatory, so every asset lands in one contract slug.
+ * Each asset is mapped to exactly one contract slug by an injected classifier. In a real
+ * run the agent supplies a `fileName -> slug` map it wrote from the dry-run evidence — per
+ * asset that evidence is title + description (AEM's autogen:title/autogen:description), smart
+ * tags (autogen:subject/predictedTags), and the filename (--category-map); tests inject a
+ * stub. The map is keyed by fileName (assetId as a fallback) only because that is the stable
+ * identifier a human writes down; the agent decides the slug from the full evidence, not the
+ * filename alone. When the classifier declines an asset, a round-robin over the contract still
+ * lands it in a slug — assignment is mandatory, so every asset ends up in exactly one contract
+ * category and no homepage card is ever empty.
  */
 
 import { FIELD, AUTOGEN_FIELD } from './constants.js';
@@ -81,104 +83,21 @@ export function assetEvidence(asset = {}, metadata = {}, fields = {}) {
   };
 }
 
-function evidenceBlob(evidence) {
-  return [
-    evidence.fileName,
-    evidence.sourcePage,
-    evidence.heading,
-    evidence.altText,
-    evidence.nearbyText,
-    evidence.autogenTitle,
-    evidence.autogenDescription,
-    evidence.dcTitle,
-    evidence.dcDescription,
-    ...evidence.smartTags,
-    ...evidence.dcSubject,
-    ...evidence.keywords,
-  ]
-    .map((v) => String(v || '').toLowerCase())
-    .join(' ');
-}
-
 /**
- * Contract entry -> comparable tokens (slug words + label words + alias words).
- * Aliases are source-derived evidence tokens (e.g. body-type slug "sedan" carries model names
- * "verna","aura") so model-named assets classify to the right body-type card on the FIRST
- * write — without them the classifier scores 0 for every card whose label ≠ the asset naming
- * and dumps everything into the first contract slug (verified live on Hyundai/Honda runs).
- * Alias tokens keep the length>2 filter of slug/label words relaxed to length>1 so short but
- * distinctive model tokens ("i10","i20","ev") still count.
+ * Round-robin fallback: hand out contract slugs in order so unmapped assets still spread
+ * across every card instead of piling into the first one. This runs only when the injected
+ * classifier declines an asset (no --category-map entry); a mapped run never reaches it.
+ * Stateful across calls within one plan pass, so N unmapped assets land in N different slugs
+ * (cycling) rather than all in slug[0] — the card gate needs no empty buckets.
  */
-function contractTokens(entry) {
-  const base = `${entry.slug} ${entry.label || ''}`
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2);
-  const aliasTokens = (Array.isArray(entry.aliases) ? entry.aliases : [])
-    .join(' ')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 1);
-  return [...new Set([...base, ...aliasTokens])];
-}
-
-/** Strip a common plural suffix so "accessories"/"accessory" and "glasses"/"glass" match. */
-function singularize(word) {
-  if (word.endsWith('ies') && word.length > 4) return `${word.slice(0, -3)}y`;
-  if (word.endsWith('ses') && word.length > 4) return word.slice(0, -2);
-  if (word.endsWith('es') && word.length > 3) return word.slice(0, -2);
-  if (word.endsWith('s') && word.length > 3) return word.slice(0, -1);
-  return word;
-}
-
-/**
- * Word-boundary evidence text as a set of singularized tokens, for token-vs-token matching
- * (not a raw substring test, which both false-MISSES on plural/singular pairs like
- * "accessories" vs "accessory" and false-HITS on unrelated substrings like "class" inside
- * "glasses"). Verified live: a substring classifier scored "accessory"-heavy assets 0 for
- * the "Accessories" slug and dumped everything into the first contract category.
- */
-function wordSet(text) {
-  const words = String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-  const set = new Set();
-  for (const w of words) {
-    set.add(w);
-    set.add(singularize(w));
-  }
-  return set;
-}
-
-/**
- * Deterministic fallback classifier: pick the contract category whose slug/label tokens
- * overlap the asset's evidence most; ties and no-overlap fall back to the first contract
- * entry so assignment is always defined (mandatory single-category, never unclassified).
- * Smart-tag hits count double (AEM's own processing output is stronger signal). Matching is
- * word-for-word (via `wordSet`, singular/plural-normalized), not substring, so a plural
- * contract label ("Accessories") still matches singular evidence ("accessory") without
- * false-hitting on unrelated substrings.
- */
-export function deterministicClassifier(contract = []) {
-  const entries = contract.filter((c) => c && c.slug);
-  return (evidence) => {
-    if (entries.length === 0) return null;
-    const blobWords = wordSet(evidenceBlob(evidence));
-    const smartWords = wordSet(evidence.smartTags.join(' '));
-    let best = entries[0].slug;
-    let bestScore = -1;
-    for (const entry of entries) {
-      const tokens = contractTokens(entry);
-      let score = 0;
-      for (const tok of tokens) {
-        const tokSingular = singularize(tok);
-        if (smartWords.has(tok) || smartWords.has(tokSingular)) score += 2;
-        else if (blobWords.has(tok) || blobWords.has(tokSingular)) score += 1;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        best = entry.slug;
-      }
-    }
-    return { slug: best, confidence: bestScore > 0 ? 'evidence' : 'fallback' };
+export function roundRobinFallback(contract = []) {
+  const slugs = contract.map((c) => c && c.slug).filter(Boolean);
+  let next = 0;
+  return () => {
+    if (slugs.length === 0) return null;
+    const slug = slugs[next % slugs.length];
+    next += 1;
+    return { slug, confidence: 'fallback' };
   };
 }
 
@@ -201,16 +120,17 @@ function coerceToContract(value, contract = []) {
  * @param {Array<{asset,fields,existingMetadata,skip}>} planned
  * @param {Object} options
  * @param {Array<{slug,label}>} options.contract  source-derived category contract (required)
- * @param {(evidence)=>{slug,confidence}|string|null} [options.classifier]  injected classifier;
- *   defaults to the deterministic token-overlap classifier over the contract.
+ * @param {(evidence)=>{slug,confidence}|string|null} [options.classifier]  injected classifier
+ *   (real run: agent's fileName->slug map lookup). When absent or it declines an asset, a
+ *   round-robin over the contract still assigns a slug (mandatory single-category).
  * @returns {Array} planned with fields.productCategory set + categoryAssignment
  */
 export function applyCategoryPlan(planned = [], options = {}) {
   const contract = Array.isArray(options.contract)
     ? options.contract.filter((c) => c && c.slug)
     : [];
-  const classify = options.classifier || deterministicClassifier(contract);
-  const fallback = deterministicClassifier(contract);
+  const classify = options.classifier || (() => null);
+  const fallback = roundRobinFallback(contract);
 
   return planned.map((plan) => {
     if (!plan || !plan.fields || plan.error) return plan;
@@ -239,15 +159,14 @@ export function applyCategoryPlan(planned = [], options = {}) {
       };
     }
 
-    // 3) Classify from real metadata evidence into the contract. Mandatory: the classifier
-    //    (or the deterministic fallback) always returns a contract slug.
+    // 3) Ask the injected classifier (agent's fileName->slug map). Mandatory assignment: if it
+    //    declines or returns a slug outside the contract, round-robin still lands one.
     const evidence = assetEvidence(plan.asset, metadata, fields);
-    let result = classify(evidence);
+    const result = classify(evidence);
     let slug = coerceToContract(typeof result === 'string' ? result : result?.slug, contract);
     let confidence = (result && typeof result === 'object' && result.confidence) || 'classified';
     if (!slug) {
-      result = fallback(evidence);
-      slug = result?.slug || (contract[0] && contract[0].slug) || null;
+      slug = fallback()?.slug || null;
       confidence = 'fallback';
     }
 

@@ -357,6 +357,9 @@ point 2) — this is where those answers are first needed. Reuses the existing e
 `scripts/assets/enrich-assets.js` resolves DM creds from
 `cloudflare/.secrets` and the AEM env id from `cloudflare/src/config.js`.
 Enrich (default) or bring-in (`--source-url`); always `--dry-run` first.
+On enrich-existing, the tool reuses assets that are already searchable as-is
+and only labels the ones that aren't — report that split to the customer in
+plain outcome language (already-searchable is reused work, not a failure).
 Pass the Step 4 category contract via `--categories <slugs>` (one shared
 vocabulary, no hardcoded list); every asset is mapped to exactly one contract
 category. The run emits `report.cards` (label + blurb + facet href + proxy

@@ -6,8 +6,11 @@ if [ "$1" = "0000000000000000000000000000000000000000" ]; then
   main_root="$(git rev-parse --path-format=absolute --git-common-dir)"
   main_root="${main_root%/.git}"
 
-  # Symlink secret/config files (add more lines as needed)
-  ln -s "$main_root/cloudflare/.secrets" "$(pwd)/cloudflare/.secrets"
+  # Copy secret/config files as REAL files, never symlink — each worktree must
+  # own independent secrets so parallel demos never share or clobber a token
+  # (rebrand-portal I10). Symlinking re-shares one token across worktrees.
+  [ -f "$main_root/cloudflare/.secrets" ] && cp "$main_root/cloudflare/.secrets" "$(pwd)/cloudflare/.secrets"
+  [ -f "$main_root/token.env" ] && cp "$main_root/token.env" "$(pwd)/token.env"
 
   # Install dependencies
   echo "post-checkout: installing dependencies..."
