@@ -54,6 +54,7 @@ export async function createImageGallery(container, callbacks) {
     onAddToCart,
     onRemoveFromCart,
     onBulkAddToCart,
+    onBulkRemoveFromCollection,
   } = callbacks;
 
   // Load placeholders for localization
@@ -207,6 +208,14 @@ export async function createImageGallery(container, callbacks) {
           clearAllCheckboxes();
           updateSelectionUI();
         },
+        onBulkRemoveFromCollection: onBulkRemoveFromCollection ? () => {
+          const currentState = getState();
+          const selectedAssets = currentState.dmImages.filter((img) => selectedCards.has(img.assetId || ''));
+          onBulkRemoveFromCollection(selectedAssets);
+          selectedCards = new Set();
+          clearAllCheckboxes();
+          updateSelectionUI();
+        } : undefined,
         onShareSearch: handleShareSearch,
       });
     }

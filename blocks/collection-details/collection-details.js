@@ -16,6 +16,7 @@ import {
   createEditModal,
   createDeleteModal,
   createShareModal,
+  createRemoveAssetsModal,
 } from '../../scripts/collections/collection-modals.js';
 import { loadCSS } from '../../scripts/aem.js';
 import {
@@ -167,6 +168,7 @@ export default async function decorate(block) {
   );
 
   // Owner-gated actions require the collection metadata to be loaded
+  let removeModal = null;
   if (collection) {
     const editModal = createEditModal({
       client,
@@ -209,9 +211,18 @@ export default async function decorate(block) {
         makeActionBtn(t('editCollection', 'Edit collection'), ICON_EDIT_MD, () => editModal.show(collection)),
         makeActionBtn(t('deleteCollection', 'Delete collection'), ICON_DELETE_MD, () => deleteModal.show(collection)),
       );
+
+      // Bulk "Remove from collection" — owner-only, same gate as edit/delete.
+      // Wired into the gallery below via onBulkRemoveFromCollection.
+      removeModal = createRemoveAssetsModal({
+        client,
+        t,
+        onRemoved: () => search(),
+      });
     }
 
     wrapper.append(editModal.overlay, deleteModal.overlay, shareModal.overlay);
+    if (removeModal) wrapper.append(removeModal.overlay);
   }
 
   // Main layout mirrors createMainApp but inserted directly
@@ -299,6 +310,9 @@ export default async function decorate(block) {
     onFacetCheckbox: handleFacetCheckbox,
     onClearAllFacets: handleClearAllFacets,
     fetchAssetRenditions,
+    onBulkRemoveFromCollection: removeModal
+      ? (assets) => removeModal.show(collectionId, assets)
+      : undefined,
   });
 
   createFacetsPanel(facetsContainer, {
