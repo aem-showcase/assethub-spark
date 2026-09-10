@@ -2,10 +2,12 @@
    Smart Collections — save button, tab list, item actions, modal, and mutation banner
    ======================================== */
 
-/* Save as Smart Collection button (facet header) */
-.facet-filter-header {
-  flex-wrap: wrap;
-  gap: 8px;
+/* Save as Smart Collection action below the Filters list */
+.smart-collection-save-actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding: 16px 0 0 4px;
 }
 
 .smart-collection-save-btn {

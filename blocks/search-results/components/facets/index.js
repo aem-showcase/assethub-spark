@@ -531,6 +531,16 @@ function render(callbacks) {
   const isFiltersActive = activeFacetTab === 'filters';
   const currentCriteria = buildCriteriaFromCurrentState();
   const canSaveSmartCollection = hasActiveCriteria(currentCriteria);
+  const saveSmartCollectionAction = `
+    <div class="smart-collection-save-actions">
+      <button
+        type="button"
+        class="smart-collection-save-btn"
+        id="save-smart-collection-btn"
+        ${canSaveSmartCollection ? '' : 'disabled'}
+      >${saveSmartCollectionLabel}</button>
+    </div>
+  `;
 
   containerElement.innerHTML = `
     <div class="facet-filter-container">
@@ -550,15 +560,11 @@ function render(callbacks) {
               </button>
             </div>
           </div>
-          <button
-            type="button"
-            class="smart-collection-save-btn"
-            id="save-smart-collection-btn"
-            ${canSaveSmartCollection ? '' : 'disabled'}
-          >${saveSmartCollectionLabel}</button>
         </div>
 
-        ${isFiltersActive ? filtersTabContent : smartCollectionsTabContent}
+        ${isFiltersActive
+    ? `${filtersTabContent}${saveSmartCollectionAction}`
+    : smartCollectionsTabContent}
       </div>
     </div>
   `;
