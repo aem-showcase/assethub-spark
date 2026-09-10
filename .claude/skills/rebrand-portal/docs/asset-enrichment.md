@@ -85,12 +85,21 @@ mapping is preferred over a blank/missing card). Assignment order:
 
 - existing contract-valid `productCategory` (kept as-is)
 - a generated `productCategory` that is already a contract slug
-- otherwise a **classifier** maps the asset's real metadata — AEM's own
-  `autogen:subject`/`predictedTags` smart tags, `dc:title`/`dc:description`/`dc:subject`,
-  generated title/description/keywords, filename, and source-page evidence — onto the
-  nearest contract slug. The classifier is dependency-injected: the live path uses the
-  agent/LLM (which maps e.g. "psoriasis" → dermatology trivially); the offline default and
-  fallback is a deterministic token-overlap classifier over the contract.
+- otherwise the **agent's category map** (`--category-map`) — a `fileName -> slug` JSON
+  object the agent writes, so each asset gets the agent's stated category verbatim (the agent
+  maps "psoriasis" → dermatology, "Cap_Desktop.png" → accessories trivially, from the asset's
+  title, description, smart tags, and filename). No token-overlap guessing, no plural/singular
+  or alias handling.
+- any asset the map omits **round-robins** across the contract, so no card is ever empty.
+
+Two-step flow (deterministic and re-runnable):
+
+1. **Dry run** with `--dry-run --report-file <path.json>`. The report lists each asset's
+   `fileName`, `title` + `description` (AEM's `autogen:title`/`autogen:description`),
+   `smartTags` (`autogen:subject`/`predictedTags`), and the slug round-robin would pick
+   (`categoryConfidence: "fallback"` flags the ones worth setting explicitly).
+2. The agent reads that report, writes a `fileName -> slug` map to a JSON file.
+3. **Live run** with `--category-map <file.json>`. Same map → same assignment, every run.
 
 The contract is passed in via `--categories <slugs>` (or `options.categoryContract`); it is
 never invented inside the tool. Because assignment is mandatory, every populated contract
@@ -104,8 +113,10 @@ workflow widens source discovery rather than publishing an empty card.
 node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   --customer-key <customerKey> \
   --categories <slug1,slug2,...> \
+  [--category-map <fileName-to-slug.json>] \
   [--dam-path /content/dam/<customerKey>] \
   [--source-url <url>] \
+  [--source-urls <url1,url2,...>] \
   [--dry-run] [--force] \
   [--concurrency <n>] \
   [--limit <n>] \
@@ -114,6 +125,20 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   [--report-file <path.json>] \
   [--org <githubOrg>] [--repo <githubRepo>] [--da-token-file token.env]
 ```
+
+`--source-urls` takes a comma/space/newline list of additional source pages;
+it is combined with `--source-url` and deduped, so ONE run scrapes every
+per-category page (downloaded assets are deduped by file name across pages).
+`--limit` still caps the total across all pages. Prefer this over invoking the
+script once per page.
+
+`--category-map` is a JSON object mapping `fileName` (or `assetId`) to a contract
+slug, e.g. `{ "Cap_Desktop.png": "accessories", "civic-sedan.jpg": "sedans" }`.
+The agent writes it from the dry-run report. Because `productCategory` is
+write-once, the map is how the agent gets it right on the FIRST metadata write —
+it states the category directly instead of relying on the words in a filename.
+Slugs in the map are coerced to the contract; keys not present fall through to the
+round-robin fallback.
 
 `--org`/`--repo` (the same GitHub org/repo as the DA content, resolved from
 the git remote) and `--da-token-file` (default `token.env`) enable card-image
@@ -194,7 +219,10 @@ Use `--report-file` to write a JSON report.
 
 Important fields:
 
-- `counts`: enriched, skipped, and failed asset counts
+- `counts`: enriched, skipped, and failed asset counts. On the enrich-existing
+  lane, a `skipped` asset with `reason: "already-enriched"` is one that was
+  **already searchable and reused as-is** — read it as reused work, not a
+  problem; report it to the customer as "already searchable", never as an error.
 - `assets`: per-asset outcome and failure reason
 - `categoryCoverage.categories`: categories that have at least one asset
 - `representatives.items`: one usable asset per category — includes `cardImageUrl`, a
@@ -234,7 +262,7 @@ Example:
         "assetPath": "/content/dam/acme/hero.jpg",
         "repoName": "hero.jpg",
         "title": "Hero",
-        "cardImageUrl": "https://content.da.live/org/repo/acme/en/media_derived-slug.jpg"
+        "cardImageUrl": "https://content.da.live/org/repo/companies/acme/en/media_derived-slug.jpg"
       }
     }
   },
@@ -244,8 +272,8 @@ Example:
       "label": "Derived Label",
       "assetCount": 12,
       "blurb": "Derived Label product and campaign imagery.",
-      "href": "/en/search?facetFilters=%7B%22productCategory%22%3A%7B%22derived-slug%22%3Atrue%7D%7D",
-      "cardImageUrl": "https://content.da.live/org/repo/acme/en/media_derived-slug.jpg"
+      "href": "/companies/acme/en/search?facetFilters=%7B%22productCategory%22%3A%7B%22derived-slug%22%3Atrue%7D%7D",
+      "cardImageUrl": "https://content.da.live/org/repo/companies/acme/en/media_derived-slug.jpg"
     }
   ]
 }

@@ -37,6 +37,29 @@ describe('collections-plan', () => {
       expect(coffee.title).toBe('Acme — Coffee');
     });
 
+    it('prefers a supplied label over humanize for proper-noun casing (FIX 7)', () => {
+      const appleAssets = [
+        { assetId: 'a1', productCategory: 'iphone' },
+        { assetId: 'a2', productCategory: 'ipad' },
+        { assetId: 'a3', productCategory: 'airpods' },
+      ];
+      const specs = planCollections(appleAssets, {
+        company: 'apple',
+        labels: { iphone: 'iPhone', ipad: 'iPad', airpods: 'AirPods' },
+      });
+      const titles = specs.map((s) => s.title);
+      // proper-noun casing, not the title-cased default (Iphone/Ipad/Airpods)
+      expect(titles).toEqual(expect.arrayContaining(['Apple — iPhone', 'Apple — iPad', 'Apple — AirPods']));
+    });
+
+    it('falls back to humanize when no label is supplied for a value', () => {
+      const specs = planCollections(
+        [{ assetId: 'a1', productCategory: 'watch' }],
+        { company: 'apple', labels: { iphone: 'iPhone' } },
+      );
+      expect(specs[0].title).toBe('Apple — Watch');
+    });
+
     it('groups by an alternate facet', () => {
       const specs = planCollections(assets, { company: 'acme', facet: 'campaign' });
       expect(specs.map((s) => s.facetValue)).toEqual(['spring', 'winter']);

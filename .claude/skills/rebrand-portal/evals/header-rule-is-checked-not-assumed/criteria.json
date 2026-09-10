@@ -1,0 +1,43 @@
+{
+  "context": "Guards that the Step 4g header logo-size check reads the ACTUAL header.css rule and flags a fixed-width regression, rather than asserting from documentation that the shared rule already uses max-height. Fixture header.css has the regressed fixed-width rule; the agent must detect and fix it.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Identifies the fixed-width regression from the actual file",
+      "max_score": 30,
+      "description": "The agent reads blocks/header/header.css and states that the brand-logo rule uses a fixed width + height:auto with no max-height — a header logo-size FAIL. It does not claim the rule already uses max-height."
+    },
+    {
+      "name": "Fixes the shared rule to use max-height",
+      "max_score": 30,
+      "description": "blocks/header/header.css now constrains the brand-logo rule by max-height against --nav-bar-height (not a bare fixed width).",
+      "check": {
+        "type": "fileMatches",
+        "file": "blocks/header/header.css",
+        "value": "max-height\\s*:\\s*calc\\(\\s*var\\(--nav-bar-height",
+        "flags": "i"
+      }
+    },
+    {
+      "name": "Does not add a per-company override selector",
+      "max_score": 20,
+      "description": "The fix does not introduce a brand-specific selector (e.g. .icon-volkswagen-icon) sized in pixels.",
+      "check": {
+        "type": "fileNotMatches",
+        "file": "blocks/header/header.css",
+        "value": "icon-volkswagen",
+        "flags": "i"
+      }
+    },
+    {
+      "name": "Does not assume the doc's claimed state",
+      "max_score": 15,
+      "description": "The agent does not assert that the template already constrains the logo by max-height without checking the file — it verifies against the tree."
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 5,
+      "description": "No internal terms are surfaced unnecessarily to the customer (I1)."
+    }
+  ]
+}
