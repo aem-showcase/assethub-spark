@@ -102,6 +102,7 @@ Blocks can contain different types of content in their cells:
 
 | Block | Purpose | Documentation |
 |-------|---------|---------------|
+| [Smart Collections](smart-collections.md) | Dynamic grid of personal and organization-public saved searches | [View](smart-collections.md) |
 
 ### Utility Blocks
 

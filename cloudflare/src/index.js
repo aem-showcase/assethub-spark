@@ -14,6 +14,7 @@ import { error, Router, withCookies } from 'itty-router';
 import { analyticsApi, searchMetricsApi } from './api/analytics';
 import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
+import { smartCollectionsApi } from './api/smart-collections';
 import { authRouter, withAuthentication } from './auth';
 import { originCoa, originCoaImage } from './origin/coa';
 import { originDynamicMedia } from './origin/dm';
@@ -163,6 +164,10 @@ router
   .post('/api/audit/event', auditPostEvent)
   .get('/api/audit/summary', auditGetSummary)
   .get('/api/audit/export.csv', auditGetExportCsv)
+
+  // Smart Collections API (D1) — persisted dynamic search queries
+  .all('/api/smart-collections', smartCollectionsApi)
+  .all('/api/smart-collections/*', smartCollectionsApi)
 
   // catch-all for unknown API routes
   .all('/api/*', () => error(404))

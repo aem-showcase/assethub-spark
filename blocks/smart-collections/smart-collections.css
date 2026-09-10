@@ -1,0 +1,196 @@
+main .smart-collections .smart-collections-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+main .smart-collections .smart-collections-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--light-color);
+  border-radius: 12px;
+  background: var(--background-color);
+  box-shadow: var(--shape-shadow-card);
+}
+
+main .smart-collections .smart-collections-card-link {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+main .smart-collections .smart-collections-card-link:hover {
+  color: var(--text-color);
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+}
+
+main .smart-collections .smart-collections-card-link:focus-visible {
+  border-radius: 12px;
+  outline: 3px solid var(--link-color);
+  outline-offset: -3px;
+}
+
+main .smart-collections .smart-collections-card-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--light-color);
+}
+
+main .smart-collections .smart-collections-card-media picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+main .smart-collections .smart-collections-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 240ms ease;
+}
+
+main .smart-collections .smart-collections-card-link:hover .smart-collections-card-image {
+  transform: scale(1.03);
+}
+
+main .smart-collections .smart-collections-card-media picture.missing .smart-collections-card-image {
+  visibility: hidden;
+}
+
+main .smart-collections .smart-collections-card-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: linear-gradient(135deg, var(--light-color), var(--background-color));
+  color: var(--primary-color);
+  font-size: 40px;
+}
+
+main .smart-collections .smart-collections-card-body {
+  display: flex;
+  min-height: 104px;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+}
+
+main .smart-collections .smart-collections-card-visibility {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: 10px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--light-color);
+  color: var(--text-color);
+  font-size: var(--font-size-01);
+  font-weight: 600;
+  line-height: var(--line-height-01);
+}
+
+main .smart-collections .smart-collections-card-visibility.organization {
+  background: var(--color-secondary-light-sky-blue);
+  color: var(--primary-color);
+}
+
+main .smart-collections .smart-collections-card h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-family: var(--heading-font-family);
+  font-size: var(--heading-font-size-s);
+  line-height: 1.25;
+}
+
+main .smart-collections .smart-collections-card h3::after {
+  display: none;
+}
+
+main .smart-collections .smart-collections-card-body p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: var(--label-secondary);
+  font-size: var(--font-size-02);
+  line-height: var(--line-height-02);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+main .smart-collections .smart-collections-status {
+  display: flex;
+  min-height: 160px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  border-radius: 12px;
+  background: var(--light-color);
+  color: var(--label-secondary);
+  text-align: center;
+}
+
+main .smart-collections .smart-collections-status p {
+  margin: 0;
+}
+
+main .smart-collections .smart-collections-status-icon {
+  color: var(--primary-color);
+  font-size: 32px;
+  line-height: 1;
+}
+
+main .smart-collections .smart-collections-loading .smart-collections-status-icon {
+  animation: smart-collections-pulse 1.2s ease-in-out infinite alternate;
+}
+
+main .smart-collections .smart-collections-error {
+  color: var(--primary-color);
+}
+
+@keyframes smart-collections-pulse {
+  from {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (width >= 600px) {
+  main .smart-collections .smart-collections-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 1200px) {
+  main .smart-collections .smart-collections-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main .smart-collections .smart-collections-card-link,
+  main .smart-collections .smart-collections-card-image {
+    transition: none;
+  }
+
+  main .smart-collections .smart-collections-loading .smart-collections-status-icon {
+    animation: none;
+  }
+}
