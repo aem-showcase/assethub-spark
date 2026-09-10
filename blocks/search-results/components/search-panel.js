@@ -44,6 +44,7 @@ export async function createSearchPanel(container, callbacks) {
     onBulkShare,
     onBulkAddToCollection,
     onBulkAddToCart,
+    onBulkRemoveFromCollection,
     onShareSearch,
   } = callbacks;
   /* eslint-enable no-unused-vars */
@@ -207,16 +208,25 @@ export async function createSearchPanel(container, callbacks) {
   const addToCartLabel = ph(placeholders, 'addToCart', 'Add to cart');
   const addToCollectionLabel = ph(placeholders, 'addToCollection', 'Add to Collection');
   const shareLabel = ph(placeholders, 'share', 'Share');
+  const removeFromCollectionLabel = ph(placeholders, 'removeFromCollection', 'Remove from collection');
 
   if (actionsContainer) {
+    const items = [addToCartLabel, addToCollectionLabel, shareLabel];
+    const handlers = [
+      () => callbacks.onBulkAddToCart?.(),
+      () => callbacks.onBulkAddToCollection?.(),
+      () => callbacks.onBulkShare?.(),
+    ];
+    // Only present when the caller (collection-details, for the collection owner)
+    // supplies this callback — absent on the general search-results page.
+    if (onBulkRemoveFromCollection) {
+      items.push(removeFromCollectionLabel);
+      handlers.push(() => callbacks.onBulkRemoveFromCollection?.());
+    }
     const actionsDropdown = createActionDropdown({
       className: 'BulkActions',
-      items: [addToCartLabel, addToCollectionLabel, shareLabel],
-      handlers: [
-        () => callbacks.onBulkAddToCart?.(),
-        () => callbacks.onBulkAddToCollection?.(),
-        () => callbacks.onBulkShare?.(),
-      ],
+      items,
+      handlers,
       show: selectedCount > 0,
       label: actionsLabel,
     });

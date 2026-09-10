@@ -370,6 +370,137 @@ export function createDeleteModal({ client, t, onDeleted }) {
   return { overlay, show, hide };
 }
 
+// ── Remove Assets From Collection Modal ──────────────────────────────────────
+
+/**
+ * Build a "Remove assets from collection" alert dialog. Confirms with the user
+ * before removing the given assets from a collection via `updateCollectionItems`.
+ * Caller appends `overlay` and triggers via `show(collectionId, assets)`.
+ *
+ * @param {object} opts
+ * @param {import('./collections-api-client.js').DynamicMediaCollectionsClient} opts.client
+ * @param {(key: string, fallback: string) => string} opts.t
+ * @param {(removed: object[]) => void} [opts.onRemoved]
+ *   Invoked after a successful removal with the just-removed asset array.
+ * @returns {{
+ *   overlay: HTMLElement,
+ *   show: (collectionId: string, assets: object[]) => void,
+ *   hide: () => void,
+ * }}
+ */
+export function createRemoveAssetsModal({ client, t, onRemoved }) {
+  let removingCollectionId = null;
+  let removingAssets = [];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'scr-modal-overlay';
+  overlay.hidden = true;
+
+  const dialog = document.createElement('div');
+  dialog.className = 'scr-modal scr-modal-sm';
+  dialog.setAttribute('role', 'alertdialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-labelledby', 'scr-remove-heading');
+
+  const header = document.createElement('div');
+  header.className = 'scr-modal-header';
+
+  const heading = document.createElement('h2');
+  heading.id = 'scr-remove-heading';
+  heading.className = 'scr-modal-heading';
+  heading.textContent = t('removeFromCollection', 'Remove from collection');
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'scr-modal-close';
+  closeBtn.setAttribute('aria-label', t('close', 'Close'));
+  closeBtn.textContent = '×';
+
+  header.append(heading, closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'scr-modal-body scr-delete-body';
+
+  const msg = document.createElement('p');
+  msg.className = 'scr-delete-msg';
+
+  body.append(msg);
+
+  const footer = document.createElement('div');
+  footer.className = 'scr-modal-footer';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'scr-modal-btn scr-modal-btn-cancel';
+  cancelBtn.textContent = t('cancel', 'Cancel');
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'scr-modal-btn scr-modal-btn-delete';
+  removeBtn.textContent = t('remove', 'Remove');
+
+  footer.append(cancelBtn, removeBtn);
+  dialog.append(header, body, footer);
+  overlay.append(dialog);
+
+  const hide = () => {
+    overlay.hidden = true;
+    removingCollectionId = null;
+    removingAssets = [];
+  };
+
+  const show = (collectionId, assets) => {
+    if (!collectionId || !Array.isArray(assets) || assets.length === 0) return;
+    removingCollectionId = collectionId;
+    removingAssets = assets;
+    msg.textContent = assets.length === 1
+      ? t('removeAssetConfirm', 'Are you sure you want to remove this asset from the collection?')
+      : t('removeAssetsConfirm', 'Are you sure you want to remove {0} assets from the collection?').replace('{0}', assets.length);
+    overlay.hidden = false;
+    removeBtn.focus();
+  };
+
+  closeBtn.addEventListener('click', hide);
+  cancelBtn.addEventListener('click', hide);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) hide();
+  });
+
+  removeBtn.addEventListener('click', async () => {
+    if (!removingCollectionId || removingAssets.length === 0) return;
+    removeBtn.disabled = true;
+    const orig = removeBtn.textContent;
+    removeBtn.textContent = t('removing', 'Removing…');
+
+    try {
+      const ops = removingAssets.map((asset) => ({
+        op: 'remove',
+        id: asset.assetId || asset.id,
+        type: 'asset',
+      }));
+      await client.updateCollectionItems(removingCollectionId, ops);
+      const removed = removingAssets;
+      hide();
+      showToast(
+        removed.length === 1
+          ? t('assetRemovedFromCollection', 'Asset removed from collection')
+          : t('assetsRemovedFromCollection', 'Assets removed from collection'),
+        'success',
+      );
+      if (onRemoved) onRemoved(removed);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[collection-modals] remove assets failed', err);
+      showToast(t('removeAssetsFailed', 'Failed to remove assets. Please try again.'), 'error');
+    } finally {
+      removeBtn.disabled = false;
+      removeBtn.textContent = orig;
+    }
+  });
+
+  return { overlay, show, hide };
+}
+
 // ── Share Access Modal ───────────────────────────────────────────────────────
 
 /**
