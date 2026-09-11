@@ -40,7 +40,7 @@ export const CHART_DATALABELS_CDN = 'https://cdn.jsdelivr.net/npm/chartjs-plugin
  */
 export function defaultFrom() {
   const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - 1);
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() - 1);
   return d.toISOString().slice(0, 10);
 }
