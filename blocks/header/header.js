@@ -9,6 +9,9 @@ import showProfileModal from './profile.js';
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
 
+/** Portal title shown centered in the header; override per page via <meta name="portal-title">. */
+const PORTAL_TITLE = 'adaptTo() Media';
+
 function closeOnEscape(e) {
   if (e.code === 'Escape') {
     const nav = document.getElementById('nav');
@@ -336,6 +339,17 @@ async function createNavBar(t) {
   while (fragment.firstElementChild) nav.append(fragment.firstElementChild);
 
   normalizeNavLayout(nav);
+
+  // Portal title, centered between the brand and the tools. Repo-defined (not DA content)
+  // so the title can be themed with the design; overridable per page via
+  // <meta name="portal-title">.
+  const navBrandForTitle = nav.querySelector('.nav-brand');
+  if (navBrandForTitle) {
+    const title = document.createElement('span');
+    title.className = 'nav-title';
+    title.textContent = getMetadata('portal-title') || PORTAL_TITLE;
+    navBrandForTitle.after(title);
+  }
 
   // Normalize file:// links that DA may emit on docx import (e.g. file:////en/search)
   nav.querySelectorAll('a[href]').forEach((link) => {

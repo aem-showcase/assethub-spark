@@ -20,16 +20,16 @@
   --report-secondary-color: var(--accent-tertiary);
   --report-text-dark: var(--text-color);
   --report-border-light: var(--light-color);
-  --report-background-white: #fff;
-  --report-background-light: #fafafa;
-  --report-background-lighter: #f9f9f9;
-  --report-error-color: #f44336;
-  --report-error-bg: #ffebee;
+  --report-background-white: var(--color-neutral-50);
+  --report-background-light: var(--color-neutral-100);
+  --report-background-lighter: var(--color-neutral-100);
+  --report-error-color: var(--color-red);
+  --report-error-bg: rgb(208 52 44 / 10%);
   
   /* Shadows */
-  --report-shadow-sm: 0 2px 8px rgb(0 0 0 / 10%);
-  --report-shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
-  --report-shadow-focus: 0 0 0 3px rgb(0 100 125 / 15%);
+  --report-shadow-sm: none;
+  --report-shadow-md: none;
+  --report-shadow-focus: 0 0 0 3px rgb(27 49 255 / 15%);
   
   /* Border Radius */
   --report-radius-sm: 6px;
@@ -141,6 +141,7 @@
 
 .analytics-metric-card {
   background: var(--report-background-white);
+  border: 1px solid var(--border-color);
   border-radius: var(--report-radius-md);
   padding: 16px;
   box-shadow: var(--report-shadow-sm);
@@ -151,8 +152,7 @@
 }
 
 .analytics-metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--report-shadow-md);
+  border-color: var(--primary-color);
 }
 
 .analytics-metric-content {
@@ -163,7 +163,7 @@
 .analytics-metric-value {
   font-size: var(--report-font-size-2xl);
   font-weight: 700;
-  color: #000;
+  color: var(--text-color);
   line-height: 1.2;
   margin-bottom: 4px;
 }
@@ -188,6 +188,7 @@
 
 .analytics-chart-card {
   background: var(--report-background-white);
+  border: 1px solid var(--border-color);
   border-radius: var(--report-radius-md);
   padding: 16px;
   box-shadow: var(--report-shadow-sm);
@@ -195,8 +196,7 @@
 }
 
 .analytics-chart-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--report-shadow-md);
+  border-color: var(--primary-color);
 }
 
 .analytics-chart-title {
@@ -225,6 +225,7 @@
 .analytics-table-container {
   margin-top: var(--report-spacing-2xl);
   background: var(--report-background-white);
+  border: 1px solid var(--border-color);
   border-radius: var(--report-radius-lg);
   padding: var(--report-spacing-xl);
   box-shadow: var(--report-shadow-sm);
@@ -249,7 +250,7 @@
 
 /* Table Header with Gradient */
 .analytics-table thead {
-  background: linear-gradient(to right, var(--report-primary-color), #e00008);
+  background: var(--dark-color);
 }
 
 .analytics-table thead th {
@@ -273,7 +274,7 @@
 
 /* Table Body */
 .analytics-table tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   transition: background-color var(--report-transition-fast);
 }
 
@@ -291,10 +292,15 @@
 }
 
 .analytics-table tbody tr:nth-child(odd):hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-neutral-200);
+}
+
+.analytics-table tbody tr:nth-child(even) {
+  background-color: var(--table-row-alt);
 }
 
 .analytics-table tbody td {
+  border: 1px solid var(--border-color);
   padding: var(--report-spacing-sm) 16px;
   color: var(--report-text-dark);
 }

@@ -11,28 +11,28 @@ import { buildAssetDetailsUrl } from '../../scripts/asset-id-utils.js';
 import showToast from '../../scripts/toast/toast.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 
-// Brand-derived chart palette — built around the Fréscopa theme (teal --primary-color
-// #00647D, maroon --text-color #58181D) plus harmonious supporting tones, so charts
-// match the rest of the app instead of using a generic/Google default palette.
-// Primary teal is reserved for `download` (the dominant action in this report).
+// Brand-derived chart palette — built around the adapt.to theme (electric blue
+// --primary-color #1b31ff, navy --dark-color #081235) plus supporting blue/grey tones,
+// so charts match the rest of the app instead of using a generic/Google default palette.
+// Primary blue is reserved for `download` (the dominant action in this report).
 const BRAND_SEQUENCE = [
-  '#00647D', // brand teal (primary)
-  '#A35E4B', // terracotta
-  '#C99A3F', // warm gold
-  '#58181D', // brand maroon (text-color)
-  '#3D8FA3', // light teal
-  '#6E7E5B', // sage
-  '#8A6D3B', // bronze
-  '#4F6472', // slate
+  '#1b31ff', // brand blue (primary)
+  '#081235', // brand navy (dark-color)
+  '#5566ff', // mid blue
+  '#8a97ff', // light blue
+  '#3a4db3', // slate blue
+  '#666', // dark grey
+  '#999', // mid grey
+  '#ccc', // light grey
 ];
 const PALETTE = {
-  download: '#00647D', // primary teal — dominant action
-  view: '#3D8FA3', // light teal
-  'share-link-copy': '#C99A3F', // warm gold
-  'dm-url-copy': '#A35E4B', // terracotta
-  'collection-add': '#58181D', // brand maroon
-  internal: '#00647D',
-  external: '#3D8FA3',
+  download: '#1b31ff', // primary blue — dominant action
+  view: '#8a97ff', // light blue
+  'share-link-copy': '#5566ff', // mid blue
+  'dm-url-copy': '#3a4db3', // slate blue
+  'collection-add': '#081235', // brand navy
+  internal: '#1b31ff',
+  external: '#8a97ff',
   unknown: '#8F8F8F', // neutral grey (matches --color-neutral-600)
 };
 const FALLBACK_COLORS = BRAND_SEQUENCE;

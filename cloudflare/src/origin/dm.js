@@ -33,7 +33,7 @@ import {
   isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
-import { resolveCountryMatchValues } from '../constants/countries.js';
+import { COUNTRY_NAME_TO_CODE, resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -539,6 +539,30 @@ function forceContentAISearchFilter(search, authClauses) {
 }
 
 /**
+ * Expand brand names to the casings an exact-match `term` clause must accept
+ * (as written, lowercase, UPPERCASE, Capitalized), de-duplicated and order-preserving.
+ * @param {string[]} brands
+ * @returns {string[]}
+ */
+function expandBrandCasings(brands) {
+  const values = [];
+  for (const brand of brands) {
+    const name = String(brand).trim();
+    if (!name) continue;
+    const variants = [
+      name,
+      name.toLowerCase(),
+      name.toUpperCase(),
+      name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+    ];
+    for (const v of variants) {
+      if (!values.includes(v)) values.push(v);
+    }
+  }
+  return values;
+}
+
+/**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
  * Asset visibility is controlled by metadata fields tagged on Content Hub assets:
@@ -550,10 +574,14 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `brand`              — free-form brand name; users from a country listed in
+ *                          config.COUNTRY_BRAND_RESTRICTIONS only see assets tagged with one
+ *                          of that country's brands (unbranded assets are hidden as well)
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
- *   - `user.country`    — ISO-3166-1 alpha-2 country code from Entra ID `ctry` claim
+ *   - `user.country`    — ISO-3166-1 alpha-2 country code from Entra ID `ctry` claim (also
+ *                         keys the per-country brand restriction, compared case-insensitively)
  *   - `user.countries`  — optional additional country codes from /config/access/users sheet
  *                         (used to grant multi-country access to specific users/domains)
  *
@@ -624,6 +652,28 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country → brand restriction ---
+  // Users from a country listed in config.COUNTRY_BRAND_RESTRICTIONS only see assets tagged
+  // with one of that country's brands. `brand` is a free-form string written by the
+  // enrichment agent, so each configured name is expanded to its common casings for the
+  // exact-match `term`. The explicit `exists` clause makes the rule strict: unbranded assets
+  // are rejected by the single-asset metadata check too (a bare `term` passes when the field
+  // is absent, see asset-access.js).
+  // user.country is an ISO code from the Entra `ctry` claim, but the simulation picker and
+  // the users sheet may carry a full country name (e.g. 'germany'), so normalize names to
+  // their ISO code before looking up the rule.
+  const countryKey = String(user.country || '').trim().toLowerCase();
+  const brandRuleKey = COUNTRY_NAME_TO_CODE[countryKey] || countryKey;
+  const restrictedBrands = config.COUNTRY_BRAND_RESTRICTIONS?.[brandRuleKey];
+  if (Array.isArray(restrictedBrands) && restrictedBrands.length > 0) {
+    const brandValues = expandBrandCasings(restrictedBrands);
+    console.warn(
+      `[${user.email}] asset auth clauses: country=${user.country} restricted to brands=[${brandValues.join(',')}]`,
+    );
+    clauses.push({ term: { 'assetMetadata.brand': brandValues } });
+    clauses.push({ exists: { field: 'assetMetadata.brand' } });
   }
 
   // --- Internal status filter ---

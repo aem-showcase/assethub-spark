@@ -18,10 +18,10 @@
 }
 
 .exc-config-errors {
-  background: #fef2f2;
-  border: 1px solid #ef4444;
+  background: rgb(208 52 44 / 8%);
+  border: 1px solid var(--color-red);
   border-radius: 4px;
-  color: #991b1b;
+  color: var(--color-dark-red);
   font-family: monospace;
   font-size: 12px;
   margin-bottom: 12px;

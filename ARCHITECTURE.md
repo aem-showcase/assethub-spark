@@ -420,6 +420,10 @@ Partner → Brand restrictions + Country filter (custom:country)
 No role → Block all results
 ```
 
+#### Country → brand restriction
+
+`config.COUNTRY_BRAND_RESTRICTIONS` in `cloudflare/src/config.js` maps lowercase ISO-3166-1 alpha-2 country codes to the brands users from that country may see (default: `{ de: ['Frescopa'] }`). When the session country (Entra `ctry` claim, or the sudo-simulated country; compared case-insensitively, with full names such as `germany` resolved to their ISO code via `constants/countries.js`) matches a key, `buildAssetAuthClauses()` in `cloudflare/src/origin/dm.js` adds a `term` clause on `assetMetadata.brand` (expanded to common casings, since `brand` is a free-form string) plus an `exists` clause on the same field. The rule is strict: unbranded assets are hidden as well. Like the other per-user filters it is injected into every ContentAI search (including collection-scoped and smart-collection replays) and re-checked on single-asset metadata GETs; admins bypass it.
+
 ### Layer 5: Per-Asset Metadata Check
 
 Individual asset GETs are validated against the user's roles/country/brands in `asset-access.js`.

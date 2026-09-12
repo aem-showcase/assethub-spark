@@ -62,7 +62,7 @@
   margin: 0;
   padding: 0.75rem 0.9rem;
   border-radius: var(--shape-border-radius-1, 3px);
-  border: 2px solid #FFBB63;
+  border: 1px solid var(--border-color-strong);
   background-color: var(--background-color);
   color: var(--text-color);
   font-size: var(--body-font-size-s);
@@ -90,7 +90,7 @@
   border-radius: 50px;
   background-color: var(--primary-color);
   border-color: var(--primary-color);
-  color: #fff;
+  color: var(--color-neutral-50);
   font-weight: 500;
   padding: 15px 40px;
 }

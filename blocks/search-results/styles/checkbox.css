@@ -21,9 +21,9 @@ input[type="checkbox"].search-results-checkbox {
   /* Appearance */
   cursor: pointer;
   appearance: none;
-  background-color: white;
-  border: 0 solid #ddd;
-  border-radius: 4px;
+  background-color: var(--color-neutral-50);
+  border: 0 solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -37,9 +37,9 @@ input[type="checkbox"].search-results-checkbox::before {
   transform: translate(-50%, -50%);
   width: var(--checkbox-inner-size);
   height: var(--checkbox-inner-size);
-  background-color: white;
-  border: 2px solid #6d6d6d;
-  border-radius: 3px;
+  background-color: var(--color-neutral-50);
+  border: 2px solid var(--color-neutral-700);
+  border-radius: var(--shape-border-radius-2);
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -67,13 +67,9 @@ input[type="checkbox"].search-results-checkbox:checked::after {
   transform: translate(-50%, -50%) rotate(45deg);
   width: var(--checkbox-check-width);
   height: var(--checkbox-check-height);
-  border: solid white;
+  border: solid var(--color-neutral-50);
   border-width: 0 var(--checkbox-check-thickness) var(--checkbox-check-thickness) 0;
   display: block;
-}
-
-input[type="checkbox"].search-results-checkbox:checked {
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
 }
 
 input[type="checkbox"].search-results-checkbox:focus {
@@ -100,7 +96,7 @@ input[type="checkbox"].search-results-checkbox:indeterminate::after {
   transform: translate(-50%, -50%);
   width: 8px;
   height: 3px;
-  background-color: white;
+  background-color: var(--color-neutral-50);
   border: none;
   display: block;
   z-index: 2;

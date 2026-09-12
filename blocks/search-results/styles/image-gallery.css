@@ -6,7 +6,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: white;
+  background-color: var(--color-neutral-50);
 }
 
 .search-results .image-gallery {
@@ -76,10 +76,9 @@
 
 /* Individual skeleton card */
 .search-results .skeleton-card {
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   overflow: hidden;
-  background-color: #f0f0f0;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  background-color: var(--color-neutral-200);
   display: flex;
   flex-direction: column;
 }
@@ -87,7 +86,7 @@
 .search-results .skeleton-card-image {
   width: 100%;
   aspect-ratio: 4 / 3;
-  background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+  background: linear-gradient(90deg, var(--color-neutral-300) 25%, var(--color-neutral-200) 50%, var(--color-neutral-300) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -101,8 +100,8 @@
 
 .search-results .skeleton-line {
   height: 12px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+  border-radius: var(--shape-border-radius-2);
+  background: linear-gradient(90deg, var(--color-neutral-300) 25%, var(--color-neutral-200) 50%, var(--color-neutral-300) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -129,8 +128,8 @@
   position: relative;
   padding: 24px;
   margin-top: 24px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
 }
 
 .search-results .no-images a {
@@ -150,7 +149,7 @@
   margin: 0;
   margin-top: 15px;
   font-size: var(--font-size-03);
-  color: #333;
+  color: var(--text-color);
   font-weight: 700;
   text-align: center;
 }
@@ -167,7 +166,7 @@
 
 .search-results .loading-more-container p {
   margin-top: 16px;
-  color: #666;
+  color: var(--color-neutral-700);
   font-size: var(--font-size-02);
 }
 
@@ -181,11 +180,11 @@
   align-items: center;
   background: none;
   border: 1px solid var(--primary-color);
-  border-radius: 50px;
+  border-radius: var(--shape-border-radius-3);
   color: var(--primary-color);
   cursor: pointer;
   display: flex;
-  font-family: var(--heading-font-family, sans-serif);
+  font-family: var(--heading-font-family);
   font-size: var(--font-size-02);
   font-weight: 400;
   height: 50px;
