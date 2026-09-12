@@ -30,6 +30,7 @@ apply_schema() {
   fi
 }
 
-apply_schema "schema/user_logins.sql"    "spark-user-logins"
-apply_schema "schema/audit_events.sql"   "spark-audit-events"
-apply_schema "schema/search_events.sql"  "spark-search-events"
+apply_schema "schema/user_logins.sql"        "spark-user-logins"
+apply_schema "schema/audit_events.sql"       "spark-audit-events"
+apply_schema "schema/search_events.sql"      "spark-search-events"
+apply_schema "schema/smart_collections.sql"  "spark-smart-collections"

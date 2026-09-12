@@ -1,0 +1,244 @@
+/* ========================================
+   Smart Collections — save button, tab list, item actions, modal, and mutation banner
+   ======================================== */
+
+/* Save as Smart Collection action below the Filters list */
+.smart-collection-save-actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding: 16px 0 0 4px;
+}
+
+.smart-collection-save-btn {
+  margin-left: auto;
+  padding: 6px 14px;
+  font-size: var(--font-size-01);
+  font-weight: 700;
+  color: var(--highlight-foreground, #fff);
+  background: var(--primary-color);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.smart-collection-save-btn:hover:not(:disabled) {
+  background: var(--primary-color-hover);
+}
+
+.smart-collection-save-btn:disabled {
+  background: var(--primary-color-disabled, var(--gray-100));
+  color: var(--text-color-disabled, var(--gray-400));
+  cursor: not-allowed;
+}
+
+/* Smart Collections list (tab content) */
+.smart-collections-list {
+  padding: 8px 0 16px;
+}
+
+.smart-collections-empty {
+  padding: 16px 0;
+  font-size: var(--font-size-01);
+  color: var(--gray-400);
+}
+
+.smart-collection-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.smart-collection-item:hover {
+  background: var(--purple-100);
+}
+
+.smart-collection-item.active {
+  background: var(--purple-100);
+  font-weight: 700;
+}
+
+.smart-collection-icon {
+  flex-shrink: 0;
+}
+
+.smart-collection-title {
+  flex: 1;
+  overflow: hidden;
+  font-size: var(--font-size-02);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smart-collection-visibility-tag {
+  padding: 2px 6px;
+  font-size: var(--font-size-01);
+  color: var(--gray-500);
+  background: var(--gray-100);
+  border-radius: 3px;
+}
+
+.smart-collection-rename-input {
+  flex: 1;
+  padding: 2px 6px;
+  font: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+.smart-collection-actions {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.smart-collection-action-btn {
+  padding: 2px 8px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--gray-500);
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 3px;
+}
+
+.smart-collection-action-btn:hover {
+  background: var(--highlight-hover);
+}
+
+.smart-collection-action-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  background: var(--gray-50);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.smart-collection-action-menu[hidden] {
+  display: none;
+}
+
+.smart-collection-action-menu button {
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: var(--font-size-02);
+  font-style: normal;
+  font-weight: 400;
+  line-height: var(--line-height-02);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.smart-collection-action-menu button:hover {
+  background: var(--purple-100);
+}
+
+/* Save modal */
+.smart-collection-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.smart-collection-modal-label {
+  margin-top: 10px;
+  font-size: var(--font-size-01);
+  font-weight: 700;
+  color: var(--gray-500);
+}
+
+.smart-collection-modal-input {
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.smart-collection-modal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.smart-collection-badge {
+  padding: 3px 8px;
+  font-size: var(--font-size-01);
+  color: var(--primary-color);
+  background: var(--purple-100);
+  border-radius: 12px;
+}
+
+.smart-collection-modal-empty {
+  font-size: var(--font-size-01);
+  color: var(--gray-400);
+}
+
+.smart-collection-modal-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: var(--font-size-01);
+  cursor: pointer;
+}
+
+.smart-collection-modal-error {
+  padding: 8px;
+  font-size: var(--font-size-01);
+  color: var(--invalid-color, #a33532);
+  background: var(--red-100);
+  border-radius: 4px;
+}
+
+/* Mutation-detection banner (rendered above search results) */
+.smart-collection-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  font-size: var(--font-size-01);
+  background: var(--purple-100);
+  border: 1px solid var(--purple-300);
+  border-radius: 4px;
+}
+
+.smart-collection-banner-message {
+  flex: 1;
+}
+
+.smart-collection-banner-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.smart-collection-banner-actions button {
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+}
+
+.smart-collection-banner-actions button:hover {
+  color: var(--highlight-foreground, #fff);
+  background: var(--primary-color);
+}

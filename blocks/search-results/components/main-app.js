@@ -17,6 +17,7 @@ import {
 } from '../search-results.js';
 import { createImageGallery } from './image-gallery.js';
 import { createFacetsPanel } from './facets/index.js';
+import { initSmartCollectionBanner } from './smart-collection-banner.js';
 import { getSearchPlaceholders, getDaPlaceholders } from '../utils/placeholders.js';
 
 /**
@@ -39,6 +40,7 @@ export async function createMainApp(container) {
               <!-- Facets will be rendered here -->
             </div>
             <div class="images-main">
+              <div id="smart-collection-banner"></div>
               <div class="image-gallery" id="image-gallery">
                 <!-- Gallery will be rendered here -->
               </div>
@@ -70,6 +72,12 @@ export async function createMainApp(container) {
     onFacetCheckbox: handleFacetCheckbox,
     onClearAllFacets: handleClearAllFacets,
   });
+
+  // Mount the Smart Collections mutation-detection banner
+  const bannerContainer = container.querySelector('#smart-collection-banner');
+  if (bannerContainer) {
+    initSmartCollectionBanner(bannerContainer);
+  }
 
   // Subscribe to state changes for panels and mobile filter
   subscribe((currentState, prevState, updates) => {

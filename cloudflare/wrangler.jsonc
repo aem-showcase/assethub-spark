@@ -19,6 +19,11 @@
       "binding": "SEARCH_EVENTS",
       "database_name": "spark-search-events",
       "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
+    },
+    {
+      "binding": "SMART_COLLECTIONS",
+      "database_name": "spark-smart-collections",
+      "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
     }
   ],
   "observability": {
@@ -89,6 +94,11 @@
           "binding": "SEARCH_EVENTS",
           "database_name": "spark-search-events",
           "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
+        },
+        {
+          "binding": "SMART_COLLECTIONS",
+          "database_name": "spark-smart-collections",
+          "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
         }
       ]
     },
@@ -136,6 +146,11 @@
         {
           "binding": "SEARCH_EVENTS",
           "database_name": "spark-search-events",
+          "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
+        },
+        {
+          "binding": "SMART_COLLECTIONS",
+          "database_name": "spark-smart-collections",
           "database_id": "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
         }
       ]
