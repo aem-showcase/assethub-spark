@@ -6,8 +6,8 @@
 /* Component base styling */
 .my-date-picker {
   padding: 0 10px;
-  color: #333;
-  font-family: var(--body-font-family, sans-serif);
+  color: var(--text-color);
+  font-family: var(--body-font-family);
 }
 
 .my-date-picker .date-picker-wrapper {
@@ -18,9 +18,9 @@
 .my-date-picker .date-input-group {
   display: flex;
   align-items: stretch;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
+  background: var(--color-neutral-50);
   overflow: hidden;
   width: 100%;
   position: relative;
@@ -29,7 +29,7 @@
 
 .my-date-picker .date-input-group:focus-within {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgb(99 102 241 / 10%);
+  box-shadow: 0 0 0 2px var(--status-not-started-bg);
 }
 
 .my-date-picker .date-input-segments {
@@ -41,16 +41,16 @@
   background: transparent;
   border: none;
   font-size: var(--font-size-02);
-  font-family: var(--body-font-family, sans-serif);
+  font-family: var(--body-font-family);
 }
 
 .my-date-picker .date-segment {
   display: inline-block;
   padding: 2px 4px;
-  border-radius: 3px;
+  border-radius: var(--shape-border-radius-2);
   outline: none;
   background: transparent;
-  color: #333;
+  color: var(--text-color);
   font-size: var(--font-size-02);
   cursor: text;
   user-select: text;
@@ -66,17 +66,17 @@
 }
 
 .my-date-picker .date-segment.placeholder {
-  color: #999;
+  color: var(--color-neutral-600);
 }
 
 /* Text selection styling */
 .my-date-picker .date-segment::selection {
-  background: rgb(224 231 255 / 30%);
+  background: var(--status-not-started-bg);
   color: var(--primary-color);
 }
 
 .my-date-picker .date-segment:focus {
-  background: #e0e7ff !important;
+  background: var(--status-not-started-bg) !important;
   color: var(--primary-color) !important;
   outline: none;
   z-index: 2;
@@ -88,16 +88,16 @@
 }
 
 .my-date-picker .date-separator {
-  color: #666;
+  color: var(--color-neutral-700);
   font-size: var(--font-size-02);
   user-select: none;
 }
 
 .my-date-picker .dropdown-button {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-neutral-50);
   border: none;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--shape-border-radius-2) var(--shape-border-radius-2) 0;
   width: 35px;
   display: flex;
   align-items: center;
@@ -115,9 +115,9 @@
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
-  color: #999;
+  color: var(--color-neutral-600);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   width: 24px;
   height: 24px;
   display: flex;
@@ -133,16 +133,15 @@
 }
 
 .my-date-picker .clear-button:hover {
-  color: #666;
-  background: #f5f5f5;
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-200);
 }
 
 /* Calendar popup (portal pattern - rendered in body) */
 .my-date-picker-portal .calendar-popup {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   padding: 12px;
   min-width: 260px;
 }
@@ -157,17 +156,17 @@
 .my-date-picker-portal .calendar-title {
   font-size: var(--font-size-02);
   font-weight: 700;
-  color: #333;
+  color: var(--text-color);
   margin: 0;
   cursor: pointer;
-  font-family: var(--body-font-family, sans-serif);
+  font-family: var(--body-font-family);
 }
 
 .my-date-picker-portal .calendar-nav {
   background: transparent;
-  color: #666;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
+  color: var(--color-neutral-700);
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   width: 24px;
   height: 24px;
   padding: 0;
@@ -179,8 +178,8 @@
 }
 
 .my-date-picker-portal .calendar-nav:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: var(--color-neutral-200);
+  border-color: var(--border-color);
 }
 
 /* Calendar table */
@@ -194,8 +193,8 @@
 .my-date-picker-portal .calendar-popup th {
   font-size: var(--font-size-00);
   font-weight: 700;
-  font-family: var(--body-font-family, sans-serif);
-  color: #666;
+  font-family: var(--body-font-family);
+  color: var(--color-neutral-700);
   text-align: center;
   padding: 4px;
   border: none;
@@ -213,22 +212,22 @@
 .my-date-picker-portal .calendar-day:not(.empty) {
   width: 28px;
   height: 28px;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   cursor: pointer;
   font-size: var(--font-size-01);
-  font-family: var(--body-font-family, sans-serif);
-  color: #333;
+  font-family: var(--body-font-family);
+  color: var(--text-color);
   transition: all 0.2s;
   line-height: var(--line-height-07);
 }
 
 .my-date-picker-portal .calendar-day:not(.empty):hover {
-  background: #f3f4f6;
+  background: var(--color-neutral-200);
 }
 
 .my-date-picker-portal .calendar-day.selected {
   background: var(--primary-color);
-  color: white;
+  color: var(--color-neutral-50);
 }
 
 .my-date-picker-portal .calendar-day.today {
@@ -241,7 +240,7 @@
 }
 
 .my-date-picker-portal .calendar-day.disabled {
-  color: #ccc;
+  color: var(--border-color);
   cursor: not-allowed;
   pointer-events: none;
   opacity: 0.4;
@@ -264,17 +263,17 @@
   align-items: center;
   justify-content: center;
   height: 44px;
-  border-radius: 6px;
+  border-radius: var(--shape-border-radius-2);
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #333;
+  color: var(--text-color);
   user-select: none;
   font-size: var(--font-size-02);
 }
 
 .my-date-picker-portal .month-grid .month-cell:hover {
-  background: #f3f3f3;
+  background: var(--color-neutral-200);
 }
 
 .my-date-picker-portal .month-grid .month-cell.selected {
@@ -304,17 +303,17 @@
   align-items: center;
   justify-content: center;
   height: 44px;
-  border-radius: 6px;
+  border-radius: var(--shape-border-radius-2);
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #333;
+  color: var(--text-color);
   user-select: none;
   font-size: var(--font-size-02);
 }
 
 .my-date-picker-portal .year-grid .year-cell:hover {
-  background: #f3f3f3;
+  background: var(--color-neutral-200);
 }
 
 .my-date-picker-portal .year-grid .year-cell.selected {

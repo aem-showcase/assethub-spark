@@ -9,9 +9,9 @@
   text-transform: none;
   appearance: auto;
   font: inherit;
-  background: #fff;
-  border: 1px solid #9a9a9a;
-  border-radius: 50px;
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--shape-border-radius-3);
   height: 34px;
   position: relative;
   width: 34px;
@@ -25,15 +25,15 @@
 }
 
 .action-button:disabled {
-  background-color: #ccc;
-  color: #999;
+  background-color: var(--border-color);
+  color: var(--color-neutral-600);
   cursor: not-allowed;
   border: none;
 }
 
 .action-button:disabled:hover {
-  background-color: #ccc;
-  color: #999;
+  background-color: var(--border-color);
+  color: var(--color-neutral-600);
   cursor: not-allowed;
   border: none;
   filter: none;
@@ -55,10 +55,10 @@
   display: none; /* Controlled by JS or hover */
   visibility: hidden;
   opacity: 0;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--text-color);
+  color: var(--color-neutral-50);
   text-align: center;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   padding: 8px 12px;
   position: absolute;
   z-index: 99999;
@@ -90,7 +90,7 @@
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #333 transparent transparent;
+  border-color: var(--text-color) transparent transparent;
 }
 
 /* Show the tooltip on hover */
