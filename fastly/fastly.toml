@@ -1,0 +1,94 @@
+# assethub-spark backend on Fastly Compute — Phase 1a (portal, no DB).
+# See ../docs/assethub-migration-fastly.md and ../docs/fastly-migration-log.md.
+# NOTE: backends declared statically (Dynamic Backends approval is T-Pre.6, pending).
+#       Hosts come from cloudflare/src/config.js (AEM_ENV_ID p203220-e2129061, COA prod).
+
+authors = ["jfait@adobe.com"]
+description = "assethub-spark backend on Fastly Compute (Phase 1a — portal, no DB)"
+language = "javascript"
+manifest_version = 3
+name = "assethub-spark-fastly"
+service_id = ""
+
+[scripts]
+  build = "npm run build"
+  post_init = "npm install"
+
+# ---- Backends created on `fastly compute publish` ----
+[setup]
+  [setup.backends]
+    [setup.backends.ims]
+      address = "ims-na1.adobelogin.com"
+      port = 443
+      description = "Adobe IMS (S2S token)"
+    [setup.backends.dm_delivery]
+      address = "delivery-p203220-e2129061.adobeaemcloud.com"
+      port = 443
+      description = "Dynamic Media delivery"
+    [setup.backends.coa]
+      address = "aem-content-optimizer-agent.adobe.io"
+      port = 443
+      description = "Content Optimization Agent"
+    [setup.backends.helix_page]
+      address = "main--assethub-spark--aem-showcase.aem.page"
+      port = 443
+      description = "Helix/EDS preview origin (.aem.page)"
+    [setup.backends.helix_live]
+      address = "main--assethub-spark--aem-showcase.aem.live"
+      port = 443
+      description = "Helix/EDS live origin (.aem.live)"
+    [setup.backends.entra_jwks]
+      address = "login.microsoftonline.com"
+      port = 443
+      description = "Microsoft Entra JWKS"
+
+# ---- Local (Viceroy) config: backends + config store. Secret/KV stores added with the auth/KV port. ----
+[local_server]
+  [local_server.backends]
+    [local_server.backends.ims]
+      url = "https://ims-na1.adobelogin.com"
+      override_host = "ims-na1.adobelogin.com"
+    [local_server.backends.dm_delivery]
+      url = "https://delivery-p203220-e2129061.adobeaemcloud.com"
+      override_host = "delivery-p203220-e2129061.adobeaemcloud.com"
+    [local_server.backends.coa]
+      url = "https://aem-content-optimizer-agent.adobe.io"
+      override_host = "aem-content-optimizer-agent.adobe.io"
+    [local_server.backends.helix_page]
+      url = "https://main--assethub-spark--aem-showcase.aem.page"
+      override_host = "main--assethub-spark--aem-showcase.aem.page"
+    [local_server.backends.helix_live]
+      url = "https://main--assethub-spark--aem-showcase.aem.live"
+      override_host = "main--assethub-spark--aem-showcase.aem.live"
+    [local_server.backends.entra_jwks]
+      url = "https://login.microsoftonline.com"
+      override_host = "login.microsoftonline.com"
+
+  [local_server.config_stores]
+    [local_server.config_stores.config]
+      format = "inline-toml"
+      [local_server.config_stores.config.contents]
+        HELIX_ORIGIN = "https://main--assethub-spark--aem-showcase.aem.live"
+        # "true" = local bypass (dev browsing without login). Set "false" only for the
+        # real-OIDC login test on :8787 (registered redirect URI). NEVER true on the edge.
+        DISABLE_AUTHENTICATION = "true"
+        DEBUG_ANALYTICS = "false"
+
+  # COOKIE_SECRET: local-only dev value (obviously fake). DM/Helix secrets are sourced
+  # from ENV VARS (never committed) — load real values before `fastly compute serve` with:
+  #   set -a; . ../cloudflare/.secrets; set +a
+  # If unset, they resolve to "" and DM degrades to 401. Real edge secrets go in the
+  # Fastly Secret Store via the `fastly` CLI at deploy time.
+  [local_server.secret_stores]
+    [[local_server.secret_stores.secrets]]
+      key = "COOKIE_SECRET"
+      data = "local-dev-only-cookie-secret-not-a-real-secret-000"
+    [[local_server.secret_stores.secrets]]
+      key = "DM_CLIENT_ID"
+      env = "SPARK_DM_CLIENT_ID"
+    [[local_server.secret_stores.secrets]]
+      key = "DM_CLIENT_SECRET"
+      env = "SPARK_DM_CLIENT_SECRET"
+    [[local_server.secret_stores.secrets]]
+      key = "HELIX_ORIGIN_AUTHENTICATION"
+      env = "SPARK_HELIX_ORIGIN_AUTHENTICATION"
