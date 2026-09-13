@@ -200,6 +200,21 @@ body.appear {
   }
 }
 
+/* Coca-Cola demo — login panel override, see rebrand-portal skill.
+   Values extracted from the live computed styles of https://www.coca-cola.com/in/en:
+   --welcome-panel-bg: signature brand red (--color-icon-brand-primary-regular /
+     --color-icon-component-illustration-brand-primary: #ea0000 on coca-cola.com).
+   --welcome-panel-accent-rgb: brand secondary white (--color-surface-brand-secondary-regular /
+     --color-stroke-brand-secondary-default: #ffffff on coca-cola.com), used as a low-opacity
+     warm-white glow over the red panel. */
+:root {
+  --welcome-panel-bg: #ea0000;
+  --welcome-panel-accent-rgb: 255 255 255;
+  --welcome-panel-mark-image: url('/icons/coca-cola-beans.svg');
+  --welcome-tagline-line1: '"Taste the feeling,';
+  --welcome-tagline-line2: 'one sip at a time."';
+}
+
 /* ================================================================ */
 
 /* Welcome / Sign-In Page — Split-Screen Layout                     */
