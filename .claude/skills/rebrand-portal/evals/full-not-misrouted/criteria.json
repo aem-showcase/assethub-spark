@@ -1,0 +1,31 @@
+{
+  "context": "Router precision: a full demo-portal request ('create a demo portal for Acme using acme.com … assets already in Adobe, enrich them') must still route to the full flow (rebrand + assets + collections) and must NOT be downgraded to a partial visual run just because the partial lane also uses a source URL and the word 'portal'.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Routes to the full demo (rebrand + assets + collections)",
+      "max_score": 40,
+      "description": "The agent plans/runs the complete demo: rebrand plus bringing in and organizing the company's assets so they are searchable, plus ready-made collections — not a visual-only change."
+    },
+    {
+      "name": "Does not downgrade to a look-only run on account of the URL or 'portal'",
+      "max_score": 25,
+      "description": "The agent does not treat the acme.com URL or the word 'portal' as a reason to skip assets/collections; assets remain in scope."
+    },
+    {
+      "name": "Treats assets as enrich-existing, enriched now, and does not re-ask asset source",
+      "max_score": 20,
+      "description": "Because the request says the assets are already in Adobe and to enrich them, the agent uses the enrich-existing lane with immediate enrichment and does not re-ask where the assets come from or whether to enrich now vs later."
+    },
+    {
+      "name": "Runs the mandatory foundation before design (branch + DA copy)",
+      "max_score": 10,
+      "description": "The agent confirms the demo, creates/checks out a branch of the current repo (no fork), and copies the existing DA content into the company folder before any design/styling work."
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 5,
+      "description": "No 'intent', mode names, 'branch', 'daFolder', 'excat', 'Step N', or other internal mechanics surfaced to the customer as jargon."
+    }
+  ]
+}
