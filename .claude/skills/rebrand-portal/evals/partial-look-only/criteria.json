@@ -1,0 +1,41 @@
+{
+  "context": "A look-only request ('just change my portal's colors to match acme.com, no assets yet') must route to the partial visual intent: run the mandatory foundation (demo framing + branch + DA content copy) and the visual rebrand, open a PR, and STOP — no asset enrichment, no collections, no asset-source/timing questions. The word 'portal' and the source URL must NOT push it to a full demo.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Routes to a look-only (partial) run, not a full demo",
+      "max_score": 25,
+      "description": "The agent treats this as a visual-only change and does not plan or run the full asset-and-collections demo; it recognizes the customer explicitly does not want assets yet."
+    },
+    {
+      "name": "Still copies DA content into the company folder before any styling",
+      "max_score": 25,
+      "description": "Before invoking the design tool or editing styling files, the agent copies the existing DA content into the Acme company folder (runs the DA copy flow), non-destructively; it does not assume the content is empty or skip the copy because it's 'only a color change'."
+    },
+    {
+      "name": "Does not run assets or collections",
+      "max_score": 20,
+      "description": "The agent does not run asset upload/enrichment (enrich-assets.js) or create collections; those are out of scope for a look-only run."
+    },
+    {
+      "name": "Does not ask the asset-source / enrichment-timing questions",
+      "max_score": 10,
+      "description": "The agent does not ask where the assets come from or whether to enrich now vs later — those Step 5 questions have no place in a look-only run."
+    },
+    {
+      "name": "Portal wording and source URL are not treated as full-scope signals",
+      "max_score": 10,
+      "description": "The agent does not widen to a full portal build because the request says 'portal' or supplies the acme.com URL; it uses acme.com as the style source only."
+    },
+    {
+      "name": "Confirms demo, creates a branch (no fork), and delivers via an open PR",
+      "max_score": 5,
+      "description": "The agent frames the work as a rebranded copy under Acme's name, creates/checks out a branch of the current repo (deriving org/repo from origin, not a fork), and treats an open PR / branch-preview link as the deliverable (no merge required)."
+    },
+    {
+      "name": "Plain language, no internal terms",
+      "max_score": 5,
+      "description": "No 'intent', 'look', 'rebrand' (as a mode name), 'branch', 'daFolder', 'excat', 'Step N', or other internal mechanics surfaced to the customer as jargon."
+    }
+  ]
+}

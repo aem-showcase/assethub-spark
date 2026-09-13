@@ -34,11 +34,80 @@ If both are missing: ask for both in one message, after the Step 1 plain-sentenc
 If one is missing: ask only for that one.
 If both are present in the request: proceed without asking.
 
+## Capture the intent first (`full` / `rebrand` / `look`)
+
+Before running the sequence, decide **how much** the customer asked for.
+Every request shares the same mandatory foundation (Steps 1–3 + scope +
+publish + open PR); the intent only changes **which of Step 4's change
+buckets run and whether assets follow**. Three intents:
+
+- **`full`** (default) — a complete demo: rebrand the look + content, then
+  bring in and organize the company's assets. Runs Steps 1–6.
+- **`rebrand`** — give the portal the company's look **and** rewrite its
+  page copy, but **no assets**. Runs Steps 1–4, then stops.
+- **`look`** — a smaller visual change only: recolor the theme, swap the
+  logo/icon, or restyle a named block. Page copy is left as-is and there
+  are no assets. Runs Steps 1–4 (visual buckets only), then stops.
+
+**Routing — parse the request into an intent:**
+- Wording about **color / theme / palette / restyle / look / logo / icon /
+  favicon / a named block** → `look`.
+- Wording about **rewriting the copy/content/wording for the brand** (with
+  or without the visual change) → `rebrand`.
+- **"create/build a demo portal", "set up a demo", anything mentioning
+  assets/enrich/search, or no narrowing at all** → `full`.
+
+**Two things that are NOT scope signals — never widen on them:**
+- **The word "portal."** "Change the **portal's** color" names the artifact
+  being restyled, not the size of the job — it's a `look` request.
+- **A source URL.** The URL is the **style source** the design tool extracts
+  the palette from (Step 4), exactly as a `full` demo uses it — not a signal
+  to build the whole thing. "Recolor my portal using `brand.com`" is `look`.
+
+**When genuinely ambiguous** whether the customer wants more than the visual
+change, ask **one** plain either/or question — each option a concrete
+outcome, no internal terms (I1) — before proceeding, e.g. *"Just give the
+portal a fresh look, or also fill it with your assets so people can search
+them?"* Never silently guess.
+
+Record the chosen value in state `intent`. For `look`, also record the
+slice in `customer.styleScope` (e.g. `["color","icon"]` or
+`{"block":"search-results"}`). A partial run (`look`/`rebrand`) runs the
+foundation + its Step 4 buckets, **stops after the PR**, and marks the
+skipped steps `not-applicable` (see the state file below). It **never** asks
+the asset questions (Q1/Q2) — those belong to Step 5, which it doesn't run —
+and it ends with a one-line offer to do more, not a gate (see
+`docs/partial-runs.md`). A later "now bring in the assets" follow-up resumes
+into Steps 5–6 the same way a deferred-assets `full` run does.
+
+> **I1 applies to this whole section.** `intent`, `full`/`rebrand`/`look`,
+> `styleScope`, `not-applicable`, "Step N", "Entry flow", "buckets" — these
+> are operator/internal terms. **Never surface them to the customer**, in
+> prose or any UI you render. Decide the intent silently and speak only in
+> outcomes: say "I'll give your portal a fresh look" / "…a new look and
+> refreshed wording" / "…the full portal with your assets" — never "this is
+> `intent = look`" or "I'll set `styleScope`." The routing vocabulary here
+> is for your reasoning, not the customer's ears.
+
+> **Colour/theme/logo are branch-global.** If a `look` request says "change
+> the colour of a **few pages**," the theme still applies portal-wide (that
+> is how the design system works) — say so plainly and confirm, rather than
+> hand-hacking per-page overrides. Genuinely per-page visual differences
+> (a page-specific section style) stay scoped to the named
+> `/companies/<companyKey>/…` pages, never the shared root.
+
+▶ **Read now, before acting on a `look`/`rebrand` request:**
+`.claude/skills/rebrand-portal/docs/partial-runs.md`
+
 ## The demo — one sequence (the single source of truth)
 
 Every demo is these steps, in this order. This ordered list **is** the
 workflow; the state file's `steps` object mirrors it 1:1. Do not restate,
-re-plan, or reorder it — run it and mark each step `done` as you go.
+re-plan, or reorder it — run it and mark each step `done` as you go. A
+`rebrand`/`look` run follows the **same** ordered steps for the foundation
+(1–3) and Step 4, then stops before Step 5 (see the intent section above and
+`docs/partial-runs.md`); it does not reorder or skip anything **within** the
+steps it runs.
 
 1. **`demo-confirmed`** — say plainly it's a demo copy (Step 1).
 2. **`branch-resolved`** — resolve the company; check for an existing
@@ -88,7 +157,8 @@ shape from memory:**
     "worktreePath": null,
     "daFolder": null,
     "assetsLane": null,
-    "assetsEnrichNow": null
+    "assetsEnrichNow": null,
+    "styleScope": null
   },
   "steps": {
     "demo-confirmed": "pending",
@@ -106,12 +176,26 @@ shape from memory:**
 }
 ```
 
-Every demo is `full` — there is no other `intent` value. Step values are
-`pending`, `done`, `blocked`, or `deferred` (`assets-enriched`,
-`search-scoped`, and `collections-created` are `deferred` when the
-customer chose to leave enrichment for a later step — see Entry flow Q2 —
-and resume to `pending` on a later "now enrich the assets" follow-up
-request).
+`intent` is `"full"` (default — all six steps), `"rebrand"` (look +
+content, no assets — Steps 1–4 then stop), or `"look"` (visual change only,
+no content rewrite, no assets — Steps 1–4 visual buckets then stop). See
+"Capture the intent first" above for how to choose; `docs/partial-runs.md`
+for what each partial run does. Step values are `pending`, `done`,
+`blocked`, `deferred`, or `not-applicable`.
+- **`deferred`** — the step was *asked for* but postponed
+  (`assets-enriched`, `search-scoped`, `collections-created` when the
+  customer chose to leave enrichment for a later step — see Entry flow Q2 —
+  resuming to `pending` on a later "now enrich the assets" follow-up).
+- **`not-applicable`** — the step is *out of scope for the chosen intent*
+  and will not run for this request: on a `rebrand` run the four asset/
+  collection steps (`assets-uploaded`, `assets-enriched`, `search-scoped`,
+  `collections-created`) are `not-applicable`; on a `look` run those four
+  **plus** the content half of `rebranded` are (the `rebranded` step still
+  runs, but only its visual buckets — see `docs/partial-runs.md`). A later
+  "now bring in the assets" follow-up flips the asset steps from
+  `not-applicable` to `pending` and resumes into Steps 5–6.
+`customer.styleScope` records a `look` run's slice (e.g. `["color","icon"]`
+or `{"block":"search-results"}`); it is `null` for `full`/`rebrand`.
 `customer.companyKey` is the slug of `customer.name` (lowercase, hyphens);
 `daFolder` is `/companies/<companyKey>`. `customer.worktreePath` is the demo's
 dedicated git worktree (`../assethub-spark.worktrees/demo-<companyKey>`,
@@ -183,9 +267,18 @@ new gates such as Step 4g's color verification before assets.
    explicitly asks for their own real, separate portal, say plainly that a
    dedicated environment is temporarily unavailable and you'll show it as a
    demo instead — a fresh copy of the site under their company name — then
-   proceed. Never ask a "full vs. branding-only" question either — every
-   demo always includes assets; the only open questions are *where the
-   assets come from* and *when enrichment runs*.
+   proceed. **Q1/Q2 apply only to a `full` demo** — a `rebrand`/`look` run
+   never reaches Step 5, so it never asks them.
+
+   Q1/Q2 are **not** a "full vs. branding-only" question, and you must never
+   pose them that way — within a `full` demo, assets are always in scope and
+   the only open questions are *where the assets come from* and *when
+   enrichment runs*. Choosing between `full`, `rebrand`, and `look` is a
+   **separate, earlier** decision made up front in "Capture the intent
+   first" (from the customer's own wording, and only asked as one plain
+   either/or when genuinely ambiguous) — do not fold that choice into
+   Q1/Q2, and do not offer "branding only" as an *alternative to assets*
+   inside a request that already asked for a full demo.
 
    If the original request already answered Q1/Q2 unambiguously (e.g. "the
    assets are already in AEM Assets, enrich them"), record the answer in
@@ -220,8 +313,11 @@ new gates such as Step 4g's color verification before assets.
    in the option text — I1 applies to the templates above too, not just to
    ad-libbed phrasing.
 
-3. **Run the sequence** from the first non-`done` step. Honor the hard
-   gate. Do not narrate the step list back to the customer.
+3. **Run the sequence** from the first non-`done` step, **for the chosen
+   `intent`**. Honor the hard gate. A `full` run goes through Step 6; a
+   `rebrand`/`look` run runs the foundation + Step 4 (its buckets) and stops
+   after the PR, per "Capture the intent first" and `docs/partial-runs.md`.
+   Do not narrate the step list back to the customer.
 
 ## Agent invocation examples (operator-facing)
 
@@ -235,11 +331,17 @@ Use these to route user prompts; do not recite this table to the customer.
 | "Create Acme's demo portal using `https://www.acme.com` for the visual style and content direction, but leave enrichment for a later step." | Source site present; ask Q1 if not already answered; `assetsEnrichNow = false`; rebrand + upload (if applicable) land, `assets-enriched`/`search-scoped`/`collections-created` stay `deferred`. |
 | "Now enrich Acme's assets and create the collections." | Resume: `assetsEnrichNow = true`; route straight to Step 5, then Step 6. |
 | "Rebrand this for Acme." | Missing required source site; ask for Acme's source site so the look and content direction can be matched. |
+| "Change Acme's portal colours to match `https://www.acme.com`." | `intent = look`; the URL is the style source (not full scope), "portal" is not full scope. Steps 1–4 (visual buckets), stop after PR, no Q1/Q2. `styleScope = ["color"]`. |
+| "Swap in Acme's logo and icons, using `https://www.acme.com`." | `intent = look`; `styleScope = ["icon"]` (logo+favicon+icon rules mandatory). Steps 1–4 (visual), stop after PR. |
+| "Restyle the search block for Acme like `https://www.acme.com`." | `intent = look`; `styleScope = {"block":"search-results"}`. Steps 1–4 (block styling), stop after PR. |
+| "Give Acme's portal the look and rewrite the copy from `https://www.acme.com`, but no assets yet." | `intent = rebrand`; Step 4 items 1+2+3(copy), stop after PR; asset steps `not-applicable`; no Q1/Q2. |
+| "Actually, now bring in Acme's assets too." | Resume a prior `look`/`rebrand`: flip the asset steps `not-applicable`→`pending`, ask Q1 (Q2 if enrich-existing), run Steps 5–6. |
 
-Every route ends with collections once enrichment actually runs — either
-immediately, or on the later follow-up if the customer deferred it. Do
-not wait for the customer to ask for collections after assets are
-searchable.
+Every **`full`** route ends with collections once enrichment actually runs
+— either immediately, or on the later follow-up if the customer deferred
+it. Do not wait for the customer to ask for collections after assets are
+searchable. A **`look`/`rebrand`** route ends after the PR with a one-line
+offer to bring in assets (not a gate) — see `docs/partial-runs.md`.
 
 ## Operator setup (not customer-facing)
 
