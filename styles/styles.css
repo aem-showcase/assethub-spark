@@ -210,6 +210,23 @@ body.appear {
 body:has(.section.welcome) {
   /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
+
+  /* Honda — LOGIN PAGE ONLY brand override. Redefining these tokens on this
+     login-only selector (never :root) confines Honda red + mark to the sign-in
+     screen; every other page keeps the :root (frescopa) theme untouched.
+     Honda brand red #ED1B2F sampled from the hondacarindia.com logo. */
+  --welcome-panel-bg: #ED1B2F;
+  --welcome-panel-accent-rgb: 255 128 138;
+  --welcome-panel-mark-image: url('/icons/honda-beans.svg');
+
+  /* Right auth panel brand elements (Sign-in button, links) go Honda red.
+     These custom-property redefinitions cascade only to this page's subtree,
+     so the shared button/link rules render red here without any :root edit. */
+  --primary-color: #ED1B2F;
+  --primary-color-hover: #C41626;
+  --link-color: #ED1B2F;
+  --link-hover-color: #C41626;
+
   background-color: var(--welcome-panel-bg, #2f2318);
   overflow: hidden;
 }
@@ -409,34 +426,6 @@ body:has(.section.welcome) > main::after {
     width: 100%;
     min-width: unset;
   }
-}
-
-/* ================================================================ */
-
-/* Honda — LOGIN PAGE ONLY brand override                           */
-
-/* Scoped to `body:has(.section.welcome)` so Honda red + mark apply  */
-
-/* ONLY on the sign-in screen; every other page keeps the :root       */
-
-/* (frescopa) theme untouched. Deliberate per-page scope, not global. */
-
-/* Honda brand red #ED1B2F sampled from the hondacarindia.com logo.  */
-
-/* ================================================================ */
-body:has(.section.welcome) {
-  /* Left brand panel: Honda red instead of the base dark-coffee panel */
-  --welcome-panel-bg: #ED1B2F;
-  --welcome-panel-accent-rgb: 255 128 138;
-  --welcome-panel-mark-image: url('/icons/honda-beans.svg');
-
-  /* Right auth panel — brand elements (Sign-in button, links) go Honda red.
-     These custom-property redefinitions cascade only to this page's subtree,
-     so the shared button/link rules render red here without any :root edit. */
-  --primary-color: #ED1B2F;
-  --primary-color-hover: #C41626;
-  --link-color: #ED1B2F;
-  --link-hover-color: #C41626;
 }
 
 /* Ensure main content expands to push footer to viewport bottom on short pages */
