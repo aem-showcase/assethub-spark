@@ -141,6 +141,15 @@
   --line-height-05: 1.6;
   --line-height-06: 1.25;
   --line-height-07: 1.1;
+
+  /* Coca-Cola demo — login panel override, see rebrand-portal skill.
+     Values extracted from the live computed styles of https://www.coca-cola.com/in/en:
+     signature brand red (#ea0000) and white accent. */
+  --welcome-panel-bg: #ea0000;
+  --welcome-panel-accent-rgb: 255 255 255;
+  --welcome-panel-mark-image: url('/icons/coca-cola-beans.svg');
+  --welcome-tagline-line1: '"Taste the feeling,';
+  --welcome-tagline-line2: 'one sip at a time."';
 }
 
 /* fallback fonts */
@@ -207,13 +216,6 @@ body.appear {
    --welcome-panel-accent-rgb: brand secondary white (--color-surface-brand-secondary-regular /
      --color-stroke-brand-secondary-default: #ffffff on coca-cola.com), used as a low-opacity
      warm-white glow over the red panel. */
-:root {
-  --welcome-panel-bg: #ea0000;
-  --welcome-panel-accent-rgb: 255 255 255;
-  --welcome-panel-mark-image: url('/icons/coca-cola-beans.svg');
-  --welcome-tagline-line1: '"Taste the feeling,';
-  --welcome-tagline-line2: 'one sip at a time."';
-}
 
 /* ================================================================ */
 
