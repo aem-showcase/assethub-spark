@@ -71,6 +71,14 @@ export async function originHelix(request, env) {
   req.headers.set('x-forwarded-host', request.headers.get('host') || '');
   req.headers.set('x-byo-cdn-type', 'fastly');
 
+  // Page-access control (index.js catch-all) reads the proxied HTML to parse
+  // <meta name="exclude-roles">. Unlike Cloudflare, Fastly doesn't auto-decompress
+  // subrequest bodies (see the fetchHelixSheet gotcha), so a gzip/br body would make
+  // `.text()` return garbage and the exclusion check fail-OPEN. When the caller sets
+  // `request.stripAcceptEncoding`, drop accept-encoding so the origin returns readable,
+  // uncompressed HTML we can safely inspect.
+  if (request.stripAcceptEncoding) req.headers.delete('accept-encoding');
+
   const isLocalHelix = /^http:\/\/localhost:\d+$/.test(helixOrigin);
   if (env.HELIX_ORIGIN_AUTHENTICATION && !isLocalHelix) {
     const token = await env.HELIX_ORIGIN_AUTHENTICATION.get();

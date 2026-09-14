@@ -337,32 +337,41 @@ Everything a user touches — login, browse, search, view/download, notification
 relational DB (permissions come from EDS config sheets, not the DB). DB-backed reporting/audit is deferred
 to 1b; its writes **degrade to log-only** so we can watch them fire without a DB.
 
-- [ ] **T1a.1 — Project scaffold & platform config**
+> **Status (detail in `fastly-migration-log.md`):** ✅ **all 1a ports done** — T1a.1 config, T1a.2 router/utils,
+> T1a.3 auth (real Entra login validated on :8787), T1a.4 **Helix + DM + COA proxies** (search returns real
+> assets locally; COA renditions work end-to-end), T1a.5 KV adapter, T1a.6 degrades (audit/analytics log-only,
+> smart-collections `[]`, `/api/*` JSON-404), **notifications** (degrade to EDS system notifications without KV),
+> **page-access control** (ported as read-and-reconstruct — Fastly backend responses have no `.clone()`).
+> ✅ edge deploy done (non-secret paths verified). ⏳ remaining for the Checkpoint 1a **finale**: (1) the edge
+> **login** — blocked on the Entra redirect-URI admin step (see log); (2) a re-`publish` to push the
+> COA/notifications/page-access routes to the edge.
+
+- [x] **T1a.1 — Project scaffold & platform config**
   - Create `fastly/` (Compute project) on branch `fastly-poc`; author `fastly.toml`. Build uses
     `js-compute-runtime` (bundles npm deps — validated in Phase 0: jose + itty-router bundle clean).
   - **Config Store:** `HELIX_ORIGIN`, `DISABLE_AUTHENTICATION`, `DEBUG_ANALYTICS`.
   - **Secret Store:** `COOKIE_SECRET`, `HELIX_ORIGIN_AUTHENTICATION`, `DM_CLIENT_ID`, `DM_CLIENT_SECRET`.
   - **Backends (6):** IMS, DM delivery, COA, COA-image, Helix origin, Entra JWKS —
     `[local_server.backends]` + `[setup.backends]`; SNI where the cert host differs. *(No Turso backend yet.)*
-- [ ] **T1a.2 — Entry/router & shared utils**
+- [x] **T1a.2 — Entry/router & shared utils**
   - Port `index.js` (router, `withAuthentication`, TLS guard, page-access catch-all).
   - Port `util/itty.js` (CORS) and `util/http.js` (cookies + signed cookies). Pure utils (`authz`,
     `log-utils`, `trusted-hosts`, `constants/*`, `config.js`) port as-is.
-- [ ] **T1a.3 — Auth + user**
+- [x] **T1a.3 — Auth + user**
   - Port `auth.js` + `user.js`; Secret Store `.get()` → Fastly Secret Store.
   - **JWKS fix (Phase 0):** replace `createRemoteJWKSet` → fetch the Entra JWKS over the declared backend
     + `createLocalJWKSet` + cache in KV.
   - Cookie `Domain`/`SameSite`/`Secure` + CORS allowlist include the Fastly host; add the Fastly host to
     the Entra app redirect URIs.
   - `upsertUserLogin` (DB) → **log-only degrade** (T1a.6).
-- [ ] **T1a.4 — Origin proxies**
+- [x] **T1a.4 — Origin proxies**
   - `helix.js` (EDS proxy; origin-auth secret; `cacheEverything` → `CacheOverride`), `dm.js` (DM proxy;
     `getIMSToken` via KV `AUTH_TOKENS`; `decodeJwt`), `coa.js` + COA image (`trusted-hosts`),
     `asset-access.js` (as-is).
-- [ ] **T1a.5 — KV migration → Fastly KV Store**
+- [x] **T1a.5 — KV migration → Fastly KV Store**
   - `AUTH_TOKENS` (IMS token cache: get/put with an in-value expiry timestamp) and `MESSAGES`
     (notifications CRUD + `list({prefix})`).
-- [ ] **T1a.6 — Graceful degrade for DB paths (log-only)**
+- [x] **T1a.6 — Graceful degrade for DB paths (log-only)**
   - No DB binding is configured in 1a. Instead of silent no-ops, make the DB writes **log-only** so we can
     watch them fire in `log-tail`:
     - **Audit POST** (`/api/audit/event`): `console.log('[audit:degraded] would write', event)` → return
@@ -387,17 +396,20 @@ to 1b; its writes **degrade to log-only** so we can watch them fire without a DB
 #### Phase 1b — reporting/audit (add the database)
 
 - [ ] **T1b.1 — Stand up Turso + D1→libSQL shim**
-  - Provision the Turso DB (T-Pre.3); apply `cloudflare/schema/{user_logins,audit_events,search_events}.sql`
-    (SQLite dialect → applies directly). Declare the Turso backend.
+  - Provision the Turso DB (T-Pre.3); apply
+    `cloudflare/schema/{user_logins,audit_events,search_events,smart_collections}.sql` (SQLite dialect →
+    applies directly). **Note:** `smart_collections` is a 4th table added by the `origin/main` merge
+    (Smart Collections feature, PR #51). Declare the Turso backend.
   - Add a thin **D1-compat shim** over `@libsql/client/web` exposing
     `.prepare().bind().first()/.all()/.run()` and `.batch()`.
-- [ ] **T1b.2 — Wire the three DB consumers + flip degrade → real writes**
-  - Point `api/audit.js`, `api/user-logins.js`, and the D1 parts of `api/analytics.js` (`writeSearchEvent`,
-    `searchMetricsApi`, `analytics-helper` fan-out) at the shim. Flip the T1a.6 log-only writes to real
-    writes; report reads return real data.
-- [ ] **T1b.3 — Verify reports populate**
-  - `report-searches` (search metrics), `report-asset-activity` (audit), user-logins export — all read
-    live data. Seed sample rows for the demo.
+- [ ] **T1b.2 — Wire the DB consumers + flip degrades → real reads/writes**
+  - Point `api/audit.js`, `api/user-logins.js`, **`api/smart-collections.js`** (new — merged from main),
+    and the D1 parts of `api/analytics.js` (`writeSearchEvent`, `searchMetricsApi`, `analytics-helper`
+    fan-out) at the shim. Flip the T1a.6 log-only writes **and the `/api/smart-collections` `[]` degrade**
+    to real reads/writes; report reads return real data.
+- [ ] **T1b.3 — Verify reports + smart collections populate**
+  - `report-searches` (search metrics), `report-asset-activity` (audit), user-logins export, and
+    **smart-collections list/save** — all read/write live data. Seed sample rows for the demo.
 
 > ✅ **CHECKPOINT 1b — "Reporting/audit works; full PoC parity."** A search shows in the Search report; an
 > asset view/download shows in the Asset Activity report; login history records. Everything from 1a stays green.
@@ -422,6 +434,37 @@ to 1b; its writes **degrade to log-only** so we can watch them fire without a DB
   - Rebuild **per-PR ephemeral preview services** + routing (replaces the Cloudflare per-PR
     worker+route automation in `build.yaml`). Delete the broken `cleanup.yaml` or re-implement.
   - Replace cron only if the monthly job ever gains real work.
+
+> **Parity note — per-branch/PR preview URLs & Entra callbacks (raw Fastly vs `.aem.run`).**
+> Two very different models; **prefer the AEM one** for parity:
+>
+> - **Raw Fastly Compute** (our PoC account): the `edgecompute.app` domain is **auto-assigned & random per
+>   service** (not controllable — e.g. `annually-positive-egret`, spike `formally-modern-bird`), and there is
+>   **no built-in per-branch preview** like Cloudflare Pages. Hosting multiple PRs at once = DIY: **one service
+>   per PR + a custom domain you own + TLS**, scripted in CI. Only a custom domain gives clean names, e.g.
+>   `pr-123.spark.preview.frescopamedia.com`.
+> - **AEM CS-provisioned Fastly / Edge Functions (`*.aem.run`)** — the parity target: **branch-derived** URLs
+>   using the **same `<branch>--<site>--<org>` convention EDS already uses** for this repo (`assethub-spark` /
+>   `aem-showcase`). Controlled by the git branch name, multiple live simultaneously, no per-service plumbing —
+>   the Cloudflare-Pages-like experience. **Prefer this over hand-rolling service-per-PR on raw Fastly.**
+>
+> | Branch | Content (EDS, exists today) | Edge Function (`.aem.run`) |
+> |---|---|---|
+> | `main` | `main--assethub-spark--aem-showcase.aem.live` | `main--assethub-spark--aem-showcase.aem.run` |
+> | `dev` | `dev--assethub-spark--aem-showcase.aem.page` | `dev--assethub-spark--aem-showcase.aem.run` |
+> | PR `pr-123` | `pr-123--assethub-spark--aem-showcase.aem.page` | `pr-123--assethub-spark--aem-showcase.aem.run` |
+>
+> (EDS sanitizes branch names — lowercased, non-alphanumerics → `-`; `<branch>--<repo>--<owner>` must fit a
+> 63-char DNS label, so long names get truncated/hashed.)
+>
+> **Entra implication:** every distinct preview **hostname** needs its own callback. (**Path** wildcards like
+> `…/*` *were* honored in this tenant — verified 2026-09-14, `…edgecompute.app/*` matched `/auth/callback` at
+> runtime — but per-branch previews vary the **host/subdomain**, where wildcards are far more restricted; don't
+> assume they work.) Register **stable** branches (`main`, `dev`) once in a **dedicated non-prod
+> Entra app** — keeps dev/preview/branch callbacks off the production app (Mohit + jfait aligned, 2026-09-14,
+> reuse existing app for the PoC only). Handle **ephemeral PR** callbacks via register-on-demand in CI, or
+> funnel PR previews through one long-lived preview branch. (See the Entra notes in `fastly-migration-log.md`.)
+
 - [ ] **T2.4 — Perf, cache & cutover**
   - Cache parity via `CacheOverride`; header hygiene; verify **no** authenticated/DM responses are cached.
   - Load-test DB-backed report/audit paths against the 50 ms CPU + subrequest limits.
@@ -451,6 +494,9 @@ _Running list of work deferred or discovered while porting 1a, so it isn't lost.
 - [ ] **Secret-read caching (Fastly 5-reads/request cap).** The env adapter opens the Secret Store per
   `.get()`; one request can read several secrets (e.g. `DM_CLIENT_ID` twice + `COOKIE_SECRET`). Cache
   per-request to stay under the limit.
+- [ ] **Required-secret value check.** `authRouter.before` checks `!env.COOKIE_SECRET`, but the adapter
+  binding is always truthy, so it doesn't catch an *empty* secret value → `/auth/login` 500s (crypto
+  "keyData length 0") instead of a clean 503 when `COOKIE_SECRET` isn't set. Check the resolved value.
 - [ ] **Compression on bodies we read.** Fastly doesn't auto-decompress subrequest bodies. Fixed for
   `fetchHelixSheet`; still TODO wherever we read a proxied body — `dm-analytics` (`clonedResponse.json()`
   on the DM search response) and the page-access HTML read.
@@ -466,8 +512,9 @@ _Running list of work deferred or discovered while porting 1a, so it isn't lost.
   KV so it's shared across instances/POPs.
 - [ ] **TLS-version enforcement.** CF's `withTlsCheck` (`request.cf.tlsVersion`) was dropped; re-add via
   Fastly's downstream TLS API if 1.0/1.1 blocking is required.
-- [ ] **Declare KV stores** (`auth_tokens`, `messages`) in `fastly.toml` local_server + provision on the
-  edge (IMS token cache currently degrades to no-persist locally).
+- [ ] **KV Store not enabled on the account (403 on `kv-store create`).** Enable the KV Store product in
+  the Fastly dashboard, then declare `auth_tokens`/`messages` + provision on the edge to restore IMS-token
+  caching and back notifications. The KV adapter degrades to no-persist meanwhile (nothing breaks).
 - [ ] **Edge `preview` permission.** `createSession` treats hosts other than `localhost`/`frescopamedia.com`
   as non-live → requires the `preview` permission; handle `*.edgecompute.app` so edge login resolves full
   permissions.

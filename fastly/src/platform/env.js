@@ -45,27 +45,29 @@ function kvBinding(storeName) {
       return null;
     }
   };
+  // Every method is fully guarded: if the KV store isn't provisioned/linked (e.g. the
+  // account can't create KV stores yet), reads return null and writes are no-ops rather
+  // than throwing — so the IMS token cache simply doesn't persist, and nothing breaks.
   return {
     async get(key, opts) {
-      const s = open();
-      if (!s) return null;
-      const e = await s.get(key);
-      if (!e) return null;
-      let env;
       try {
-        env = JSON.parse(await e.text());
+        const s = open();
+        if (!s) return null;
+        const e = await s.get(key);
+        if (!e) return null;
+        const env = JSON.parse(await e.text());
+        const v = env?.value ?? null;
+        return opts && opts.type === 'json' && typeof v === 'string' ? JSON.parse(v) : v;
       } catch {
         return null;
       }
-      const v = env?.value ?? null;
-      return opts && opts.type === 'json' && typeof v === 'string' ? JSON.parse(v) : v;
     },
     async getWithMetadata(key) {
-      const s = open();
-      if (!s) return { value: null, metadata: null };
-      const e = await s.get(key);
-      if (!e) return { value: null, metadata: null };
       try {
+        const s = open();
+        if (!s) return { value: null, metadata: null };
+        const e = await s.get(key);
+        if (!e) return { value: null, metadata: null };
         const env = JSON.parse(await e.text());
         return { value: env?.value ?? null, metadata: env?.metadata ?? null };
       } catch {
@@ -73,17 +75,36 @@ function kvBinding(storeName) {
       }
     },
     async put(key, value, opts) {
-      const s = open();
-      if (!s) return;
-      await s.put(key, JSON.stringify({ value, metadata: opts?.metadata ?? null }));
+      try {
+        const s = open();
+        if (!s) return;
+        await s.put(key, JSON.stringify({ value, metadata: opts?.metadata ?? null }));
+      } catch {
+        /* KV unavailable — skip caching */
+      }
     },
     async delete(key) {
-      const s = open();
-      if (s) await s.delete(key);
+      try {
+        const s = open();
+        if (s) await s.delete(key);
+      } catch {
+        /* ignore */
+      }
     },
-    async list() {
-      // Notifications (MESSAGES) uses list({prefix}); wired in a later step.
-      return { keys: [] };
+    async list(opts) {
+      // Cloudflare KV `list()` returns `{ keys: [{ name }], ... }`; Fastly
+      // `KVStore.list()` returns `{ list: [name, ...], cursor }`. Adapt to the
+      // Cloudflare shape so api/notifications.js runs unchanged. Returns an empty
+      // list (never throws) when the KV store isn't provisioned — so notifications
+      // degrade to EDS system-only in Phase 1a (KV not enabled on the PoC account).
+      try {
+        const s = open();
+        if (!s) return { keys: [] };
+        const res = await s.list({ prefix: opts?.prefix, limit: opts?.limit });
+        return { keys: (res?.list ?? []).map((name) => ({ name })) };
+      } catch {
+        return { keys: [] };
+      }
     },
   };
 }

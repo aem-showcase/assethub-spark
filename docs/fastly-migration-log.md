@@ -148,6 +148,148 @@ end-to-end verify of a **real** Entra id_token against the fetched keys (needs T
     (2) added the **`/api/*` → JSON-404 catch-all** (had been omitted from the CF port) so any unported
     `/api/*` (e.g. `/api/messages`) returns clean JSON instead of Helix HTML that breaks frontend
     `JSON.parse`. Verified: smart-collections → `200 []`, messages → `404 {json}`, search still 200/225.
-  - ⚠️ **Decision to revisit:** our branch is 2 commits behind `origin/main`; the deployed frontend is
-    ahead of our worker code. Consider rebasing `fastly-poc` onto `origin/main` so ports match the live
-    frontend (and to port the real smart-collections for 1b).
+  - ✅ **Resolved (version drift):** committed the port (WIP commit `eacc11c`) and **merged `origin/main`**
+    into `fastly-poc` — now **0 behind**. Clean merge (our port is all new files under `fastly/` + `docs/`,
+    no overlap with `cloudflare/src`). The merge brought the **real Smart Collections feature**
+    (`cloudflare/src/api/smart-collections.js` + `cloudflare/schema/smart_collections.sql` + frontend) —
+    so the source is now in-tree to port for **1b** (our 1a `[]` degrade stands meanwhile) — plus a
+    wrangler bump + a UTC fix. Nothing pushed (local branch only).
+
+### Phase 1a — edge deploy (Checkpoint 1a in progress)
+- ✅ **Deployed to the real Fastly edge.** Service `6gEvztcAfMsbzzeBfCfBNP` →
+  **https://annually-positive-egret.edgecompute.app**. `fastly compute publish` created + linked 6 backends,
+  config store `config` (`HELIX_ORIGIN`, `DISABLE_AUTHENTICATION=false`, `DEBUG_ANALYTICS`), and an (empty)
+  Secret Store `secrets` (id `eq5bTaECkxcr1sNwHJY1AZ`).
+- ⚠️ **KV Store not creatable on this account (403).** `kv-store create` → 403 (config-store + secret-store
+  both succeed) → KV is a product not enabled on the account (like Compute earlier). Dropped
+  `[setup.kv_stores]` from the deploy and **hardened the KV adapter to fully no-throw** — the IMS token
+  cache just doesn't persist; nothing breaks. Enable KV Store on the account to restore caching + for
+  notifications (Phase 2b). Also: first publish attempt rolled back cleanly on the 403 (no orphan service).
+- ✅ **Edge verified (no-secret paths):** `/public/welcome` → 200 (real "Sign in — Fréscopa Asset Portal"
+  via the edge Helix proxy); `/` → 302 `/en/`; `/en/` → 302 to the login page (real auth active).
+- ⏳ **Remaining for full Checkpoint 1a (user steps):** (1) set the 4 secret values (from `cloudflare/.secrets`
+  via `fastly secret-store-entry create --stdin` — the CLI guard blocks the model from handling secret
+  values); (2) register `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app
+  redirect URIs. Then: login → browse → search on the edge.
+
+### Phase 1a — edge secrets set + verified (2026-09-14)
+- ✅ **Secret values set on the edge** (user ran the `create` commands; the CLI guard blocks the model from
+  handling secret values). All 4 entries now in Secret Store `secrets` (id `eq5bTaECkxcr1sNwHJY1AZ`):
+  `COOKIE_SECRET`, `DM_CLIENT_ID`, `DM_CLIENT_SECRET`, `HELIX_ORIGIN_AUTHENTICATION`. Values sourced from the
+  local `cloudflare/.secrets` dotfile and pushed up via `fastly secret-store-entry create --stdin`.
+  - **Where they live:** *remotely, in Fastly's Secret Store*, attached to service `6gEvztcAfMsbzzeBfCfBNP` —
+    **not Cloudflare** (Cloudflare was never contacted; `cloudflare/.secrets` is just a local file that holds
+    the same values). Distinct from the *local* dev secrets in `fastly.toml` `[local_server.secret_stores]`.
+- ✅ **Verified from the edge:** `/auth/login` flipped **500 → 302** to Microsoft (was 500 while the store was
+  empty — `COOKIE_SECRET` couldn't sign the State cookie). **No redeploy needed** — secrets read per-request.
+- ⚠️ **Expected vs actual (UI):** per Fastly's docs the store *should* be **visible/browsable** in the control
+  panel at **Resources → Secret stores** (click the store name → see its entries) — but on this account it
+  **wasn't**. The page rendered a **"Purchase Secret Stores" product splash** instead (screenshot
+  2026-09-14 9.52 AM). So the store is confirmed present + working via CLI/API and the live edge, yet
+  **invisible in the web UI**. Likely cause: the product isn't formally purchased/enabled on the free/trial
+  plan, so the CLI-created store (trial allowance) doesn't surface in the UI. Re-check after any plan upgrade /
+  product enablement.
+- 📍 **Viewing on this (free/trial) account — workaround:** the control-panel **Resources → Secret stores**
+  page shows the **"Purchase Secret Stores" product splash** (product not enabled on the plan), so the store
+  **can't be browsed in the UI** even though it exists and works. Use the **CLI** as the window:
+  `fastly secret-store list` + `fastly secret-store-entry list --store-id eq5bTaECkxcr1sNwHJY1AZ` — shows
+  entry **names + SHA-256 digests**, never plaintext (write-only by design). Same pattern as KV (403, not
+  enabled); Secret Stores has a **trial allowance of 1 store**, which we're using. Service config + linked
+  resources page still loads: https://manage.fastly.com/configure/services/6gEvztcAfMsbzzeBfCfBNP.
+- 📏 **Trial limits confirmed (fine for the PoC):** Compute trials include **1 secret store** (we use exactly
+  1) and our 4 entries fit. Platform caps to watch: **max 5 secret reads per Compute request** — our hot paths
+  read up to **4** (`COOKIE_SECRET` + the 3 DM/Helix secrets), so we're under it, but adding a 5th secret read
+  in one request path would hit the cap (consolidate secrets, or ask Fastly to raise it — do NOT purchase for
+  this). Also **64 KB max per secret**. (Paid plans: min 10 secrets, more purchasable.)
+- 💵 **Decision — stay on the free/trial plan; do NOT purchase Secret Stores.** Purchasing only buys the UI
+  browse view + higher store/secret limits, none of which the PoC needs (store is live, edge reads it, CLI is
+  the admin surface). Production parity will run on **AEM's CS-provisioned Fastly**, not this personal account,
+  so anything bought here is thrown away at the parity step. Keeps within the $10/mo spend guardrail.
+- ✅ **Account/linkage verified** (answering "are the secrets on the right account?"): one CLI token
+  (`jfait@adobe.com`) owns the deployed service `6gEvztcAfMsbzzeBfCfBNP` (**Customer ID
+  `71KGnpsVlxUjClSnLuOIHI`**; "Astra-Dev" is just this personal account's cosmetic company-name label — not a
+  separate org). The service's **active version 1** links resource `secrets` → **`eq5bTaECkxcr1sNwHJY1AZ`**
+  (secret-store, link `558ncr6XmMUJ0ykKpmCYc3`) and `config` → `Lgx3DQsHvYCEaJpwyqEV43`. Same token lists that
+  store's 4 entries; plus the runtime proof (live edge read `COOKIE_SECRET`, 500→302). → **secrets are on the
+  same account as the service and linked to the live version.** The "no secret stores" UI = product-not-purchased
+  splash, not a wrong account.
+
+### Phase 1a — edge login blocked on Entra redirect URI (admin needed) (2026-09-14)
+- ⛔ **Blocker:** the edge callback `https://annually-positive-egret.edgecompute.app/auth/callback` must be
+  added to the Entra app's redirect URIs, but that requires editing the **app registration** in its home tenant
+  **`983cbc50-8ad1-4dde-b705-7c80477a4186`**, which **jfait cannot access** — App registrations search returns
+  nothing; the portal only offers "Enterprise applications" (the read-only service principal, where redirect
+  URIs can't be edited). Redirect URIs are editable only on the app registration in its home tenant.
+- 👤 **Owner to ask:** the Entra app + auth code were set up by **Mohit Arora** (`mohitar@adobe.com`, commit
+  `2abe4f20`, 2026-08-11). Requested (via jfait): add the one redirect URI, **or** add jfait as an **Owner** of
+  app `93e6431f-…` so future PoC/parity hostnames can be self-managed.
+- ✅ **NOT a feasibility blocker:** real Entra login on Fastly is already proven locally (`:8787`, against this
+  same app). This only gates the *edge-hostname* login proof (final check for CP1a). Everything else on the edge
+  is verified (public pages, redirects, `/auth/login` → 302 to Microsoft).
+- Alt (lower priority, not pursuing): throwaway Entra tenant jfait controls → register a PoC app → point Fastly
+  config at its IDs. Only if the admin path stalls — it re-proves already-proven OIDC and adds config churn.
+
+### Phase 1a — remaining ports done: page-access, notifications, COA (2026-09-14)
+Completed the last three 1a ports (branch `fastly-poc`, under `fastly/`); built clean to wasm and smoke-tested
+on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
+- ✅ **Page-access control** (`origin/page-access.js` — verbatim pure logic; wired into the Helix catch-all in
+  `index.js`). CF used `response.clone().text()`, unavailable on Fastly backend responses, so ported as
+  **read-and-reconstruct**: `await response.text()` → parse `<meta exclude-roles>` → re-serve
+  `new Response(html, …)`. Added a `request.stripAcceptEncoding` flag → `helix.js` drops `accept-encoding` on
+  the catch-all's HTML fetch: Fastly doesn't auto-decompress subrequest bodies, so a gzip/br body would make
+  `.text()` garbage and the exclusion check **fail-OPEN** (security). Static/media routes keep compression.
+- ✅ **Notifications** (`api/notifications.js` — verbatim). Needed a KV-adapter fix: Fastly `KVStore.list()`
+  returns `{ list:[name] }` but this code (CF-shaped) expects `{ keys:[{name}] }` — adapted in `env.js`.
+  Degrades cleanly with no KV: GET `/api/messages` → **200 serving EDS system notifications** (sys-3/sys-4);
+  POST → 200 returning the object (put no-ops). Flips to real persistence when a KV Store is linked (no code
+  change).
+- ✅ **COA proxy** (`origin/coa.js` + `util/trusted-hosts.js`). Both outbound fetches via `fetchBackend` +
+  `CacheOverride('pass')`. **Works end-to-end locally:** POST `/api/adobe/coa/generate` → **200 with a real
+  COA response** (IMS token minted, `coa` backend reached; COA correctly reported it couldn't verify the fake
+  test asset). SSRF trusted-host gate verified: `/api/adobe/coa/image` with missing/untrusted `src` → 400.
+  ⚠️ `originCoaImage` fetches whatever host COA returns — DM/COA hosts hit declared backends; other
+  `*.adobe.io` hosts would need Dynamic Backends (T-Pre.6 / Phase 2b).
+- **Smoke matrix (Viceroy :7676):** `/`→302, `/api/user`→admin dev user, `/api/messages`→200 (system), POST→200,
+  coa/image 400/400, coa/generate→200 (real COA), `/en/`→200 (page-access admin-bypass). Build → clean wasm.
+- ⚠️ Gotcha (env): a **stale viceroy from an earlier session was still bound to :7676** (serving old wasm) —
+  the first restart failed with "Address already in use". Killed PID + parent, restarted clean.
+- **Not locally testable** (the auth-bypass dev user is always admin): the page-access **exclusion** branch —
+  needs a real non-admin login on the edge. Logic is verbatim CF (already unit-tested there) + the new
+  read-and-reconstruct path.
+- **Scope note:** `util/authz.js`, `util/notifications-helpers.js`, `util/email-validator.js` intentionally NOT
+  ported — only consumed by 1b/parity code (audit/analytics/scheduled), not the 1a routes.
+- ⏭️ **Phase 1a ports are now COMPLETE.** The new routes aren't on the edge yet (needs a re-`publish`). The
+  CP1a *finale* still waits on the edge **login** (Entra redirect-URI admin step above); do the re-publish
+  together with the login unblock, or anytime.
+
+### Phase 1a — EDGE LOGIN WORKS ✅ (Checkpoint 1a core proven on the edge) (2026-09-14)
+- 🎉 **Real Entra login succeeds on the live Fastly edge** (`annually-positive-egret.edgecompute.app`) — jfait
+  signed in end-to-end. Proves the load-bearing auth path (OIDC `id_token`/`form_post` → HS256 session cookie →
+  JWKS verify over the declared backend) works on Fastly Compute **in production**, not just locally / on :8787.
+  The single biggest migration risk is now retired on the real edge.
+- 🔎 **Observed (correcting earlier caution):** the admin registered a **path wildcard** redirect URI
+  `https://annually-positive-egret.edgecompute.app/*` and it **DID match** our exact `/auth/callback` at runtime.
+  So **path** wildcards ARE honored in this tenant/app config. ⚠️ Per-branch `.aem.run` previews would vary the
+  **host/subdomain**, where wildcards are far more restricted — do not assume those work (not verified).
+- Auth + Helix + DM were already in edge **version 1**, so login/browse/search needed no re-publish.
+- ⏭️ Next: (1) confirm browse/search on the edge; (2) **re-publish** to push the new COA / notifications /
+  page-access routes to the edge; (3) CP1a then fully green (core already is).
+- ✅ **Browse/search confirmed on the edge** (jfait: search returns real assets, thumbnails render) → DM proxy
+  + IMS token work in production. **Checkpoint 1a CORE (login + browse + search) is fully green on the edge.**
+
+### Phase 1a — re-published new routes: service version 2 (2026-09-14)
+- ✅ **`fastly compute publish` → service `6gEvztcAfMsbzzeBfCfBNP` version 2 active.** Pushed the COA /
+  notifications / page-access routes to the edge. `[setup]` was skipped (existing service) so the 6 backends +
+  config store + secret store links **carried forward from v1** unchanged — no new secrets/config needed.
+- ✅ **Edge health (unauthenticated):** `/`→302, `/public/welcome`→200, `/auth/login`→302, and the newly-routed
+  `/api/messages` + `/api/adobe/coa/image` now return **302 (auth gate)** instead of the old `/api/*` JSON-404
+  — confirming the new routes shipped and sit behind `withAuthentication`.
+- Functional verification of the new routes = a logged-in browser test (route logic already validated locally
+  on Viceroy): notifications (messages/bell UI) and AI renditions ("generate mode" in the search bar). COA
+  image streaming for non-declared `*.adobe.io` hosts still needs Dynamic Backends (T-Pre.6 / 2b).
+- 🏁 **Checkpoint 1a is functionally complete on the edge** (core verified; new routes deployed + gated). The
+  PoC now runs the full portal on Fastly Compute. Remaining program work is Phase 1b (Turso/DB) and Phase 2/2b.
+- ⏳ **Only remaining user step for CP1a:** register redirect URI
+  `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
+  (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
+  search on the edge = **Checkpoint 1a complete**.

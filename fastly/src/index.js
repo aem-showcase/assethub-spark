@@ -13,6 +13,9 @@ import { buildEnv } from './platform/env.js';
 import { authRouter, withAuthentication } from './auth.js';
 import { originHelix } from './origin/helix.js';
 import { originDynamicMedia } from './origin/dm.js';
+import { originCoa, originCoaImage } from './origin/coa.js';
+import { notificationsApi } from './api/notifications.js';
+import { isUserExcluded, parsePageExclusions } from './origin/page-access.js';
 import { apiUser } from './user.js';
 import { cors } from './util/itty.js';
 import { companyBasePath } from './config.js';
@@ -114,6 +117,14 @@ router
   // dynamic media (asset proxy, search, metadata)
   .all('/api/adobe/assets/*', originDynamicMedia)
 
+  // Content Optimization Agent (AI image renditions)
+  .post('/api/adobe/coa/generate', originCoa)
+  .get('/api/adobe/coa/image', originCoaImage)
+
+  // Notifications API (KV-backed) — Phase 1a degrades to EDS system notifications when KV is absent
+  .all('/api/messages', notificationsApi)
+  .all('/api/messages/*', notificationsApi)
+
   // Smart collections (D1-backed) — Phase 1a degrade to an empty list (unblocks the facets panel)
   .all('/api/smart-collections', smartCollectionsDegraded)
   .all('/api/smart-collections/*', smartCollectionsDegraded)
@@ -123,11 +134,36 @@ router
   // like /api/messages (notifications) until they're ported.
   .all('/api/*', () => jsonResponse({ error: 'Not Found' }, 404))
 
-  // everything else -> Helix proxy (page-access control added in a later step)
+  // everything else -> Helix proxy with page-level access control (exclude-roles).
   .all('*', async (request, env) => {
+    // We may need to read the HTML body to enforce exclude-roles, so ask helix.js for an
+    // uncompressed body (Fastly doesn't auto-decompress subrequest bodies — a compressed
+    // body would make .text() garbage and the exclusion check fail-open).
+    request.stripAcceptEncoding = true;
     const response = await originHelix(request, env);
+
     if (response.status === 404) return redirectTo404(request);
-    return response;
+
+    const contentType = response.headers.get('content-type') || '';
+    // Only HTML pages for authenticated non-admins are access-controlled; everything
+    // else (assets, JSON, unauthenticated, admins) streams straight through.
+    if (!contentType.includes('text/html') || !request.user) return response;
+    if (request.user.roles?.includes('admin')) return response;
+
+    // Read once and reconstruct — Fastly backend responses have no `.clone()`
+    // (the CF original used `response.clone().text()`).
+    const html = await response.text();
+    const exclusions = parsePageExclusions(html);
+    if (isUserExcluded(request.user, exclusions)) {
+      console.warn(
+        `[PageAccess] Denied ${request.user.email} from ${new URL(request.url).pathname} (user roles: ${request.user.roles}, excluded: ${JSON.stringify(exclusions)})`,
+      );
+      return redirectTo404(request);
+    }
+
+    const headers = new Headers(response.headers);
+    headers.delete('content-length'); // body re-encoded from text; let the runtime recompute
+    return new Response(html, { status: response.status, headers });
   });
 
 addEventListener('fetch', (event) => {
