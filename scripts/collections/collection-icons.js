@@ -57,10 +57,10 @@ export const ICON_GLOBE_SM = '<svg width="16" height="16" viewBox="0 0 16 16" fi
 export const ICON_LOCK_SM = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
 
 export const PLACEHOLDER_SVG = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="6" y="10" width="36" height="28" rx="3" fill="#f0f0f0" stroke="#e0e0e0" stroke-width="1.5"/>
-  <rect x="10" y="14" width="12" height="9" rx="1.5" fill="#ddd"/>
-  <rect x="24" y="14" width="14" height="4" rx="1" fill="#e8e8e8"/>
-  <rect x="24" y="20" width="10" height="3" rx="1" fill="#ebebeb"/>
-  <rect x="10" y="26" width="28" height="3" rx="1" fill="#ebebeb"/>
-  <rect x="10" y="31" width="20" height="3" rx="1" fill="#ebebeb"/>
+  <rect x="6" y="10" width="36" height="28" rx="3" fill="#f5f5f5" stroke="#e6e6e6" stroke-width="1.5"/>
+  <rect x="10" y="14" width="12" height="9" rx="1.5" fill="#ccc"/>
+  <rect x="24" y="14" width="14" height="4" rx="1" fill="#e6e6e6"/>
+  <rect x="24" y="20" width="10" height="3" rx="1" fill="#e6e6e6"/>
+  <rect x="10" y="26" width="28" height="3" rx="1" fill="#e6e6e6"/>
+  <rect x="10" y="31" width="20" height="3" rx="1" fill="#e6e6e6"/>
 </svg>`;

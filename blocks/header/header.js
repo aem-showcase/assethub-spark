@@ -364,6 +364,15 @@ async function createNavBar(t) {
   // Remove button styling from all header links
   nav.querySelectorAll('a.button').forEach((link) => link.classList.remove('button'));
 
+  // Centered site title in the single navy band (hidden under 900px via CSS)
+  const navTitle = document.createElement('p');
+  navTitle.className = 'nav-title';
+  const titleLink = document.createElement('a');
+  titleLink.href = localizePath('/');
+  titleLink.textContent = 'adaptTo() Media';
+  navTitle.append(titleLink);
+  nav.append(navTitle);
+
   const navSections = nav.querySelector('.nav-sections');
   if (navSections) {
     // Localize all nav links to preserve current locale

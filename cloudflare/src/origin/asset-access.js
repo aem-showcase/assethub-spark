@@ -113,6 +113,8 @@ function checkNotClauseEntry(notClause, assetMetadata) {
  * - `not` clauses: Asset must NOT have any of the specified values (denial); a `not` clause
  *   may also wrap an `exists` check to require the field be entirely absent
  * - `term` clauses: Asset must have at least one of the specified values (allowance)
+ * - `exists` clauses: Asset must have a (non-empty) value for the field (e.g. the
+ *   country brand restriction hides unbranded assets)
  * - `or` clauses: At least one sub-clause must pass (evaluated recursively)
  *
  * Asset metadata fields can have different formats:
@@ -172,6 +174,20 @@ function checkAssetMetadataAuthorization(authClauses, assetMetadata) {
         if (result.violated) {
           return result;
         }
+      }
+      continue;
+    }
+
+    // Handle EXISTS clauses - asset must have a value for the field
+    if (clause.exists) {
+      const fieldPath = clause.exists.field;
+      const fieldName = fieldPath.replace(/^assetMetadata\./, '');
+      const hasValue = extractTaxonomyPaths(assetMetadata[fieldName]).length > 0;
+      if (!hasValue) {
+        return {
+          violated: true,
+          reason: `Missing ${fieldName} -- Asset has no value but rule requires one`,
+        };
       }
       continue;
     }

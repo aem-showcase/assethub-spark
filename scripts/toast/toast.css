@@ -8,36 +8,35 @@
   left: 50%;
   transform: translateX(-50%) translateY(100%);
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   font-size: 14px;
   font-weight: 500;
   color: white;
   z-index: 11000; /* above modal */
   opacity: 0;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   min-width: 200px;
   text-align: center;
 }
 
 .toast-success {
-  background-color: #28a745;
-  border: 1px solid #1e7e34;
+  background-color: var(--status-completed);
+  border: 1px solid var(--status-completed);
 }
 
 .toast-info {
-  background-color: #17a2b8;
-  border: 1px solid #138496;
+  background-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 
 .toast-error {
-  background-color: var(--text-color);
-  border: 1px solid var(--color-dark-red);
+  background-color: var(--color-red);
+  border: 1px solid var(--color-red);
 }
 
 .toast-warning {
-  background-color: #ff9800;
-  border: 1px solid #e68900;
+  background-color: var(--color-dark);
+  border: 1px solid var(--color-dark);
 }
 
 .toast.show {

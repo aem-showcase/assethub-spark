@@ -10,7 +10,7 @@
   appearance: auto;
   font: inherit;
   background: #fff;
-  border: 1px solid #9a9a9a;
+  border: 1px solid var(--color-neutral-600);
   border-radius: 50px;
   height: 34px;
   position: relative;
@@ -25,15 +25,15 @@
 }
 
 .action-button:disabled {
-  background-color: #ccc;
-  color: #999;
+  background-color: var(--color-neutral-400);
+  color: var(--color-neutral-600);
   cursor: not-allowed;
   border: none;
 }
 
 .action-button:disabled:hover {
-  background-color: #ccc;
-  color: #999;
+  background-color: var(--color-neutral-400);
+  color: var(--color-neutral-600);
   cursor: not-allowed;
   border: none;
   filter: none;
@@ -55,7 +55,7 @@
   display: none; /* Controlled by JS or hover */
   visibility: hidden;
   opacity: 0;
-  background-color: #333;
+  background-color: var(--color-neutral-800);
   color: #fff;
   text-align: center;
   border-radius: 4px;
@@ -90,7 +90,7 @@
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #333 transparent transparent;
+  border-color: var(--color-neutral-800) transparent transparent;
 }
 
 /* Show the tooltip on hover */

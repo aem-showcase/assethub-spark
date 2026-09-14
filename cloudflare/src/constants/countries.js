@@ -59,3 +59,19 @@ export function resolveCountryMatchValues(country) {
   if (code) values.push(code);
   return values;
 }
+
+/**
+ * Resolve a country value to its lowercase ISO-3166-1 alpha-2 code.
+ * Accepts an ISO code in any case (`DE`, `de`) or a full name known to
+ * COUNTRY_CODE_TO_NAME in any case (`germany`, `Germany`). Unknown names are returned
+ * lowercased as-is so callers can still key config lookups on them.
+ * @param {string} country - ISO code or full country name (any case)
+ * @returns {string} lowercase ISO code, or '' when no country is given
+ */
+export function resolveCountryCode(country) {
+  if (!country) return '';
+  const normalized = String(country).trim().toLowerCase();
+  if (!normalized) return '';
+  if (COUNTRY_CODE_TO_NAME[normalized]) return normalized;
+  return COUNTRY_NAME_TO_CODE[normalized] || normalized;
+}

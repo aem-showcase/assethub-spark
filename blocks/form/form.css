@@ -62,7 +62,7 @@
   margin: 0;
   padding: 0.75rem 0.9rem;
   border-radius: var(--shape-border-radius-1, 3px);
-  border: 2px solid #FFBB63;
+  border: 2px solid var(--color-light-gray);
   background-color: var(--background-color);
   color: var(--text-color);
   font-size: var(--body-font-size-s);
@@ -87,7 +87,7 @@
 }
 
 .form .button {
-  border-radius: 50px;
+  border-radius: var(--shape-border-radius-3);
   background-color: var(--primary-color);
   border-color: var(--primary-color);
   color: #fff;

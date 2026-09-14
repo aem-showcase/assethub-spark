@@ -27,6 +27,7 @@
     </div>
   </main>
   <style>
+    /* Colors and fonts come from the global design tokens in /styles/styles.css */
     .section.error-page {
       display: flex;
       align-items: center;
@@ -45,28 +46,27 @@
     }
 
     .error-code {
-      font-family: baskerville, serif;
+      font-family: var(--heading-font-family);
       font-size: 96px;
       line-height: 1;
-      color: #2f2318;
-      opacity: 0.12;
-      font-weight: 300;
+      color: var(--color-highlight-2);
+      font-weight: 700;
       letter-spacing: -4px;
       display: block;
       margin-bottom: -8px;
     }
 
     .error-page-content h1 {
-      font-family: baskerville, serif;
+      font-family: var(--heading-font-family);
       font-size: 28px;
-      font-weight: 400;
-      color: #2f2318;
+      font-weight: 700;
+      color: var(--text-color);
       margin: 0;
     }
 
     .error-page-content p {
       font-size: 15px;
-      color: #6b6b6b;
+      color: var(--color-medium-gray);
       line-height: 1.6;
       margin: 0;
     }
@@ -74,21 +74,22 @@
     .error-page-content .button {
       margin-top: 8px;
       display: inline-block;
-      padding: 12px 32px;
-      border-radius: 100px;
-      border: 1.5px solid #2f2318;
-      color: #2f2318;
-      background: transparent;
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 1px solid var(--color-highlight-2);
+      color: var(--color-light);
+      background: var(--color-highlight-2);
       font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
+      font-weight: 400;
+      letter-spacing: 0;
       text-decoration: none;
       transition: background 0.2s, color 0.2s;
     }
 
     .error-page-content .button:hover {
-      background: #2f2318;
-      color: #fff;
+      background: var(--color-dark);
+      border-color: var(--color-dark);
+      color: var(--color-light);
     }
   </style>
   <footer></footer>

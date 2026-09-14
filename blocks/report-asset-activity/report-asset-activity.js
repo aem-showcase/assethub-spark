@@ -6,34 +6,36 @@ import {
   ASSET_AUDIT_USER_TYPES,
   defaultFrom,
 } from '../../scripts/audit/asset-audit-constants.js';
-import { getRoleColor, resolveRole, FALLBACK_ROLE_COLOR } from '../../scripts/analytics/analytics-constants.js';
+import {
+  CHART_PALETTE, getRoleColor, resolveRole, FALLBACK_ROLE_COLOR,
+} from '../../scripts/analytics/analytics-constants.js';
 import { buildAssetDetailsUrl } from '../../scripts/asset-id-utils.js';
 import showToast from '../../scripts/toast/toast.js';
 import { hasPermission, PERMISSIONS } from '../../scripts/auth/permissions.js';
 
-// Brand-derived chart palette — built around the Fréscopa theme (teal --primary-color
-// #00647D, maroon --text-color #58181D) plus harmonious supporting tones, so charts
-// match the rest of the app instead of using a generic/Google default palette.
-// Primary teal is reserved for `download` (the dominant action in this report).
+// Brand-derived chart palette — built from the adapt.to design tokens (electric blue
+// --color-highlight-2 #1b31ff, navy --color-dark #081235) plus blue tints and greys, so
+// charts match the rest of the app. See CHART_PALETTE in scripts/analytics/analytics-constants.js.
+// Primary blue is reserved for `download` (the dominant action in this report).
 const BRAND_SEQUENCE = [
-  '#00647D', // brand teal (primary)
-  '#A35E4B', // terracotta
-  '#C99A3F', // warm gold
-  '#58181D', // brand maroon (text-color)
-  '#3D8FA3', // light teal
-  '#6E7E5B', // sage
-  '#8A6D3B', // bronze
-  '#4F6472', // slate
+  CHART_PALETTE.blue, // electric blue (primary)
+  CHART_PALETTE.navy,
+  CHART_PALETTE.midBlue,
+  CHART_PALETTE.steel,
+  CHART_PALETTE.grey,
+  CHART_PALETTE.darkGrey,
+  CHART_PALETTE.paleBlue,
+  CHART_PALETTE.lightGrey,
 ];
 const PALETTE = {
-  download: '#00647D', // primary teal — dominant action
-  view: '#3D8FA3', // light teal
-  'share-link-copy': '#C99A3F', // warm gold
-  'dm-url-copy': '#A35E4B', // terracotta
-  'collection-add': '#58181D', // brand maroon
-  internal: '#00647D',
-  external: '#3D8FA3',
-  unknown: '#8F8F8F', // neutral grey (matches --color-neutral-600)
+  download: CHART_PALETTE.blue, // primary blue — dominant action
+  view: CHART_PALETTE.midBlue,
+  'share-link-copy': CHART_PALETTE.grey,
+  'dm-url-copy': CHART_PALETTE.steel,
+  'collection-add': CHART_PALETTE.navy,
+  internal: CHART_PALETTE.blue,
+  external: CHART_PALETTE.midBlue,
+  unknown: CHART_PALETTE.grey, // neutral grey (matches --color-neutral-600)
 };
 const FALLBACK_COLORS = BRAND_SEQUENCE;
 

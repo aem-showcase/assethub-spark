@@ -4,6 +4,7 @@
  */
 
 import { SEARCH_TYPE_COLORS } from './config.js';
+import { CHART_PALETTE } from '../../scripts/analytics/analytics-constants.js';
 import {
   createStackedBarChart,
   createPieChart,
@@ -62,7 +63,7 @@ export function renderSearchesByMonthChart(canvas, searchesByMonth) {
 export function renderSearchTypeDistributionChart(canvas, distributionData) {
   const colorMapper = (type) => {
     const typeKey = type.toLowerCase();
-    return SEARCH_TYPE_COLORS[typeKey] || '#999999';
+    return SEARCH_TYPE_COLORS[typeKey] || CHART_PALETTE.grey;
   };
 
   return createPieChart(canvas, distributionData, colorMapper);
