@@ -30,13 +30,17 @@ import {
   verifyIdToken,
   sessionFromIdToken,
 } from '../lib/session.js';
-import { d1Binding } from '../storage/sql.js';
 import { kvBinding } from '../storage/kv.js';
 import { originHelix } from '../origin/helix.js';
 import { stub } from '../api/stubs.js';
-// REAL Worker handlers, reused unchanged — only the binding access path differs.
-import { smartCollectionsApi } from '../../../cloudflare/src/api/smart-collections.js';
+// REAL Worker handler, reused unchanged — only the binding access path differs.
 import { originDynamicMedia } from '../../../cloudflare/src/origin/dm.js';
+// Native @adobe/aio-lib-db handlers — the document-DB port replacing the four
+// D1-backed feature APIs (see docs/D1-TO-AIOLIBDB-PLAN.md).
+import { smartCollectionsDbApi } from '../api/smart-collections-db.js';
+import { auditApiDb } from '../api/audit-db.js';
+import { searchMetricsApiDb } from '../api/search-db.js';
+import { upsertUserLoginDb, exportUserLoginsCsvDb } from '../api/user-logins-db.js';
 
 const COOKIE_SESSION = 'Session';
 const AUTH_PREFIX = '/auth';
@@ -141,6 +145,19 @@ async function handleCallback(request, env) {
     return owError(401, `Invalid id_token: ${e.message}`);
   }
   const session = sessionFromIdToken(claims);
+  // Persist the login for reporting (Worker parity: auth.js upsertUserLogin).
+  // Native aio-lib-db write; never blocks login (upsert swallows its own errors).
+  await upsertUserLoginDb(env, {
+    email: session.email,
+    userId: session.userId,
+    fullName: session.name,
+    title: session.title,
+    country: session.country,
+    employeeType: session.employeeType,
+    company: session.company,
+    roles: session.roles || [],
+    permissions: session.permissions || [],
+  });
   const jwt = await createSessionJWT(originOf(request), env.COOKIE_SECRET, session);
   const cookie = serializeCookie(COOKIE_SESSION, jwt, { SameSite: 'Lax' });
   // Return to the originally-requested URL (Worker parity), default /api/user.
@@ -176,7 +193,9 @@ async function handleDevLogin(request, env) {
     userType: 'internal',
     country: 'us',
     countries: ['us'],
-    permissions: ['preview', 'admin'],
+    // PoC: grant the report permissions too so the audit/search/user-logins
+    // endpoints (view-audit, admin-reports) can be exercised end-to-end.
+    permissions: ['preview', 'admin', 'view-audit', 'admin-reports'],
   };
   const jwt = await createSessionJWT(originOf(request), env.COOKIE_SECRET, session);
   const cookie = serializeCookie(COOKIE_SESSION, jwt, { SameSite: 'Lax' });
@@ -293,9 +312,8 @@ async function route(request, env) {
   }
 
   // ---- stubs (documented hard limits) ----
-  if (pathname.startsWith('/api/audit')) return stub('audit');
-  if (pathname.startsWith('/api/analytics')) return stub('analytics');
-  if (pathname.startsWith('/api/messages')) return stub('search'); // notifications ~ search-metrics family
+  // Notifications family stays stubbed (state-backed feature not ported here).
+  if (pathname.startsWith('/api/messages')) return stub('search');
 
   // ---- authenticated API ----
   if (pathname.startsWith('/api/')) {
@@ -319,16 +337,20 @@ async function route(request, env) {
     }
 
     if (pathname === '/api/smart-collections' || pathname.startsWith('/api/smart-collections/')) {
-      const env2 = {
-        SMART_COLLECTIONS: d1Binding({
-          accountId: env.CF_ACCOUNT_ID,
-          databaseId: env.CF_D1_DATABASE_ID,
-          token: env.CF_D1_API_TOKEN,
-        }),
-      };
-      const resp = await smartCollectionsApi(request, env2);
-      return toOwResponse(resp);
+      // Native @adobe/aio-lib-db CRUD (replaces the CF D1-over-HTTP handler).
+      return smartCollectionsDbApi(request, env, user);
     }
+
+    // Asset activity audit (D1 → aio-lib-db): POST /event, GET /summary, /export.csv.
+    if (pathname.startsWith('/api/audit')) return auditApiDb(request, env, user);
+
+    // Search report metrics served from the aio-lib-db search_events collection.
+    if (pathname === '/api/analytics/search-metrics') return searchMetricsApiDb(request, env);
+    // Other analytics endpoints (Analytics Engine) remain stubbed — no equivalent.
+    if (pathname.startsWith('/api/analytics')) return stub('analytics');
+
+    // Admin CSV export of user logins (aio-lib-db user_logins collection).
+    if (pathname === '/api/user-logins/csv') return exportUserLoginsCsvDb(request, env, user);
 
     // Dynamic Media / ContentAI proxy — the REAL Worker handler unchanged.
     // env shim: DM secrets as Secrets-Store-shaped `{get}`, AUTH_TOKENS as the
@@ -373,9 +395,12 @@ export async function main(params) {
     BASE_PATH: params.BASE_PATH || '',
     DM_CLIENT_ID: params.DM_CLIENT_ID,
     DM_CLIENT_SECRET: params.DM_CLIENT_SECRET,
-    CF_ACCOUNT_ID: params.CF_ACCOUNT_ID,
-    CF_D1_DATABASE_ID: params.CF_D1_DATABASE_ID,
-    CF_D1_API_TOKEN: params.CF_D1_API_TOKEN,
+    // aio-lib-db: OAuth S2S creds → IMS token; namespace is ambient in Runtime.
+    OAUTH_CLIENT_ID: params.OAUTH_CLIENT_ID,
+    OAUTH_CLIENT_SECRET: params.OAUTH_CLIENT_SECRET,
+    OAUTH_SCOPES: params.OAUTH_SCOPES,
+    AIO_DB_REGION: params.AIO_DB_REGION,
+    __OW_NAMESPACE: params.__OW_NAMESPACE || process.env.__OW_NAMESPACE,
   };
 
   try {

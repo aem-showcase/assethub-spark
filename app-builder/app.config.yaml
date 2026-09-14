@@ -20,7 +20,7 @@ application:
             runtime: nodejs:22
             limits:
               timeout: 60000
-              memorySize: 256
+              memorySize: 512
             inputs:
               LOG_LEVEL: info
               HELIX_ORIGIN: $HELIX_ORIGIN
@@ -29,9 +29,12 @@ application:
               HELIX_ORIGIN_AUTHENTICATION: $HELIX_ORIGIN_AUTHENTICATION
               DM_CLIENT_ID: $DM_CLIENT_ID
               DM_CLIENT_SECRET: $DM_CLIENT_SECRET
-              CF_ACCOUNT_ID: $CF_ACCOUNT_ID
-              CF_D1_DATABASE_ID: $CF_D1_DATABASE_ID
-              CF_D1_API_TOKEN: $CF_D1_API_TOKEN
+              # OAuth Server-to-Server creds → IMS token for @adobe/aio-lib-db
+              # (the native document DB replacing the four CF D1 feature APIs).
+              OAUTH_CLIENT_ID: $OAUTH_CLIENT_ID
+              OAUTH_CLIENT_SECRET: $OAUTH_CLIENT_SECRET
+              OAUTH_SCOPES: $OAUTH_SCOPES
+              AIO_DB_REGION: $AIO_DB_REGION
             annotations:
               require-adobe-auth: false
               final: true

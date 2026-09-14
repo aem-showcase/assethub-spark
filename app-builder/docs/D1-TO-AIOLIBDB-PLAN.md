@@ -1,9 +1,50 @@
 # Migration plan — Cloudflare D1 → `@adobe/aio-lib-db`
 
-Status: **PLAN ONLY (not yet implemented).** Feasibility is settled in
-`FINDINGS.md` ("Data-store deep dive"); this doc is the executable plan to *replace*
-the D1 storage layer with `@adobe/aio-lib-db` (managed NoSQL document DB,
-Mongo/DocumentDB-compatible, published **v1.0.3**).
+Status: **✅ IMPLEMENTED & VERIFIED LIVE on Stage (2026-09-14).** All four tables
+run natively on `@adobe/aio-lib-db` (v1.0.3); the D1-over-HTTP handlers are retired
+from the request path. Feasibility background is in `FINDINGS.md` ("Data-store deep
+dive"); the sections below remain the design record.
+
+### What shipped (Stage namespace `245266-sparkappbuilderpoc-stage`)
+
+| Table | Handler (new) | Live-verified |
+|---|---|---|
+| `smart_collections` | `actions/api/smart-collections-db.js` | CRUD (create + list) ✓ |
+| `audit_events` | `actions/api/audit-db.js` | POST `/event` (204), GET `/summary` (10 aggregations incl. timeline), GET `/export.csv` ✓ |
+| `search_events` (+ markets **embedded**) | `actions/api/search-db.js` | write + all 16 metric pipelines (totalSearches, byMarket, distinctMarkets, topSearches, resultSize buckets, …) ✓ |
+| `user_logins` | `actions/api/user-logins-db.js` | login upsert (dedup-by-email, `$setOnInsert` first-login), CSV export ✓ |
+
+- Adapter: `actions/storage/db.js` — OAuth S2S → IMS token (cached ~24h) → `init()` →
+  cached `connect()`; per-collection index bootstrap (mirrors D1 indexes, incl.
+  partial-unique `email`).
+- Dispatcher (`actions/dispatcher/index.js`) routes the 4 features to the native
+  handlers; `handleCallback` calls `upsertUserLoginDb` on every real login.
+- Config: `app.config.yaml` adds `OAUTH_CLIENT_ID/SECRET/SCOPES` + `AIO_DB_REGION`
+  inputs (memory bumped to 512 MB); CF D1 inputs removed. `.env.example` updated.
+- Data migration: `scripts/migrate-d1-to-db.mjs` (D1-over-HTTP read → transform →
+  `insertMany`; clears target first; `--dry`).
+
+### Two follow-ups (documented, not blocking the port)
+
+1. **Search-event live writes** — the read/query side is fully served from
+   `aio-lib-db`. The *write* trigger lives deep in the reused CF DM flow
+   (`analytics-helper.trackAnalyticsEvent` → `writeSearchEvent`, raw SQL). Retargeting
+   it to `writeSearchEventDb` cleanly requires a CF-side hook, which the
+   non-destructive rule forbids. For the demo, populate `search_events` via the
+   migration script; production wiring needs that one hook (or route the DM env's
+   analytics call through a small adapter).
+2. **Data migration run** — `migrate-d1-to-db.mjs` is written and syntax-clean but
+   needs a **Cloudflare D1 API token** (`CF_ACCOUNT_ID/CF_D1_DATABASE_ID/CF_D1_API_TOKEN`)
+   in `.env` to read the source rows. Not present in the current `.env`.
+3. **Production DB** still needs a one-time `db.provisionRequest()` (Stage is
+   provisioned). Dev-login was granted `view-audit`/`admin-reports` for PoC testing.
+
+---
+
+## (historical) Migration plan below
+
+Feasibility is settled in `FINDINGS.md`; the sections below are the executable plan
+that guided the implementation above.
 
 Scope confirmed with the owner:
 - **Data migration:** YES — move existing rows out of D1 into `aio-lib-db`.
