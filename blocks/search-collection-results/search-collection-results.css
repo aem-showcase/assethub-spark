@@ -244,6 +244,20 @@ main > .section > .search-collection-results-wrapper {
   color: #888;
 }
 
+/* Smart Collection badge (dynamic saved-search collections) */
+.scr-smart-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: var(--font-size-01, 11px);
+  font-weight: 600;
+  line-height: 1.5;
+  color: #fff;
+  background: var(--brand-color, #1473e6);
+  vertical-align: middle;
+}
+
 /* Action bar */
 .scr-card-actions {
   display: flex;
