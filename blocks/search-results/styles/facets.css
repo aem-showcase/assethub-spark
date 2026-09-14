@@ -363,7 +363,7 @@
   width: 330px;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--nav-height, 108px));
+  height: fit-content;
   background-color: var(--light-color);
 }
 
