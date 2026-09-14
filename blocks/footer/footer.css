@@ -1,7 +1,9 @@
+/* Footer — adapt.to style: navy band, light text, uppercase column titles, flat 1px rules */
 footer {
-  background-color: var(--light-color);
+  background-color: var(--color-dark);
+  border-top: 1px solid var(--color-highlight-2);
   font-family: var(--body-font-family);
-  color: var(--text-color);
+  color: var(--color-light);
   width: 100%;
   padding: 0;
   margin: 0;
@@ -33,15 +35,15 @@ footer .footer .icon {
 
 footer .footer .icon img,
 footer .footer .icon svg {
-  width: 160px;
-  height: auto;
+  width: auto;
+  height: 64px;
 }
 
 footer .footer p {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--text-color);
+  color: var(--color-light);
 }
 
 /* Link columns */
@@ -66,34 +68,37 @@ footer .footer .columns p {
   margin: 0;
 }
 
+/* Column titles: uppercase like adapt.to's footer nav */
 footer .footer .columns p strong {
-  font-family: var(--heading-font-family);
-  font-weight: 600;
-  font-size: 15px;
-}
-
-footer .footer a {
-  color: var(--text-color);
-  text-decoration: none;
-  font-weight: 300;
+  font-family: var(--body-font-family);
+  font-weight: 400;
   font-size: 14px;
-  transition: color 0.2s ease;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-footer .footer a:hover {
-  color: var(--primary-color);
+footer .footer a:any-link {
+  color: var(--color-light);
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+footer .footer a:any-link:hover {
+  color: var(--color-light);
   text-decoration: underline;
 }
 
 /* Copyright row spans full width at the bottom */
-footer .footer > div > .section:last-child {
+footer .footer > div > .section:last-child:not(:first-child) {
   flex-basis: 100%;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid rgb(88 24 29 / 12%);
+  border-top: 1px solid rgb(237 240 251 / 20%);
 }
 
-footer .footer > div > .section:last-child p {
+footer .footer > div > .section:last-child:not(:first-child) p {
   font-size: 13px;
   opacity: 0.8;
 }

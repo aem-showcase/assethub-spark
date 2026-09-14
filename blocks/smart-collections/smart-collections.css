@@ -10,10 +10,9 @@ main .smart-collections .smart-collections-grid {
 main .smart-collections .smart-collections-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--light-color);
-  border-radius: 12px;
-  background: var(--background-color);
-  box-shadow: var(--shape-shadow-card);
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
+  background: var(--color-neutral-50);
 }
 
 main .smart-collections .smart-collections-card-link {
@@ -22,18 +21,17 @@ main .smart-collections .smart-collections-card-link {
   flex-direction: column;
   color: var(--text-color);
   text-decoration: none;
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  transition: transform 160ms ease;
 }
 
 main .smart-collections .smart-collections-card-link:hover {
   color: var(--text-color);
   text-decoration: none;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
 }
 
 main .smart-collections .smart-collections-card-link:focus-visible {
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
   outline: 3px solid var(--link-color);
   outline-offset: -3px;
 }
@@ -72,7 +70,7 @@ main .smart-collections .smart-collections-card-placeholder {
   width: 100%;
   height: 100%;
   place-items: center;
-  background: linear-gradient(135deg, var(--light-color), var(--background-color));
+  background: var(--light-color);
   color: var(--primary-color);
   font-size: 40px;
 }
@@ -136,7 +134,7 @@ main .smart-collections .smart-collections-status {
   justify-content: center;
   gap: 12px;
   padding: 32px;
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
   background: var(--light-color);
   color: var(--label-secondary);
   text-align: center;

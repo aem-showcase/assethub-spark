@@ -16,7 +16,7 @@
   font-size: var(--font-size-04);
   font-weight: 700;
   line-height: var(--line-height-04);
-  font-family: var(--heading-font-family), sans-serif;
+  font-family: var(--heading-font-family);
   max-width: 90%;
 }
 
@@ -53,13 +53,13 @@
   justify-content: center;
   min-height: 400px;
   gap: 20px;
-  font-family: var(--body-font-family), sans-serif;
+  font-family: var(--body-font-family);
 }
 
 .asset-details-loading .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
+  border: 3px solid var(--color-neutral-200);
   border-top: 3px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -79,8 +79,8 @@
   min-height: 400px;
   gap: 20px;
   text-align: center;
-  color: #666;
-  font-family: var(--body-font-family), sans-serif;
+  color: var(--color-neutral-700);
+  font-family: var(--body-font-family);
 }
 
 .asset-details-error a {

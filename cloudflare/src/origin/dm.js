@@ -33,7 +33,7 @@ import {
   isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
-import { resolveCountryMatchValues } from '../constants/countries.js';
+import { resolveCountryCode, resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -626,6 +626,13 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
+  // --- Country brand restriction ---
+  // Users from a country listed in config.COUNTRY_BRAND_RESTRICTIONS (e.g. DE) only see
+  // assets of the listed brands; unbranded assets are hidden via the exists clause.
+  // Keyed on the user's own country (JWT ctry claim or simulated country), resolved
+  // case-insensitively from an ISO code or a full country name. Admins returned above.
+  clauses.push(...buildCountryBrandClauses(user));
+
   // --- Internal status filter ---
   // External users only see assets tagged internalStatus=approved, or where the
   // field is absent entirely. Don't rely on term's undocumented behavior for
@@ -641,6 +648,51 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   }
 
   return clauses;
+}
+
+/**
+ * Expand a brand name to the casings commonly found in assetMetadata.brand
+ * (as-authored, lowercase, UPPERCASE, Capitalized) so the term match is effectively
+ * case-insensitive. Order is stable and duplicates are removed.
+ * @param {string} brand
+ * @returns {string[]}
+ */
+function expandBrandCasings(brand) {
+  const raw = String(brand).trim();
+  if (!raw) return [];
+  const lower = raw.toLowerCase();
+  const variants = [raw, lower, raw.toUpperCase(), lower.charAt(0).toUpperCase() + lower.slice(1)];
+  return variants.filter((v, i) => variants.indexOf(v) === i);
+}
+
+/**
+ * Country-based brand restriction (config.COUNTRY_BRAND_RESTRICTIONS).
+ * Returns the ContentAI clauses restricting `assetMetadata.brand` for the user's country,
+ * or [] when the country is unknown/unrestricted. The `exists` clause is deliberate: a
+ * `term` match on a missing field is normally excluded, but requiring existence hides
+ * unbranded assets by construction, independent of term semantics.
+ * @param {Object} user - request user (possibly simulated)
+ * @returns {Object[]} clauses
+ */
+function buildCountryBrandClauses(user) {
+  const restrictions = config.COUNTRY_BRAND_RESTRICTIONS || {};
+  const countryCode = resolveCountryCode(user.country);
+  const brands = countryCode ? restrictions[countryCode] : undefined;
+  if (!Array.isArray(brands) || brands.length === 0) return [];
+
+  const brandValues = [];
+  brands.forEach((brand) => {
+    expandBrandCasings(brand).forEach((v) => {
+      if (!brandValues.includes(v)) brandValues.push(v);
+    });
+  });
+  if (brandValues.length === 0) return [];
+
+  console.warn(`[${user.email}] country brand restriction: ${countryCode} -> brands=[${brands.join(',')}]`);
+  return [
+    { exists: { field: 'assetMetadata.brand' } },
+    { term: { 'assetMetadata.brand': brandValues } },
+  ];
 }
 
 /**

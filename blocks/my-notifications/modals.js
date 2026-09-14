@@ -66,7 +66,7 @@ export function createDeleteModal(onConfirm, onCancel, translate) {
 
   const cautionText = document.createElement('p');
   cautionText.style.fontSize = '0.9rem';
-  cautionText.style.color = '#666';
+  cautionText.style.color = 'var(--color-neutral-700)';
   cautionText.style.marginTop = '1rem';
   cautionText.textContent = t('actionCannotBeUndone', 'This action cannot be undone.');
 

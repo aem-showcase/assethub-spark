@@ -30,7 +30,7 @@
 .searches-title {
   font-size: 32px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .filters-toggle-wrapper:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-neutral-200);
 }
 
 .filters-toggle-label {
@@ -99,8 +99,8 @@
   overflow: hidden;
   transition: max-height 0.3s ease, padding 0.3s ease, margin-top 0.3s ease;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  border-radius: var(--shape-border-radius-2);
+  border: 1px solid var(--color-light-gray);
   margin-top: 16px;
 }
 
@@ -117,8 +117,8 @@
   gap: 16px 20px;
   padding: 20px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  border-radius: var(--shape-border-radius-2);
+  border: 1px solid var(--color-light-gray);
   align-items: center;
 }
 
@@ -133,7 +133,7 @@
   align-items: flex-start;
   padding: 0;
   background: transparent;
-  box-shadow: none;
+  border: none;
   border-radius: 0;
 }
 
@@ -148,7 +148,7 @@
 .filter-group-label {
   font-size: 11px;
   font-weight: 700;
-  color: #999;
+  color: var(--color-neutral-600);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   padding-left: 4px;
@@ -159,9 +159,9 @@
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--shape-border-radius-2);
   align-items: center;
 }
 
@@ -175,16 +175,16 @@
 .filter-group label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-neutral-800);
   white-space: nowrap;
 }
 
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--shape-border-radius-2);
   font-size: 14px;
-  color: #333;
+  color: var(--color-neutral-800);
   background: white;
   cursor: pointer;
   min-width: 120px;
@@ -198,7 +198,7 @@
 .filter-select:focus {
   outline: none;
   border-color: var(--report-primary-color, var(--primary-color));
-  box-shadow: 0 0 0 3px rgb(244 0 9 / 10%);
+  box-shadow: var(--focus-ring);
 }
 
 /* Reset button */
@@ -224,7 +224,7 @@
 
 .reset-button:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgb(244 0 9 / 10%);
+  box-shadow: var(--focus-ring);
 }
 
 .reset-button:active {
@@ -276,16 +276,16 @@
   background: var(--report-background-white);
   border-radius: var(--report-radius-md);
   padding: 16px;
-  box-shadow: var(--report-shadow-sm);
+  border: 1px solid var(--color-light-gray);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--report-transition-fast), box-shadow var(--report-transition-fast);
+  transition: transform var(--report-transition-fast), border-color var(--report-transition-fast);
 }
 
 .searches-metrics .metric-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--report-shadow-md);
+  border-color: var(--color-highlight-2);
 }
 
 .searches-metrics .metric-content {
@@ -296,7 +296,7 @@
 .searches-metrics .metric-value {
   font-size: var(--report-font-size-2xl);
   font-weight: 700;
-  color: #000;
+  color: var(--color-dark);
   line-height: 1.2;
   margin-bottom: 4px;
 }
@@ -318,21 +318,21 @@
 
 .searches-charts .chart-card {
   background: white;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   padding: 16px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--color-light-gray);
+  transition: transform 0.2s, border-color 0.2s;
 }
 
 .searches-charts .chart-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  border-color: var(--color-highlight-2);
 }
 
 .searches-charts .chart-title {
   font-size: 14px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   margin-bottom: 12px;
   text-align: center;
   padding-bottom: 8px;
@@ -353,15 +353,15 @@
   margin-top: 30px;
   margin-bottom: 30px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
   padding: 24px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  border: 1px solid var(--color-light-gray);
 }
 
 .top-searches-container .table-title {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--light-color);
@@ -380,7 +380,7 @@
 }
 
 .top-searches-table thead {
-  background: linear-gradient(to right, var(--report-primary-color, var(--primary-color)), var(--primary-color-hover));
+  background: var(--report-primary-color, var(--primary-color));
 }
 
 .top-searches-table thead th {
@@ -412,12 +412,12 @@
 }
 
 .top-searches-table tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-neutral-300);
   transition: background-color 0.2s;
 }
 
 .top-searches-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-neutral-200);
 }
 
 .top-searches-table tbody tr:last-child {
@@ -426,7 +426,7 @@
 
 .top-searches-table tbody td {
   padding: 12px 16px;
-  color: #333;
+  color: var(--color-neutral-800);
 }
 
 .top-searches-table .rank-cell {
@@ -452,7 +452,7 @@
 .top-searches-table .empty-cell {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--color-neutral-600);
   font-style: italic;
 }
 
@@ -461,15 +461,15 @@
   margin-top: 30px;
   margin-bottom: 30px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
   padding: 24px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  border: 1px solid var(--color-light-gray);
 }
 
 .top-zero-result-searches-container .table-title {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--light-color);
@@ -486,8 +486,8 @@
 .distribution-charts-section .chart-card {
   background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
+  border-radius: var(--shape-border-radius-2);
+  border: 1px solid var(--color-light-gray);
 }
 
 .distribution-charts-section .chart-card-bar-horizontal .chart-canvas-wrapper {
@@ -502,16 +502,16 @@
 .searches-table-container {
   margin-top: 30px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
   padding: 24px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  border: 1px solid var(--color-light-gray);
   overflow-x: auto;
 }
 
 .searches-table-container .table-title {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--light-color);
@@ -525,7 +525,7 @@
 }
 
 .searches-market-table thead {
-  background: linear-gradient(to right, var(--report-primary-color, var(--primary-color)), var(--primary-color-hover));
+  background: var(--report-primary-color, var(--primary-color));
 }
 
 .searches-market-table thead th {
@@ -555,7 +555,7 @@
 }
 
 .searches-market-table tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-neutral-300);
 }
 
 .searches-market-table tbody tr:last-child {
@@ -570,8 +570,8 @@
 .searches-market-table tbody td.metric-label {
   text-align: left;
   font-weight: 600;
-  color: #333;
-  background: #f9f9f9;
+  color: var(--color-neutral-800);
+  background: var(--color-neutral-200);
 }
 
 .searches-market-table tbody td.metric-label.search-type-row {
@@ -587,7 +587,7 @@
 }
 
 .searches-market-table tbody td.numeric-cell {
-  color: #333;
+  color: var(--color-neutral-800);
   font-weight: 500;
 }
 
@@ -627,7 +627,7 @@
 .report-searches .collapsible-section .title-text {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
 }
 
 .report-searches .collapsible-section .collapse-icon {
