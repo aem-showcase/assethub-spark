@@ -2,24 +2,43 @@
 
 **Goal:** Feasibility PoC per Project Archimedes action item — *"show what works or if there are hard limits."*
 **Scope:** Only the `cloudflare/` Worker layer; EDS frontend unchanged. Deploy to default
-`adobeioruntime.net` URLs. **Storage decision:** keep **Cloudflare D1** (called over its HTTP API);
-no data migration.
+`adobeioruntime.net` URLs. **Storage decision (updated):** the PoC first kept **Cloudflare D1** over
+its HTTP API (zero migration); the storage layer has since been **fully migrated to the native
+`@adobe/aio-lib-db`** document DB — **all four D1 tables now run on-platform** (see the "Storage: D1 →
+aio-lib-db (DONE)" banner below and `docs/D1-TO-AIOLIBDB-PLAN.md`).
 
 Status legend: **Confirmed** = observed in this PoC · **Identified** = from PDF + code mapping,
 not yet exercised in deployed code.
 
+> ### ✅ Storage: D1 → `aio-lib-db` (DONE — verified live on Stage, 2026-09-14)
+> The relational layer is **off Cloudflare D1 entirely**. All four features run natively on
+> `@adobe/aio-lib-db` (managed NoSQL document DB, v1.0.3), verified end-to-end on the Stage namespace:
+> - **smart_collections** — CRUD · **audit_events** — POST `/event` + GET `/summary` (10 aggregations,
+>   incl. timeline) + `/export.csv` · **search_events** — write with **embedded `markets[]`** + all 16
+>   metric pipelines · **user_logins** — login upsert-by-email (dedup, `$setOnInsert` first-login) + CSV.
+> - Adapter `actions/storage/db.js` (OAuth S2S → IMS token, cached client + index bootstrap); the 4
+>   handlers live in `actions/api/*-db.js`. The D1-over-HTTP shim (`actions/storage/sql.js`) is **no
+>   longer on any request path** — it survives only as the read-source for the one-time backfill
+>   (`scripts/migrate-d1-to-db.mjs`).
+> - **Two documented follow-ups** (not blocking): (a) **search-event live writes** — the read side is
+>   fully ported; the *write* trigger sits inside the reused CF DM flow (`writeSearchEvent`, raw SQL)
+>   and needs a CF-side hook to retarget, so live search rows are populated via the migration script;
+>   (b) the **backfill run** needs a Cloudflare D1 API token in `.env`, and **Production** needs a
+>   one-time `provisionRequest()` (Stage is provisioned).
+
 ## PoC decisions & caveats
-- **SQL store:** keep **Cloudflare D1** via its HTTP REST API (zero migration). Rejected Turso/Neon
-  (vendor is incidental) and `aio-lib-db` (NoSQL — would need a SQL→document rewrite) for the main port;
-  `aio-lib-db` noted as the on-platform alternative in limit #5 and analysed in "Data-store deep dive".
-- **D1 access token = personal (user) API token.** Accepted for this **throwaway PoC** for speed.
-  ⚠️ It is tied to the creator's Cloudflare login and **stops working if their access changes**;
-  it also isn't the shared-ownership model the PDF flags ("don't lose access to account API keys").
-  **Action before anything shared/long-lived:** replace with an **account-owned (service) token**
-  (Manage Account → Account API Tokens; needs Super Administrator), same `Account · D1 · Edit` scope.
+- **SQL store (superseded → done):** the PoC began by keeping **Cloudflare D1** over its HTTP REST API
+  (zero migration; rejected Turso/Neon as incidental). That D1-over-HTTP path has since been **replaced
+  by the native `@adobe/aio-lib-db` document DB for all four tables** — the SQL→document rewrite that
+  limit #5 / the "Data-store deep dive" analysed is now **implemented and running** (see banner above).
+- **Cloudflare D1 token — now only for the one-time backfill.** D1 is no longer read at runtime; a
+  scoped D1 API token is needed **only** to run `scripts/migrate-d1-to-db.mjs` (read source rows →
+  `aio-lib-db`). Use an **account-owned (service) token** (`Account · D1 · Edit`), not a personal one,
+  and drop it after the backfill.
 - **Runtime target:** Stage workspace, default `adobeioruntime.net` URLs; no CDN, no custom domain,
   no branch previews (all out of PoC scope).
-- **Secrets:** reuse the 4 existing CF secret values via `.env` / action inputs (see limit #12).
+- **Secrets:** reuse the 4 existing CF secret values via `.env` / action inputs (see limit #12); the
+  `aio-lib-db` layer adds OAuth Server-to-Server creds (`OAUTH_CLIENT_ID/SECRET/SCOPES`) for IMS auth.
 
 ---
 
@@ -33,11 +52,11 @@ Ordered by severity. 🔴 = blocks a core portal function · 🟠 = significant 
 | 2 | **1 MB inbound activation payload cap** — request body ≤ 1 MB. | 🟠 Med | **Confirmed** (activation payload = 1 MB) | `coa.js` POST (prompt + assets), `auditPostEvent` batches, any upload. | Keep POST bodies small; redirect/chunk larger ones. |
 | 3 | **Cold starts** — idle actions spin up a container (~100s ms → seconds). CF Workers (V8 isolates) have **none**. Adds latency in front of *every* request. | 🟠 Med | **Confirmed** (OpenWhisk container model) | Every proxied page/API call pays it when cold. | Keep-warm ping; accept for PoC. |
 | 4 | **Not on the edge** — regional data centers, not edge PoPs; extra RTT proxying EDS/DM which are edge-fronted. | 🟠 Med | **Confirmed** | `…adobeioruntime.net` is regional. | CDN in front later; accept for PoC. |
-| 5 | **No *relational / SQL* database** — storage = `aio-lib-state` (KV), `aio-lib-files` (blob), `aio-lib-db` (managed **NoSQL** document DB, Mongo-style, GA ~Mar 2026). None give D1-style **relational SQL + transactions** (which the PDF's own requirements ask for). | 🟠 Med | Identified (reconciled w/ live docs) | 4 D1 bindings; `api/audit.js`, `analytics.js`, `smart-collections.js`, `user-logins.js`. | **Keep D1 over HTTP** (chosen; no rewrite). On-platform alt: rewrite onto `aio-lib-db` — **reporting IS supported** via the Mongo aggregation pipeline (`$group`/`$lookup`); the real gaps are **multi-doc transactions + FK integrity**, both surmountable by data modeling (see "Data-store deep dive"). *(Note: large query results/CSV also hit #1.)* |
+| 5 | **No *relational / SQL* database** — storage = `aio-lib-state` (KV), `aio-lib-files` (blob), `aio-lib-db` (managed **NoSQL** document DB, Mongo-style, GA ~Mar 2026). None give D1-style **relational SQL + transactions** (which the PDF's own requirements ask for). | 🟠 Med | **RESOLVED for this app** — all 4 D1 tables **migrated to `aio-lib-db`** and verified live (SQL→aggregation rewrite done; `$group`/two-stage-distinct/embedded-array-`$unwind`). | 4 D1 bindings; `api/audit.js`, `analytics.js`, `smart-collections.js`, `user-logins.js` → now `actions/api/{smart-collections,audit,search,user-logins}-db.js`. | **Done: rewrote onto `aio-lib-db`** (100% on-platform). Residual gaps (multi-doc transactions + FK) handled by data modeling — e.g. `search_event_markets` FK collapsed into an **embedded `markets[]`** array. *(Note: large query results/CSV still hit #1.)* |
 | 6 | **No native branch previews** — 1 workspace = 1 namespace; no `{ref}--{repo}--{owner}` URLs. | 🟠 Med | **Confirmed** | Project ships only `Stage` + `Production` workspaces. | Custom GitHub App + naming scheme (parity, out of scope). |
 | 7 | **Routing / entry model** — action URLs are `/api/v1/web/<pkg>/<action>`, not a site root; no "all traffic through one worker" without a CDN. | 🟠 Med | **Confirmed** | `action_url` base `…adobeioruntime.net`. | `dispatcher` web action emulates the router. **Path A (implemented)** self-hosts the whole site under the action prefix via `BASE_PATH` rewriting — no custom domain needed (see "Path A" below). A real domain root still needs a CDN. |
-| 8 | **No local storage emulation** — `aio app dev` hits the real cloud State/Files/DB; no Miniflare-style local D1/KV. | 🟡 Low | Identified | — | Point local dev at cloud D1 / State. |
-| 9 | **No Analytics Engine** — CF-proprietary telemetry has no equivalent. | 🟡 Low | Identified | `api/analytics.js`, `config.ANALYTICS_ACCOUNT_ID`. | Stub `/api/analytics/*` → `501`. |
+| 8 | **No local storage emulation** — `aio app dev` hits the real cloud State/Files/DB; no Miniflare-style local D1/KV. | 🟡 Low | Identified | — | Point local dev at cloud `aio-lib-state` / `aio-lib-db`. |
+| 9 | **No Analytics Engine** — CF-proprietary telemetry has no equivalent. | 🟡 Low | Identified | `api/analytics.js`, `config.ANALYTICS_ACCOUNT_ID`. | The D1-backed **search-metrics** report is ported to `aio-lib-db` (`/api/analytics/search-metrics`); the remaining **Analytics-Engine** endpoints (downloads/logins telemetry) stay `501`. |
 | 10 | **No `request.cf`** — TLS version, geo, etc. not exposed. | 🟡 Low | Identified | `withTlsCheck` reads `request.cf.tlsVersion`. | Drop the TLS check (TLS at Adobe edge). |
 | 11 | **State is KV, not a full DB** — 1 MB/item, ~10 GB/pack, TTL ≤ 365 days. | 🟡 Low | Identified (reconciled) | `AUTH_TOKENS` in `token-refresh.js`, `auth.js`. | `aio-lib-state` is adequate for a token cache. |
 | 12 | **Secrets model differs** — no per-account Secret Store w/ RBAC+audit; secrets become action default params / `.env`. | 🟡 Low | Identified | `wrangler.jsonc` `secrets_store_secrets` (4). | Inject via action inputs / `.env`; weaker isolation posture. |
@@ -83,10 +102,11 @@ against live Adobe docs (Sep 2026):
   16 MB/doc, per-workspace isolated), **GA ~Mar 2026** (newer than the PDF snapshot).
 - **I/O Events** = event bus, not storage; not needed for this port.
 **Takeaway:** the PDF row is directionally correct but predates `aio-lib-db` GA. The real gap is
-*relational SQL*, not "a database." Two on-platform paths: keep D1-over-HTTP (chosen; no rewrite) or
-rewrite onto `aio-lib-db` (100% on-platform; SQL→document rewrite. **Reporting IS supported** via the
-aggregation pipeline; the real gaps are multi-doc transactions + FK — both surmountable by data
-modeling, see the "Data-store deep dive" below).
+*relational SQL*, not "a database." The PoC took both on-platform paths in sequence: first kept
+D1-over-HTTP (zero rewrite), then **completed the rewrite onto `aio-lib-db`** (100% on-platform;
+**reporting IS supported** via the aggregation pipeline — now demonstrated live). The residual gaps
+(multi-doc transactions + FK) are handled by data modeling (see "Data-store deep dive"); e.g. the
+`search_event_markets` child table became an embedded `markets[]` array.
 
 ---
 
@@ -102,10 +122,10 @@ modeling, see the "Data-store deep dive" below).
 | **Auth — session + Entra crypto** | ✅ **Ported** (reuse) | `jose` HS256 session sign/verify + Entra `id_token` JWKS verify run unchanged on Node 22. `GET /api/user` → 200 with cookie. |
 | **Auth — unauthenticated gate (Worker parity)** | ✅ **Ported** (reuse) | Mirrors the Worker's `withAuthentication`/`redirectToLoginPage` **and its public/gated boundary**: a small allow-list serves without auth (`/public|tools|scripts|styles|blocks|fonts|icons/*`, `favicon.ico`, `robots.txt`); **every other route — pages like `/en/search` AND `/api/*` — is 302-redirected into the Entra SSO flow** (`login.microsoftonline.com/…/authorize`), NOT answered with a bare 401. The original URL is preserved in an `AuthReturn` cookie. Verified live: `/en/search` and `/api/adobe/assets/contentai/search` with no session → **302** to Microsoft (`redirect_uri=…adobeioruntime.net/auth/callback`); `/styles/styles.css` → **200** (public); `/` → **302** to `/en/`. |
 | **Auth — live Entra SSO round-trip** | ⚠️ **Ported, not wired** | `/auth/login`→Entra and `/auth/callback` (id_token verify) are implemented and the redirect fires, but the `adobeioruntime.net` `redirect_uri` isn't registered in the Entra app, so the round-trip can't *complete* from here. Mechanism proven; registration is a one-time external config step. A **PoC-only `/auth/dev-login`** mints a test session to exercise the authed paths — **must be removed before shared use.** |
-| **Auth — roles/permissions, sudo** | ⛔ **Omitted (PoC)** | Worker resolves these from Helix `config/access/*` sheets + writes login analytics to D1/Analytics Engine. Ordinary fetch/D1 calls (would port like Smart Collections); left out to keep the PoC focused. |
+| **Auth — roles/permissions, sudo** | ⛔ **Omitted (PoC)** | Worker resolves these from Helix `config/access/*` sheets + writes login analytics. The login-analytics write **is now ported** (`user_logins` upsert on the auth callback → `aio-lib-db`); the access-sheet role/permission resolution is still left out to keep the PoC focused. |
 | **KV (`AUTH_TOKENS` → aio-lib-state)** | ✅ **Ported** (rework) | `storage/kv.js` mimics the CF KV `get/put/delete`. `GET /api/kv-demo` increments a State-backed counter across calls (1→2…). ⚠️ State keys must match `^[A-Za-z0-9-_.]+$` (no `:`). |
-| **SQL (D1 → HTTP, Smart Collections)** | ✅ **Ported** (rework) | `storage/sql.js` mimics the D1 binding (`prepare().bind().all()/run()/first()`) over the D1 REST API, so **`cloudflare/src/api/smart-collections.js` runs UNCHANGED**. Live **list / create (201) / patch (200) / delete (204)** against the real production D1 database. |
-| **Stubs (audit/search/analytics)** | ✅ **As designed** | `/api/audit/*`, `/api/analytics/*`, `/api/messages*` → **501** with `x-appbuilder-limit` + machine-readable reason. |
+| **SQL (D1 → `aio-lib-db`, all 4 tables)** | ✅ **Ported → native** (rework) | **Migrated off D1 to the native `@adobe/aio-lib-db` document DB.** `actions/storage/db.js` (IMS-token adapter) + `actions/api/{smart-collections,audit,search,user-logins}-db.js`. Verified live on Stage: Smart Collections **CRUD**; audit **POST `/event` (204) / GET `/summary` (200, 10 aggregations) / `/export.csv` (200)**; search **write + all 16 metric pipelines (200)**; user_logins **upsert-by-email + CSV**. FK `search_event_markets` collapsed into an embedded `markets[]` array; `COUNT(DISTINCT)` → two-stage `$group`. The old D1-over-HTTP shim (`storage/sql.js`) is off the request path (migration read-source only). |
+| **Stubs (notifications / non-search analytics)** | ✅ **As designed** | Now only `/api/messages*` (notifications) and the **Analytics-Engine** endpoints under `/api/analytics/*` (other than the ported `search-metrics`) → **501** with `x-appbuilder-limit` + machine-readable reason. Audit, search-metrics, user-logins CSV are **no longer stubs** — they run on `aio-lib-db`. |
 | **DM proxy — ContentAI asset search** | ✅ **Ported** (reuse) | **`cloudflare/src/origin/dm.js` runs UNCHANGED** behind a binding shim (`AUTH_TOKENS`→aio-lib-state, `DM_CLIENT_ID/SECRET`→secret-shaped `{get}`, Analytics Engine→no-op, `ctx.waitUntil`→shim). Live `POST /api/adobe/assets/contentai/search` performs the **real IMS S2S `client_credentials` token exchange** (token cached in State as `dm-token-*`), injects the admin auth clause, and returns **real Frescopa assets as JSON** — **identical output local ↔ Stage** (JSON < 1 MB fits). |
 | **DM proxy — asset/rendition delivery** | ⚠️ **Partial — bounded by limits #1 & #13** | Small binaries proxy live: `…/as/dripmachine.png` → **200** real PNG. But **large renditions/originals/video (67 MB mp4) exceed 1 MB → limit #1** (`toOwResponse` 502 / platform 400), and any **`.svg`/`.json`/`.html` asset path → limit #13** (HTTP 400 extension collision). Renditions auto-optimize so *some* fit, but full-fidelity delivery does not. |
 | **Origin proxy (Helix)** | ⚠️ **Partial — bounded by limit #1** | `origin/helix.js` fetches the real EDS origin; small assets serve (favicon/robots/CSS/JS 200). `toOwResponse` returns **502 `x-appbuilder-limit: response-1mb`** above 1 MB. The **platform itself** rejects ≥1 MiB with HTTP 400 (see limit #1) — **empirically confirmed** via `/api/limit-probe?bytes=N`. |
@@ -125,12 +145,14 @@ modeling, see the "Data-store deep dive" below).
 
 
 ### Bottom line
-The **JSON API + auth/session + KV + SQL-over-HTTP + DM ContentAI asset search** layers **port
-cleanly and are running live** on App Builder — including the **unchanged `dm.js` proxy** doing a real
-IMS S2S token exchange and returning real assets. The **asset/page/image proxy does not** — the deployed
+The **JSON API + auth/session + KV + relational data (now native `aio-lib-db`) + DM ContentAI asset
+search** layers **port cleanly and are running live** on App Builder — including the **unchanged
+`dm.js` proxy** doing a real IMS S2S token exchange and returning real assets, and **all four former-D1
+tables migrated to the on-platform document DB**. The **asset/page/image proxy does not** — the deployed
 code hits the **1 MiB / no-streaming wall (HTTP 400, limit #1)** and the **reserved content-extension
 collision (HTTP 400, limit #13)**, empirically confirming the headline finding: **App Builder fits the
-portal's business logic, not its role as an authenticated asset-serving edge proxy.**
+portal's business logic (incl. its relational/reporting layer), not its role as an authenticated
+asset-serving edge proxy.**
 
 ## Cloudflare ↔ App Builder capability comparison
 
@@ -140,7 +162,7 @@ detail table below the summary.
 | # | Concern | Cloudflare (today) | Adobe App Builder (target) | Verdict |
 |---|---|---|---|---|
 | **1** | **Per-PR preview / branch URLs** (open PR → isolated deploy → URL → auto-teardown) | **Automatic, zero-config** via EDS/Helix: push a branch → `branch--repo--owner.aem.page` instantly; ephemeral, per-commit, no setup | **No native ephemeral previews.** Must **pre-create a workspace pool** (`pr-01…pr-N`), each with **API entitlements + credentials + Entra redirect URI wired once**; CI then **allocates a free slot → `aio app deploy --workspace pr-N` → `undeploy` on close**. Pool size caps concurrent previews; needs allocation/locking | ⚪ **Soft gap** — achievable via workspace pool + CI, but assembled manually vs built-in |
-| **2** | **Relational data store** (Smart Collections, audit, search, user-logins) | **D1** — relational **SQLite**: full **SQL, JOINs, transactions**, native Worker binding | **No relational SQL**, but a full document DB: **`aio-lib-db`** = **DocumentDB/Mongo** (`insertOne/find/updateOne`, `$gte/$in/$set`; aggregation pipeline **with `$lookup` (joins)** for reporting; **no multi-doc transactions/FK**; IMS-token auth) and **`aio-lib-state`** = **KV** (TTL ≤ 365 d, ~1 MB/item, no query). Porting = **schema + query rewrite**. PoC therefore **kept D1 over its HTTP API** (zero migration) | 🟡 **Bounded gap** — `aio-lib-db` supports reporting incl. **`$lookup` joins**; real gaps are **multi-doc transactions + FK** (surmountable by modeling — see deep dive); needs a SQL→document rewrite |
+| **2** | **Relational data store** (Smart Collections, audit, search, user-logins) | **D1** — relational **SQLite**: full **SQL, JOINs, transactions**, native Worker binding | **No relational SQL**, but a full document DB: **`aio-lib-db`** = **DocumentDB/Mongo** (`insertOne/find/updateOne`, `$gte/$in/$set`; aggregation pipeline **with `$lookup` (joins)** for reporting; **no multi-doc transactions/FK**; IMS-token auth) and **`aio-lib-state`** = **KV** (TTL ≤ 365 d, ~1 MB/item, no query). Porting = **schema + query rewrite** — **DONE for all 4 tables, verified live** | 🟢 **Closed for this app** — the SQL→document rewrite is **implemented on `aio-lib-db`** (reporting incl. two-stage distinct + embedded-array unwind runs live); the general gaps (multi-doc transactions + FK) were handled by modeling |
 
 ### Item 1 detail — per-PR preview flow (the two halves)
 
@@ -169,8 +191,8 @@ you must also provision services + generate creds (+ register the Entra redirect
 | Ad-hoc queries | ✅ SQL | ✅ Mongo-style filters | ❌ (key lookup only) |
 | Native to platform | ✅ binding | ✅ (IMS-token auth) | ✅ (namespace auth) |
 | Limits | SQLite scale | document store | ~1 MB/item, TTL ≤ 365 d |
-| Effort to adopt for this app | — (current) | **schema + query rewrite** | fits token cache only |
-| PoC choice | **kept (D1-over-HTTP)** | documented alternative | **used for `AUTH_TOKENS`** |
+| Effort to adopt for this app | — (was current) | **schema + query rewrite — DONE (all 4 tables live)** | fits token cache only |
+| PoC choice | migration read-source only | **adopted (all 4 tables)** | **used for `AUTH_TOKENS`** |
 
 ### Data-store deep dive — is `aio-lib-db` enough for reporting-style products?
 
@@ -210,9 +232,11 @@ tension: embedding is what grants single-doc atomicity (fixes the transaction ga
 Per-entity rule: **bounded child → embed; unbounded child → reference/bucket.**
 
 **Conclusion.**
-- **Porting an existing D1 app** (e.g. koassets) to `aio-lib-db` is **feasible end-to-end** — a bounded
-  migration: rewrite each SQL query → `find`/`aggregate`, one-time data move, re-test. The only lasting
-  change is that **transaction/FK guarantees move from the DB into application code**.
+- **Porting this D1 app to `aio-lib-db` is done and proven** — the four tables were rewritten
+  (SQL → `find`/`aggregate`), deployed, and verified live on Stage. The only lasting change is that
+  **transaction/FK guarantees moved from the DB into application code / data modeling** (e.g. the
+  markets FK became an embedded array). A *harder* app like koassets (self-JOINs, cohorts, workflow
+  child tables) maps the same way.
 - **A future greenfield product** with the same reporting shape is **cleanly supported** — document-first
   modeling makes these patterns natural, with no rewrite or migration.
 - **Draw the line** (pair with, or use instead, a purpose-built store) when the product needs **strict
@@ -221,10 +245,12 @@ Per-entity rule: **bounded child → embed; unbounded child → reference/bucket
   returned per call remain bound by the **1 MB action response cap (#1)** → paginate / aggregate
   server-side.
 
-> **Executable migration plan:** the concrete step-by-step to *replace* D1 with `aio-lib-db` in this
-> repo (Console provisioning, per-table collection model + index plan, SQL→aggregate rewrite inventory,
-> data migration, parity tests, cutover/rollback) lives in **`docs/D1-TO-AIOLIBDB-PLAN.md`**. Status:
-> plan only — not yet implemented (blocked on Console Data Services provisioning).
+> **Executable migration plan + implementation status:** the concrete step-by-step to *replace* D1 with
+> `aio-lib-db` in this repo (Console provisioning, per-table collection model + index plan, SQL→aggregate
+> rewrite inventory, data migration, parity tests, cutover/rollback) lives in
+> **`docs/D1-TO-AIOLIBDB-PLAN.md`**. Status: **✅ IMPLEMENTED & VERIFIED LIVE** — all 4 tables on
+> `aio-lib-db`; remaining follow-ups are the search-event write hook and the one-time backfill run
+> (needs a CF D1 token); Production needs a one-time `provisionRequest()`.
 
 ### Path A — self-hosting the UI on the raw Runtime URL (no custom domain)
 The prefix problem (#7) and the reserved-extension problem (#13) are **not** absolute — only the 1 MB
