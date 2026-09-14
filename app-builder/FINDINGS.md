@@ -221,6 +221,11 @@ Per-entity rule: **bounded child → embed; unbounded child → reference/bucket
   returned per call remain bound by the **1 MB action response cap (#1)** → paginate / aggregate
   server-side.
 
+> **Executable migration plan:** the concrete step-by-step to *replace* D1 with `aio-lib-db` in this
+> repo (Console provisioning, per-table collection model + index plan, SQL→aggregate rewrite inventory,
+> data migration, parity tests, cutover/rollback) lives in **`docs/D1-TO-AIOLIBDB-PLAN.md`**. Status:
+> plan only — not yet implemented (blocked on Console Data Services provisioning).
+
 ### Path A — self-hosting the UI on the raw Runtime URL (no custom domain)
 The prefix problem (#7) and the reserved-extension problem (#13) are **not** absolute — only the 1 MB
 cap (#1) is. **Path A** makes the *whole browsable portal* work on the bare
