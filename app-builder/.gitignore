@@ -1,0 +1,8 @@
+# Adobe I/O Console workspace config (contains credentials — never commit)
+SparkAppbuilderPOC-*.json
+
+# App Builder build output
+dist/
+
+# Local env (also covered by root .gitignore)
+.env

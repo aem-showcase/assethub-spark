@@ -1,0 +1,24 @@
+{
+  "name": "spark-appbuilder-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Feasibility PoC: the Spark/Frescopamedia Cloudflare Worker re-implemented as Adobe I/O Runtime (App Builder) actions. See FINDINGS.md.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "deploy": "aio app deploy",
+    "undeploy": "aio app undeploy",
+    "limit-test": "node scripts/limit-test.mjs"
+  },
+  "dependencies": {
+    "@adobe/aio-lib-state": "^4",
+    "itty-router": "^5",
+    "jose": "^5"
+  },
+  "devDependencies": {
+    "@adobe/aio-cli": "^11"
+  }
+}

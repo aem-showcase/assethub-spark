@@ -1,0 +1,47 @@
+# Adobe I/O Runtime (App Builder) manifest — Spark/Frescopamedia server-layer PoC.
+#
+# This re-implements the single Cloudflare Worker (cloudflare/src) as I/O Runtime
+# actions. Non-destructive: cloudflare/ is untouched. Deploys to the default
+# https://<namespace>.adobeioruntime.net/api/v1/web/<pkg>/<action> URL.
+#
+# `$VAR` values are interpolated from app-builder/.env at deploy time.
+application:
+  runtimeManifest:
+    packages:
+      spark:
+        license: Apache-2.0
+        actions:
+          # Single entry point — emulates the itty-router Worker (routing, CORS,
+          # TLS-skip, auth, origin proxy). `web: raw` gives us the unparsed body
+          # and full control over the response, matching the Worker fetch model.
+          dispatcher:
+            function: actions/dispatcher/index.js
+            web: raw
+            runtime: nodejs:22
+            limits:
+              timeout: 60000
+              memorySize: 256
+            inputs:
+              LOG_LEVEL: info
+              HELIX_ORIGIN: $HELIX_ORIGIN
+              BASE_PATH: $BASE_PATH
+              COOKIE_SECRET: $COOKIE_SECRET
+              HELIX_ORIGIN_AUTHENTICATION: $HELIX_ORIGIN_AUTHENTICATION
+              DM_CLIENT_ID: $DM_CLIENT_ID
+              DM_CLIENT_SECRET: $DM_CLIENT_SECRET
+              CF_ACCOUNT_ID: $CF_ACCOUNT_ID
+              CF_D1_DATABASE_ID: $CF_D1_DATABASE_ID
+              CF_D1_API_TOKEN: $CF_D1_API_TOKEN
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          # Monthly token refresh. On Cloudflare this is `scheduled()` with cron
+          # `0 0 1 * *`; on Runtime it is a non-web action fired by the alarms feed
+          # (wired post-deploy — see FINDINGS.md "cron").
+          cron-token-refresh:
+            function: actions/scheduled/token-refresh.js
+            web: 'no'
+            runtime: nodejs:22
+            inputs:
+              LOG_LEVEL: info
