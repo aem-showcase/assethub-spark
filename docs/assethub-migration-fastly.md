@@ -109,6 +109,10 @@ but-absent features (SAVED_SEARCHES / RIGHTS_REQUESTS KV, SMTP/email) are alread
 
 ## D1 replacement — options analysis (the one hard gap)
 
+> 📊 **Deep-dive companion:** [`db-options-comparison.md`](./db-options-comparison.md) — full cost-by-tier tables
+> (2026-09-14 pricing), paying-customer suitability, and a **multi-tenancy** analysis (per-customer DB vs shared).
+> The summary below still drives the PoC decision.
+
 D1 is the only dependency with no Fastly-native equivalent, so its replacement is the most consequential
 decision in the migration. **Two hard constraints shape the choice:**
 
@@ -393,28 +397,37 @@ to 1b; its writes **degrade to log-only** so we can watch them fire without a DB
 > - **Notifications** CRUD works (KV).
 > **Not yet:** report/audit dashboards (render empty/degraded), historical data.
 
-#### Phase 1b — reporting/audit (add the database)
+#### Phase 1b — reporting/audit (wire the database)
 
-- [ ] **T1b.1 — Stand up Turso + D1→libSQL shim**
-  - Provision the Turso DB (T-Pre.3); apply
-    `cloudflare/schema/{user_logins,audit_events,search_events,smart_collections}.sql` (SQLite dialect →
-    applies directly). **Note:** `smart_collections` is a 4th table added by the `origin/main` merge
-    (Smart Collections feature, PR #51). Declare the Turso backend.
-  - Add a thin **D1-compat shim** over `@libsql/client/web` exposing
-    `.prepare().bind().first()/.all()/.run()` and `.batch()`.
-- [ ] **T1b.2 — Wire the DB consumers + flip degrades → real reads/writes**
-  - Point `api/audit.js`, `api/user-logins.js`, **`api/smart-collections.js`** (new — merged from main),
-    and the D1 parts of `api/analytics.js` (`writeSearchEvent`, `searchMetricsApi`, `analytics-helper`
-    fan-out) at the shim. Flip the T1a.6 log-only writes **and the `/api/smart-collections` `[]` degrade**
-    to real reads/writes; report reads return real data.
+> **PoC decision (2026-09-14): wire the EXISTING Cloudflare D1 over its REST API** — don't stand up a new vendor
+> DB yet. Rationale: **zero data migration** (real audit/search/login/smart-collection data appears in reports
+> immediately), **zero dialect rewrite** (still SQLite), and it **decouples the compute migration from the
+> data-tier vendor decision** (change one variable at a time). D1's REST `/query` is fetch-based → works from
+> Fastly's no-socket runtime. Explicitly **transitional**: the production DB-vendor choice (Turso recommended;
+> Neon/others per [`db-options-comparison.md`](./db-options-comparison.md)) and the data migration off Cloudflare
+> move to **Phase 2 (T2.1)**.
+
+- [ ] **T1b.1 — D1-over-HTTP client shim**
+  - `platform/d1-http.js`: expose the D1 binding API (`.prepare().bind().first()/.all()/.run()` + `.batch()`,
+    `last_row_id`) over the Cloudflare D1 REST API (`POST /accounts/{acct}/d1/database/{dbId}/query`, Bearer token).
+  - The 4 bindings (`USER_LOGINS`, `AUDIT_EVENTS`, `SEARCH_EVENTS`, `SMART_COLLECTIONS`) all map to the **one**
+    physical DB (`3db42334-…`) → one client, four env keys. Declare a `cf_api` backend (`api.cloudflare.com`).
+  - Secrets/config (user-provided): `CF_API_TOKEN` (Secret Store, D1 read/write scope), `CF_ACCOUNT_ID` +
+    `CF_D1_DATABASE_ID` (config store).
+- [ ] **T1b.2 — Wire consumers + flip degrades → real reads/writes**
+  - Port `api/audit.js`, `api/user-logins.js`, **`api/smart-collections.js`**, and the D1 parts of
+    `api/analytics.js` (`writeSearchEvent`, `searchMetricsApi`, `analytics-helper` fan-out) to the shim via the
+    env bindings. Flip the T1a.6 log-only writes **and the `/api/smart-collections` `[]` degrade** to real
+    reads/writes; report reads return real data.
 - [ ] **T1b.3 — Verify reports + smart collections populate**
   - `report-searches` (search metrics), `report-asset-activity` (audit), user-logins export, and
-    **smart-collections list/save** — all read/write live data. Seed sample rows for the demo.
+    **smart-collections list/save** — all read/write live data from the existing D1. **Decide:** point at the
+    shared demo DB (real data; PoC writes land in it) or a cloned PoC copy (isolated).
 
 > ✅ **CHECKPOINT 1b — "Reporting/audit works; full PoC parity."** A search shows in the Search report; an
 > asset view/download shows in the Asset Activity report; login history records. Everything from 1a stays green.
-> **Not yet done (Phase 2):** historical data migration, full test suite, per-PR previews, perf tuning,
-> prod hardening, domain cutover.
+> **Not yet done (Phase 2):** the production DB-vendor pick + data migration off Cloudflare, full test suite,
+> per-PR previews, perf tuning, prod hardening, domain cutover.
 
 ---
 

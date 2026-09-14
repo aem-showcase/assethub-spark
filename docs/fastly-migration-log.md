@@ -289,6 +289,21 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
   image streaming for non-declared `*.adobe.io` hosts still needs Dynamic Backends (T-Pre.6 / 2b).
 - 🏁 **Checkpoint 1a is functionally complete on the edge** (core verified; new routes deployed + gated). The
   PoC now runs the full portal on Fastly Compute. Remaining program work is Phase 1b (Turso/DB) and Phase 2/2b.
+
+### Phase 1b approach decided — start on the existing Cloudflare D1 over HTTP (2026-09-14)
+- 🧭 **Decision (jfait):** for the PoC, wire the **existing Cloudflare D1** (id `3db42334-…`) via its **REST API**
+  instead of standing up Turso now. Why: zero data migration (real reports immediately), zero dialect rewrite
+  (still SQLite), and it decouples the compute migration from the data-tier vendor pick. D1 REST `/query` is
+  fetch-based → works from Fastly. **Transitional** — the vendor pick (Turso recommended) + data migration off
+  Cloudflare move to Phase 2 (T2.1). Plan Phase 1b re-scoped accordingly.
+- 🔎 Finding: the 4 D1 bindings (`USER_LOGINS`/`AUDIT_EVENTS`/`SEARCH_EVENTS`/`SMART_COLLECTIONS`) all target
+  **one** physical DB (`3db42334-a8ba-48cc-b5bd-84f7e1b04eb2`) → one HTTP client, four env keys.
+- 📄 New reference doc `docs/db-options-comparison.md`: cost-by-tier (2026-09-14), paying-customer suitability,
+  multi-tenancy (per-tenant DB vs shared; Turso/Nile best for multitenant), and a "why not AWS/Azure" section
+  (filtered by the no-TCP constraint; Aurora Serverless + RDS Data API is the only viable hyperscaler option and
+  is dominated by Neon).
+- ⏳ Pending user inputs to build T1b.1: `CF_API_TOKEN` (D1 read/write) in the Secret Store, `CF_ACCOUNT_ID` in
+  the config store, and the shared-vs-cloned DB choice. `CF_D1_DATABASE_ID` = `3db42334-a8ba-48cc-b5bd-84f7e1b04eb2`.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
