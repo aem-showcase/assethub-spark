@@ -356,6 +356,25 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
 - ⏭️ Last piece: **search-metrics** — extract `writeSearchEvent` + `searchMetricsApi` (D1 parts only) from the
   2377-line `analytics.js`; wire `analytics-helper('search')` → `writeSearchEvent`; route
   `/api/analytics/search-metrics`.
+
+### Phase 1b — search-metrics ported + proven; consumer ports COMPLETE (per scope) (2026-09-15)
+- ✅ **search-metrics ported + proven.** Extracted the D1 parts (`searchMetricsApi` + `executeSearchMetric` +
+  helpers + `writeSearchEvent`) from the 2377-line `analytics.js` into a focused `api/analytics.js` (the dead
+  Analytics-Engine reporting code is NOT ported). Real `analytics-helper` restored (search→D1; login/download→no-op
+  since AE is absent). Routed `/api/analytics/search-metrics`.
+  - Fastly adaptation: `writeSearchEvent` uses `INSERT ... RETURNING id` (the CF `SELECT last_insert_rowid()` is
+    unreliable over the stateless D1 REST API — each /query is a separate connection).
+  - Validated against real D1 (2265 rows) on Viceroy: totalSearches → **2265**, uniqueSearchers → 6,
+    searchDistributionByType → all:2265, topSearches → 20 real terms ("coffee" ×50, "mug" ×9, …), distinctMarkets
+    → CA/EMEA/IN/USA/global (INNER JOIN with search_event_markets works). audit + smart-collections unaffected.
+- ⏸️ **Deferred to 2b: live search *capture*.** `dm-analytics.js handleSearchAnalytics` can't `response.clone()` a
+  backend response (and the search body may be compressed), so new search events aren't captured. The report reads
+  the 2265 existing rows; enabling capture = read-and-reconstruct of the search response (touches the working
+  search path — do it carefully, isolated). `writeSearchEvent` + `analytics-helper` are ported and ready for it.
+- 🏁 **Phase 1b consumer ports COMPLETE (per user scope "only what has data + works"):** smart_collections ✅,
+  audit ✅, search-metrics ✅ — all proven against real D1 locally. user_logins dropped (no table). **Remaining for
+  CP1b on the EDGE:** set `CF_API_TOKEN` in the edge Secret Store + add the `cf_api` backend & `CF_ACCOUNT_ID`/
+  `CF_D1_DATABASE_ID` config to the live service via CLI + `fastly compute publish` (v3).
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
