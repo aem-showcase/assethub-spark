@@ -10,6 +10,7 @@ const RULES = [
   [/aem-content-optimizer-agent\.adobe\.io$/i, 'coa'],
   [/\.adobeaemcloud\.com$/i, 'dm_delivery'],
   [/(^|\.)login\.microsoftonline\.com$/i, 'entra_jwks'],
+  [/(^|\.)api\.cloudflare\.com$/i, 'cf_api'], // D1 over HTTP (PoC data tier)
 ];
 
 export function backendFor(input) {

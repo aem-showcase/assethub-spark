@@ -156,6 +156,10 @@ export async function withAuthentication(request, env) {
       permissions: ['preview', 'admin-reports', 'manage-rights', 'admin-rights', 'sudo'],
       countries: ['us'],
       userId: 'local-dev',
+      // Entra subject id (real users get idToken.oid — see user.js). Sub-scoped consumers
+      // (smart-collections, audit) key ownership on request.user.sub, so the local bypass
+      // user needs one too or those routes 401 under DISABLE_AUTHENTICATION.
+      sub: 'local-dev',
     };
     console.warn('Authentication is disabled because DISABLE_AUTHENTICATION is set');
     return;

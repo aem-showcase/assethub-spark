@@ -302,8 +302,41 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
   multi-tenancy (per-tenant DB vs shared; Turso/Nile best for multitenant), and a "why not AWS/Azure" section
   (filtered by the no-TCP constraint; Aurora Serverless + RDS Data API is the only viable hyperscaler option and
   is dominated by Neon).
-- ⏳ Pending user inputs to build T1b.1: `CF_API_TOKEN` (D1 read/write) in the Secret Store, `CF_ACCOUNT_ID` in
-  the config store, and the shared-vs-cloned DB choice. `CF_D1_DATABASE_ID` = `3db42334-a8ba-48cc-b5bd-84f7e1b04eb2`.
+- ✅ **DB choice decided (2026-09-15): use the EXISTING shared `spark-audit-events` DB** (`3db42334-…`) — it holds
+  all tables (audit_events, search_events + search_event_markets, user_logins, smart_collections); the other 3
+  wrangler binding names are config labels for the same one DB.
+- ⏳ Pending user input to build T1b.1: **`CF_API_TOKEN`** (D1 read/write, must be minted) in the Secret Store —
+  the only remaining blocker. Known from `cloudflare/wrangler.jsonc`: `CF_ACCOUNT_ID` =
+  `5950b56d4c83856bae7035a7b9e7ce99`, `CF_D1_DATABASE_ID` = `3db42334-a8ba-48cc-b5bd-84f7e1b04eb2` (one physical
+  DB behind all 4 bindings: spark-{user-logins,audit-events,search-events,smart-collections}).
+
+### Phase 1b — D1-over-HTTP shim built + smart-collections wired (2026-09-15)
+- ✅ **Built the D1-over-HTTP client** (`platform/d1-http.js`): a Cloudflare-D1-compatible client over the D1 REST
+  `/query` API (`prepare().bind().first()/.all()/.run()` + sequential `.batch()`), so the app's D1 code runs
+  unchanged from Fastly. Degrades (empty reads / no-op writes + a one-time `[d1:degraded]` log) when
+  account/db/token are absent — nothing 500s.
+- ✅ **Wired `env.js`:** one client backs all 4 bindings (USER_LOGINS/AUDIT_EVENTS/SEARCH_EVENTS/SMART_COLLECTIONS)
+  → the single physical DB. Added `cf_api` backend (api.cloudflare.com) to `backends.js` + `fastly.toml`;
+  `CF_ACCOUNT_ID` + `CF_D1_DATABASE_ID` to the config store; `CF_API_TOKEN` to the local secret store
+  (env `SPARK_CF_API_TOKEN`).
+- ✅ **Ported `api/smart-collections.js`** (+ `smart-collections/smart-collection-types.js`); flipped the index.js
+  `[]` degrade → the real API.
+- 🐛 **Fix:** the local `DISABLE_AUTHENTICATION` bypass user had no `sub` → sub-scoped consumers (smart-collections,
+  audit) 401'd locally before reaching D1. Added `sub: 'local-dev'` to the bypass user (real users get
+  `idToken.oid`). Edge unaffected.
+- **Validated on Viceroy (no token → degrade path):** clean wasm build; GET `/api/smart-collections` → **200 []**,
+  POST → **201** (write no-op'd), `[d1:degraded]` logged; `/api/messages` + `/en/` unaffected. **Real-D1 path
+  pending the token.**
+- ⏭️ Next: user sets `CF_API_TOKEN` → validate smart-collections against **real D1** (read live rows) → then port
+  the remaining consumers (`user-logins`, `audit`, `analytics` D1 parts) on the proven shim. Deploy note: on the
+  edge, `[setup]` runs only on first publish, so the new `cf_api` backend + `CF_ACCOUNT_ID`/`CF_D1_DATABASE_ID`
+  config + `CF_API_TOKEN` secret must be added to the live service via CLI at deploy (not auto-created by publish).
+- ✅ **SHIM PROVEN against real D1 (2026-09-15).** Token verified live (`SELECT COUNT(*) FROM smart_collections`
+  → 4; table list matches). Full CRUD round-trip through the shim via Viceroy: POST create → 201 (wrote a real
+  row), GET → returned it **plus 2 real org-visible collections already in the DB** ("Spring Launch 2026
+  campaign", "Created-by-app-builder"), DELETE → 204, GET → gone. Proves `prepare/bind/all/run`, numbered params
+  (incl. `?8` reuse), `meta.changes` 404-detection, and response parsing all work against live Cloudflare D1.
+  Test row cleaned up (no residue). → shim is trustworthy; safe to port the remaining consumers on it.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →

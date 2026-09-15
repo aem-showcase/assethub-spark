@@ -12,6 +12,10 @@ service_id = "6gEvztcAfMsbzzeBfCfBNP"
 
   [local_server.backends]
 
+    [local_server.backends.cf_api]
+      override_host = "api.cloudflare.com"
+      url = "https://api.cloudflare.com"
+
     [local_server.backends.coa]
       override_host = "aem-content-optimizer-agent.adobe.io"
       url = "https://aem-content-optimizer-agent.adobe.io"
@@ -42,6 +46,8 @@ service_id = "6gEvztcAfMsbzzeBfCfBNP"
       format = "inline-toml"
 
       [local_server.config_stores.config.contents]
+        CF_ACCOUNT_ID = "5950b56d4c83856bae7035a7b9e7ce99"
+        CF_D1_DATABASE_ID = "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
         DEBUG_ANALYTICS = "false"
         DISABLE_AUTHENTICATION = "true"
         HELIX_ORIGIN = "https://main--assethub-spark--aem-showcase.aem.live"
@@ -64,6 +70,10 @@ service_id = "6gEvztcAfMsbzzeBfCfBNP"
       env = "SPARK_HELIX_ORIGIN_AUTHENTICATION"
       key = "HELIX_ORIGIN_AUTHENTICATION"
 
+    [[local_server.secret_stores.secrets]]
+      env = "SPARK_CF_API_TOKEN"
+      key = "CF_API_TOKEN"
+
 [scripts]
   build = "npm run build"
   post_init = "npm install"
@@ -71,6 +81,11 @@ service_id = "6gEvztcAfMsbzzeBfCfBNP"
 [setup]
 
   [setup.backends]
+
+    [setup.backends.cf_api]
+      address = "api.cloudflare.com"
+      description = "Cloudflare API (D1 over HTTP — PoC data tier)"
+      port = 443
 
     [setup.backends.coa]
       address = "aem-content-optimizer-agent.adobe.io"
@@ -108,6 +123,12 @@ service_id = "6gEvztcAfMsbzzeBfCfBNP"
       description = "Worker config (non-secret vars)"
 
       [setup.config_stores.config.items]
+
+        [setup.config_stores.config.items.CF_ACCOUNT_ID]
+          value = "5950b56d4c83856bae7035a7b9e7ce99"
+
+        [setup.config_stores.config.items.CF_D1_DATABASE_ID]
+          value = "3db42334-a8ba-48cc-b5bd-84f7e1b04eb2"
 
         [setup.config_stores.config.items.DEBUG_ANALYTICS]
           value = "false"

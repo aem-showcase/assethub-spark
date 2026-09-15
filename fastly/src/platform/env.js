@@ -7,6 +7,7 @@ import { ConfigStore } from 'fastly:config-store';
 import { SecretStore } from 'fastly:secret-store';
 import { KVStore } from 'fastly:kv-store';
 import { env as fastlyEnv } from 'fastly:env';
+import { createD1Client } from './d1-http.js';
 
 function tryOpen(factory) {
   try {
@@ -113,6 +114,16 @@ function kvBinding(storeName) {
 export function buildEnv() {
   const config = tryOpen(() => new ConfigStore('config'));
   const cfg = (k) => (config ? config.get(k) : undefined);
+  // Cloudflare D1 over HTTP (PoC data tier): one client for the single physical D1 that
+  // backs all four bindings (see docs/db-options-comparison.md). Token from the Secret
+  // Store; account/database ids from the Config Store. Degrades (empty reads / no-op
+  // writes) if any are absent, so local dev without a token still runs.
+  const cfToken = secretBinding('secrets', 'CF_API_TOKEN');
+  const d1 = createD1Client({
+    accountId: cfg('CF_ACCOUNT_ID'),
+    databaseId: cfg('CF_D1_DATABASE_ID'),
+    getToken: () => cfToken.get(),
+  });
   return {
     // Plain vars (Config Store)
     HELIX_ORIGIN: cfg('HELIX_ORIGIN'),
@@ -126,6 +137,11 @@ export function buildEnv() {
     // KV bindings
     AUTH_TOKENS: kvBinding('auth_tokens'),
     MESSAGES: kvBinding('messages'),
+    // D1 bindings — all four map to the one physical Cloudflare D1 (same client instance).
+    USER_LOGINS: d1,
+    AUDIT_EVENTS: d1,
+    SEARCH_EVENTS: d1,
+    SMART_COLLECTIONS: d1,
     FASTLY_SERVICE_VERSION: fastlyEnv('FASTLY_SERVICE_VERSION') || 'local',
   };
 }

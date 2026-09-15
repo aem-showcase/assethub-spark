@@ -438,6 +438,34 @@ to 1b; its writes **degrade to log-only** so we can watch them fire without a DB
   - **Migrate existing D1 data** (export from Cloudflare D1 → import to libSQL).
   - Verify all ~32 query sites + `.batch()` + `last_insert_rowid()`; **consolidate the audit-summary
     ~10-query fan-out** (single round-trip / CTE) to fit the CPU + subrequest budget (esp. trial's 10).
+
+> **Data-tier design — single DB vs multiple DBs, and the multi-tenancy axis** (rationale; fuller provider fit in
+> [`db-options-comparison.md`](./db-options-comparison.md) §6):
+>
+> *Single shared DB (today's shape — all tables in one D1):*
+> - **Pros:** simplest (one endpoint/token/config); enables cross-table JOINs + atomic multi-table `.batch()`
+>   — **unused here** (nothing joins across the four domains); and it's the correct building block for
+>   **DB-per-tenant** (below).
+> - **Cons (SQLite-specific):** **single-writer lock** — high-frequency `audit_events` + `search_events` writes
+>   serialize on one lock; **per-DB size cap** (~10 GB) hit sooner by unbounded audit/search growth; one
+>   blast-radius / backup / retention unit (can't prune audit yet keep smart_collections independently).
+>
+> *Splitting by domain (a DB per area):*
+> - **Pros:** independent write locks (concurrency), per-domain size headroom, independent retention/backup,
+>   smaller blast radius.
+> - **Cons:** more endpoints/creds/config; the FK-coupled `search_events` + `search_event_markets` **must stay
+>   together** (SQLite FKs can't cross DBs); no cross-DB transactions.
+>
+> **Decision:** keep the **single DB** through the PoC (no downside at this scale, simplest, per-tenant-aligned).
+> Revisit peeling the hot/unbounded tables (`audit_events`, the `search_events` pair) into their own DBs **only
+> if** write-concurrency or size bites in production.
+>
+> *Multi-tenancy — split by **tenant**, not by table.* DB-per-tenant = **one DB per customer with all tables
+> inside** → today's single-DB shape is exactly right for it (isolation, per-customer backup/delete/residency,
+> no noisy neighbour). Shared multi-tenant (one DB + `tenant_id` + RLS) is cheaper but isolation is app-enforced
+> (leak risk) and **SQLite has no RLS**. **Turso / D1 excel at DB-per-tenant; Neon / Nile suit RLS-shared.** Our
+> natural tenant key is `DEMO_COMPANY` (frescopa / santander / coke).
+
 - [ ] **T2.2 — Full test suite re-home**
   - Move all 23 files off `@cloudflare/vitest-pool-workers` to node-vitest (+ `@fastly/compute-testing`
     for integration). Rewrite the live-KV `notifications.test.js`. SQLite-dialect assertions stay valid

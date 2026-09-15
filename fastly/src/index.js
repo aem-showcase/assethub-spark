@@ -15,6 +15,7 @@ import { originHelix } from './origin/helix.js';
 import { originDynamicMedia } from './origin/dm.js';
 import { originCoa, originCoaImage } from './origin/coa.js';
 import { notificationsApi } from './api/notifications.js';
+import { smartCollectionsApi } from './api/smart-collections.js';
 import { isUserExcluded, parsePageExclusions } from './origin/page-access.js';
 import { apiUser } from './user.js';
 import { cors } from './util/itty.js';
@@ -56,12 +57,6 @@ function jsonResponse(obj, status = 200) {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
-}
-// Phase 1a degrade: smart collections are D1-backed (Phase 1b). Return an empty list so the
-// search UI's left panel (and thus the facets) renders instead of crashing on proxied HTML.
-function smartCollectionsDegraded(request) {
-  if (request.method === 'GET') return jsonResponse([], 200);
-  return jsonResponse({ error: 'Smart collections require the database (Phase 1b)' }, 501);
 }
 function redirectTo404(request) {
   const url = new URL(request.url);
@@ -125,9 +120,9 @@ router
   .all('/api/messages', notificationsApi)
   .all('/api/messages/*', notificationsApi)
 
-  // Smart collections (D1-backed) — Phase 1a degrade to an empty list (unblocks the facets panel)
-  .all('/api/smart-collections', smartCollectionsDegraded)
-  .all('/api/smart-collections/*', smartCollectionsDegraded)
+  // Smart collections (D1-backed via the D1-over-HTTP shim; degrades to [] if D1 unconfigured)
+  .all('/api/smart-collections', smartCollectionsApi)
+  .all('/api/smart-collections/*', smartCollectionsApi)
 
   // Unknown /api/* -> clean JSON 404 (never proxy to Helix, whose HTML breaks frontend JSON.parse).
   // Matches the CF worker's `.all('/api/*', () => error(404))`; covers not-yet-ported endpoints
