@@ -23,13 +23,8 @@ import { parseContentAIResponse } from '../../../../scripts/asset-transformers.j
 import { getCurrentLocale } from '../../../../scripts/locale-utils.js';
 import { createActionDropdown } from '../action-dropdown.js';
 import { escapeHtml } from '../../utils/dom-utils.js';
-import {
-  renderSmartCollectionsList,
-  refreshSmartCollections,
-  bindSmartCollectionsListEvents,
-} from './smart-collections-panel.js';
 import { openSaveSmartCollectionModal } from '../../../../scripts/smart-collections/smart-collection-modal.js';
-import { buildCriteriaFromCurrentState } from '../../../../scripts/smart-collections/smart-collection-state.js';
+import { buildDraftFromCurrentState } from '../../../../scripts/smart-collections/smart-collection-state.js';
 import { hasActiveCriteria } from '../../../../scripts/smart-collections/smart-collection-types.js';
 
 /**
@@ -85,10 +80,6 @@ const fetchingFacetIds = new Set(); // Facet IDs fetching (for spinner during re
 // Paths created by synthesizeMissingParents (parent checkbox cascades to descendants)
 const synthesizedPaths = new Set();
 let storedCallbacks = null; // Store callbacks for re-render after fetch completes
-
-/** Which header tab is active: 'filters' (default) or 'smartCollections'. */
-let activeFacetTab = 'filters';
-let smartCollectionsInitialized = false;
 
 /** Facet keys removed from UI (legacy rights search) */
 const REMOVED_FACET_KEYS = new Set([
@@ -156,15 +147,6 @@ export async function createFacetsPanel(container, callbacks) {
 
   // Initial render
   render(callbacks);
-
-  // Load Smart Collections in the background so the tab is ready by the time it's clicked;
-  // re-render only if the user is already on that tab (avoids clobbering the Filters view).
-  if (!smartCollectionsInitialized) {
-    smartCollectionsInitialized = true;
-    refreshSmartCollections().then(() => {
-      if (activeFacetTab === 'smartCollections') render(storedCallbacks);
-    });
-  }
 
   // Subscribe to state changes
   subscribe((state, prevState, updates) => {
@@ -447,7 +429,7 @@ function updateSaveSmartCollectionButtonState() {
   if (!containerElement) return;
   const saveBtn = containerElement.querySelector('#save-smart-collection-btn');
   if (!saveBtn) return;
-  saveBtn.disabled = !hasActiveCriteria(buildCriteriaFromCurrentState());
+  saveBtn.disabled = !hasActiveCriteria(buildDraftFromCurrentState());
 }
 
 function render(callbacks) {
@@ -503,7 +485,6 @@ function render(callbacks) {
   // Get localized strings
   const filtersLabel = ph(placeholders, 'filters', 'Filters');
   const clearAllLabel = ph(placeholders, 'clearAll', 'CLEAR ALL');
-  const smartCollectionsLabel = ph(placeholders, 'smartCollections', 'Smart Collections');
   const saveSmartCollectionLabel = ph(placeholders, 'saveAsSmartCollection', 'Save as Smart Collection');
 
   let filtersTabContent;
@@ -523,15 +504,8 @@ function render(callbacks) {
         `;
   }
 
-  const smartCollectionsTabContent = `
-    <div class="facet-filter-list" id="facet-list">
-      ${renderSmartCollectionsList()}
-    </div>
-  `;
-
-  const isFiltersActive = activeFacetTab === 'filters';
-  const currentCriteria = buildCriteriaFromCurrentState();
-  const canSaveSmartCollection = hasActiveCriteria(currentCriteria);
+  const currentDraft = buildDraftFromCurrentState();
+  const canSaveSmartCollection = hasActiveCriteria(currentDraft);
   const saveSmartCollectionAction = `
     <div class="smart-collection-save-actions">
       <button
@@ -548,33 +522,22 @@ function render(callbacks) {
       <div class="facet-filter">
         <div class="facet-filter-header">
           <div class="facet-filter-tabs">
-            <div class="facet-filter-tab-group left${isFiltersActive ? ' active' : ''}" style="cursor: pointer;">
-              <button class="facet-filter-tab${isFiltersActive ? ' active' : ''}" id="filters-tab">
+            <div class="facet-filter-tab-group left active" style="cursor: pointer;">
+              <button class="facet-filter-tab active" id="filters-tab">
                 ${filtersLabel}
                 ${totalCheckedCount > 0 ? `<div class="assets-details-tag custom-tag facet-filter-count-tag">${totalCheckedCount}</div>` : ''}
               </button>
               <button class="facet-filter-tab clear" id="clear-all-btn">${clearAllLabel}</button>
             </div>
-            <div class="facet-filter-tab-group right${!isFiltersActive ? ' active' : ''}" style="cursor: pointer;">
-              <button class="facet-filter-tab${!isFiltersActive ? ' active' : ''}" id="smart-collections-tab">
-                ${smartCollectionsLabel}
-              </button>
-            </div>
           </div>
         </div>
 
-        ${isFiltersActive
-    ? `${filtersTabContent}${saveSmartCollectionAction}`
-    : smartCollectionsTabContent}
+        ${filtersTabContent}${saveSmartCollectionAction}
       </div>
     </div>
   `;
 
   bindEvents(callbacks);
-
-  if (!isFiltersActive) {
-    bindSmartCollectionsListEvents(containerElement, () => render(callbacks));
-  }
 
   // Focus the search input that has autofocus (React uses autoFocus prop, we need manual focus)
   const autofocusInput = containerElement.querySelector('.facet-search-input[autofocus]');
@@ -2709,33 +2672,10 @@ function bindHierarchyToggleEvents(checkboxList) {
 async function bindEvents(callbacks) {
   const { onFacetCheckbox, onClearAllFacets } = callbacks;
 
-  // Smart Collections tab switching
-  const filtersTabBtn = containerElement.querySelector('#filters-tab');
-  filtersTabBtn?.addEventListener('click', () => {
-    if (activeFacetTab === 'filters') return;
-    activeFacetTab = 'filters';
-    render(callbacks);
-  });
-
-  const smartCollectionsTabBtn = containerElement.querySelector('#smart-collections-tab');
-  smartCollectionsTabBtn?.addEventListener('click', () => {
-    if (activeFacetTab === 'smartCollections') return;
-    activeFacetTab = 'smartCollections';
-    render(callbacks);
-    refreshSmartCollections().then(() => render(callbacks));
-  });
-
   // Save as Smart Collection
   const saveSmartCollectionBtn = containerElement.querySelector('#save-smart-collection-btn');
   saveSmartCollectionBtn?.addEventListener('click', () => {
-    const criteria = buildCriteriaFromCurrentState();
-    openSaveSmartCollectionModal({
-      criteria,
-      onSaved: () => {
-        activeFacetTab = 'smartCollections';
-        refreshSmartCollections().then(() => render(callbacks));
-      },
-    });
+    openSaveSmartCollectionModal({ draft: buildDraftFromCurrentState() });
   });
 
   // Clear all button

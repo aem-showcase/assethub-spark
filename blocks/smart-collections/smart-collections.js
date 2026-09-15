@@ -1,14 +1,13 @@
 import { listSmartCollections } from '../../scripts/smart-collections/smart-collections-api-client.js';
-import { parseContentAIResponse, populateAssetFromContentAIHit } from '../../scripts/asset-transformers.js';
+import {
+  parseContentAIResponse,
+  populateAssetFromContentAIHit,
+  fetchAssetById,
+} from '../../scripts/asset-transformers.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
+import { buildSmartCollectionSearchParams, parseSmartCollectionQuery, SMART_COLLECTION_URL_PARAM } from '../../scripts/smart-collections/smart-collection-query.js';
 import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import { createPicture } from '../search-results/components/picture.js';
-import {
-  buildOrderBy,
-  DEFAULT_SORT_DIRECTION,
-  DEFAULT_SORT_TYPE,
-  SORT_TYPE,
-} from '../search-results/utils/sort-utils.js';
 
 const THUMBNAIL_CONCURRENCY = 4;
 
@@ -34,23 +33,15 @@ export function buildFacetFilters(facetState = {}) {
 }
 
 /**
- * Build a deep link that restores the collection criteria on the search page.
+ * Build a deep link that restores the collection's saved query on the search page.
  * @param {SmartCollection} collection
  * @returns {string}
  */
 export function buildCollectionUrl(collection) {
-  const criteria = collection.criteria || {};
-  const params = new URLSearchParams();
-  const facetFilters = criteria.facetFilters || {};
-
-  if (criteria.query) params.set('query', criteria.query);
-  if (Object.keys(facetFilters).length > 0) {
-    params.set('facetFilters', encodeURIComponent(JSON.stringify(facetFilters)));
-  }
-  params.set('sortType', criteria.sortType || DEFAULT_SORT_TYPE);
-  params.set('sortDirection', criteria.sortDirection || DEFAULT_SORT_DIRECTION);
-
-  return `${localizePath('/search')}?${params.toString()}`;
+  const params = buildSmartCollectionSearchParams(collection.smartCollectionQuery);
+  const search = new URLSearchParams(params);
+  search.set(SMART_COLLECTION_URL_PARAM, collection.id);
+  return `${localizePath('/search')}?${search.toString()}`;
 }
 
 /**
@@ -80,29 +71,38 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 }
 
 /**
- * Fetch the first matching asset for a Smart Collection.
+ * Fetch the first asset matching a Smart Collection's saved query (thumbnail fallback).
  * @param {SmartCollection} collection
  * @returns {Promise<Object|null>}
  */
 async function fetchFirstAsset(collection) {
-  const criteria = collection.criteria || {};
-  const sortType = criteria.sortType || DEFAULT_SORT_TYPE;
-  const sortDirection = criteria.sortDirection || DEFAULT_SORT_DIRECTION;
-  const orderBy = sortType === SORT_TYPE.TOP_RESULTS
-    ? null
-    : buildOrderBy(sortType, sortDirection);
+  const { query, facetCheckedState } = parseSmartCollectionQuery(collection.smartCollectionQuery);
 
-  const rawResponse = await getContentAIClient().searchAssets(criteria.query || '', {
-    facetFilters: buildFacetFilters(criteria.facetFilters),
+  const rawResponse = await getContentAIClient().searchAssets(query || '', {
+    facetFilters: buildFacetFilters(facetCheckedState),
     numericFilters: [],
     filters: [],
     hitsPerPage: 1,
-    orderBy,
+    orderBy: null,
     skipFacetsRequest: true,
   });
   const { hits } = parseContentAIResponse(rawResponse);
 
   return hits.length > 0 ? populateAssetFromContentAIHit(hits[0]) : null;
+}
+
+/**
+ * Resolve a card thumbnail: prefer the collection's stored hero asset, else the first asset
+ * matching its saved query.
+ * @param {SmartCollection} collection
+ * @returns {Promise<Object|null>}
+ */
+async function resolveThumbnailAsset(collection) {
+  if (collection.thumbnail) {
+    const asset = await fetchAssetById(collection.thumbnail);
+    if (asset) return asset;
+  }
+  return fetchFirstAsset(collection);
 }
 
 function createStatus(className, message, role = 'status') {
@@ -167,8 +167,9 @@ function createCard(collection, asset, t) {
   body.className = 'smart-collections-card-body';
 
   const visibility = document.createElement('span');
-  visibility.className = `smart-collections-card-visibility ${collection.visibility}`;
-  visibility.textContent = collection.visibility === 'organization'
+  const isPublic = collection.accessLevel && collection.accessLevel !== 'private';
+  visibility.className = `smart-collections-card-visibility ${isPublic ? 'public' : 'personal'}`;
+  visibility.textContent = isPublic
     ? t('publicSmartCollection', 'Public')
     : t('personalSmartCollection', 'Personal');
 
@@ -215,9 +216,10 @@ export default async function decorate(block) {
       collections,
       THUMBNAIL_CONCURRENCY,
       async (collection) => {
-        const cacheKey = JSON.stringify(collection.criteria || {});
+        const cacheKey = collection.thumbnail
+          || JSON.stringify(collection.smartCollectionQuery || {});
         if (!thumbnailCache.has(cacheKey)) {
-          thumbnailCache.set(cacheKey, fetchFirstAsset(collection).catch((error) => {
+          thumbnailCache.set(cacheKey, resolveThumbnailAsset(collection).catch((error) => {
             // A failed thumbnail must not prevent the collection itself from rendering.
             // eslint-disable-next-line no-console
             console.warn(`Failed to load thumbnail for Smart Collection ${collection.id}:`, error);

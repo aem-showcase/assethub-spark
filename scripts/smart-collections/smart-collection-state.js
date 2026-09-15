@@ -1,22 +1,31 @@
-/* eslint-disable import/no-cycle */
+/* eslint-disable import/no-cycle, no-use-before-define */
 /**
- * Cross-component state for the "Smart Collections" feature: tracks which saved collection
- * (if any) is currently applied to the search results, so the facets panel (apply/rename/
- * delete UI) and the mutation-detection banner (rendered separately in main-app.js) can stay
- * in sync without a tight coupling between those two component files.
+ * Cross-component state + query capture/replay for the "Smart Collections" feature.
  *
- * This is intentionally a tiny standalone pub/sub, not routed through search-results.js'
- * setState/subscribe, because "active smart collection" is UI/session state, not search
- * result state.
+ * Two responsibilities:
+ * 1. A tiny standalone pub/sub tracking which saved Smart Collection (if any) is currently
+ *    applied to the search results, so the facets panel and the mutation-detection banner stay
+ *    in sync without a tight coupling between those component files.
+ * 2. Translating between the live search-results.js state and the persisted
+ *    `smartCollectionQuery` (the ContentAI "search assets" query payload):
+ *      - {@link buildSmartCollectionQueryFromCurrentState} captures the current search as a
+ *        `smartCollectionQuery` (identical `query` array to what search-results.js sends).
+ *      - {@link parseSmartCollectionQuery} reverses that payload back into search-results.js
+ *        state so applying a Smart Collection restores the query text + facet selections.
  */
 
-import { getState } from '../../blocks/search-results/search-results.js';
+import { getState, setState } from '../../blocks/search-results/search-results.js';
+import { getContentAIClient } from '../../blocks/search-results/clients/dynamicmedia-client.js';
+import { getOrderBy } from '../../blocks/search-results/components/search-panel.js';
+import { getFacetsConfig } from '../../blocks/search-results/constants/facets.js';
+import { parseSmartCollectionQuery, SMART_COLLECTION_URL_PARAM, smartCollectionQuerySignature } from './smart-collection-query.js';
+import { getSmartCollection } from './smart-collections-api-client.js';
 
 /** @type {import('./smart-collection-types.js').SmartCollection | null} */
 let activeSmartCollection = null;
 
-/** Snapshot of the criteria as of the moment the collection was applied/saved. */
-let savedCriteriaSnapshot = null;
+/** Snapshot of the `smartCollectionQuery` as of the moment the collection was applied/saved. */
+let savedQuerySnapshot = null;
 
 const listeners = new Set();
 
@@ -41,48 +50,137 @@ export function getActiveSmartCollection() {
 }
 
 /**
- * Mark a smart collection as active (just applied or just saved), snapshotting the current
- * criteria as the "clean" baseline for mutation detection.
- * @param {import('./smart-collection-types.js').SmartCollection | null} collection
+ * Convert `facetCheckedState` into the grouped `[[{key,value}]]` shape ContentAI expects
+ * (mirrors the derivation in search-results.js).
+ * @param {Record<string, Record<string, boolean>>} facetCheckedState
+ * @returns {Array<Array<{key: string, value: string}>>}
  */
-export function setActiveSmartCollection(collection) {
-  activeSmartCollection = collection;
-  savedCriteriaSnapshot = collection ? JSON.stringify(collection.criteria || {}) : null;
-  notify();
+function toFacetFilters(facetCheckedState = {}) {
+  const selectedFacetFilters = [];
+  Object.keys(facetCheckedState).forEach((key) => {
+    const facetFilter = [];
+    Object.entries(facetCheckedState[key] || {}).forEach(([value, isChecked]) => {
+      if (isChecked) facetFilter.push({ key, value });
+    });
+    if (facetFilter.length > 0) selectedFacetFilters.push(facetFilter);
+  });
+  return selectedFacetFilters;
 }
 
 /**
- * Re-baseline the snapshot without changing which collection is active (e.g. after a
- * successful "Save Changes").
- * @param {import('./smart-collection-types.js').SearchCriteria} criteria
+ * Build the persisted `smartCollectionQuery` from the current search-results.js state. The
+ * `query` array is identical to what search-results.js sends to ContentAI; `sort` is persisted
+ * empty (matching the native API contract) — sort is not part of the saved criteria.
+ * @returns {import('./smart-collection-types.js').SmartCollectionQuery}
  */
-export function reconcileActiveSmartCollectionCriteria(criteria) {
-  if (!activeSmartCollection) return;
-  activeSmartCollection = { ...activeSmartCollection, criteria };
-  savedCriteriaSnapshot = JSON.stringify(criteria || {});
-  notify();
+export function buildSmartCollectionQueryFromCurrentState() {
+  const state = getState();
+  const request = getContentAIClient().buildQueryRequest(state.query?.trim() || '', {
+    facetFilters: toFacetFilters(state.facetCheckedState),
+    numericFilters: state.selectedNumericFilters || [],
+    filters: state.presetFilters || [],
+    orderBy: getOrderBy(),
+    searchMode: state.searchMode,
+  });
+  return { query: request.query, sort: [] };
 }
 
 /**
- * Build a SearchCriteria object from the current search-results.js state.
- * @returns {import('./smart-collection-types.js').SearchCriteria}
+ * Build a full draft (human-facing summary + native query) from the current search state, for
+ * the save modal preview and the save button gate.
+ * @returns {import('./smart-collection-types.js').SmartCollectionDraft}
  */
-export function buildCriteriaFromCurrentState() {
+export function buildDraftFromCurrentState() {
   const state = getState();
   return {
     query: state.query || '',
     sortType: state.selectedSortType,
     sortDirection: state.selectedSortDirection,
     facetFilters: state.facetCheckedState || {},
+    smartCollectionQuery: buildSmartCollectionQueryFromCurrentState(),
   };
 }
 
 /**
- * Whether the current search state has drifted from the active smart collection's saved
- * criteria. False when there is no active collection.
+ * Apply a Smart Collection's saved query to the current search state. Reuses the same
+ * setState() path URL-param loading uses, so URL sync + auto-search happen automatically via
+ * the subscribe() handlers already in search-results.js.
+ * @param {import('./smart-collection-types.js').SmartCollection} collection
+ */
+export function applySmartCollectionToSearch(collection) {
+  const parsed = parseSmartCollectionQuery(collection.smartCollectionQuery);
+  const validFacetKeys = new Set(Object.keys(getFacetsConfig()));
+  const facetCheckedState = {};
+  Object.entries(parsed.facetCheckedState).forEach(([key, values]) => {
+    if (validFacetKeys.size === 0 || validFacetKeys.has(key)) facetCheckedState[key] = values;
+  });
+
+  setState({
+    query: parsed.query,
+    facetCheckedState,
+    selectedNumericFilters: parsed.selectedNumericFilters,
+  });
+  setActiveSmartCollection(collection);
+}
+
+/**
+ * Mark a Smart Collection as active (just applied or just saved). The mutation baseline is
+ * snapshotted from the CURRENT search state — which reflects the collection's just-applied or
+ * just-saved criteria — rather than the stored query, so query-serialization round-trip
+ * differences never leave a stale "changes detected" banner right after activation or a save.
+ * @param {import('./smart-collection-types.js').SmartCollection | null} collection
+ */
+export function setActiveSmartCollection(collection) {
+  activeSmartCollection = collection;
+  savedQuerySnapshot = collection
+    ? smartCollectionQuerySignature(buildSmartCollectionQueryFromCurrentState())
+    : null;
+  notify();
+}
+
+/**
+ * Re-baseline the snapshot without changing which collection is active (e.g. after a
+ * successful "Save Changes").
+ * @param {import('./smart-collection-types.js').SmartCollectionQuery} smartCollectionQuery
+ */
+export function reconcileActiveSmartCollectionQuery(smartCollectionQuery) {
+  if (!activeSmartCollection) return;
+  activeSmartCollection = { ...activeSmartCollection, smartCollectionQuery };
+  savedQuerySnapshot = smartCollectionQuerySignature(smartCollectionQuery);
+  notify();
+}
+
+/**
+ * Whether the current search state has drifted from the active Smart Collection's saved query.
+ * False when there is no active collection.
  * @returns {boolean}
  */
 export function hasActiveSmartCollectionDiverged() {
-  if (!activeSmartCollection || savedCriteriaSnapshot === null) return false;
-  return JSON.stringify(buildCriteriaFromCurrentState()) !== savedCriteriaSnapshot;
+  if (!activeSmartCollection || savedQuerySnapshot === null) return false;
+  return smartCollectionQuerySignature(buildSmartCollectionQueryFromCurrentState())
+    !== savedQuerySnapshot;
+}
+
+/**
+ * On the search page, re-activate the Smart Collection referenced by the
+ * {@link SMART_COLLECTION_URL_PARAM} URL param (set when opening one from the collections list).
+ * The mutation baseline is snapshotted from the CURRENT (URL-applied) search state — not the
+ * collection's stored query — so the banner only surfaces once the user actually changes a
+ * filter, rather than from query-serialization round-trip differences on open. No-op when the
+ * param is absent.
+ * @returns {Promise<import('./smart-collection-types.js').SmartCollection | null>}
+ */
+export async function activateSmartCollectionFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get(SMART_COLLECTION_URL_PARAM);
+  if (!id) return null;
+  try {
+    const collection = await getSmartCollection(id);
+    setActiveSmartCollection(collection);
+    return collection;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to activate Smart Collection from URL:', err);
+    return null;
+  }
 }

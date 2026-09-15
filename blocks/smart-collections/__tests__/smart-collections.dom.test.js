@@ -2,9 +2,10 @@ import {
   beforeEach, describe, expect, it, vi,
 } from 'vitest';
 
-const { listSmartCollectionsMock, searchAssetsMock } = vi.hoisted(() => ({
+const { listSmartCollectionsMock, searchAssetsMock, fetchAssetByIdMock } = vi.hoisted(() => ({
   listSmartCollectionsMock: vi.fn(),
   searchAssetsMock: vi.fn(),
+  fetchAssetByIdMock: vi.fn(),
 }));
 
 vi.mock('../../../scripts/smart-collections/smart-collections-api-client.js', () => ({
@@ -15,44 +16,57 @@ vi.mock('../../search-results/clients/dynamicmedia-client.js', () => ({
   getContentAIClient: () => ({ searchAssets: searchAssetsMock }),
 }));
 
+vi.mock('../../../scripts/asset-transformers.js', async () => {
+  const actual = await vi.importActual('../../../scripts/asset-transformers.js');
+  return { ...actual, fetchAssetById: fetchAssetByIdMock };
+});
+
 vi.mock('../../../scripts/locale-utils.js', () => ({
   getAppLabel: async () => (key, fallback) => fallback || key,
   localizePath: (path) => `/en${path}`,
 }));
 
+const { populateAssetFromContentAIHit } = await import('../../../scripts/asset-transformers.js');
 const { default: decorate } = await import('../smart-collections.js');
+
+/**
+ * Build a persisted smartCollectionQuery (ContentAI "search assets" payload shape).
+ */
+function buildQuery({ text = '', keyword, format } = {}) {
+  const filters = [];
+  if (keyword) filters.push({ term: { 'assetMetadata.xcm:keywords': [keyword] } });
+  if (format) filters.push({ term: { 'repositoryMetadata.dc:format': [format] } });
+  const query = [{ match: { mode: 'HYBRID', text } }];
+  if (filters.length) query.push({ and: filters });
+  return { query, sort: [] };
+}
 
 function createCollection(overrides = {}) {
   return {
     id: 'collection-1',
     title: 'Summer Campaign',
     description: 'Approved summer campaign assets',
-    visibility: 'private',
-    criteria: {
-      query: 'summer',
-      sortType: 'dateCreated',
-      sortDirection: 'ascending',
-      facetFilters: {
-        'assetMetadata.xcm:keywords': { Beach: true, Winter: false },
-        'repositoryMetadata.dc:format': { 'image/jpeg': true },
-      },
-    },
+    accessLevel: 'private',
+    thumbnail: null,
+    smartCollectionQuery: buildQuery({ text: 'summer', keyword: 'Beach', format: 'image/jpeg' }),
     ...overrides,
+  };
+}
+
+function createHit(assetId, name, title) {
+  return {
+    assetId,
+    repositoryMetadata: {
+      'repo:name': name,
+      'dc:format': 'image/jpeg',
+    },
+    assetMetadata: { 'dc:title': title },
   };
 }
 
 function createSearchResponse(assetId, name, title) {
   return {
-    hits: {
-      results: [{
-        assetId,
-        repositoryMetadata: {
-          'repo:name': name,
-          'dc:format': 'image/jpeg',
-        },
-        assetMetadata: { 'dc:title': title },
-      }],
-    },
+    hits: { results: [createHit(assetId, name, title)] },
     search_metadata: { totalCount: { total: 1 } },
   };
 }
@@ -70,13 +84,8 @@ describe('smart-collections block', () => {
         id: 'collection-2',
         title: 'Brand Essentials',
         description: null,
-        visibility: 'organization',
-        criteria: {
-          query: '',
-          sortType: 'topResults',
-          sortDirection: 'descending',
-          facetFilters: {},
-        },
+        accessLevel: 'public',
+        smartCollectionQuery: buildQuery({ text: '' }),
       }),
     ]);
     searchAssetsMock
@@ -95,13 +104,13 @@ describe('smart-collections block', () => {
 
     expect(searchAssetsMock).toHaveBeenNthCalledWith(1, 'summer', {
       facetFilters: [
-        [{ key: 'assetMetadata.xcm:keywords', value: 'Beach' }],
-        [{ key: 'repositoryMetadata.dc:format', value: 'image/jpeg' }],
+        [{ key: 'xcm:keywords', value: 'Beach' }],
+        [{ key: 'dc:format', value: 'image/jpeg' }],
       ],
       numericFilters: [],
       filters: [],
       hitsPerPage: 1,
-      orderBy: 'repositoryMetadata.repo:createDate asc',
+      orderBy: null,
       skipFacetsRequest: true,
     });
     expect(searchAssetsMock).toHaveBeenNthCalledWith(2, '', expect.objectContaining({
@@ -109,9 +118,26 @@ describe('smart-collections block', () => {
       orderBy: null,
       skipFacetsRequest: true,
     }));
+    expect(fetchAssetByIdMock).not.toHaveBeenCalled();
   });
 
-  it('links cards to a localized search that restores all persisted criteria', async () => {
+  it('uses the stored hero thumbnail without running a search when present', async () => {
+    listSmartCollectionsMock.mockResolvedValue([
+      createCollection({ thumbnail: 'urn:aaid:aem:hero-1' }),
+    ]);
+    fetchAssetByIdMock.mockResolvedValue(
+      populateAssetFromContentAIHit(createHit('hero-asset', 'hero.jpg', 'Hero image')),
+    );
+
+    const block = document.createElement('div');
+    await decorate(block);
+
+    expect(fetchAssetByIdMock).toHaveBeenCalledWith('urn:aaid:aem:hero-1');
+    expect(searchAssetsMock).not.toHaveBeenCalled();
+    expect(block.querySelector('img').alt).toBe('Hero image');
+  });
+
+  it('links cards to a localized search that restores the saved query and facets', async () => {
     listSmartCollectionsMock.mockResolvedValue([createCollection()]);
     searchAssetsMock.mockResolvedValue(createSearchResponse('asset-1', 'summer.jpg', 'Summer'));
 
@@ -122,11 +148,10 @@ describe('smart-collections block', () => {
     const url = new URL(link.href);
     expect(url.pathname).toBe('/en/search');
     expect(url.searchParams.get('query')).toBe('summer');
-    expect(url.searchParams.get('sortType')).toBe('dateCreated');
-    expect(url.searchParams.get('sortDirection')).toBe('ascending');
-    expect(JSON.parse(decodeURIComponent(url.searchParams.get('facetFilters')))).toEqual(
-      createCollection().criteria.facetFilters,
-    );
+    expect(JSON.parse(decodeURIComponent(url.searchParams.get('facetFilters')))).toEqual({
+      'xcm:keywords': { Beach: true },
+      'dc:format': { 'image/jpeg': true },
+    });
     expect(link.getAttribute('aria-label')).toBe('View Smart Collection: Summer Campaign');
   });
 
@@ -142,14 +167,14 @@ describe('smart-collections block', () => {
     expect(block.hasAttribute('aria-busy')).toBe(false);
   });
 
-  it('keeps cards visible with placeholders when thumbnail searches fail or return no hits', async () => {
+  it('keeps cards visible with placeholders when thumbnails fail or return no hits', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     listSmartCollectionsMock.mockResolvedValue([
       createCollection(),
       createCollection({
         id: 'collection-2',
         title: 'No Matches',
-        criteria: { query: 'missing' },
+        smartCollectionQuery: buildQuery({ text: 'missing' }),
       }),
     ]);
     searchAssetsMock

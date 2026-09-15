@@ -18,6 +18,7 @@ import {
 import { createImageGallery } from './image-gallery.js';
 import { createFacetsPanel } from './facets/index.js';
 import { initSmartCollectionBanner } from './smart-collection-banner.js';
+import { activateSmartCollectionFromUrl } from '../../../scripts/smart-collections/smart-collection-state.js';
 import { getSearchPlaceholders, getDaPlaceholders } from '../utils/placeholders.js';
 
 /**
@@ -78,6 +79,10 @@ export async function createMainApp(container) {
   if (bannerContainer) {
     initSmartCollectionBanner(bannerContainer);
   }
+
+  // Re-activate a Smart Collection opened from the collections list (via URL param) so the
+  // mutation-detection banner works for existing collections, not just freshly-created ones.
+  activateSmartCollectionFromUrl();
 
   // Subscribe to state changes for panels and mobile filter
   subscribe((currentState, prevState, updates) => {
