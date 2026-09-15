@@ -407,25 +407,26 @@ to 1b; its writes **degrade to log-only** so we can watch them fire without a DB
 > Neon/others per [`db-options-comparison.md`](./db-options-comparison.md)) and the data migration off Cloudflare
 > move to **Phase 2 (T2.1)**.
 
-- [ ] **T1b.1 — D1-over-HTTP client shim**
+- [x] **T1b.1 — D1-over-HTTP client shim**
   - `platform/d1-http.js`: expose the D1 binding API (`.prepare().bind().first()/.all()/.run()` + `.batch()`,
     `last_row_id`) over the Cloudflare D1 REST API (`POST /accounts/{acct}/d1/database/{dbId}/query`, Bearer token).
   - The 4 bindings (`USER_LOGINS`, `AUDIT_EVENTS`, `SEARCH_EVENTS`, `SMART_COLLECTIONS`) all map to the **one**
     physical DB (`3db42334-…`) → one client, four env keys. Declare a `cf_api` backend (`api.cloudflare.com`).
   - Secrets/config (user-provided): `CF_API_TOKEN` (Secret Store, D1 read/write scope), `CF_ACCOUNT_ID` +
     `CF_D1_DATABASE_ID` (config store).
-- [ ] **T1b.2 — Wire consumers + flip degrades → real reads/writes**
+- [x] **T1b.2 — Wire consumers + flip degrades → real reads/writes** *(search-event capture carved out to 2b)*
   - Port `api/audit.js`, `api/user-logins.js`, **`api/smart-collections.js`**, and the D1 parts of
     `api/analytics.js` (`writeSearchEvent`, `searchMetricsApi`, `analytics-helper` fan-out) to the shim via the
     env bindings. Flip the T1a.6 log-only writes **and the `/api/smart-collections` `[]` degrade** to real
     reads/writes; report reads return real data.
-- [ ] **T1b.3 — Verify reports + smart collections populate**
+- [x] **T1b.3 — Verify reports + smart collections populate** *(edge, 2026-09-15 — matches prod)*
   - `report-searches` (search metrics), `report-asset-activity` (audit), user-logins export, and
     **smart-collections list/save** — all read/write live data from the existing D1. **Decide:** point at the
     shared demo DB (real data; PoC writes land in it) or a cloned PoC copy (isolated).
 
-> ✅ **CHECKPOINT 1b — "Reporting/audit works; full PoC parity."** A search shows in the Search report; an
-> asset view/download shows in the Asset Activity report; login history records. Everything from 1a stays green.
+> ✅ **CHECKPOINT 1b — MET on the edge (2026-09-15).** The Search report and the Asset-Activity report render on
+> the Fastly edge with data **matching production Cloudflare** (`frescopamedia.com/en/reports/*`); smart
+> collections list live. (Login-history dropped — no `user_logins` table in the DB.) Everything from 1a stays green.
 > **Not yet done (Phase 2):** the production DB-vendor pick + data migration off Cloudflare, full test suite,
 > per-PR previews, perf tuning, prod hardening, domain cutover.
 

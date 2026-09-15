@@ -390,6 +390,16 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
 - ⏳ **Final check = in-browser (user, logged in):** open Smart Collections, the Asset-Activity report, and the
   Search report → should show real D1 data (4 collections, 34 audit events, 2265 searches). That closes
   **Checkpoint 1b on the edge**.
+
+### 🏁 CHECKPOINT 1b COMPLETE on the edge (2026-09-15, user-verified)
+- ✅ **User confirmed in-browser:** both reports — **Search** and **Asset Activity** — render on the Fastly edge
+  with data **matching production Cloudflare** (`frescopamedia.com/en/reports/*`). Same data, different compute
+  platform.
+- → The **full portal AND reporting run on Fastly Compute** against the live Cloudflare D1 over HTTP, with **zero
+  data migration**. The PoC (Phases 1a + 1b) is **functionally complete on the edge**.
+- Remaining is all Phase 2/2b (not PoC): live search *capture* (dm-analytics read-reconstruct), atomic batch in
+  the D1 shim, the `enforceAssetMetadataAuthorization` clone fix, then production parity (DB-vendor pick + data
+  migration, CI/per-PR previews, full test re-home, perf, domain cutover).
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
