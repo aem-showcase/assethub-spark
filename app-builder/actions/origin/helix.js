@@ -5,8 +5,9 @@
  * fonts, icons and media straight through (`new Response(resp.body, resp)`). On
  * App Builder the same pass-through is bounded by the 1 MB buffered-response cap
  * with no streaming (FINDINGS.md hard limit #1). We still perform the real fetch
- * so small assets (HTML shells, JSON, CSS, SVG) work and large ones surface the
- * documented wall via `toOwResponse`.
+ * so small assets (HTML shells, JSON, CSS, SVG) work; large ones are passed on
+ * to the platform, which rejects them with its own raw HTTP 400 (the documented
+ * wall is left exposed, not masked).
  */
 
 const HELIX_ORIGIN_RE = /^https:\/\/.*--.*--.*\.(?:aem|hlx)\.(live|page)$/;

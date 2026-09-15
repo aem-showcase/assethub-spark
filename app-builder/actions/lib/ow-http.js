@@ -16,9 +16,9 @@
 
 // I/O Runtime web actions return a single buffered result. Binary must be
 // base64-encoded with isBase64Encoded=true. The hard cap is ~1 MB (see
-// FINDINGS.md limit #1). We surface it as a constant so the proxy can detect
-// and report the wall instead of failing opaquely.
-export const RUNTIME_RESPONSE_LIMIT_BYTES = 1024 * 1024;
+// FINDINGS.md limit #1); oversized bodies are rejected by the platform itself
+// (HTTP 400 "Response is not valid 'message/http'.") — we deliberately let that
+// raw platform error surface rather than masking it.
 
 // NOTE: image/svg+xml is deliberately NOT here. The I/O Runtime web-action
 // gateway classifies svg as a binary/image projection, so returning it as a
@@ -67,10 +67,10 @@ export function toRequest(params) {
 /**
  * Convert a Fetch `Response` into the object a raw web action must return.
  *
- * Enforces/surfaces the 1 MB response cap: oversized bodies are the PoC's
- * headline hard limit, so rather than let the platform truncate silently we
- * return a 502 that documents the wall (unless the caller opts into truncation
- * for a demo).
+ * Does NOT enforce the 1 MB response cap: an oversized body is passed straight
+ * to Adobe I/O Runtime, which rejects the whole activation with its own raw
+ * HTTP 400 ("Response is not valid 'message/http'."). That platform error is
+ * intentionally left exposed (FINDINGS.md limit #1).
  */
 // Headers the platform recomputes for the returned body, or that describe the
 // original transfer encoding. `fetch()` transparently decompresses, so passing
@@ -86,7 +86,7 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
   'keep-alive',
 ]);
 
-export async function toOwResponse(response, { onOversize = 'error' } = {}) {
+export async function toOwResponse(response) {
   const headers = {};
   for (const [k, v] of response.headers.entries()) {
     if (!STRIPPED_RESPONSE_HEADERS.has(k.toLowerCase())) headers[k] = v;
@@ -95,26 +95,6 @@ export async function toOwResponse(response, { onOversize = 'error' } = {}) {
   const contentType = response.headers.get('content-type') || '';
   const buf = Buffer.from(await response.arrayBuffer());
   const isText = TEXTUAL_CONTENT_TYPE.test(contentType);
-
-  if (buf.byteLength > RUNTIME_RESPONSE_LIMIT_BYTES && onOversize === 'error') {
-    return {
-      statusCode: 502,
-      headers: {
-        'content-type': 'application/json',
-        'x-appbuilder-limit': 'response-1mb',
-      },
-      body: JSON.stringify({
-        error: 'AppBuilderResponseLimit',
-        message:
-          'Upstream body exceeds the Adobe I/O Runtime 1 MB web-action response cap ' +
-          '(non-configurable, no streaming). This is FINDINGS.md hard limit #1 — the ' +
-          'Worker streams this pass-through; App Builder cannot.',
-        upstreamBytes: buf.byteLength,
-        limitBytes: RUNTIME_RESPONSE_LIMIT_BYTES,
-        contentType,
-      }),
-    };
-  }
 
   if (isText) {
     return { statusCode: response.status, headers, body: buf.toString('utf-8') };
