@@ -1042,7 +1042,14 @@ export async function originDynamicMedia(request, env, ctx) {
   // Let fetch() (via undici) compute the correct Content-Length from the actual body.
   headers.delete('content-length');
 
-  const response = await fetch(url, {
+  // Asset-metadata GETs get an authorization check below (enforceAssetMetadataAuthorization)
+  // that must read the JSON body. Fastly doesn't auto-decompress subrequest bodies, so request
+  // metadata uncompressed — otherwise the check couldn't parse it and would fail open.
+  if (request.method === 'GET' && /^\/adobe\/assets\/.*\/metadata$/i.test(url.pathname)) {
+    headers.delete('accept-encoding');
+  }
+
+  let response = await fetch(url, {
     method: request.method,
     headers: headers,
     body: body,
@@ -1063,6 +1070,9 @@ export async function originDynamicMedia(request, env, ctx) {
     if (authResponse.status === 403) {
       return authResponse;
     }
+    // enforceAssetMetadataAuthorization consumed the body (no clone() on Fastly) and returned a
+    // reconstructed response — use it so the client still receives the intact metadata body.
+    response = authResponse;
   }
 
   handleDownloadAnalytics(url, request, response, env, ctx);

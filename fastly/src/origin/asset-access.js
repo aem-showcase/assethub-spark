@@ -217,19 +217,30 @@ async function enforceAssetMetadataAuthorization(authClauses, response, userEmai
     return response;
   }
 
-  // Parse response to get asset metadata
+  // CF->Fastly: backend responses have no `.clone()`. Read the body ONCE and hand back a
+  // reconstructed response for the caller (dm.js reassigns `response` to it). dm.js fetches
+  // metadata with accept-encoding stripped, so the body is uncompressed/readable here. This
+  // replaces the old `response.clone().json()` whose catch passed through — i.e. failed OPEN.
+  const bodyText = await response.text();
+  const rebuilt = () => {
+    const headers = new Headers(response.headers);
+    headers.delete('content-length'); // body re-emitted from text; let the runtime recompute
+    return new Response(bodyText, { status: response.status, headers });
+  };
+
   let responseData;
   try {
-    responseData = await response.clone().json();
+    responseData = JSON.parse(bodyText);
   } catch {
-    // If we can't parse JSON, pass through
-    return response;
+    // Unreadable body on an authorization gate → FAIL CLOSED (deny), not open.
+    console.warn(`[${userEmail || 'unknown'}] Asset metadata unreadable — denying (fail-closed)`);
+    return new Response('Forbidden', { status: 403 });
   }
 
   const assetMetadata = responseData?.assetMetadata;
   if (!assetMetadata) {
-    // No asset metadata to check, pass through
-    return response;
+    // No asset metadata to check, pass through (reconstructed).
+    return rebuilt();
   }
 
   // Check if asset metadata violates auth clauses
@@ -242,7 +253,7 @@ async function enforceAssetMetadataAuthorization(authClauses, response, userEmai
     return new Response('Forbidden', { status: 403 });
   }
 
-  return response;
+  return rebuilt();
 }
 
 export {
