@@ -407,6 +407,19 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
   non-breaking — parallel `fastly/` tree; `cloudflare/` untouched; not wired to any deploy).
 - ✅ Throwaway spike service **`fastly-spike`** (`oHCof7oHEfxKUEvhrxb4TB`, formally-modern-bird.edgecompute.app)
   **deleted**. Remaining Fastly service: `assethub-spark-fastly` (`6gEvztcAfMsbzzeBfCfBNP`, v4) = the PoC edge.
+
+### Phase 2b — metadata-auth fail-open FIXED + deployed (v5) (2026-09-15)
+- 🔒 **Fixed `enforceAssetMetadataAuthorization` fail-open on Fastly.** Old code did `response.clone().json()`;
+  `clone()` is unavailable on backend responses → the `catch` passed the response through **unchecked**. And
+  because `buildAssetAuthClauses` **always** includes the `DEMO_COMPANY` scope clause (so `authClauses` is
+  non-empty even for admins), this bypassed the metadata authorization check on **every** `/metadata` GET. Fix:
+  read the body once + reconstruct (no clone); **fail CLOSED** if unparseable; strip `accept-encoding` on
+  metadata fetches so the body is readable; `dm.js` `let response` + reassign to the reconstructed response.
+- ✅ **Validated on Viceroy:** metadata GET for a real asset (`frescopa-logo-inverted.svg`) → 200 with intact
+  body **via the read-reconstruct path** (clauses non-empty → the fixed path runs, not the early-return).
+  Regressions (search-metrics / audit / smart-collections) all 200.
+- ✅ **Deployed: service version 5 active** (code-only publish; `cf_api` + config + secrets carried forward; 7
+  backends; edge healthy). The metadata-auth control now enforces on the edge. Commit `90fa9fd`.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
