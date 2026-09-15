@@ -375,6 +375,21 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
   audit ✅, search-metrics ✅ — all proven against real D1 locally. user_logins dropped (no table). **Remaining for
   CP1b on the EDGE:** set `CF_API_TOKEN` in the edge Secret Store + add the `cf_api` backend & `CF_ACCOUNT_ID`/
   `CF_D1_DATABASE_ID` config to the live service via CLI + `fastly compute publish` (v3).
+
+### Phase 1b — D1 live on the edge: service version 4 (2026-09-15)
+- ✅ **Deployed D1 to the edge.** User set `CF_API_TOKEN` in the edge Secret Store (5 entries now). Added
+  `CF_ACCOUNT_ID` + `CF_D1_DATABASE_ID` to the `config` store; added the **`cf_api`** backend
+  (api.cloudflare.com, TLS + SNI) via `fastly backend create --autoclone` → draft v3, **activated v3**, then
+  `fastly compute publish` → **v4 active** (7 backends incl. `cf_api` + the D1 wasm). Manual backend/config adds
+  are required because `[setup]` only runs on a service's first publish.
+  - Gotcha: `read -rs … | … --stdin` mangled the flag to `--stdi` in the paste → the **interactive**
+    `secret-store-entry create` prompt (no flag) worked cleanly.
+- ✅ **Edge health verified:** `/`→302, `/public/welcome`→200, `/auth/login`→302; D1 report endpoints
+  (`/api/analytics/search-metrics`, `/api/audit/summary`, `/api/smart-collections`) → 302 (routed, behind
+  `withAuthentication`). `DISABLE_AUTHENTICATION` stays `"false"` on the edge.
+- ⏳ **Final check = in-browser (user, logged in):** open Smart Collections, the Asset-Activity report, and the
+  Search report → should show real D1 data (4 collections, 34 audit events, 2265 searches). That closes
+  **Checkpoint 1b on the edge**.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
