@@ -5,7 +5,7 @@ import {
   fetchAssetById,
 } from '../../scripts/asset-transformers.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
-import { buildSmartCollectionSearchParams, parseSmartCollectionQuery } from '../../scripts/smart-collections/smart-collection-query.js';
+import { buildSmartCollectionSearchParams, parseSmartCollectionQuery, SMART_COLLECTION_URL_PARAM } from '../../scripts/smart-collections/smart-collection-query.js';
 import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import { createPicture } from '../search-results/components/picture.js';
 
@@ -39,7 +39,9 @@ export function buildFacetFilters(facetState = {}) {
  */
 export function buildCollectionUrl(collection) {
   const params = buildSmartCollectionSearchParams(collection.smartCollectionQuery);
-  return `${localizePath('/search')}${params ? `?${params}` : ''}`;
+  const search = new URLSearchParams(params);
+  search.set(SMART_COLLECTION_URL_PARAM, collection.id);
+  return `${localizePath('/search')}?${search.toString()}`;
 }
 
 /**

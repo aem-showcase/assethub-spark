@@ -17,8 +17,10 @@ import {
   DEFAULT_SMART_COLLECTION_LAYOUT,
 } from './smart-collection-types.js';
 
-/** Upper bound for how many collections we scan when listing Smart Collections. */
-const LIST_SCAN_LIMIT = 100;
+/** Per-request page size for scanning collections (the collection-search endpoint rejects
+ * larger page sizes with 400), and the max pages we scan when listing Smart Collections. */
+const LIST_PAGE_SIZE = 40;
+const LIST_MAX_PAGES = 10;
 
 let sharedClient = null;
 
@@ -81,13 +83,22 @@ export function transformApiToSmartCollection(apiCollection) {
  * @returns {Promise<import('./smart-collection-types.js').SmartCollection[]>}
  */
 export async function listSmartCollections() {
-  const { items = [] } = await getClient().searchCollections({
-    relationship: 'all',
-    limit: LIST_SCAN_LIMIT,
-  });
-  return items
-    .filter(isSmartCollection)
-    .map(transformApiToSmartCollection);
+  const client = getClient();
+  const smart = [];
+  let cursor;
+  for (let page = 0; page < LIST_MAX_PAGES; page += 1) {
+    // Sequential by necessity: each page request needs the previous page's cursor.
+    // eslint-disable-next-line no-await-in-loop
+    const { items = [], cursor: nextCursor } = await client.searchCollections({
+      relationship: 'all',
+      limit: LIST_PAGE_SIZE,
+      cursor,
+    });
+    smart.push(...items.filter(isSmartCollection));
+    if (!nextCursor || items.length === 0) break;
+    cursor = nextCursor;
+  }
+  return smart.map(transformApiToSmartCollection);
 }
 
 /**

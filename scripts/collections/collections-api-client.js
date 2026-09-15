@@ -238,9 +238,6 @@ export class DynamicMediaCollectionsClient {
         searchBody.visibility = visibility;
       }
 
-      // eslint-disable-next-line no-console
-      console.log('🔍 [Search Collections] Request body:', JSON.stringify(searchBody, null, 2));
-
       const { data } = await this.makeRequest({
         url: '/adobe/assets/contentai/collections/search',
         method: 'POST',
@@ -251,9 +248,6 @@ export class DynamicMediaCollectionsClient {
       const results = data.hits?.results || [];
       const total = data.search_metadata?.totalCount?.total || 0;
       const nextCursor = data.cursor;
-
-      // eslint-disable-next-line no-console
-      console.log('🔍 [Search Collections] Response hits:', results.length);
 
       return {
         items: results,
