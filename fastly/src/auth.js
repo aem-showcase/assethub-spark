@@ -153,7 +153,7 @@ export async function withAuthentication(request, env) {
       email: 'dev@localhost',
       name: 'Local Dev',
       roles: ['admin', 'employee'],
-      permissions: ['preview', 'admin-reports', 'manage-rights', 'admin-rights', 'sudo'],
+      permissions: ['preview', 'admin-reports', 'manage-rights', 'admin-rights', 'sudo', 'view-audit'],
       countries: ['us'],
       userId: 'local-dev',
       // Entra subject id (real users get idToken.oid — see user.js). Sub-scoped consumers

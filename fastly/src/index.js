@@ -16,6 +16,7 @@ import { originDynamicMedia } from './origin/dm.js';
 import { originCoa, originCoaImage } from './origin/coa.js';
 import { notificationsApi } from './api/notifications.js';
 import { smartCollectionsApi } from './api/smart-collections.js';
+import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit.js';
 import { isUserExcluded, parsePageExclusions } from './origin/page-access.js';
 import { apiUser } from './user.js';
 import { cors } from './util/itty.js';
@@ -123,6 +124,11 @@ router
   // Smart collections (D1-backed via the D1-over-HTTP shim; degrades to [] if D1 unconfigured)
   .all('/api/smart-collections', smartCollectionsApi)
   .all('/api/smart-collections/*', smartCollectionsApi)
+
+  // Asset-activity audit (D1): record view/download events + summary/export reports
+  .post('/api/audit/event', auditPostEvent)
+  .get('/api/audit/summary', auditGetSummary)
+  .get('/api/audit/export.csv', auditGetExportCsv)
 
   // Unknown /api/* -> clean JSON 404 (never proxy to Helix, whose HTML breaks frontend JSON.parse).
   // Matches the CF worker's `.all('/api/*', () => error(404))`; covers not-yet-ported endpoints

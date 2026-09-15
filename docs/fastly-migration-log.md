@@ -337,6 +337,25 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
   campaign", "Created-by-app-builder"), DELETE → 204, GET → gone. Proves `prepare/bind/all/run`, numbered params
   (incl. `?8` reuse), `meta.changes` 404-detection, and response parsing all work against live Cloudflare D1.
   Test row cleaned up (no residue). → shim is trustworthy; safe to port the remaining consumers on it.
+
+### Phase 1b — scope trimmed to "what has data + works"; audit ported + proven (2026-09-15)
+- 📊 **Row counts on the live D1** (via REST): `audit_events` 34, `search_events` 2265, `search_event_markets`
+  1564, `smart_collections` 4, **`user_logins` = no such table** (absent from sqlite_master; count errored).
+- 🧭 **Scope (user: "only port what currently has data and is working in Spark"):** **DROP `user_logins`** — the
+  table doesn't exist in this DB, so login-history was never actually working (upsertUserLogin silently fails into
+  its try/catch). Port **audit** (34 rows) and **search-metrics** (2265 rows). Also drops the auth.js login-flip
+  for upsertUserLogin (nothing to write to).
+- ✅ **audit ported + proven.** `api/audit.js` (+ `util/authz.js`, `audit/asset-audit-constants.js`; reuses
+  `auth/permissions.js`) → routed `/api/audit/{event,summary,export.csv}`. Validated against real D1 on Viceroy:
+  `/api/audit/summary` → 200 real aggregates (24 events in the default month window of 34 total; 4 users; 11
+  assets; byAction {collection-add:16, download:5, share-link-copy:3}; weekly timeline; 11 top assets) — the
+  ~10-query summary **fan-out works as ~10 concurrent D1 REST calls**; `/api/audit/export.csv` → 200
+  (`x-total-rows: 24`). smart-collections unaffected.
+- 🐛 Bypass-user fidelity: added `view-audit` to the local bypass user's permissions (`hasPermission` is
+  exact-match, no sudo wildcard) so audit reports are testable under `DISABLE_AUTHENTICATION`. Edge unaffected.
+- ⏭️ Last piece: **search-metrics** — extract `writeSearchEvent` + `searchMetricsApi` (D1 parts only) from the
+  2377-line `analytics.js`; wire `analytics-helper('search')` → `writeSearchEvent`; route
+  `/api/analytics/search-metrics`.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
