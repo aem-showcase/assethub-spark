@@ -400,6 +400,13 @@ on Viceroy with real DM/COA creds (`DISABLE_AUTHENTICATION=true` locally).
 - Remaining is all Phase 2/2b (not PoC): live search *capture* (dm-analytics read-reconstruct), atomic batch in
   the D1 shim, the `enforceAssetMetadataAuthorization` clone fix, then production parity (DB-vendor pick + data
   migration, CI/per-PR previews, full test re-home, perf, domain cutover).
+
+### PoC wrapped (2026-09-15)
+- ✅ Write-up: `docs/fastly-poc-results.md` (stakeholder summary).
+- ✅ Branch `fastly-poc` pushed; **PR #66** → https://github.com/aem-showcase/assethub-spark/pull/66 (additive /
+  non-breaking — parallel `fastly/` tree; `cloudflare/` untouched; not wired to any deploy).
+- ✅ Throwaway spike service **`fastly-spike`** (`oHCof7oHEfxKUEvhrxb4TB`, formally-modern-bird.edgecompute.app)
+  **deleted**. Remaining Fastly service: `assethub-spark-fastly` (`6gEvztcAfMsbzzeBfCfBNP`, v4) = the PoC edge.
 - ⏳ **Only remaining user step for CP1a:** register redirect URI
   `https://annually-positive-egret.edgecompute.app/auth/callback` in the Entra app `93e6431f-…`
   (Azure Portal → App registrations → **Authentication → Web → Redirect URIs**). Then login → browse →
