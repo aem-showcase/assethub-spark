@@ -29,11 +29,20 @@
 #
 # Exit codes: 0 = copied + verified; 1 = usage/auth error; 2 = copy failed;
 # 3 = source empty (nothing to copy); 4 = verification mismatch.
+#
+# DA_MOCK=1 — eval/test-only mode. Skips every real network call (list_json,
+# copy_entry) and instead reads/writes local files under $DA_MOCK_DIR, so the
+# script can be exercised end-to-end (paging, repair pass, verification) with
+# no live admin.da.live credentials. Never set in a real run — this exists
+# solely for the local eval harness (see evals/runner). All token/org/repo/
+# companyKey validation above this point still runs unchanged.
 
 set -euo pipefail
 
 ADMIN="${DA_ADMIN_BASE:-https://admin.da.live}"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+DA_MOCK="${DA_MOCK:-}"
+DA_MOCK_DIR="${DA_MOCK_DIR:-$ROOT/.da-mock}"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -85,14 +94,18 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ -z "$TOKEN_FILE" ]; then
-  TOKEN_FILE="$ROOT/token.env"
+if [ -z "$DA_MOCK" ]; then
+  if [ -z "$TOKEN_FILE" ]; then
+    TOKEN_FILE="$ROOT/token.env"
+  fi
+  [ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (create it with DA_TOKEN=...)"
+  DA_TOKEN="$(grep -E '^DA_TOKEN=' "$TOKEN_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"' ' | tr -d '\r')"
+  [ -n "$DA_TOKEN" ] || die "DA_TOKEN missing/empty in $TOKEN_FILE"
+  AUTH=(-H "Authorization: Bearer $DA_TOKEN")
+else
+  echo ">> DA_MOCK=1 — skipping real DA_TOKEN/network, reading fixture docs from $DA_MOCK_DIR" >&2
+  AUTH=()
 fi
-[ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (create it with DA_TOKEN=...)"
-DA_TOKEN="$(grep -E '^DA_TOKEN=' "$TOKEN_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"' ' | tr -d '\r')"
-[ -n "$DA_TOKEN" ] || die "DA_TOKEN missing/empty in $TOKEN_FILE"
-
-AUTH=(-H "Authorization: Bearer $DA_TOKEN")
 
 # The demo copies ONLY the three top-level content trees that make up the portal:
 #   en      -> the authored pages (incl. nav/footer and reports/my-dam subtrees)
@@ -108,11 +121,43 @@ is_allowed_top() {
   return 1
 }
 
+# mock_list_json <subpath> -> same shape list_json would return, built by
+# walking real files under $DA_MOCK_DIR/$ORG/$REPO/<subpath> (DA_MOCK=1 only).
+# One JSON page, no continuation-token looping needed for a local dir walk.
+mock_list_json() {
+  local sub="$1" base="$DA_MOCK_DIR/$ORG/$REPO"
+  local scan="$base"; [ -n "$sub" ] && scan="$base/$sub"
+  [ -d "$scan" ] || { printf '[]'; return 0; }
+  python3 -c '
+import json, os, sys
+org, repo, base, scan = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+out = []
+for root, dirs, files in os.walk(scan):
+    rel_root = os.path.relpath(root, base)
+    if rel_root == ".":
+        rel_root = ""
+    for d in dirs:
+        rel = (rel_root + "/" + d) if rel_root else d
+        out.append({"path": "/%s/%s/%s" % (org, repo, rel)})
+    for f in files:
+        name, ext = os.path.splitext(f)
+        ext = ext.lstrip(".")
+        rel = (rel_root + "/" + name) if rel_root else name
+        out.append({"path": "/%s/%s/%s" % (org, repo, rel), "ext": ext})
+print(json.dumps(out))
+' "$ORG" "$REPO" "$base" "$scan"
+}
+
 # list_json <subpath> -> concatenated JSON array of every page of a DA list,
 # following the da-continuation-token response header. Fails hard on non-200
 # (a 404/403 is NOT "empty" — it is a bad token/path).
 list_json() {
-  local sub="$1" url="$ADMIN/list/$ORG/$REPO" tok="" hdrs body code combined="[]"
+  local sub="$1"
+  if [ -n "$DA_MOCK" ]; then
+    mock_list_json "$sub"
+    return 0
+  fi
+  local url="$ADMIN/list/$ORG/$REPO" tok="" hdrs body code combined="[]"
   [ -n "$sub" ] && url="$url/$sub"
   while :; do
     hdrs="$(mktemp)"; body="$(mktemp)"
@@ -191,7 +236,19 @@ recursive_files() {
 # copy_entry <relpath> — copy one entry (recursively for folders) into
 # /{company}/<relpath>, looping on the 206 continuation token until 204.
 copy_entry() {
-  local rel="$1" dest="/$ORG/$REPO/$DEST_ROOT/$1" url="$ADMIN/copy/$ORG/$REPO/$1"
+  local rel="$1"
+  if [ -n "$DA_MOCK" ]; then
+    local src="$DA_MOCK_DIR/$ORG/$REPO/$rel" dst="$DA_MOCK_DIR/$ORG/$REPO/$DEST_ROOT/$rel"
+    if [ -d "$src" ]; then
+      mkdir -p "$dst"
+      cp -R "$src/." "$dst/" 2>/dev/null || true
+    elif [ -f "$src" ]; then
+      mkdir -p "$(dirname "$dst")"
+      cp "$src" "$dst"
+    fi
+    return 0
+  fi
+  local dest="/$ORG/$REPO/$DEST_ROOT/$1" url="$ADMIN/copy/$ORG/$REPO/$1"
   local tok="" code tmp
   while :; do
     tmp="$(mktemp)"

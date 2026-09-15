@@ -38,12 +38,19 @@
 #
 # Reads DA_TOKEN (never printed). Exit codes: 0 = all paths previewed+published;
 # 1 = usage/auth/token error; 2 = one or more paths failed; 3 = nothing to publish.
+#
+# DA_MOCK=1 — eval/test-only mode (see copy-folder.sh for the same convention).
+# Skips the token probe and every preview/live network call; enumerates docs
+# from local files under $DA_MOCK_DIR instead of a real DA list. Never set in
+# a real run.
 
 set -euo pipefail
 
 DA_ADMIN="${DA_ADMIN_BASE:-https://admin.da.live}"
 HLX_ADMIN="${HLX_ADMIN_BASE:-https://admin.hlx.page}"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+DA_MOCK="${DA_MOCK:-}"
+DA_MOCK_DIR="${DA_MOCK_DIR:-$ROOT/.da-mock}"
 
 # Browser User-Agent — reused verbatim from scripts/assets/scrape-site.js so DA
 # admin calls made from a non-browser client are not 403'd. Keep in sync there.
@@ -72,33 +79,47 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ -z "$TOKEN_FILE" ] && TOKEN_FILE="$ROOT/token.env"
-[ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (create it with DA_TOKEN=...)"
-DA_TOKEN="$(grep -E '^DA_TOKEN=' "$TOKEN_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"' ' | tr -d '\r')"
-[ -n "$DA_TOKEN" ] || die "DA_TOKEN missing/empty in $TOKEN_FILE"
+if [ -n "$DA_MOCK" ]; then
+  UA=(); AUTH=()
+else
+  [ -z "$TOKEN_FILE" ] && TOKEN_FILE="$ROOT/token.env"
+  [ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (create it with DA_TOKEN=...)"
+  DA_TOKEN="$(grep -E '^DA_TOKEN=' "$TOKEN_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"' ' | tr -d '\r')"
+  [ -n "$DA_TOKEN" ] || die "DA_TOKEN missing/empty in $TOKEN_FILE"
 
-# Every DA/Helix admin call carries the browser UA (see header note #1).
-UA=(-H "User-Agent: $BROWSER_UA")
-AUTH=(-H "Authorization: Bearer $DA_TOKEN")
+  # Every DA/Helix admin call carries the browser UA (see header note #1).
+  UA=(-H "User-Agent: $BROWSER_UA")
+  AUTH=(-H "Authorization: Bearer $DA_TOKEN")
+fi
 
-# --- Token status probe (header note #2) --------------------------------------
-# Prove the token works BEFORE any publish. A non-200 here is the only signal
-# that justifies asking for a fresh token; a later per-path 403 is a publish
-# problem for that path, not a token problem.
-probe="$(curl -sS -o /dev/null -w '%{http_code}' "${UA[@]}" "${AUTH[@]}" \
-          "$DA_ADMIN/list/$ORG/$REPO/$DEST_ROOT" 2>/dev/null)" || probe="000"
-if [ "$probe" != "200" ]; then
-  die "DA token status probe returned HTTP $probe for /$ORG/$REPO/$DEST_ROOT. \
+if [ -n "$DA_MOCK" ]; then
+  echo ">> DA_MOCK=1 — skipping token probe and real DA/Helix calls." >&2
+else
+  # --- Token status probe (header note #2) ------------------------------------
+  # Prove the token works BEFORE any publish. A non-200 here is the only signal
+  # that justifies asking for a fresh token; a later per-path 403 is a publish
+  # problem for that path, not a token problem.
+  probe="$(curl -sS -o /dev/null -w '%{http_code}' "${UA[@]}" "${AUTH[@]}" \
+            "$DA_ADMIN/list/$ORG/$REPO/$DEST_ROOT" 2>/dev/null)" || probe="000"
+  if [ "$probe" != "200" ]; then
+    die "DA token status probe returned HTTP $probe for /$ORG/$REPO/$DEST_ROOT. \
 This is the token-freshness signal: refresh DA_TOKEN in $TOKEN_FILE and re-run. \
 (A 200 here would mean any later failure is a command/path problem, not the token.)"
+  fi
+  echo ">> DA token verified (HTTP 200) for /$ORG/$REPO/$DEST_ROOT."
 fi
-echo ">> DA token verified (HTTP 200) for /$ORG/$REPO/$DEST_ROOT."
 
 # --- Enumerate the copied company-scoped docs (with browser UA) ---------------
 # Mirrors copy-folder.sh's list_json/entries paging; emits each FILE doc's path
 # relative to /{org}/{repo}, i.e. companies/<companyKey>/<...>.<ext>.
 list_files() {
-  local sub="$1" url="$DA_ADMIN/list/$ORG/$REPO/$sub" tok="" hdrs body code combined="[]"
+  # NOTE: `sub` must be assigned in its own `local` statement before it's used
+  # to build `url` below — under `set -u`, a later var in the SAME `local`
+  # statement cannot see an earlier one's just-assigned value yet, so
+  # `local sub="$1" url="...$sub"` throws "sub: unbound variable" on the very
+  # first call (confirmed by direct reproduction; not a recursion/dirs bug).
+  local sub="$1"
+  local url="$DA_ADMIN/list/$ORG/$REPO/$sub" tok="" hdrs body code combined="[]"
   while :; do
     hdrs="$(mktemp)"; body="$(mktemp)"
     code="$(curl -sS "${UA[@]}" "${AUTH[@]}" -D "$hdrs" -o "$body" -w '%{http_code}' \
@@ -144,8 +165,22 @@ for it in data:
   for d in $dirs; do list_files "$d"; done
 }
 
+# mock_list_files <subpath> -> emit each FILE doc's relpath under $DEST_ROOT,
+# built by walking real files under $DA_MOCK_DIR/$ORG/$REPO/<subpath>
+# (DA_MOCK=1 only) — same output shape as list_files.
+mock_list_files() {
+  local sub="$1" base="$DA_MOCK_DIR/$ORG/$REPO"
+  local scan="$base/$sub"
+  [ -d "$scan" ] || return 0
+  ( cd "$scan" && find . -type f | sed "s#^\./##" | sed "s#^#$sub/#" )
+}
+
 echo ">> Enumerating copied docs under /$DEST_ROOT ..."
-mapfile -t DOCS < <(list_files "$DEST_ROOT" | sort -u)
+if [ -n "$DA_MOCK" ]; then
+  mapfile -t DOCS < <(mock_list_files "$DEST_ROOT" | sort -u)
+else
+  mapfile -t DOCS < <(list_files "$DEST_ROOT" | sort -u)
+fi
 [ "${#DOCS[@]}" -gt 0 ] || { echo ">> No documents found under /$DEST_ROOT — nothing to publish."; exit 3; }
 echo ">> ${#DOCS[@]} document(s) to publish."
 
@@ -156,6 +191,10 @@ echo ">> ${#DOCS[@]} document(s) to publish."
 # (header note #4). Prints "OK"/"FAIL <code>".
 hlx_call() {
   local action="$1" rel="$2" path code
+  if [ -n "$DA_MOCK" ]; then
+    printf 'OK'
+    return 0
+  fi
   path="$rel"
   case "$path" in *.html) path="${path%.html}" ;; esac
   local url="$HLX_ADMIN/$action/$ORG/$REPO/main/$path"

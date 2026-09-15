@@ -257,6 +257,35 @@ describe('verify: structural-residue', () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it('does not flag a hex value in the semantic-color allowlist `hexes` list, regardless of file/selector', () => {
+    const root = makeRepo();
+    try {
+      mkdirSync(join(root, 'blocks', 'header'), { recursive: true });
+      mkdirSync(join(root, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand'), { recursive: true });
+      writeFileSync(
+        join(root, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand', 'semantic-color-allowlist.json'),
+        JSON.stringify({ selectorPatterns: [], filePatterns: [], hexes: ['#FFFFFF'] }),
+      );
+      // A generic neutral (#FFFFFF) sits in an otherwise brand-adjacent file
+      // under a selector no selectorPatterns regex could reasonably cover —
+      // this is the axis file/selectorPatterns can't handle: excluding the
+      // hex VALUE itself, wherever it appears.
+      writeFileSync(
+        join(root, 'blocks', 'header', 'profile.css'),
+        '.brand { color: #008446; } .card-surface { background: #ffffff; }',
+      );
+      const profilePath = join('blocks', 'header', 'profile.css');
+      const baseBrand = {
+        oldHexes: ['#00647D'],
+        allBaseHexes: [
+          { hex: '#00647D', file: profilePath, selector: '.brand' },
+          { hex: '#FFFFFF', file: profilePath, selector: '.card-surface' },
+        ],
+      };
+      expect(checkStructuralResidue(root, baseBrand).pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it('FAILS with a clear message when baseBrand.allBaseHexes is missing', () => {
     const root = makeRepo();
     try {

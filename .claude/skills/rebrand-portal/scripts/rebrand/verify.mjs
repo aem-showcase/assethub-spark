@@ -178,19 +178,26 @@ export function checkResidue(repoRoot, baseBrand) {
 // surviving unchanged is now caught.
 function loadSemanticAllowlist(repoRoot) {
   const p = join(repoRoot, '.claude', 'skills', 'rebrand-portal', 'scripts', 'rebrand', 'semantic-color-allowlist.json');
-  if (!existsSync(p)) return { selectorPatterns: [], filePatterns: [] };
+  if (!existsSync(p)) return { selectorPatterns: [], filePatterns: [], hexes: new Set() };
   try {
     const raw = JSON.parse(readFileSync(p, 'utf8'));
     return {
       selectorPatterns: (raw.selectorPatterns || []).map((s) => new RegExp(s, 'i')),
       filePatterns: (raw.filePatterns || []).map((s) => new RegExp(s, 'i')),
+      hexes: new Set((raw.hexes || []).map((h) => h.toUpperCase())),
     };
   } catch {
-    return { selectorPatterns: [], filePatterns: [] };
+    return { selectorPatterns: [], filePatterns: [], hexes: new Set() };
   }
 }
 
-function isAllowlisted(allowlist, file, selector) {
+// hex is checked independently of file/selector: a hex value declared in
+// `hexes` (e.g. a generic neutral white/black/gray) is never brand residue,
+// regardless of which brand-adjacent file or selector it turns up in — this
+// is the axis file/selectorPatterns can't cover (a neutral can recur across
+// hundreds of selectors; listing each one doesn't scale).
+function isAllowlisted(allowlist, file, selector, hex) {
+  if (hex && allowlist.hexes.has(hex.toUpperCase())) return true;
   if (allowlist.filePatterns.some((re) => re.test(file))) return true;
   if (selector && allowlist.selectorPatterns.some((re) => re.test(selector))) return true;
   return false;
@@ -235,7 +242,7 @@ export function checkStructuralResidue(repoRoot, baseBrand) {
   const hits = [];
   for (const entry of current) {
     if (!qualifyingFiles.has(entry.file)) continue;
-    if (isAllowlisted(allowlist, entry.file, entry.selector)) continue;
+    if (isAllowlisted(allowlist, entry.file, entry.selector, entry.hex)) continue;
     const key = `${entry.file}::${entry.selector || ''}`;
     const wasHere = byKey.get(key);
     if (wasHere && wasHere.has(entry.hex)) {

@@ -89,7 +89,7 @@ async function discoverEvals() {
 // ---------------------------------------------------------------------------
 // Run one `claude -p` invocation, return the parsed result JSON.
 // ---------------------------------------------------------------------------
-function claude({ prompt, cwd, permissionMode, jsonSchema, model }) {
+function claude({ prompt, cwd, permissionMode, jsonSchema, model, env }) {
   return new Promise((resolve, reject) => {
     const cliArgs = ["-p", prompt, "--output-format", "json"];
     if (permissionMode) cliArgs.push("--permission-mode", permissionMode);
@@ -99,6 +99,7 @@ function claude({ prompt, cwd, permissionMode, jsonSchema, model }) {
     const child = spawn("claude", cliArgs, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
+      env: env ? { ...process.env, ...env } : process.env,
     });
     let out = "";
     let err = "";
@@ -587,6 +588,10 @@ async function runOnce(evalObj, i) {
     cwd: workRoot,
     permissionMode,
     model: args.model,
+    // DA_MOCK lets copy-folder.sh (Step 3) run against local fixture files
+    // under skeleton/.da-mock instead of a real admin.da.live call, so evals
+    // can exercise past Step 3 without live DA_TOKEN/network credentials.
+    env: { DA_MOCK: "1", DA_MOCK_DIR: join(workRoot, ".da-mock") },
   });
   const transcript = runRes.result ?? "";
   await writeFile(join(runDir, "transcript.txt"), transcript);

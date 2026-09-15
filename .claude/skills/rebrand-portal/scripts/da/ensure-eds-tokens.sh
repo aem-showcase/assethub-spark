@@ -8,11 +8,16 @@
 # Reads DA_TOKEN from token.env. Reuses an existing valid HLX_ADMIN_TOKEN when
 # present; otherwise mints a new Helix Admin API key from DA_TOKEN and writes it
 # back to token.env. Never prints token values.
+#
+# DA_MOCK=1 — eval/test-only mode (see copy-folder.sh for the same convention).
+# Skips every real network call and writes a canned HLX_ADMIN_TOKEN. Never set
+# in a real run.
 
 set -euo pipefail
 
 ADMIN_DA="${DA_ADMIN_BASE:-https://admin.da.live}"
 ADMIN_HLX="${HELIX_ADMIN_BASE:-${HLX_ADMIN_BASE:-https://admin.hlx.page}}"
+DA_MOCK="${DA_MOCK:-}"
 
 die() {
   echo "ERROR: $*" >&2
@@ -75,6 +80,17 @@ if (re.test(text)) {
 fs.writeFileSync(tokenFile, text, { mode: 0o600 });
 " "$key" "$value_file" "$TOKEN_FILE"
 }
+
+if [ -n "$DA_MOCK" ]; then
+  echo "DA_MOCK=1 — skipping real DA/Helix network calls." >&2
+  echo "DA_TOKEN verified for $ORG/$SITE."
+  tmp_mock="$(mktemp)"
+  printf 'mock-hlx-admin-token' > "$tmp_mock"
+  write_env_value HLX_ADMIN_TOKEN "$tmp_mock"
+  rm -f "$tmp_mock"
+  echo "HLX_ADMIN_TOKEN minted, stored, and verified for $ORG/$SITE."
+  exit 0
+fi
 
 DA_TOKEN="$(read_env_value DA_TOKEN)"
 [ -n "$DA_TOKEN" ] || die "DA_TOKEN missing/empty in $TOKEN_FILE"

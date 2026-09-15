@@ -5,7 +5,9 @@ description: >
   rebrand it, enrich company assets, and create scoped collections using the
   existing environment. Use when the user says: "create a demo portal for
   [company]", "rebrand the portal for [company]", "set up a demo for
-  [company]", "enrich [company]'s assets", "build collections for [company]".
+  [company]", "enrich [company]'s assets", "build collections for [company]",
+  "change the color/icon of [page/portal]", "restyle [page/block] like
+  [url]", "recolor it to match [url]", "give it [brand]'s look/colors".
 ---
 
 # Customer Migration — Demo
@@ -22,17 +24,6 @@ Nothing is provisioned. Dedicated portal path: disabled — see `NON-DEMO-DISABL
 
 ⚠️ **Read `docs/invariants.md` in full before acting.** The rules there
 (I1–I9) govern every step and are not repeated below.
-
-## Missing required inputs
-
-Before doing anything, check the user's request for two required inputs:
-
-- **Company name** — needed for every step (`companyKey`, DA folder, branch). Never infer it from a source URL (e.g. don't assume "acme" from `acme.com`).
-- **Source site URL** — needed for design matching (Step 4 / excat). Required even when `assetsLane` is `enrich-existing`.
-
-If both are missing: ask for both in one message, after the Step 1 plain-sentence intro (I1 — never open with a question).
-If one is missing: ask only for that one.
-If both are present in the request: proceed without asking.
 
 ## Capture the intent first (`full` / `rebrand` / `look`)
 
@@ -98,6 +89,20 @@ into Steps 5–6 the same way a deferred-assets `full` run does.
 
 ▶ **Read now, before acting on a `look`/`rebrand` request:**
 `.claude/skills/rebrand-portal/docs/partial-runs.md`
+
+## Missing required inputs
+
+Once the intent is known (previous section), check the user's request for
+two required inputs — every intent (`full`, `rebrand`, `look`) needs both,
+since the mandatory foundation (branch + copying the site's content under
+the company's name) runs regardless of how much else is asked for:
+
+- **Company name** — needed for every step (`companyKey`, DA folder, branch). Never infer it from a source URL (e.g. don't assume "acme" from `acme.com`).
+- **Source site URL** — needed for design matching (Step 4 / excat). Required even when `assetsLane` is `enrich-existing`.
+
+If both are missing: ask for both in one message, after the Step 1 plain-sentence intro (I1 — never open with a question). Ask in plain, everyday language — e.g. "What's the company name, and do you have a link to the site whose look you want to match?" — never using internal terms like `companyKey`, `intent`, or `daFolder`.
+If one is missing: ask only for that one, same plain-language rule.
+If both are present in the request: proceed without asking.
 
 ## The demo — one sequence (the single source of truth)
 
@@ -318,6 +323,14 @@ new gates such as Step 4g's color verification before assets.
    `rebrand`/`look` run runs the foundation + Step 4 (its buckets) and stops
    after the PR, per "Capture the intent first" and `docs/partial-runs.md`.
    Do not narrate the step list back to the customer.
+
+   **Whatever you say to the customer at this point must be plain outcome
+   language only (I1)** — the same rule as everywhere else in this file.
+   Never let words like "routing," "worktree," "DA copy," "the design tool,"
+   `look`/`rebrand`/`full`, `styleScope`, or "Step N" appear in a
+   customer-facing message. Say what will exist when it's done ("a copy of
+   the portal with Acme's colors, shared as a link"), not how you'll build
+   it.
 
 ## Agent invocation examples (operator-facing)
 

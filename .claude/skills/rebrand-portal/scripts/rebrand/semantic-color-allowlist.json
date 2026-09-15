@@ -1,5 +1,5 @@
 {
-  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "description": "Selectors/custom-properties/hex values whose literals are semantic UI state or generic neutrals, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found. `hexes` excludes a specific hex value everywhere it appears (any file/selector) — use it for generic neutrals (white/black/grays) that happen to sit in a brand-adjacent file but were never brand-related; use `selectorPatterns`/`filePatterns` when the exclusion is about where the hex appears, not the hex value itself.",
   "selectorPatterns": [
     "\\.editing-mode",
     "\\.impersonating",
@@ -12,5 +12,6 @@
   ],
   "filePatterns": [
     "^scripts/analytics/"
-  ]
+  ],
+  "hexes": []
 }
