@@ -26,7 +26,7 @@ import {
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
 import { SMART_COLLECTION_TYPE } from '../../scripts/smart-collections/smart-collection-types.js';
-import { buildSmartCollectionSearchParams } from '../../scripts/smart-collections/smart-collection-query.js';
+import { buildSmartCollectionSearchParams, SMART_COLLECTION_URL_PARAM } from '../../scripts/smart-collections/smart-collection-query.js';
 
 /**
  * @param {Object} collection - Internal collection (from transformApiCollectionToInternal).
@@ -622,7 +622,9 @@ export default async function decorate(block) {
   const onView = (collection) => {
     if (isSmartCollection(collection)) {
       const params = buildSmartCollectionSearchParams(collection.smartCollectionQuery);
-      window.location.href = `${localizePath('/search')}${params ? `?${params}` : ''}`;
+      const search = new URLSearchParams(params);
+      search.set(SMART_COLLECTION_URL_PARAM, collection.id);
+      window.location.href = `${localizePath('/search')}?${search.toString()}`;
       return;
     }
     window.location.href = localizePath(`/collection-details?id=${collection.id}`);

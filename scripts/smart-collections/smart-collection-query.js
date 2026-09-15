@@ -5,6 +5,9 @@
  * Collection.
  */
 
+/** URL param that carries an opened Smart Collection's id so the search page can re-activate it. */
+export const SMART_COLLECTION_URL_PARAM = 'smartCollectionId';
+
 /** ContentAI field paths that are auto-injected (not user filters) and must be ignored. */
 const IGNORED_FIELD_PATHS = new Set(['assetMetadata.pur:expirationDate']);
 
@@ -80,6 +83,32 @@ export function parseSmartCollectionQuery(smartCollectionQuery) {
     facetCheckedState: acc.facetCheckedState,
     selectedNumericFilters: acc.numericFilters,
   };
+}
+
+/**
+ * Build a stable signature of a `smartCollectionQuery`'s USER criteria (query text + selected
+ * facets + numeric filters), with keys/values sorted and auto-injected clauses (e.g. the
+ * volatile `pur:expirationDate > now` non-expired filter) excluded via
+ * {@link parseSmartCollectionQuery}. Used for mutation detection so an async save — which
+ * re-injects a fresh `now` timestamp — never leaves the "changes detected" banner falsely stuck.
+ * @param {import('./smart-collection-types.js').SmartCollectionQuery} smartCollectionQuery
+ * @returns {string}
+ */
+export function smartCollectionQuerySignature(smartCollectionQuery) {
+  const { query, facetCheckedState, selectedNumericFilters } = parseSmartCollectionQuery(
+    smartCollectionQuery,
+  );
+  const facets = Object.keys(facetCheckedState)
+    .sort()
+    .map((key) => [
+      key,
+      Object.keys(facetCheckedState[key] || {})
+        .filter((value) => facetCheckedState[key][value])
+        .sort(),
+    ])
+    .filter(([, values]) => values.length > 0);
+  const numeric = [...selectedNumericFilters].sort();
+  return JSON.stringify({ query: query || '', facets, numeric });
 }
 
 /**

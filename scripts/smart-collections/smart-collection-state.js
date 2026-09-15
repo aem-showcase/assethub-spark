@@ -18,7 +18,8 @@ import { getState, setState } from '../../blocks/search-results/search-results.j
 import { getContentAIClient } from '../../blocks/search-results/clients/dynamicmedia-client.js';
 import { getOrderBy } from '../../blocks/search-results/components/search-panel.js';
 import { getFacetsConfig } from '../../blocks/search-results/constants/facets.js';
-import { parseSmartCollectionQuery } from './smart-collection-query.js';
+import { parseSmartCollectionQuery, SMART_COLLECTION_URL_PARAM, smartCollectionQuerySignature } from './smart-collection-query.js';
+import { getSmartCollection } from './smart-collections-api-client.js';
 
 /** @type {import('./smart-collection-types.js').SmartCollection | null} */
 let activeSmartCollection = null;
@@ -123,14 +124,16 @@ export function applySmartCollectionToSearch(collection) {
 }
 
 /**
- * Mark a Smart Collection as active (just applied or just saved), snapshotting its query as
- * the "clean" baseline for mutation detection.
+ * Mark a Smart Collection as active (just applied or just saved). The mutation baseline is
+ * snapshotted from the CURRENT search state — which reflects the collection's just-applied or
+ * just-saved criteria — rather than the stored query, so query-serialization round-trip
+ * differences never leave a stale "changes detected" banner right after activation or a save.
  * @param {import('./smart-collection-types.js').SmartCollection | null} collection
  */
 export function setActiveSmartCollection(collection) {
   activeSmartCollection = collection;
   savedQuerySnapshot = collection
-    ? JSON.stringify(collection.smartCollectionQuery || {})
+    ? smartCollectionQuerySignature(buildSmartCollectionQueryFromCurrentState())
     : null;
   notify();
 }
@@ -143,7 +146,7 @@ export function setActiveSmartCollection(collection) {
 export function reconcileActiveSmartCollectionQuery(smartCollectionQuery) {
   if (!activeSmartCollection) return;
   activeSmartCollection = { ...activeSmartCollection, smartCollectionQuery };
-  savedQuerySnapshot = JSON.stringify(smartCollectionQuery || {});
+  savedQuerySnapshot = smartCollectionQuerySignature(smartCollectionQuery);
   notify();
 }
 
@@ -154,5 +157,30 @@ export function reconcileActiveSmartCollectionQuery(smartCollectionQuery) {
  */
 export function hasActiveSmartCollectionDiverged() {
   if (!activeSmartCollection || savedQuerySnapshot === null) return false;
-  return JSON.stringify(buildSmartCollectionQueryFromCurrentState()) !== savedQuerySnapshot;
+  return smartCollectionQuerySignature(buildSmartCollectionQueryFromCurrentState())
+    !== savedQuerySnapshot;
+}
+
+/**
+ * On the search page, re-activate the Smart Collection referenced by the
+ * {@link SMART_COLLECTION_URL_PARAM} URL param (set when opening one from the collections list).
+ * The mutation baseline is snapshotted from the CURRENT (URL-applied) search state — not the
+ * collection's stored query — so the banner only surfaces once the user actually changes a
+ * filter, rather than from query-serialization round-trip differences on open. No-op when the
+ * param is absent.
+ * @returns {Promise<import('./smart-collection-types.js').SmartCollection | null>}
+ */
+export async function activateSmartCollectionFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get(SMART_COLLECTION_URL_PARAM);
+  if (!id) return null;
+  try {
+    const collection = await getSmartCollection(id);
+    setActiveSmartCollection(collection);
+    return collection;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to activate Smart Collection from URL:', err);
+    return null;
+  }
 }
