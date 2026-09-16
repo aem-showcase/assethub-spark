@@ -88,7 +88,42 @@ Record the chosen branch in `customer.demoBranch` and the worktree path in
 repo root from cwd, so running them there targets the worktree's files.
 Mark `branch-resolved` `done`.
 
+---
+
+## Step 2 (cont.) — Open the draft PR early (`pr-opened`)
+
+**Only on the "none exists" path above** (a fresh branch/worktree with no
+PR yet). If you attached to an *existing* branch/worktree that already has
+an open PR, skip this — record its URL/number in state and mark
+`pr-opened` `done` without creating anything.
+
+A brand-new branch is identical to `origin/main`, so there's nothing to
+diff yet — push an empty commit first, from the worktree:
+
+```
+git commit --allow-empty -m "chore: open demo PR for <companyKey>"
+git push -u origin demo/<companyKey>
+```
+
+Then open a **draft** PR (draft, not a plain PR — if this demo is later
+abandoned before Step 4 finishes, I5 forbids closing it, and a draft PR
+reads as "still being built" rather than a real, empty, reviewable PR):
+
+```
+gh pr create --draft --title "Demo: <Company>" \
+  --body "Building <Company>'s demo portal — this PR will fill in as each step completes."
+```
+
+Record the printed URL/number in `customer.prUrl` / `customer.prNumber`.
+Tell the customer once, plainly: a draft PR is open at `<url>` and will
+fill in as the build proceeds — this is the same PR Step 4 lands into and
+marks ready; nothing later opens a second PR. Mark `pr-opened` `done`.
+
 **Cleanup (not now).** The worktree lives through Steps 3–6 (assets need
 it). Remove it only when the demo is fully done or abandoned:
 `git worktree remove ../assethub-spark.worktrees/demo-<companyKey>`. The
 branch and its open PR survive removal — never delete the branch (I5).
+**If a demo is abandoned before Step 4 completes**, its draft PR stays
+open per I5 — there is no cleanup path for it, and that's an accepted
+trade-off of opening the PR this early (weighed against having the PR URL
+and preview worker available from the start instead of only at the end).

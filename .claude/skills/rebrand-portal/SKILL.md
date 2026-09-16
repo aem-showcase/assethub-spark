@@ -30,7 +30,7 @@ Before doing anything, check the user's request for two required inputs:
 - **Company name** — needed for every step (`companyKey`, DA folder, branch). Never infer it from a source URL (e.g. don't assume "acme" from `acme.com`).
 - **Source site URL** — needed for design matching (Step 4 / excat). Required even when `assetsLane` is `enrich-existing`.
 
-If both are missing: ask for both in one message, after the Step 1 plain-sentence intro (I1 — never open with a question).
+If both are missing: ask for both in one message, after the Step 1 plain-sentence intro (I1 — never open with a question). On a brand-new request this is the same message as the setup-confirmation ask (Entry flow point 0) — one batched message, not separate turns.
 If one is missing: ask only for that one.
 If both are present in the request: proceed without asking.
 
@@ -44,19 +44,23 @@ re-plan, or reorder it — run it and mark each step `done` as you go.
 2. **`branch-resolved`** — resolve the company; check for an existing
    branch for it; if one exists, **ask** continue-vs-new; create/checkout
    (Step 2).
-3. **`da-content-copied`** — **MANDATORY**: copy the site's existing DA
+3. **`pr-opened`** — right after the branch/worktree exists, push an empty
+   commit and open a **draft** PR on it, so the PR URL and its per-branch
+   preview worker exist from minute one instead of only at the end of
+   Step 4 (Step 2).
+4. **`da-content-copied`** — **MANDATORY**: copy the site's existing DA
    content into `/<company>` (Step 3).
-4. **`rebranded` → `demo-company-set` → `published` → `landed-via-pr`** —
+5. **`rebranded` → `demo-company-set` → `published` → `landed-via-pr`** —
    rebrand the `/<company>` content + repo design, set the demo scope in
    `cloudflare/src/config.js` (`DEMO_COMPANY` + `DEMO_BASE_PATH` =
    companyKey — this scopes the PR's preview worker: company filter,
-   `/<company>` routing, and login base), publish `/<company>`, open one
-   PR (Step 4).
-5. **`assets-uploaded` → `assets-enriched` → `search-scoped`** — upload
+   `/<company>` routing, and login base), publish `/<company>`, push into
+   the draft PR opened in Step 2 and mark it ready for review (Step 4).
+6. **`assets-uploaded` → `assets-enriched` → `search-scoped`** — upload
    (if the assets aren't already in the company's folder) and, unless the
    customer chose to defer it (Entry flow Q2), enrich the company's assets
    so they're searchable, scoped to the company (Step 5).
-6. **`collections-created`** — once the company's assets are searchable,
+7. **`collections-created`** — once the company's assets are searchable,
    group them into ready-made collections (one per category), each scoped
    to the company so it shows/hides with the demo company filter (Step 6).
    Runs whenever enrichment actually completes — immediately for an
@@ -87,12 +91,15 @@ shape from memory:**
     "demoBranch": null,
     "worktreePath": null,
     "daFolder": null,
+    "prUrl": null,
+    "prNumber": null,
     "assetsLane": null,
     "assetsEnrichNow": null
   },
   "steps": {
     "demo-confirmed": "pending",
     "branch-resolved": "pending",
+    "pr-opened": "pending",
     "da-content-copied": "pending",
     "rebranded": "pending",
     "demo-company-set": "pending",
@@ -116,7 +123,11 @@ request).
 `daFolder` is `/companies/<companyKey>`. `customer.worktreePath` is the demo's
 dedicated git worktree (`../assethub-spark.worktrees/demo-<companyKey>`,
 set in Step 2); **Steps 3–6 run with cwd = this worktree**, not the main
-checkout, so parallel demos never contend over one working tree. `customer.assetsLane` is
+checkout, so parallel demos never contend over one working tree.
+`customer.prUrl`/`customer.prNumber` are set in Step 2 when the draft PR
+opens (`pr-opened`) and stay the same PR for the rest of the demo — Step 4
+pushes into it and marks it ready, it never opens a second PR.
+`customer.assetsLane` is
 `enrich-existing` or `bring-in` (Entry flow Q1); `customer.assetsEnrichNow`
 is `true`/`false` (Entry flow Q2 — always `true` for `bring-in`, since
 pulling in samples with no labeling afterward isn't a sensible outcome).
@@ -133,16 +144,27 @@ new gates such as Step 4g's color verification before assets.
 
 ## Entry flow — run first, every invocation
 
-0. **State Step 1 first, then confirm the company name.**
+0. **State Step 1 first, confirm setup is done, then confirm the company
+   name.**
    On a brand-new request (no state file, or `demo-confirmed` not yet
    `done`): say the one plain sentence from Step 1 (what will happen, in
-   outcome language), then resolve and **confirm** `customer.name` (Step 2)
-   before doing anything else. Never open with a question, and never
-   silently default or guess the company name/slug from the source URL
-   (e.g. inferring "microsoft" from a microsoft.com link) — if a tool error
-   or missing info blocks asking everything at once, fall back to asking
-   one thing at a time in order (Step 1 statement → company name), never
-   skip ahead. **Do not ask about assets here** (see Entry flow point 2
+   outcome language), link `docs/rebrand-quickstart.md` and ask the operator
+   to confirm its Prerequisites checklist is done (Claude Code/Node
+   versions, GitHub access, `cloudflare/.secrets`, `token.env`, excat
+   plugin), then resolve and **confirm** `customer.name` (Step 2) — batch
+   the setup-confirmation ask and the company-name ask into the **same**
+   message, right after the Step 1 statement, not as a separate turn. Do
+   not mark `demo-confirmed` done or start Step 2 until the operator
+   confirms setup is done; if they say it isn't, help them resolve it (or
+   point back at the doc) and wait — don't proceed speculatively. This
+   check only runs on a brand-new request — a resumed session
+   (`demo-confirmed` already `done`) never re-asks it. Never open with a
+   question, and never silently default or guess the company name/slug
+   from the source URL (e.g. inferring "microsoft" from a microsoft.com
+   link) — if a tool error or missing info blocks asking everything at
+   once, fall back to asking one thing at a time in order (Step 1
+   statement → setup confirmation → company name), never skip ahead.
+   **Do not ask about assets here** (see Entry flow point 2
    below) — Steps 1–4 (confirm, branch, DA copy, rebrand/publish/PR) need
    nothing about asset source or timing; asking Q1/Q2 this early front-loads
    a decision the customer can't yet see the payoff for, and interrupts a
@@ -151,7 +173,10 @@ new gates such as Step 4g's color verification before assets.
 1. **Load and verify state.** If `.internal/onboarding-state.json` exists,
    read it, but before trusting a step marked `done`, spot-check one
    concrete fact against the repo (e.g. `rebranded` done → does the demo
-   branch exist and carry brand tokens). A state file can be stale or
+   branch exist and carry brand tokens; `pr-opened` done → does
+   `customer.prUrl`'s PR still exist, via `gh pr view <demoBranch>` — a PR
+   can be closed/reopened outside this flow, and I5 means the fix is to
+   flag it, never to open a replacement). A state file can be stale or
    inherited from another branch/customer. If the check disagrees, treat
    that step as needing confirmation, not authoritative. Otherwise resume
    at the first non-`done` step and don't re-ask answered questions. If
@@ -294,7 +319,22 @@ checkout — so parallel demos don't contend. Copy the gitignored
 independent; nothing shared back to the main checkout). **Always check for an existing
 brand branch first and ASK continue-vs-new if one is found — never silently
 reuse, recreate, or delete it (I5).** Record `customer.demoBranch` and
-`customer.worktreePath`; mark `branch-resolved` `done`.
+`customer.worktreePath`; mark `branch-resolved` `done`. Immediately after
+(same step doc), open the draft PR — see `pr-opened` below.
+
+▶ **Read now, before acting:** `.claude/skills/rebrand-portal/docs/step-1-2-branch.md`
+
+## Step 2 (cont.) — Open the draft PR early (`pr-opened`)
+
+On a **new** branch/worktree only (skip if resuming a branch that already
+has a PR): push an empty commit, then `gh pr create --draft` on it. Record
+`customer.prUrl`/`customer.prNumber`. This is a placeholder PR, not gated on
+any build — it exists so the PR URL and its per-branch preview worker (I3)
+are available from minute one, and so Steps 3–4 push into it rather than
+opening a new PR later. Step 4 marks it ready for review once real content
+lands (`gh pr ready`) — never a second `gh pr create`. Tell the customer
+once, plainly, that a draft PR is open and will fill in as the build
+proceeds. Mark `pr-opened` `done`.
 
 ▶ **Read now, before acting:** `.claude/skills/rebrand-portal/docs/step-1-2-branch.md`
 
@@ -323,10 +363,11 @@ any file — until both `customer.demoBranch` and `customer.daFolder` are set
 full-palette rebrand via Catalyst, brand-asset/logo swap (all instances),
 content-register rewrite scoped to `/companies/<companyKey>` only, publish only
 `/companies/<companyKey>/...` paths, set the demo scope in `cloudflare/src/config.js`
-(`DEMO_COMPANY`/`DEMO_BASE_PATH` = companyKey), and land one PR (open, never
-merge — I3; never close/delete — I5). Token setup is Step 4a (`token.env`,
-`DA_TOKEN` only). Marks `rebranded`, `demo-company-set`, `published`,
-`landed-via-pr`.
+(`DEMO_COMPANY`/`DEMO_BASE_PATH` = companyKey), and push into the draft PR
+opened in Step 2, marking it ready for review (open, never merge — I3;
+never close/delete — I5; never a second `gh pr create`). Token setup is
+Step 4a (`token.env`, `DA_TOKEN` only). Marks `rebranded`, `demo-company-set`,
+`published`, `landed-via-pr`.
 
 ▶ **Read now, before acting** (preflight, 4a token setup, 4b–4f delegation,
 all checklists): `.claude/skills/rebrand-portal/docs/step-4-rebrand.md`

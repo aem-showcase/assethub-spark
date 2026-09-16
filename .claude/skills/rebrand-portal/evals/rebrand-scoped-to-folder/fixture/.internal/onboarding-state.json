@@ -10,6 +10,7 @@
   "steps": {
     "demo-confirmed": "done",
     "branch-resolved": "done",
+    "pr-opened": "done",
     "da-content-copied": "done",
     "rebranded": "done",
     "demo-company-set": "pending",
