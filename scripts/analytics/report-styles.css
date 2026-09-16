@@ -20,7 +20,7 @@
   --report-secondary-color: var(--accent-tertiary);
   --report-text-dark: var(--text-color);
   --report-border-light: var(--light-color);
-  --report-background-white: #fff;
+  --report-background-white: var(--color-neutral-50);
   --report-background-light: #fafafa;
   --report-background-lighter: #f9f9f9;
   --report-error-color: #f44336;
@@ -29,7 +29,7 @@
   /* Shadows */
   --report-shadow-sm: 0 2px 8px rgb(0 0 0 / 10%);
   --report-shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
-  --report-shadow-focus: 0 0 0 3px rgb(0 100 125 / 15%);
+  --report-shadow-focus: 0 0 0 3px rgb(0 37 61 / 15%);
   
   /* Border Radius */
   --report-radius-sm: 6px;
@@ -163,7 +163,7 @@
 .analytics-metric-value {
   font-size: var(--report-font-size-2xl);
   font-weight: 700;
-  color: #000;
+  color: var(--dark-color);
   line-height: 1.2;
   margin-bottom: 4px;
 }

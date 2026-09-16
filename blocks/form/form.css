@@ -90,7 +90,7 @@
   border-radius: 50px;
   background-color: var(--primary-color);
   border-color: var(--primary-color);
-  color: #fff;
+  color: var(--color-neutral-50);
   font-weight: 500;
   padding: 15px 40px;
 }

@@ -45,7 +45,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   line-height: 1.3;
 }
 
@@ -58,7 +58,7 @@
   border: none;
   border-radius: 4px;
   background: none;
-  color: #666;
+  color: var(--color-neutral-700);
   font-size: 1.5rem;
   font-weight: 400;
   line-height: 1;
@@ -74,7 +74,7 @@
 .global-modal .global-modal-body {
   flex: 1;
   padding: 1.5rem 2rem;
-  color: #333;
+  color: var(--text-color);
   overflow-y: auto;
 }
 
@@ -106,7 +106,7 @@
 
 .global-modal .global-modal-meta {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--color-neutral-700);
   margin-bottom: 1rem;
 }
 

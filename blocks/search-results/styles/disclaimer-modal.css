@@ -53,7 +53,7 @@
   padding: 24px;
   font-size: var(--font-size-02);
   line-height: var(--line-height-03);
-  color: #444;
+  color: var(--text-color);
 }
 
 .disclaimer-modal-content p {

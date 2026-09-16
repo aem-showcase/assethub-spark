@@ -76,7 +76,7 @@
 .adobe-pdf-loading p {
   margin-top: 20px;
   font-size: var(--font-size-03);
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .adobe-pdf-error {
