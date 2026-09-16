@@ -16,10 +16,10 @@ const config = {
 
   // Demo customer scope — always required. Every asset search is restricted to assets
   // tagged assetMetadata.company === DEMO_COMPANY, so the portal only shows assets for
-  // the configured customer. Default is 'frescopa' (our own demo repo). When running the
-  // enrichment agent for a prospect (e.g. 'santander'), the agent auto-patches this value
+  // the configured customer. The rebrand flow patches this for each company demo after
+  // copying and rewriting its scoped content.
   // after a successful run. Value is the customer key, NOT the logged-in viewer's company.
-  DEMO_COMPANY: 'frescopa',
+  DEMO_COMPANY: 'kirklands',
 
   // Content base path for a foldered demo. DA content is shared across all branches of a
   // repo, so a per-company demo copies the site under one container folder,
@@ -29,7 +29,7 @@ const config = {
   // it is the asset metadata scope, not a path). The worker uses this for the root redirect,
   // the unauthenticated login/public route, and LOGIN_PAGE; the browser derives the same base
   // from the URL (scripts/locale-utils.js).
-  DEMO_BASE_PATH: '',
+  DEMO_BASE_PATH: '/companies/kirklands',
 
   // Content Optimization Agent environment. COA is called with the same DM
   // S2S technical account/token as Dynamic Media, so this must match whatever

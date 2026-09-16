@@ -1,7 +1,7 @@
 @import url('../../scripts/analytics/report-styles.css');
 
 .report-asset-activity {
-  /* Map this block's local tokens onto the global Fréscopa theme so it stays
+  /* Map this block's local tokens onto the global Kirkland's theme so it stays
      on-brand. These were previously undefined and fell back to a hardcoded red. */
   --color-brand: var(--primary-color);
   --color-brand-hover: var(--primary-color-hover);
@@ -20,7 +20,7 @@
 .aar-denied {
   padding: 2rem;
   text-align: center;
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--text-color));
 }
 
 /* Title row */
@@ -40,7 +40,7 @@
 
 /* Filters */
 .aar-filters {
-  background: #fff;
+  background: var(--color-neutral-50);
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
@@ -60,7 +60,7 @@
   flex-direction: column;
   font-size: var(--report-font-size-md);
   font-weight: 600;
-  color: var(--color-text-light, #555);
+  color: var(--color-text-light, var(--color-neutral-700));
   gap: 0.25rem;
 }
 
@@ -70,7 +70,7 @@
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-border, #ccc);
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-neutral-50);
   color: var(--color-text, #222);
 }
 
@@ -126,7 +126,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-light, #777);
+  color: var(--color-text-light, var(--color-neutral-700));
   margin-bottom: 0.6rem;
 }
 
@@ -147,7 +147,7 @@
   font-size: var(--report-font-size-md);
   font-weight: 600;
   white-space: nowrap;
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--text-color));
 }
 
 .aar-filter-extra-footer {
@@ -161,14 +161,14 @@
   border: 1px solid var(--color-border, #ccc);
   border-radius: 50px;
   cursor: pointer;
-  background: #fff;
-  color: var(--color-text, #333);
+  background: var(--color-neutral-50);
+  color: var(--color-text, var(--text-color));
   transition: all 0.2s ease;
 }
 
 .aar-btn-primary {
   background: var(--color-brand);
-  color: #fff;
+  color: var(--color-neutral-50);
   border-color: var(--color-brand);
 }
 
@@ -180,7 +180,7 @@
 .aar-btn-primary:hover {
   background: var(--color-brand-hover);
   border-color: var(--color-brand-hover);
-  color: #fff;
+  color: var(--color-neutral-50);
 }
 
 /* Stats row */
@@ -192,7 +192,7 @@
 }
 
 .aar-stat-card {
-  background: #fff;
+  background: var(--color-neutral-50);
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 6px;
   padding: 1rem 1.5rem;
@@ -215,7 +215,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-light, #777);
+  color: var(--color-text-light, var(--color-neutral-700));
 }
 
 .report-asset-activity .aar-export-btn,
@@ -223,7 +223,7 @@
 .report-asset-activity .aar-export-btn:visited {
   font-size: var(--report-font-size-md);
   font-weight: 700;
-  color: #fff;
+  color: var(--color-neutral-50);
   text-decoration: none;
   background: var(--color-brand);
   border: none;
@@ -236,7 +236,7 @@
 
 .report-asset-activity .aar-export-btn:hover {
   background: var(--color-brand-hover);
-  color: #fff;
+  color: var(--color-neutral-50);
 }
 
 /* Loading state */
@@ -256,7 +256,7 @@
 }
 
 .aar-chart-cell {
-  background: #fff;
+  background: var(--color-neutral-50);
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
@@ -270,14 +270,14 @@
   font-size: var(--report-font-size-md);
   font-weight: 600;
   margin: 0 0 0.75rem;
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--text-color));
 }
 
 .aar-table-title {
   font-size: var(--report-font-size-xl);
   font-weight: 700;
   margin: 0 0 0.75rem;
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--text-color));
 }
 
 .aar-canvas {
@@ -286,7 +286,7 @@
 
 /* Top used assets table */
 .aar-table-section {
-  background: #fff;
+  background: var(--color-neutral-50);
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
@@ -305,7 +305,7 @@
 
 .aar-table thead th {
   background: var(--color-brand);
-  color: #fff;
+  color: var(--color-neutral-50);
   font-size: var(--report-font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -344,7 +344,7 @@
 .aar-table tbody td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--color-border, #eee);
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--text-color));
 }
 
 .aar-table tbody tr:nth-child(even) {
@@ -381,7 +381,7 @@
 .aar-table-empty {
   text-align: center;
   padding: 1.5rem;
-  color: var(--color-text-light, #777);
+  color: var(--color-text-light, var(--color-neutral-700));
 }
 
 @media (width <= 768px) {

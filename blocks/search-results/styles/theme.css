@@ -4,25 +4,25 @@
 
 :root {
   /* Primary colors — align with global :root */
-  --primary-color-hover: #004d61;
-  --primary-color-active: #003d4d;
-  --primary-color-disabled: var(--color-neutral-300, #e8e8e8);
+  --primary-color-hover: var(--button-primary-hover, #262837);
+  --primary-color-active: var(--dark-color);
+  --primary-color-disabled: var(--color-neutral-300, #D9D8D4);
 
   /* Color scales (Light mode) */
-  --gray-50: #fff;
-  --gray-100: #e8e8e8;
-  --gray-200: #d6d6d6;
-  --gray-300: #b8b8b8;
-  --gray-400: #8f8f8f;
-  --gray-500: #666;
-  --purple-100: rgb(0 100 125 / 12%);
-  --purple-200: rgb(0 100 125 / 20%);
-  --purple-300: rgb(0 100 125 / 30%);
+  --gray-50: var(--color-neutral-50);
+  --gray-100: var(--color-neutral-100);
+  --gray-200: var(--color-neutral-300);
+  --gray-300: var(--color-neutral-400);
+  --gray-400: var(--color-neutral-600);
+  --gray-500: var(--color-neutral-700);
+  --purple-100: rgb(0 37 61 / 12%);
+  --purple-200: rgb(0 37 61 / 20%);
+  --purple-300: rgb(0 37 61 / 30%);
   --purple-400: var(--primary-color);
-  --purple-500: #004d61;
-  --purple-600: #003d4d;
-  --red-100: rgb(163 53 50 / 12%);
-  --red-200: rgb(163 53 50 / 25%);
+  --purple-500: var(--primary-color-hover);
+  --purple-600: var(--dark-color);
+  --red-100: rgb(191 164 135 / 16%);
+  --red-200: rgb(191 164 135 / 28%);
   --red-300: var(--color-red);
   --red-400: var(--color-red);
   --red-500: var(--secondary-color);
@@ -32,15 +32,15 @@
 
   /* Semantic colors */
   --focus-ring-color: var(--primary-color);
-  --text-color-base: var(--color-neutral-600, #8f8f8f);
+  --text-color-base: var(--color-neutral-600, #828081);
   --text-color-hover: var(--text-color);
   --text-color-disabled: var(--gray-200);
   --text-color-placeholder: var(--gray-400);
   --link-color-secondary: var(--gray-500);
   --link-color-pressed: var(--primary-color);
-  --border-color: var(--color-neutral-400, #d6d6d6);
-  --border-color-hover: var(--color-neutral-600, #8f8f8f);
-  --border-color-pressed: var(--color-neutral-700, #666);
+  --border-color: var(--color-neutral-400, #C2C0BA);
+  --border-color-hover: var(--color-neutral-600, #828081);
+  --border-color-pressed: var(--color-neutral-700, #5E5C5D);
   --border-color-disabled: var(--gray-100);
   --field-background: var(--gray-50);
   --field-text-color: var(--text-color);
@@ -48,11 +48,11 @@
   --button-background: var(--gray-50);
   --button-background-pressed: var(--light-color);
   --highlight-background: var(--primary-color);
-  --highlight-background-pressed: #004d61;
+  --highlight-background-pressed: var(--primary-color-hover);
   --highlight-background-invalid: var(--color-red);
   --highlight-foreground: white;
   --highlight-foreground-pressed: var(--light-color);
-  --highlight-overlay: rgb(0 100 125 / 15%);
+  --highlight-overlay: rgb(0 37 61 / 15%);
   --invalid-color: var(--color-red);
   --invalid-color-pressed: var(--color-dark-red);
 }
@@ -60,21 +60,21 @@
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background-color: #1d1d1d;
-    --gray-50: #101010;
-    --gray-100: #393939;
-    --gray-200: #4f4f4f;
-    --gray-300: #686868;
-    --gray-400: #848484;
-    --gray-500: #a7a7a7;
-    --gray-600: #cfcfcf;
-    --purple-100: #003d4d;
-    --purple-200: #004d61;
-    --purple-300: #00647D;
-    --purple-400: #3d8fa3;
-    --purple-500: #6ab4c4;
-    --purple-600: #a8d4de;
-    --red-100: #5c1f1e;
+    --background-color: #1F1C1D;
+    --gray-50: #161314;
+    --gray-100: #2A2627;
+    --gray-200: #3A3637;
+    --gray-300: #5E5C5D;
+    --gray-400: #828081;
+    --gray-500: var(--color-neutral-500);
+    --gray-600: #D9D8D4;
+    --purple-100: var(--dark-color);
+    --purple-200: var(--primary-color-hover);
+    --purple-300: #00253D;
+    --purple-400: #5E6B7D;
+    --purple-500: #828081;
+    --purple-600: #BFA487;
+    --red-100: #4A3A2B;
     --red-200: var(--color-dark-red);
     --red-300: var(--color-red);
     --red-400: var(--color-red);
