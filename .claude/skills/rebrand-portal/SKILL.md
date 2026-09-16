@@ -148,8 +148,9 @@ new gates such as Step 4g's color verification before assets.
    name.**
    On a brand-new request (no state file, or `demo-confirmed` not yet
    `done`): say the one plain sentence from Step 1 (what will happen, in
-   outcome language), link `docs/rebrand-guide.md` and ask the operator
-   to confirm its Prerequisites checklist is done (Claude Code/Node
+   outcome language), link `docs/rebrand-guide.md` for the full
+   walkthrough, setup, etc., and ask the operator to confirm its
+   Prerequisites checklist is done (Claude Code/Node
    versions, GitHub access, `cloudflare/.secrets`, `token.env`, excat
    plugin) — **but first check `docs/da-credential-injection.md`**: on a
    host that injects DA credentials at the network layer (e.g. the aemcoder
