@@ -38,8 +38,16 @@ repo root with **one** line, `KEY=value`, no quotes:
 - **`DA_TOKEN`** — read/write Document Authoring content, and mint the
   Helix Admin API key used for preview/publish.
 
-Send this exact message (don't paraphrase, don't add any settings/toggle/
-permissions step — none exists for this flow):
+**First, check `docs/da-credential-injection.md` and run its probe.** If the
+host is injecting DA credentials at the network layer, skip the message
+below entirely — just confirm `token.env` holds a non-empty placeholder and
+tell the customer once that DA credentials are already active. The "don't
+add any settings/toggle step" rule below is about the normal local-CLI flow,
+where no such toggle exists; it does not apply once the probe confirms
+injection.
+
+Otherwise, send this exact message (don't paraphrase, don't add any settings/
+toggle/permissions step — none exists for this flow):
 
 > "Before I start, create a file called `token.env` in the project root
 > with this one line (I'll never ask you to paste this in chat):

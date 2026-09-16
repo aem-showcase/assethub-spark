@@ -148,10 +148,14 @@ new gates such as Step 4g's color verification before assets.
    name.**
    On a brand-new request (no state file, or `demo-confirmed` not yet
    `done`): say the one plain sentence from Step 1 (what will happen, in
-   outcome language), link `docs/rebrand-quickstart.md` and ask the operator
+   outcome language), link `docs/rebrand-guide.md` and ask the operator
    to confirm its Prerequisites checklist is done (Claude Code/Node
    versions, GitHub access, `cloudflare/.secrets`, `token.env`, excat
-   plugin), then resolve and **confirm** `customer.name` (Step 2) — batch
+   plugin) — **but first check `docs/da-credential-injection.md`**: on a
+   host that injects DA credentials at the network layer (e.g. the aemcoder
+   chat UI), the `token.env` prerequisite is satisfied differently (a
+   placeholder value, confirmed via a probe, not a real token) — then
+   resolve and **confirm** `customer.name` (Step 2) — batch
    the setup-confirmation ask and the company-name ask into the **same**
    message, right after the Step 1 statement, not as a separate turn. Do
    not mark `demo-confirmed` done or start Step 2 until the operator

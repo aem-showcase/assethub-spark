@@ -51,6 +51,19 @@ Open Claude Code in the repo root and type:
 Create a demo portal for [company] using [source URL]
 ```
 
+**Fewer interruptions.** By default the CLI pauses for tool-permission
+approval as the skill works. If you'd rather it run with the minimum number
+of prompts, start it with an auto-approve flag instead of the default
+interactive mode:
+
+```
+copilot --autopilot --allow-all-tools
+claude --permission-mode auto
+```
+
+This only changes tool-permission prompting — it does not skip the skill's
+own customer-facing questions (setup confirmation, asset source/timing).
+
 ### Example prompts
 
 - Demo with assets already in Adobe, enriched right away:
