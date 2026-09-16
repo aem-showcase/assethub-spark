@@ -42,7 +42,7 @@ A Cloudflare Worker is located in the [cloudflare](cloudflare) folder. This work
 
 ## Rebrand portal skill
 
-To produce a branded demo of the portal for a company, see [docs/rebrand-quickstart.md](docs/rebrand-quickstart.md).
+To produce a branded demo of the portal for a company, see [docs/rebrand-guide.md](docs/rebrand-guide.md).
 
 ## Installation
 

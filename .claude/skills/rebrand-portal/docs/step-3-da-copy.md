@@ -15,9 +15,11 @@ or "it's just a demo") and skipping the copy. **You may conclude DA is
 empty only from a real authenticated `list` that returned zero documents.**
 
 This needs `DA_TOKEN` in `token.env` — run Step 4a's token setup now if
-`token.env` is absent or unverified. That setup asks the customer for only
-`DA_TOKEN`, then runs `ensure-eds-tokens.sh`; the generated/reused
-`HLX_ADMIN_TOKEN` is used later for publish.
+`token.env` is absent or unverified. **First check `docs/da-credential-injection.md`**:
+on a host that injects DA credentials at the network layer, skip asking the
+customer for a real token — probe first, per that doc. Otherwise, that setup
+asks the customer for only `DA_TOKEN`, then runs `ensure-eds-tokens.sh`; the
+generated/reused `HLX_ADMIN_TOKEN` is used later for publish.
 
 **Use the packaged script — do not hand-roll `curl`:**
 

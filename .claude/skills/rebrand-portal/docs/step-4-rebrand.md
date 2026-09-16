@@ -38,8 +38,16 @@ repo root with **one** line, `KEY=value`, no quotes:
 - **`DA_TOKEN`** — read/write Document Authoring content, and mint the
   Helix Admin API key used for preview/publish.
 
-Send this exact message (don't paraphrase, don't add any settings/toggle/
-permissions step — none exists for this flow):
+**First, check `docs/da-credential-injection.md` and run its probe.** If the
+host is injecting DA credentials at the network layer, skip the message
+below entirely — just confirm `token.env` holds a non-empty placeholder and
+tell the customer once that DA credentials are already active. The "don't
+add any settings/toggle step" rule below is about the normal local-CLI flow,
+where no such toggle exists; it does not apply once the probe confirms
+injection.
+
+Otherwise, send this exact message (don't paraphrase, don't add any settings/
+toggle/permissions step — none exists for this flow):
 
 > "Before I start, create a file called `token.env` in the project root
 > with this one line (I'll never ask you to paste this in chat):
@@ -391,15 +399,22 @@ split it across turns:
    do it here too so the preview is scoped and working immediately after
    Step 4, even when asset enrichment is deferred to a later step. Mark
    `demo-company-set` `done`.
-6. **Land as one PR** — on `customer.demoBranch`. Finish tokens, assets,
+6. **Land into the draft PR opened in Step 2** — on `customer.demoBranch`.
+   That PR (`customer.prUrl`/`customer.prNumber`) already exists from Step
+   2 — **never run `gh pr create` again here.** Finish tokens, assets,
    content, **and the `config.js` scope edit** first, stage everything,
-   then commit → push → open the PR as one sequence. **The PR diff MUST
-   include `cloudflare/src/config.js`** — if it doesn't, the deployed
-   preview worker keeps the wrong company and root routing (the exact
-   failure this flow fixes); verify the diff before opening. Per I3,
-   **opening** the PR (not merging) is the finish line — the branch
-   preview serves it; do not merge, never close/delete it (I5). If CI
-   blocks, only fix checks that fail on your branch but pass on `main`.
+   then commit → push (this updates the existing draft PR) → mark it ready
+   for review:
+   ```
+   gh pr ready <customer.prNumber>
+   ```
+   **The PR diff MUST include `cloudflare/src/config.js`** — if it
+   doesn't, the deployed preview worker keeps the wrong company and root
+   routing (the exact failure this flow fixes); verify the diff before
+   marking ready. Per I3, having the PR **open** (not merging) is the
+   finish line — the branch preview serves it; do not merge, never
+   close/delete it (I5). If CI blocks, only fix checks that fail on your
+   branch but pass on `main`.
 
    **Known-ignore check — never poll it, never investigate it, never wait
    on it:**
@@ -415,10 +430,9 @@ split it across turns:
    `deploy` and `test` gate this step; don't surface `aem-psi-check` in
    status updates unless the customer asks about it.
 
-   **Immediately after `gh pr create` returns, give the customer the PR
-   URL it prints** (plain sentence, e.g. "Here's the pull request: <url>")
-   — this is the shareable result (I3), not an internal artifact, so I1
-   does not apply to it.
+   The customer already has the PR URL from Step 2 — no need to repeat it
+   here as a new announcement; the follow-up is "your demo is ready in
+   that PR," not "here's a PR."
 
    **Then poll only the `deploy` and `test` checks by name — never
    `gh pr checks <PR> --watch`,** which blocks on the full check suite
