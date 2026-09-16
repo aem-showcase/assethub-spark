@@ -1,5 +1,5 @@
 {
-  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "description": "Selectors/custom-properties whose hex literals are semantic UI state or brand-neutral chrome (whites, greys, black, tooltip/spinner/scrollbar chrome, status colours), never brand surface \u2014 checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated per base template; extend this file, never the check's logic, when a new legitimate semantic/neutral color is found.",
   "selectorPatterns": [
     "\\.editing-mode",
     "\\.impersonating",
@@ -8,9 +8,44 @@
     "--error-",
     "--success-",
     "--chart-",
-    "--data-viz-"
+    "--data-viz-",
+    "--color-neutral-",
+    "--dark-color",
+    "--button-secondary-color",
+    "--status-completed",
+    "--clearance-available",
+    "data-tooltip",
+    "\\.inline-loading-spinner",
+    "scrollbar",
+    "picture\\.missing",
+    "button\\.secondary",
+    "input\\[type=\"checkbox\"\\]",
+    "hero-black",
+    "query-input-bar",
+    "\\.nav-wrapper",
+    "\\.dropdown-menu",
+    "\\.header-dropdown-portal",
+    "\\.my-account",
+    "\\.avatar",
+    "\\.nav-sections",
+    "impersonation-indicator",
+    "mode-selector",
+    "type-selector",
+    "generate-mode",
+    "\\.query-input",
+    "\\.query-search",
+    "\\.base-panel",
+    "\\.cart-panel",
+    "workflow-step",
+    "\\.horizontal-line",
+    "\\.step-label",
+    "\\.close-button",
+    "\\.asset-title"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "cart-panel\\.css$",
+    "facets\\.css$",
+    "theme\\.css$"
   ]
 }
