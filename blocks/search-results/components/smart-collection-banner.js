@@ -15,9 +15,10 @@ import { openSaveSmartCollectionModal } from '../../../scripts/smart-collections
 import {
   getActiveSmartCollection,
   subscribeToActiveSmartCollection,
-  buildCriteriaFromCurrentState,
+  buildSmartCollectionQueryFromCurrentState,
+  buildDraftFromCurrentState,
   hasActiveSmartCollectionDiverged,
-  reconcileActiveSmartCollectionCriteria,
+  reconcileActiveSmartCollectionQuery,
 } from '../../../scripts/smart-collections/smart-collection-state.js';
 
 let bannerContainer = null;
@@ -47,10 +48,10 @@ function renderBanner() {
   `;
 
   bannerContainer.querySelector('#smart-collection-save-changes-btn')?.addEventListener('click', async () => {
-    const criteria = buildCriteriaFromCurrentState();
+    const smartCollectionQuery = buildSmartCollectionQueryFromCurrentState();
     try {
-      await updateSmartCollection(active.id, { criteria });
-      reconcileActiveSmartCollectionCriteria(criteria);
+      await updateSmartCollection(active.id, { smartCollectionQuery });
+      reconcileActiveSmartCollectionQuery(smartCollectionQuery);
       showToast(ph(placeholders, 'smartCollectionUpdated', 'Smart Collection updated.'), 'success');
       renderBanner();
     } catch (err) {
@@ -61,8 +62,7 @@ function renderBanner() {
   });
 
   bannerContainer.querySelector('#smart-collection-save-as-new-btn')?.addEventListener('click', () => {
-    const criteria = buildCriteriaFromCurrentState();
-    openSaveSmartCollectionModal({ criteria });
+    openSaveSmartCollectionModal({ draft: buildDraftFromCurrentState() });
   });
 }
 

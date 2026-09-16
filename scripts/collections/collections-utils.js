@@ -44,6 +44,10 @@ export function transformApiCollectionToInternal(apiCollection) {
     accessLevel: metadata.accessLevel || CollectionAccessLevel.PRIVATE,
     itemCount: apiCollection.itemCount || 0,
     thumbnailUrl: metadata['dam:thumbnailUrl'] || '',
+    collectionType: metadata.collectionType || apiCollection.collectionType || '',
+    smartCollectionQuery:
+      metadata.smartCollectionQuery || apiCollection.smartCollectionQuery || null,
+    smartThumbnail: metadata.thumbnail || apiCollection.thumbnail || '',
     acl,
     isOwner,
     contents: [],

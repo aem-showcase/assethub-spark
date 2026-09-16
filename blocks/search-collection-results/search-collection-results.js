@@ -25,6 +25,16 @@ import {
 } from '../../scripts/collections/collection-icons.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
+import { SMART_COLLECTION_TYPE } from '../../scripts/smart-collections/smart-collection-types.js';
+import { buildSmartCollectionSearchParams, SMART_COLLECTION_URL_PARAM } from '../../scripts/smart-collections/smart-collection-query.js';
+
+/**
+ * @param {Object} collection - Internal collection (from transformApiCollectionToInternal).
+ * @returns {boolean}
+ */
+function isSmartCollection(collection) {
+  return collection?.collectionType === SMART_COLLECTION_TYPE;
+}
 
 const VIEW_STORAGE_KEY = 'scr-view';
 
@@ -467,6 +477,16 @@ async function fetchAndInjectPreview(client, collection, block) {
     if (cached) { injectPreviewUrl(cached, collection, block); return; }
   } catch { /* ignore */ }
 
+  // Smart Collections have no static items — use their stored hero thumbnail asset id.
+  if (isSmartCollection(collection)) {
+    const assetId = collection.smartThumbnail;
+    if (!assetId) return;
+    const previewUrl = `/api/adobe/assets/${assetId}/as/thumbnail.jpg?width=400`;
+    try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    injectPreviewUrl(previewUrl, collection, block);
+    return;
+  }
+
   try {
     const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
     if (!items || items.length === 0) return;
@@ -494,6 +514,12 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
   const name = document.createElement('div');
   name.className = 'scr-card-name';
   name.textContent = collection.name;
+  if (isSmartCollection(collection)) {
+    const badge = document.createElement('span');
+    badge.className = 'scr-smart-badge';
+    badge.textContent = 'Smart';
+    name.append(badge);
+  }
 
   const meta = document.createElement('div');
   meta.className = 'scr-card-meta';
@@ -527,6 +553,12 @@ function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAcc
   const name = document.createElement('div');
   name.className = 'scr-row-name';
   name.textContent = collection.name;
+  if (isSmartCollection(collection)) {
+    const badge = document.createElement('span');
+    badge.className = 'scr-smart-badge';
+    badge.textContent = 'Smart';
+    name.append(badge);
+  }
 
   if (collection.description) {
     const desc = document.createElement('div');
@@ -588,6 +620,13 @@ export default async function decorate(block) {
   let requestToken = 0;
 
   const onView = (collection) => {
+    if (isSmartCollection(collection)) {
+      const params = buildSmartCollectionSearchParams(collection.smartCollectionQuery);
+      const search = new URLSearchParams(params);
+      search.set(SMART_COLLECTION_URL_PARAM, collection.id);
+      window.location.href = `${localizePath('/search')}?${search.toString()}`;
+      return;
+    }
     window.location.href = localizePath(`/collection-details?id=${collection.id}`);
   };
 

@@ -169,6 +169,15 @@
   border-radius: 4px;
 }
 
+.smart-collection-modal-textarea {
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 48px;
+}
+
 .smart-collection-modal-badges {
   display: flex;
   flex-wrap: wrap;
