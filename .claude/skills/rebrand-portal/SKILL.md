@@ -175,6 +175,29 @@ new gates such as Step 4g's color verification before assets.
    a decision the customer can't yet see the payoff for, and interrupts a
    flow that would otherwise run straight through to the open PR.
 
+   **MANDATORY, on a brand-new request only (same condition as above):
+   your first reply (or the `message` text of the first `ask_user` call,
+   if you use one for the company-name confirmation) MUST append this
+   exact block, verbatim, right after the Step 1 sentence — do not
+   paraphrase, shorten, drop, or defer it to a later turn:**
+
+   > "One-time setup note: this demo needs a few things in place —
+   > see `docs/rebrand-quickstart.md` for the full prerequisites list
+   > (Node/Claude Code version, GitHub push access, `cloudflare/.secrets`,
+   > a valid `token.env`) and the 'Common first-run blockers' table if
+   > anything trips up along the way."
+
+   If this exact block is missing from your first reply on a brand-new
+   request, Entry-flow point 0 is **not satisfied** — this is not
+   optional framing, it is a required part of the first message, same as
+   the Step 1 sentence itself. Never repeat this block on a
+   resumed/follow-up request for the same `companyKey` (same "no state
+   file" condition gates it — once state exists, it has already been
+   shown). If a blocker occurs later in the same demo (e.g. Step 3's DA
+   copy gets a `401`), give the concrete fix and the resolved absolute
+   path (Step 4a) directly — do not re-link the doc again; it was already
+   shown once, up front.
+
 1. **Load and verify state.** If `.internal/onboarding-state.json` exists,
    read it, but before trusting a step marked `done`, spot-check one
    concrete fact against the repo (e.g. `rebranded` done → does the demo
