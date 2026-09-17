@@ -26,6 +26,9 @@ export default defineConfig({
             'blocks/**/__tests__/**/*.test.js',
             '.claude/skills/rebrand-portal/tests/assets/**/*.test.js',
             '.claude/skills/rebrand-portal/tests/rebrand/**/*.test.js',
+            // Adopts the tests/da and tests/hooks shell suites, which were
+            // written but never included here and so never ran.
+            '.claude/skills/rebrand-portal/tests/shell/**/*.test.js',
           ],
           exclude: [
             'scripts/**/__tests__/**/*.dom.test.js',

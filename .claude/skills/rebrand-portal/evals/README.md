@@ -27,17 +27,19 @@ evals/
 
 ```bash
 cd runner
-node run.mjs --eval <eval-name> --label baseline        # one run
-node run.mjs --eval <eval-name> --n 3 --label baseline   # average of 3
-node run.mjs --all --n 3 --label baseline                # every eval, 3 reps each
+# --engine is required: claude or copilot, one per invocation, never inferred.
+node run.mjs --engine claude --eval <eval-name> --label baseline        # one run
+node run.mjs --engine claude --eval <eval-name> --n 3 --label baseline  # average of 3
+node run.mjs --engine copilot --all --n 3 --label baseline              # every eval, 3 reps each
 ```
 
 `--all` discovers every eval directory automatically (no name list to keep in
 sync) and prints a combined summary table after running each one. See
 `runner/README.md` for exact semantics (partial-failure handling, etc.).
 
-Results land in `runner/results/<label>/` (gitignored). See `runner/README.md`
-for flags and how a run is scored.
+Results land in `runner/results/<label>/<engine>/` (gitignored), so the same
+label can hold a Claude and a Copilot baseline side by side. See
+`runner/README.md` for flags, engine differences, and how a run is scored.
 
 ## Design rule
 
@@ -79,7 +81,8 @@ since a single fact-check can't express "either of these").
 | `ensures-eds-tokens` | Agent runs the deterministic token script to validate DA access, reuse/mint `HLX_ADMIN_TOKEN`, and verify Helix before publish | Step 4a / I2 | no fixture |
 | `example-prompts-guide-routing` | User-facing prompt examples require a source site, cover enrich-now vs defer-enrichment (never "skip assets"), and keep collections attached to asset completion | Entry / README | deterministic checks |
 | `rebrand-color-gate-before-assets` | Stale background/filter colours (`--light-color`, facets-panel hardcoded cream, search UI old reds) block Step 5 until fixed and preview-verified | Step 4g → Step 5 gate | fixture + deterministic checks |
-| `source-url-uses-excat-directly` | Source URL + available Catalyst skill goes straight to `excat-complete-design-expert`; WebFetch failure, palette asks, and DesignSync routing are not allowed | Step 4 preflight | fixture + deterministic checks |
+| `source-url-uses-excat-directly` | Source URL + available Catalyst skill → the agent **runs `extract-brand.mjs`** and then hands to `excat-complete-design-expert`; a missing `page-templates.json` is not a blocker; WebFetch failure, palette asks, and DesignSync routing are not allowed | Step 4 preflight / I10 | fixture + deterministic checks |
+| `gated-source-halts-not-guesses` | A gate-rejected extraction (age gate / cookie wall) **halts and asks the customer** — never a palette from memory, never a hand-written `brand.json`, never a theme edit | Step 4 preflight / I10 | fixture + deterministic checks |
 | `source-derived-category-contract` | Clear source-site categories become one shared category contract for homepage cards, facet links, asset `productCategory`, and collections; no generic taxonomy ask or debug-noise answer | Step 4 → Step 5 | fixture + deterministic checks |
 | `assets-from-existing-secrets` | Step 5 reuses the existing env — creds from `cloudflare/.secrets`, env id from repo config; never collects creds, picks a tier, boots, or deploys | Step 5 | fixture |
 | `collections-from-searchable-assets` | Step 6 creates company-scoped collections from already-searchable assets via `.claude/skills/rebrand-portal/scripts/assets/create-collections.js`; no hand-rolled API, no new creds, no backend boot/deploy | Step 6 | fixture + deterministic checks |

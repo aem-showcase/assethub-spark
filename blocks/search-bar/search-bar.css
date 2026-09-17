@@ -15,7 +15,7 @@
 
 .query-input-container {
   position: relative;
-  background: var(--light-color);
+  background-color: var(--light-color);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -40,9 +40,9 @@
 .query-input-bar {
   display: flex;
   align-items: center;
-  background: #fff;
+  background-color: #fff;
   border-radius: 999px;
-  box-shadow: 0 10px 28px rgb(88 24 29 / 12%);
+  box-shadow: 0 10px 28px rgb(0 93 171 / 12%);
   padding: 4px 6px;
   width: 100%;
   max-width: 720px;
@@ -72,7 +72,9 @@
   display: block;
   width: 16px;
   height: 16px;
-  background: url('/icons/search.svg') no-repeat center;
+  background-image: url('/icons/search.svg');
+  background-repeat: no-repeat;
+  background-position: center;
   background-size: contain;
   filter: brightness(0) saturate(100%) invert(54%) sepia(12%) saturate(0%);
   opacity: 1;
@@ -84,7 +86,7 @@
   padding: 0 42px;
   border: none;
   border-radius: 0;
-  background: #fff;
+  background-color: #fff;
   outline: none;
   color: var(--text-color);
   font-family: var(--body-font-family), sans-serif !important;
@@ -97,7 +99,7 @@
 }
 
 .query-input:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #00647D);
+  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #005DAB);
 }
 
 .query-input.rounded-box {
@@ -117,7 +119,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
+  background-color: #fff;
   border: none;
   border-top-left-radius: 999px;
   border-bottom-left-radius: 999px;
@@ -140,7 +142,9 @@
   display: inline-block;
   width: 12px;
   height: 12px;
-  background: url('/icons/chevron-down.svg') no-repeat center;
+  background-image: url('/icons/chevron-down.svg');
+  background-repeat: no-repeat;
+  background-position: center;
   background-size: contain;
   flex-shrink: 0;
 }
@@ -149,7 +153,7 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  background: #fff;
+  background-color: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
@@ -191,7 +195,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
+  background-color: #fff;
   border: none;
   padding: 0 10px 0 12px;
   height: 48px;
@@ -212,7 +216,9 @@
   display: inline-block;
   width: 12px;
   height: 12px;
-  background: url('/icons/chevron-down.svg') no-repeat center;
+  background-image: url('/icons/chevron-down.svg');
+  background-repeat: no-repeat;
+  background-position: center;
   background-size: contain;
   flex-shrink: 0;
 }
@@ -221,7 +227,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #fff;
+  background-color: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
@@ -345,7 +351,7 @@
   padding: 8px 0;
   width: 100%;
   max-width: 720px;
-  background: #fff;
+  background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
   z-index: 50;

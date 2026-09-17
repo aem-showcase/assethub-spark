@@ -215,15 +215,22 @@ new gates such as Step 4g's color verification before assets.
    copied docs, PR scope, or the facets panel can still carry stale base
    branding.
 
-1a. **Check excat availability now — before Step 3.** Run `claude plugin
-    list` / `claude skill list` (or equivalent) and confirm
-    `excat-complete-design-expert` is invokable in this session. The three
-    states and their handling are in `docs/excat-setup.md`. If it is not
-    invokable: surface the state to the operator and follow the setup
-    steps. **Do not block Steps 1–3 on this** — DA copy and branch work
-    need no excat; proceed through Steps 1–3 while the operator resolves
-    it. Do block Step 4 as before. Surfacing this early avoids a
-    mid-flow restart after the DA setup is already done.
+1a. **Check excat availability now — before Step 3.** Run
+    `node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs
+    --check`. Exit 0 means ready; exit 3 prints the exact fix. Use this, not
+    `claude plugin list` — a plugin listing says a skill is *loadable*, which
+    is a different question from whether the extractor file and a launchable
+    browser are on disk, and it is green on machines that fail. (Those
+    listing commands are also Claude Code-specific and do not exist in
+    Copilot CLI.) If it exits 3: surface the printed message to the operator
+    and point at `docs/excat-setup.md`. **Do not block Steps 1–3 on this** —
+    DA copy and branch work need no excat; proceed through Steps 1–3 while
+    the operator resolves it. Do block Step 4 as before. Surfacing this early
+    avoids a mid-flow restart after the DA setup is already done.
+    **Readiness is necessary, not sufficient.** Step 4's real gate is a
+    measured `migration-work/brand.json` — the skill has loaded successfully
+    and then gone unused in every failure we have a transcript for. See
+    `docs/step-4-rebrand.md` "Step 4 preflight".
 
 2. **Ask Q1/Q2 as the first action of Step 5, not in the entry flow and not
    in the Step 4 handoff** (skip any question the request already answers
@@ -296,10 +303,20 @@ searchable.
 
 ## Operator setup (not customer-facing)
 
-⚠️ **Read `docs/excat-setup.md` in full before Step 4.** It covers the
-three plugin states (invokable / installed-not-enabled / not-installed),
-agent-first install steps, and the publish guard hook. Never hand-roll the
-rebrand as a substitute for fixing the tool.
+⚠️ **Operator setup lives in `docs/excat-setup.md`** — it is written for the
+human, not for you. Read it only to quote a fix to the operator; the rules
+that govern *your* behaviour during design matching are in
+`docs/step-4-rebrand.md` ("Hard rules for this step") and `invariants.md`
+(I10). Never hand-roll the rebrand as a substitute for fixing the tool.
+
+**Design matching needs two things on the operator's machine: the excat
+plugin (which ships the brand extractor) and a Chromium for it to drive.
+The browser is not inside the plugin** — Playwright keeps browsers in a
+machine-global cache — so the two can come apart. `extract-brand.mjs
+--check` verifies both in one command and prints the fix for whichever is
+missing. **At run time there is never a `git clone` or an `npm install`;**
+if either seems necessary to make extraction work, the plugin is not
+installed, and that is what to fix.
 
 
 # The steps — summaries + where the full detail lives
@@ -387,7 +404,16 @@ nav checks): `.claude/skills/rebrand-portal/docs/step-3-da-copy.md`
 
 **Gate: do not start — do not invoke `excat-complete-design-expert` or touch
 any file — until both `customer.demoBranch` and `customer.daFolder` are set
-(Steps 2 & 3 `done`).** One comprehensive delegation: design tokens +
+(Steps 2 & 3 `done`).**
+
+**Then measure the source site before any theme edit:**
+`node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --url <sourceUrl>`
+must produce `migration-work/brand.json` with `provenance.gatePassed: true`.
+Exit 5 means the source is behind an age gate or interstitial — halt and ask
+the customer; never invent a palette, and never hand-write `brand.json` (I10).
+`hooks/guard-brand-extraction.sh` blocks `styles/*.css` edits until this holds.
+
+One comprehensive delegation: design tokens +
 full-palette rebrand via Catalyst, brand-asset/logo swap (all instances),
 content-register rewrite scoped to `/companies/<companyKey>` only, publish only
 `/companies/<companyKey>/...` paths, set the demo scope in `cloudflare/src/config.js`
@@ -418,6 +444,15 @@ pending and fix Step 4.
 
 ## Step 5 — Upload and enrich the company's assets
 
+**HARD RULE — the demo carries exactly 5 categories, 2–3 assets each, 15
+total maximum.** A target shape, not a floor to beat: 8 assets in a category
+is as wrong as 0. Do not split the work into extra runs to fit more in — the
+ceiling is scoped to the **demo**, not the run, and re-running converges on
+the same 15. This applies identically if you write your own script instead of
+using the controller. **Before your first scrape/upload/enrichment command,
+state which 5 categories you chose and how many assets each will get.** A live
+run that skipped this shipped 252 assets across 7 categories in 194 minutes.
+
 **Preflight gate: all Step 4g checks must have passed in this session
 before any `--dry-run` or live enrichment.** If `assetsLane`/`assetsEnrichNow`
 aren't already known from the original request, ask Q1/Q2 now (Entry flow
@@ -433,9 +468,13 @@ Pass the Step 4 category contract via `--categories <slugs>` (one shared
 vocabulary, no hardcoded list); every asset is mapped to exactly one contract
 category. The run emits `report.cards` (label + blurb + facet href + proxy
 image per category) and a **card gate** that fails on a zero-asset category or
-fewer than `MIN_CARDS` cards. Author the copied `/companies/<companyKey>/en/index`
-carousel + cards rows from `report.cards` (via `update-index-cards.js`),
-preserving the block wrappers. Scope the portal via config.js.
+on a card count that is anything other than `MIN_CARDS`. Author the copied
+`/companies/<companyKey>/en/index` carousel rows from `report.cards` (via
+`update-index-cards.js`, which emits the demo's fixed card count whatever the
+report holds, and removes the secondary "Top Brands" block), preserving the
+block wrappers. Pull and publish that page with `publish-page.js`
+(`--pull` → edit → `--push --publish`) rather than hand-rolled DA/Helix calls.
+Scope the portal via config.js.
 Marks `assets-uploaded`, `assets-enriched`, `search-scoped`. Then continue
 to Step 6 automatically — unless `assetsEnrichNow` is `false`, in which
 case leave `assets-enriched`/`search-scoped`/`collections-created`

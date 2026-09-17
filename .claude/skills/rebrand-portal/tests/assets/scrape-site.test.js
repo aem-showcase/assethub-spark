@@ -383,4 +383,95 @@ describe('scrapeSiteImages', () => {
     await expect(scrapeSiteImages({ pageUrl: 'https://x.com/page', fetchFn, log: silent }))
       .rejects.toThrow(/404/);
   });
+
+  // --cookie / --header (Todo 8). costco.com sat behind Akamai and 403'd the scripted
+  // fetch, which on the measured run forced a switch to a different source site (88m) and
+  // 273 hand-rolled curl requests. These headers are the supported way through, and they
+  // must reach BOTH the page fetch and the image downloads.
+  it('merges sourceHeaders into the page fetch and the image downloads', async () => {
+    const calls = [];
+    const fetchFn = vi.fn(async (url, opts) => {
+      calls.push({ url, headers: (opts && opts.headers) || {} });
+      if (url === 'https://x.com/page') return htmlRes('<img src="/a.png">');
+      return imgRes(png);
+    });
+    await scrapeSiteImages({
+      pageUrl: 'https://x.com/page',
+      fetchFn,
+      log: silent,
+      minBytes: 0,
+      sourceHeaders: { Cookie: 'ak_bmsc=abc', 'X-Bot': 'ok' },
+    });
+    const page = calls.find((c) => c.url === 'https://x.com/page');
+    const img = calls.find((c) => c.url === 'https://x.com/a.png');
+    expect(page.headers.Cookie).toBe('ak_bmsc=abc');
+    expect(page.headers['X-Bot']).toBe('ok');
+    expect(img.headers.Cookie).toBe('ak_bmsc=abc');
+    // The hard-won UA/Referer are still there — sourceHeaders must add, not replace.
+    expect(img.headers['User-Agent']).toMatch(/Mozilla\/5\.0/);
+    expect(img.headers.Referer).toBe('https://x.com/page');
+  });
+
+  // --rendered-html (Todo 11). Client-rendered sources ship no <img> in the server HTML.
+  it('parses supplied rendered HTML and skips the page fetch entirely', async () => {
+    const seen = [];
+    const fetchFn = vi.fn(async (url) => {
+      seen.push(url);
+      if (url === 'https://x.com/page') throw new Error('page fetch must not happen');
+      return imgRes(png);
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page',
+      fetchFn,
+      log: silent,
+      minBytes: 0,
+      renderedHtml: '<img src="/a.png"><img src="/b.png">',
+    });
+    expect(seen).not.toContain('https://x.com/page');
+    expect(out.images.map((i) => i.fileName)).toEqual(['a.png', 'b.png']);
+    // Relative URLs still resolve against pageUrl, and it stays the Referer.
+    expect(out.images[0].sourcePage).toBe('https://x.com/page');
+  });
+
+  // Parallel downloads (Todo 4). Order must not depend on which response lands first:
+  // file naming dedupes through a shared set, so a reordered result set would produce
+  // different names run to run.
+  it('downloads in parallel but keeps candidate order', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const fetchFn = vi.fn(async (url) => {
+      if (url === 'https://x.com/page') {
+        return htmlRes('<img src="/a.png"><img src="/b.png"><img src="/c.png"><img src="/d.png">');
+      }
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      // Make the FIRST candidate the slowest, so a naive implementation that appends on
+      // completion would emit it last.
+      const delay = url.endsWith('a.png') ? 20 : 1;
+      await new Promise((r) => { setTimeout(r, delay); });
+      inFlight -= 1;
+      return imgRes(png);
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0,
+    });
+    expect(out.images.map((i) => i.fileName)).toEqual(['a.png', 'b.png', 'c.png', 'd.png']);
+    expect(peak).toBeGreaterThan(1);
+  });
+
+  it('still stops at maxImages when downloading in parallel', async () => {
+    const fetchFn = vi.fn(async (url) => {
+      if (url === 'https://x.com/page') {
+        return htmlRes(Array.from({ length: 30 }, (_, i) => `<img src="/i${i}.png">`).join(''));
+      }
+      return imgRes(png);
+    });
+    const out = await scrapeSiteImages({
+      pageUrl: 'https://x.com/page', fetchFn, log: silent, minBytes: 0, maxImages: 3,
+    });
+    expect(out.images).toHaveLength(3);
+    // Bounded over-fetch: at most one parallel window beyond the quota, never all 30.
+    const downloads = fetchFn.mock.calls.filter(([u]) => u !== 'https://x.com/page');
+    expect(downloads.length).toBeLessThanOrEqual(4);
+  });
 });

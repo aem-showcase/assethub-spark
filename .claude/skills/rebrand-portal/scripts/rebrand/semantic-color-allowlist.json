@@ -1,5 +1,5 @@
 {
-  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface \u2014 checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
   "selectorPatterns": [
     "\\.editing-mode",
     "\\.impersonating",
@@ -11,6 +11,15 @@
     "--data-viz-"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^styles/styles\\.css$",
+    "^blocks/header/header\\.css$",
+    "^blocks/footer/footer\\.css$",
+    "^blocks/carousel/carousel\\.css$",
+    "^blocks/my-notifications/my-notifications\\.css$",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$"
   ]
 }

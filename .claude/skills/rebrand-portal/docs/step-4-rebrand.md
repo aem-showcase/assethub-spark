@@ -10,25 +10,138 @@
 `customer.daFolder` are set** (Steps 2 and 3 `done`). Do not invoke
 `excat-complete-design-expert` or touch any file until both are set.
 
-## Step 4 preflight — Experience Catalyst availability
+## Step 4 preflight — measure the source site FIRST
 
-Before any design/rebrand work, verify `excat-complete-design-expert` is
-invokable in the current session. Run the operator setup check above
-(`claude plugin list`, `claude skill list`, or the equivalent in the active
-CLI). If it is not invokable, follow `docs/excat-setup.md` and block here
-until the plugin is loaded.
+**The preflight is not "is the plugin loaded" — it is "have the brand
+tokens been measured."** Those are different questions, and conflating them
+is why every observed failure got through. Across 13 consecutive runs the
+excat design skill loaded successfully and its extraction step was then
+abandoned every single time, each run citing a missing
+`page-templates.json` — a precondition excat's own `SKILL.md` says to
+satisfy by passing `[]`. Availability was always green. Extraction never
+happened. The colours that shipped came from memory, a web search, or
+arithmetic on a logo, and nothing downstream could tell.
 
-If a source website URL is present, that URL is the design source. Invoke
-`excat-complete-design-expert` directly in Complete Migration mode with the
-source URL and the copied `/companies/<companyKey>/...` verification targets.
+So the preflight has an **artifact** as its exit condition, not a
+capability:
+
+1. **Confirm the toolchain is ready.** Run:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --check
+   ```
+
+   This is the check to run — not `claude plugin list`, which reports whether
+   a *skill is loadable* and cannot see the two things extraction actually
+   consumes (the extractor file and a launchable browser). `--check` exits 0
+   with `OK`, or exits 3 naming the one command that fixes it. If it exits 3,
+   surface that message to the operator and follow `docs/excat-setup.md`.
+
+   **At run time there is never a `git clone` and never an `npm install`.**
+   The plugin ships the extractor; if either seems necessary mid-demo, the
+   plugin is not installed and that is the thing to fix. (Installing the
+   plugin in the first place is excat's own one-time setup, and it does use
+   npm — that is setup time, not run time. The Chromium binary is *not*
+   inside the plugin: Playwright keeps browsers in a machine-global cache.)
+
+2. **Get the source URL.** If a source website URL is present, that URL is
+   the design source. If none is present, ask for one — excat's own Step 1.1
+   says to, and an unanswered URL is the one thing that legitimately blocks
+   this step.
+
+3. **Measure it.** This is the step that was always skipped:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs \
+     --url <sourceSiteUrl>
+   ```
+
+   It runs excat's own extractor (`brand-extract.js`) in excat's own
+   browser; we own only the invocation, because invoking it by hand has two
+   silent failure modes that make it either crash opaquely or "succeed" with
+   nothing (see the header of `extract-brand.mjs`). It writes
+   `migration-work/brand.json`.
+
+   **It passes ordinary age gates by itself** — dismissing the consent banner,
+   selecting a country, filling a date of birth and submitting — then re-checks
+   for a gate before accepting the result, so this can never turn a halt into a
+   false pass. If a gate needs a hint, pass `--country XX` (ISO alpha-2) or
+   `--dob YYYY-MM-DD`; `--no-gate-interaction` turns it off. Whatever it did is
+   recorded in `provenance.gateInteraction`.
+
+   It also measures **`tokens.accents[]`** — the most-painted non-grey colours,
+   ranked by area. excat samples only background/text/link, which on many brands
+   are white/grey/grey with the signature colour nowhere in sight; the accents
+   are how that colour becomes available lawfully under I10.
+
+   **Selectors default to `[]` and that is correct.** A missing
+   `page-templates.json` is not a blocker — do not treat it as one.
+
+4. **Handle a HALT properly.** Exit code 5 means the extractor landed on an
+   age gate, cookie wall or bot interstitial *that it could not clear*, and it
+   writes `brand.rejected.json` instead of `brand.json`. The tokens on such a
+   page are real, plausible and completely wrong — an age gateway's greys and
+   blues extract perfectly cleanly. **Never hand-write `brand.json` to get past
+   this.** Check `provenance.gateInteraction` to see what was already tried,
+   then re-run with `--country` / `--dob`, or from a URL that renders real
+   content (a regional landing page, newsroom, or brand-guidelines page), or
+   use `--keep-open` to clear the gate manually.
+   If no such URL exists, say so and ask the customer for the brand
+   reference — that is a legitimate, reportable outcome. Silently proceeding
+   is not.
+
+**Exit condition: `migration-work/brand.json` exists with
+`provenance.gatePassed: true` and non-empty `tokens.colors`.** Until then,
+`hooks/guard-brand-extraction.sh` blocks edits to `styles/styles.css` and
+`styles/brand.css`.
+
+### Hard rules for this step
+
+Each of these corresponds to a specific way an observed run went wrong.
+
+- **A source website URL is enough input** for design matching. Nothing else
+  is required to begin.
+- **Measure the source site before editing the theme.** A loaded skill is not
+  a measured brand (invariant I10); `hooks/guard-brand-extraction.sh`
+  enforces this.
+- **A missing `page-templates.json` is not a blocker.** excat's own `SKILL.md`
+  says to pass `[]`, and the extractor defaults to it. This was cited as the
+  reason for abandoning extraction in *every* run where it was abandoned.
+- **Do not ask the customer for colours or a palette** while excat is
+  available.
+- **Do not treat a generic WebFetch failure as a blocker.**
+- **Do not route this work to DesignSync.**
+- **Treat a denial, failure, or unavailability of the skill as a halt.** One
+  observed run had its skill spawn denied by a classifier, absorbed the
+  denial silently, and continued from recalled brand knowledge.
+
+### Then hand off to excat
+
+With `brand.json` in hand, invoke `excat-complete-design-expert` **with the
+source URL and the measured tokens already supplied**, so it begins at its
+Step 1.3 (font-delivery cascade) rather than its Step 1.1. This matters:
+Step 1.1 is the abandonment trigger, and pre-supplying its output removes
+the trigger structurally instead of asking the agent to behave differently
+this time.
+
+Keep excat in the loop — this is a deliberate choice, not ceremony. Every
+run that loaded this skill went and measured something real, including two
+that had no browser and fell back to fetching and parsing the source's
+compiled CSS. The one run where the skill never loaded (its spawn was
+denied and the denial was absorbed silently) used recalled brand knowledge
+and measured nothing. **Treat any denial, failure, or unavailability of the
+skill as a halt, not as permission to continue from memory.**
+
+excat owns the judgement calls: which measured colour plays which role, the
+font-delivery cascade, and writing `brand.css`. It does not own whether the
+values are real — that is `brand.json`'s job, and `brand-fidelity` at Step
+4g proves the two agree.
 
 **Do not ask how to source the look when a source URL is already present.**
 Do not ask the user for colors or a palette while Catalyst is available.
 A generic `WebFetch` failure is not a blocker and is not a reason to ask
-for manual colors; Catalyst performs its own source extraction. Do not
-route this work to DesignSync or any generic design tool. If Catalyst
-itself fails to extract the source after it is invoked, then report that
-specific Catalyst failure and ask for a better source URL or brand inputs.
+for manual colors. Do not route this work to DesignSync or any generic
+design tool.
 
 ## Step 4a — Content-authoring access (`token.env` — the only setup)
 
@@ -143,16 +256,39 @@ split it across turns:
 
 1. **Design tokens and typography** — invoke `excat-complete-design-expert`
    in **Complete Migration** mode (site design system + all blocks),
-   naming the source site if given. Its CSS is branch-global (correct —
+   naming the source site if given. **Supply `migration-work/brand.json`
+   from the preflight** so it starts from measured values rather than
+   re-deriving them. Its CSS is branch-global (correct —
    the demo previews on this branch). Point its visual verification at the
    copied `/companies/<companyKey>/...` pages. Do not substitute manual `styles.css`
-   edits. **Rebrand the FULL palette, not just the accent** — primary,
+   edits.
+
+   **Record the role mapping in `brand.json`'s `tokenMap` as you apply it.**
+   Each entry is `{ role, oldHex, newHex, cssVar, source }`, where `source`
+   is `"extracted"` (`newHex` is one of the measured colours — that means
+   `tokens.colors` **or** any `tokens.accents[].hex`) or
+   `"derived"` (a tint/shade/contrast pick, which **must** name its
+   `derivedFrom` measured colour). This is invariant I10, and it is
+   enforced: a colour that is neither measured nor traceably derived from a
+   measured one is a fabrication, and `brand-fidelity` fails on it at 4g.
+   An empty `tokenMap` also fails — measuring without mapping leaves the
+   theme unverifiable.
+
+   **Rebrand the FULL palette, not just the accent** — primary,
    secondary, **background/surface tokens, and every decorative brand
    background** (e.g. a coffee-bean hero/section background, a tinted
    filter/facets panel). The base site ships a themed background (cream
    sections + a decorative brand SVG); if only the primary color changes,
    those backgrounds survive off-brand. Name `baseBrand.baseSlug` (from the
    capture step) so the agent knows exactly what to replace.
+
+   **Use `background-color`, not the `background` shorthand, on
+   `.section.*` rules.** `search-hero` and `category-tiles` are two classes
+   on a single element; a shorthand on one resets every layer the other set
+   — image, size, position, not just the colour — at equal specificity, and
+   the base surface paints through. This shipped. `verify.mjs --only
+   background-shorthand` fails on it.
+
    **Name the exact base surface tokens/assets that MUST change (not just
    `--primary-color`)** — verified still-base-surface live:
    - `--light-color` (value = `baseBrand.baseSurfaceHex`, in
@@ -319,19 +455,21 @@ split it across turns:
    map correctly; `productCategory` is write-once, so the map is what makes the
    first write right.
 
-   **Category floor — propose at least 5 real candidates.** This initial
-   contract must name **at least 5** real, source-derived candidate
-   categories before handing off to Step 5 (`MIN_CARDS` in
-   `scripts/assets/constants.js` is `5` — the same floor Step 5's card gate
-   enforces on the surviving, actually-enriched categories). If genuine
+   **Category count — propose exactly 5 real candidates.** This initial
+   contract must name **exactly 5** real, source-derived categories before
+   handing off to Step 5 (`MIN_CARDS` in `scripts/assets/constants.js` is `5` —
+   the same floor Step 5's card gate enforces on the surviving, actually-
+   enriched categories). The demo carries 5 categories; proposing more does not
+   produce a richer page, it produces categories that never ship. If genuine
    derivation from the source site yields fewer than 5 real candidates, say
    so plainly and widen derivation — check more nav sections, product pages,
    disease/category pages, business-line listings — before handing off; don't
-   hand Step 5 a sub-5 contract and expect it to backfill the gap later. This
-   is a *candidate* floor, not a guarantee of survival: Step 5 may still find
-   that one of these candidates has zero real assets after scraping, in
-   which case Step 5's own floor rule (`docs/step-5-assets.md`) governs
-   whether to widen, drop, or use a last-resort placeholder for that one.
+   hand Step 5 a sub-5 contract and expect it to backfill the gap later.
+   There is deliberately no slack: each of the 5 must yield at least 2 assets,
+   so pick the 5 with the strongest source imagery. Step 5 may still find that
+   one of these candidates has zero real assets after scraping, in which case
+   Step 5's own floor rule (`docs/step-5-assets.md`) governs whether to widen,
+   drop, or use a last-resort placeholder for that one.
 
    Ask the customer to choose categories only when the source site is
    genuinely ambiguous after inspection. Otherwise state the decision

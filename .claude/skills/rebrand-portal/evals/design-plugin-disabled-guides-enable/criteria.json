@@ -15,7 +15,7 @@
     {
       "name": "Requires restart/reverify",
       "max_score": 10,
-      "description": "The agent says to restart if needed and reverify with /plugin list and claude skill list before continuing."
+      "description": "The agent says to restart if needed and to reverify with scripts/rebrand/extract-brand.mjs --check (exit 0) before continuing, rather than with /plugin list or claude skill list alone \u2014 those report only that a skill is loadable and pass on a machine with no browser."
     },
     {
       "name": "No manual rebrand substitute",
@@ -25,7 +25,7 @@
     {
       "name": "Leaves rebrand phase blocked",
       "max_score": 15,
-      "description": "The agent pauses the rebrand and treats the rebrand as blocked pending the plugin loading — e.g. sets steps.rebranded to 'blocked' in the state file, or clearly states it is blocking/stopping until the plugin is enabled. It does not mark rebrand steps done."
+      "description": "The agent pauses the rebrand and treats the rebrand as blocked pending the plugin loading \u2014 e.g. sets steps.rebranded to 'blocked' in the state file, or clearly states it is blocking/stopping until the plugin is enabled. It does not mark rebrand steps done."
     },
     {
       "name": "States the one fix action",

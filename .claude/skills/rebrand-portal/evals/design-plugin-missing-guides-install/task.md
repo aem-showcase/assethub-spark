@@ -35,21 +35,20 @@ look now."
 ## Output Specification
 
 Recognize that the design plugin is **not installed at all** (distinct from
-installed-but-disabled) and **stop** rather than proceeding. Tell the
-operator plainly that the plugin needs to be **installed first**. Prefer an
-agent-first setup: use an existing local `aem-experience-catalyst` clone if
-present, otherwise clone
-`https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst.git`; run
-`npm run install:all` from
-`resources/plugins/aem-excat-plugin/excat-marketplace`; smoke-check
-`excat/tools/excatops-mcp` with `npx .`; then add the marketplace in Claude
-Code using an **absolute** path:
-`/plugin marketplace add <absolute-path-to-aem-experience-catalyst>/resources/plugins/aem-excat-plugin/excat-marketplace`.
-Then install with `/plugin install excat@excat-marketplace`, restart if
-needed, and reverify with `/plugin list` and `claude skill list`. Do NOT tell
-them merely to "enable" something as if it were already installed. Do NOT
-hand-edit `styles.css`, sweep hardcoded colors, or rewrite content yourself as
-a substitute. Leave the rebrand phase blocked pending the plugin loading.
+installed-but-disabled) and **stop** rather than proceeding. Tell the human
+plainly that the plugin has to be installed first, and point them at excat's
+own setup instructions —
+<https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions>
+— and at `docs/excat-setup.md`. Do NOT reproduce those commands as a forked
+copy, and do NOT run them yourself: installing excat is one-time machine
+setup, and SKILL.md forbids a `git clone` or an `npm install` at run time.
+Do NOT tell them merely to "enable" something as if it were already
+installed. Say to restart the CLI if needed and to reverify with
+`scripts/rebrand/extract-brand.mjs --check` (exit 0) before continuing — not
+with `claude plugin list`, which reports only that a skill is loadable. Do
+NOT hand-edit `styles.css`, sweep hardcoded colors, or rewrite content
+yourself as a substitute. Leave the rebrand phase blocked pending the plugin
+being installed.
 
 (Note: this is an operator-facing readiness step, so naming the
 plugin/marketplace is expected here — the plain-language customer-outcomes

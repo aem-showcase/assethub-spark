@@ -7,22 +7,29 @@
 // remote — so the skill resolves but the model sees only the scenario's world
 // (not the real assethub-spark checkout, whose real remotes/branch would
 // otherwise make the model refuse to role-play a fake customer). Then run the
-// skill headless via `claude -p`, judge the transcript + resulting workspace
-// against the eval's criteria.json with a second `claude -p` call, and print a
-// weighted score.
+// skill headless via the chosen agent CLI, judge the transcript + resulting
+// workspace against the eval's criteria.json with a second headless call, and
+// print a weighted score.
 //
 // Usage:
-//   node run.mjs --eval <eval-name> [--label baseline] [--n 1]
-//                [--model <model>] [--judge-model <model>] [--keep]
-//   node run.mjs --all [--label baseline] [--n 1]
-//                [--model <model>] [--judge-model <model>] [--keep]
+//   node run.mjs --engine <claude|copilot> --eval <eval-name>
+//                [--label baseline] [--n 1] [--model <model>]
+//                [--judge-engine <claude|copilot>] [--judge-model <model>]
+//                [--keep-mcp] [--keep]
+//   node run.mjs --engine <claude|copilot> --all [...same options]
+//
+// --engine is REQUIRED and selects which CLI runs the skill. One engine per
+// invocation, always stated explicitly — the runner never picks one for you
+// and never falls back to the other. To compare engines, run it twice with
+// different --label values; results are stored per engine so they can't
+// overwrite each other.
 //
 // --all discovers every subdirectory of evals/ containing both a task.md and
 // a criteria.json (i.e. every real eval, skipping runner/ and anything
 // mid-authored), runs each in turn, and prints a combined summary table at
 // the end. Failures in one eval don't stop the rest.
 //
-// No Tessl, no plugin packaging — just the local `claude` CLI.
+// No Tessl, no plugin packaging — just the local agent CLI.
 
 import { spawn, execFileSync } from "node:child_process";
 import {
@@ -51,15 +58,54 @@ const DEFAULT_ORIGIN = "git@github.com:acme-co/acme-portal.git";
 
 const { values: args } = parseArgs({
   options: {
+    engine: { type: "string" },
     eval: { type: "string" },
     all: { type: "boolean", default: false },
     label: { type: "string", default: "baseline" },
     n: { type: "string", default: "1" },
     model: { type: "string" },
+    "judge-engine": { type: "string" },
     "judge-model": { type: "string", default: "sonnet" },
+    "keep-mcp": { type: "boolean", default: false },
     keep: { type: "boolean", default: false },
   },
 });
+
+const ENGINES = ["claude", "copilot"];
+
+// --engine is required and never inferred: which CLI ran an eval changes what
+// the score means, so it has to be a stated choice rather than a default or a
+// fallback. Missing/unknown values fail loudly with what's actually on PATH.
+function requireEngine(value, flag) {
+  if (!value) {
+    console.error(`error: ${flag} <claude|copilot> is required (no default — state the CLI explicitly)`);
+    console.error(`  on PATH: ${ENGINES.map((e) => `${e}=${onPath(e) ? "yes" : "no"}`).join("  ")}`);
+    process.exit(2);
+  }
+  if (!ENGINES.includes(value)) {
+    console.error(`error: unknown engine "${value}" for ${flag} — expected one of: ${ENGINES.join(", ")}`);
+    process.exit(2);
+  }
+  if (!onPath(value)) {
+    console.error(`error: ${flag}=${value} but the \`${value}\` CLI is not on PATH`);
+    process.exit(2);
+  }
+  return value;
+}
+
+function onPath(bin) {
+  try {
+    execFileSync("command", ["-v", bin], { shell: true, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const ENGINE = requireEngine(args.engine, "--engine");
+// The judge follows --engine unless explicitly overridden, so a Copilot run is
+// Copilot end to end rather than silently half-graded by another model.
+const JUDGE_ENGINE = requireEngine(args["judge-engine"] ?? ENGINE, "--judge-engine");
 
 if (!args.eval && !args.all) {
   console.error("error: --eval <eval-name> or --all is required");
@@ -87,19 +133,35 @@ async function discoverEvals() {
 }
 
 // ---------------------------------------------------------------------------
-// Run one `claude -p` invocation, return the parsed result JSON.
+// Agent CLI adapters.
+//
+// Both return the same shape as `claude -p --output-format json` always did —
+// `{ result: "<final assistant text>", ... }` — so everything downstream
+// (transcript, snapshot, checks, scoring) stays engine-agnostic.
+//
+// The two CLIs differ in three ways, and only these three:
+//   - claude emits ONE JSON object; copilot emits JSONL (one event per line).
+//   - claude takes --permission-mode; copilot takes --allow-all-tools.
+//   - claude takes --json-schema; copilot has no structured-output flag, so
+//     the judge prompt carries the schema as prose and the reply is extracted.
 // ---------------------------------------------------------------------------
-function claude({ prompt, cwd, permissionMode, jsonSchema, model }) {
-  return new Promise((resolve, reject) => {
-    const cliArgs = ["-p", prompt, "--output-format", "json"];
-    if (permissionMode) cliArgs.push("--permission-mode", permissionMode);
-    if (model) cliArgs.push("--model", model);
-    if (jsonSchema) cliArgs.push("--json-schema", JSON.stringify(jsonSchema));
 
-    const child = spawn("claude", cliArgs, {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+// Short model aliases (`sonnet`) are Claude-CLI spellings; Copilot wants full
+// model ids. Anything already fully qualified passes through untouched.
+const COPILOT_MODEL_ALIASES = {
+  sonnet: "claude-sonnet-5",
+  haiku: "claude-haiku-4.5",
+  opus: "claude-opus-5",
+};
+
+// MCP servers configured on the operator's machine (excat, playwright, GitHub)
+// would load into every seeded sandbox — slow, and a hole in the suite's
+// hermeticity rule. Disabled unless --keep-mcp is passed.
+const COPILOT_DISABLED_MCP = ["excatops", "playwright", "github-mcp-server"];
+
+function spawnCli(bin, cliArgs, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, cliArgs, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     let err = "";
     child.stdout.on("data", (d) => (out += d));
@@ -108,16 +170,111 @@ function claude({ prompt, cwd, permissionMode, jsonSchema, model }) {
     child.on("close", (code) => {
       if (code !== 0) {
         return reject(
-          new Error(`claude exited ${code}\nstderr:\n${err}\nstdout:\n${out}`)
+          new Error(`${bin} exited ${code}\nstderr:\n${err}\nstdout:\n${out}`)
         );
       }
-      try {
-        resolve(JSON.parse(out));
-      } catch (e) {
-        reject(new Error(`could not parse claude JSON output: ${e}\n${out}`));
-      }
+      resolve(out);
     });
   });
+}
+
+async function runClaude({ prompt, cwd, permissionMode, jsonSchema, model }) {
+  const cliArgs = ["-p", prompt, "--output-format", "json"];
+  if (permissionMode) cliArgs.push("--permission-mode", permissionMode);
+  if (model) cliArgs.push("--model", model);
+  if (jsonSchema) cliArgs.push("--json-schema", JSON.stringify(jsonSchema));
+
+  const out = await spawnCli("claude", cliArgs, cwd);
+  try {
+    return JSON.parse(out);
+  } catch (e) {
+    throw new Error(`could not parse claude JSON output: ${e}\n${out}`);
+  }
+}
+
+async function runCopilot({ prompt, cwd, model }) {
+  // --allow-all-tools is what makes copilot non-interactive at all; there is no
+  // per-mode equivalent of claude's acceptEdits/dontAsk. The sandbox temp dir
+  // remains the blast radius (no --allow-all-paths).
+  const cliArgs = [
+    "-p",
+    prompt,
+    "--allow-all-tools",
+    "--output-format",
+    "json",
+    "--log-level",
+    "none",
+  ];
+  if (model) cliArgs.push("--model", COPILOT_MODEL_ALIASES[model] ?? model);
+  if (!args["keep-mcp"]) {
+    for (const s of COPILOT_DISABLED_MCP) cliArgs.push("--disable-mcp-server", s);
+  }
+
+  const out = await spawnCli("copilot", cliArgs, cwd);
+
+  const messages = [];
+  let resultEvent = null;
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    let ev;
+    try {
+      ev = JSON.parse(line);
+    } catch {
+      continue; // non-JSON noise on stdout is not fatal
+    }
+    // Note: unlike claude's `.result` (final message only), copilot exposes
+    // every assistant turn. Keeping them all gives the judge strictly more
+    // evidence — relevant for criteria about questions the skill posed on the
+    // way, not just how it signed off.
+    if (ev.type === "assistant.message" && ev.data?.content) messages.push(ev.data.content);
+    if (ev.type === "result") resultEvent = ev;
+  }
+  if (!resultEvent) {
+    throw new Error(`copilot produced no "result" event\n${out.slice(0, 2000)}`);
+  }
+  if (resultEvent.exitCode !== 0) {
+    throw new Error(`copilot reported exitCode ${resultEvent.exitCode}`);
+  }
+  return {
+    engine: "copilot",
+    result: messages.join("\n\n").trim(),
+    sessionId: resultEvent.sessionId,
+    exitCode: resultEvent.exitCode,
+    usage: resultEvent.usage,
+  };
+}
+
+// Run one headless agent invocation on the given engine.
+function runAgent({ engine, prompt, cwd, permissionMode, jsonSchema, model }) {
+  if (engine === "copilot") return runCopilot({ prompt, cwd, model });
+  return runClaude({ prompt, cwd, permissionMode, jsonSchema, model });
+}
+
+// Pull the first balanced JSON object out of a reply. Only needed for the
+// copilot judge, which has no --json-schema to guarantee a bare object.
+function extractJsonObject(text) {
+  const cleaned = text.replace(/^\s*```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') inString = !inString;
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return cleaned.slice(start, i + 1);
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -490,16 +647,30 @@ ${workspaceSnapshot || "(no fixture / empty workspace)"}
 Return JSON matching the schema: one verdict per checklist item, using the
 item's exact "name".`;
 
-  const res = await claude({
-    prompt,
+  // claude can hard-enforce the verdict shape with --json-schema; copilot has
+  // no equivalent, so it gets the same schema spelled out and a bare-JSON
+  // instruction, then the object is extracted from the reply.
+  const schemaPrompt =
+    JUDGE_ENGINE === "copilot"
+      ? `${prompt}
+
+Reply with ONE bare JSON object and nothing else — no prose, no markdown
+fences — matching exactly this schema:
+${JSON.stringify(JUDGE_SCHEMA, null, 2)}`
+      : prompt;
+
+  const res = await runAgent({
+    engine: JUDGE_ENGINE,
+    prompt: schemaPrompt,
     cwd: __dirname,
     permissionMode: "plan",
-    jsonSchema: JUDGE_SCHEMA,
+    jsonSchema: JUDGE_ENGINE === "claude" ? JUDGE_SCHEMA : undefined,
     model,
   });
+  const raw = JUDGE_ENGINE === "copilot" ? extractJsonObject(res.result ?? "") : res.result;
   let parsed;
   try {
-    parsed = JSON.parse(res.result);
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error(`judge did not return parseable JSON:\n${res.result}`);
   }
@@ -530,7 +701,9 @@ function score(criteria, verdicts) {
 // One run: seed → run skill → snapshot → judge → score.
 // ---------------------------------------------------------------------------
 async function runOnce(evalObj, i) {
-  const runDir = join(RESULTS_ROOT, args.label, evalObj.name, `run-${i}`);
+  // Results are keyed by engine as well as label, so a copilot baseline can
+  // never silently overwrite a claude one under the same label.
+  const runDir = join(RESULTS_ROOT, args.label, ENGINE, evalObj.name, `run-${i}`);
   await mkdir(runDir, { recursive: true });
 
   // Seed a fresh ISOLATED workspace OUTSIDE the repo, so the model sees only the
@@ -581,8 +754,13 @@ async function runOnce(evalObj, i) {
   const runPrompt = buildRunPrompt(evalObj);
   const permissionMode = permissionModeFor(evalObj);
 
-  console.log(`  run-${i}: skill (${permissionMode}) …`);
-  const runRes = await claude({
+  console.log(
+    `  run-${i}: skill via ${ENGINE}` +
+      (ENGINE === "claude" ? ` (${permissionMode})` : " (--allow-all-tools)") +
+      " …"
+  );
+  const runRes = await runAgent({
+    engine: ENGINE,
     prompt: runPrompt,
     cwd: workRoot,
     permissionMode,
@@ -590,7 +768,10 @@ async function runOnce(evalObj, i) {
   });
   const transcript = runRes.result ?? "";
   await writeFile(join(runDir, "transcript.txt"), transcript);
-  await writeFile(join(runDir, "run.json"), JSON.stringify(runRes, null, 2));
+  await writeFile(
+    join(runDir, "run.json"),
+    JSON.stringify({ engine: ENGINE, model: args.model ?? null, ...runRes }, null, 2)
+  );
 
   const { map: workspaceMap, text: workspaceSnapshot } = await snapshotWorkspace(workRoot);
   await writeFile(join(runDir, "workspace.txt"), workspaceSnapshot);
@@ -629,7 +810,7 @@ async function runOnce(evalObj, i) {
 // errored) so --all can build a final summary table.
 async function runEval(name, n) {
   const evalObj = await loadEval(name);
-  console.log(`\neval: ${evalObj.name}  (label=${args.label}, n=${n})`);
+  console.log(`\neval: ${evalObj.name}  (engine=${ENGINE}, judge=${JUDGE_ENGINE}, label=${args.label}, n=${n})`);
 
   const runs = [];
   for (let i = 1; i <= n; i++) {
@@ -680,6 +861,7 @@ async function main() {
     }
 
     console.log("\n\n=== summary (all evals) ===");
+    console.log(`  engine: ${ENGINE}  judge: ${JUDGE_ENGINE}  label: ${args.label}`);
     for (const { name, avg } of summary) {
       console.log(`  ${avg === null ? " ERR" : String(avg).padStart(4) + "%"}  ${name}`);
     }

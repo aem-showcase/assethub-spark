@@ -2,7 +2,7 @@ import {
   describe, it, expect, afterEach,
 } from 'vitest';
 import {
-  mkdtempSync, mkdirSync, writeFileSync, rmSync,
+  mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, statSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -182,5 +182,75 @@ describe('customer migration publish guard hook', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("companyKey 'other' -> /companies/other does not match state company folder /companies/acme");
+  });
+});
+
+/**
+ * Registration parity.
+ *
+ * Every guard must be registered on every CLI that can run this skill. A live demo ran
+ * under Copilot CLI with all five guards registered only for Claude Code, so none of them
+ * fired — every enforcement improvement in the skill was inert for that entire session.
+ * Drift here must fail in CI, not silently on a customer run.
+ */
+describe('guard hook registration parity', () => {
+  const guards = [
+    'guard-da-publish.sh',
+    'guard-auth-bypass-commit.sh',
+    'guard-secret-read.sh',
+    'guard-step5-verify-gate.sh',
+    'guard-brand-extraction.sh',
+    // Closes the one route the in-script barriers cannot reach: an agent-written script
+    // or raw curl that authors the page itself. Every route still has to publish.
+    'guard-live-publish-ceiling.sh',
+  ];
+
+  const hostConfigs = [
+    '.claude/settings.json',
+    '.codex/hooks.json',
+    '.github/hooks/rebrand-portal-guards.json',
+  ];
+
+  it.each(hostConfigs)('%s registers every rebrand-portal guard', (relPath) => {
+    const raw = readFileSync(join(repoRoot, relPath), 'utf8');
+    JSON.parse(raw); // must stay valid JSON or the host silently loads nothing
+    guards.forEach((guard) => {
+      expect(raw, `${relPath} is missing ${guard}`).toContain(guard);
+    });
+  });
+
+  it.each(guards)('%s exists and is executable', (guard) => {
+    const p = join(repoRoot, '.claude/skills/rebrand-portal/hooks', guard);
+    expect(existsSync(p)).toBe(true);
+    // eslint-disable-next-line no-bitwise
+    expect(statSync(p).mode & 0o111).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Host dialect parity: Claude Code sends tool_name/tool_input, Copilot CLI sends
+ * toolName/toolArgs with lowercase tool names. A guard that reads only one dialect is
+ * registered but inert on the other host — indistinguishable from not being registered.
+ */
+describe('guard host-dialect parity', () => {
+  const secretFile = ['.internal', 'token.env'].join('/');
+  const cases = [
+    ['guard-da-publish.sh', { command: 'curl -X POST https://admin.hlx.page/live/o/r/main/en/index' }, 2],
+    ['guard-secret-read.sh', { command: `cat ${secretFile}` }, 2],
+    ['guard-secret-read.sh', { command: 'ls -la' }, 0],
+  ];
+
+  it.each(cases)('%s treats both dialects alike (%#)', (guard, args, expected) => {
+    const p = join(repoRoot, '.claude/skills/rebrand-portal/hooks', guard);
+    const run = (event) => spawnSync('bash', [p], {
+      input: JSON.stringify(event),
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
+    }).status;
+
+    const claude = run({ tool_name: 'Bash', tool_input: args });
+    const copilot = run({ toolName: 'bash', toolArgs: args });
+    expect(claude).toBe(expected);
+    expect(copilot).toBe(claude);
   });
 });

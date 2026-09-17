@@ -5,7 +5,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  slugify, parseEnvFile, parseArgs, validateOptions, resolveCreds, resolveAemEnvId, resolveDaToken,
+  slugify, parseEnvFile, parseArgs, validateOptions, resolveCreds, resolveAemEnvId,
+  resolveDaToken, buildSourceHeaders,
 } from '../../scripts/assets/config.js';
 
 describe('config', () => {
@@ -176,6 +177,72 @@ describe('config', () => {
       try {
         writeFileSync(file, 'SOME_OTHER_KEY=value\n');
         expect(resolveDaToken({ daTokenFile: file })).toBeNull();
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  // Source-fetch escapes (Todo 8/9/11). Each of these replaces a hand-written script or a
+  // raw curl loop observed on a live run — work that happens off the supported path, where
+  // none of the gates can see it.
+  describe('source-fetch flags', () => {
+    it('parses --cookie and repeated --header', () => {
+      const opts = parseArgs([
+        '--customer-key', 'acme',
+        '--cookie', 'ak_bmsc=abc; sid=1',
+        '--header', 'X-Bot: ok',
+        '--header', 'Accept-Language: en-US',
+      ]);
+      expect(opts.cookie).toBe('ak_bmsc=abc; sid=1');
+      expect(opts.headers).toEqual(['X-Bot: ok', 'Accept-Language: en-US']);
+    });
+
+    it('defaults headers to an empty list so buildSourceHeaders is always safe', () => {
+      const opts = parseArgs(['--customer-key', 'acme']);
+      expect(opts.headers).toEqual([]);
+      expect(buildSourceHeaders(opts)).toEqual({});
+    });
+
+    it('builds a header object, with a value containing colons preserved', () => {
+      expect(buildSourceHeaders({
+        cookie: 'sid=1',
+        headers: ['X-Bot: ok', 'Referer: https://x.com/page'],
+      })).toEqual({
+        Cookie: 'sid=1',
+        'X-Bot': 'ok',
+        Referer: 'https://x.com/page',
+      });
+    });
+
+    it('rejects a --header without a colon', () => {
+      const errors = validateOptions({ customerKey: 'acme', headers: ['X-Bot ok'] });
+      expect(errors.join(' ')).toMatch(/--header "X-Bot ok" must be "Name: value"/);
+    });
+
+    it('rejects --rendered-html and --hero-map paths that do not exist', () => {
+      const errors = validateOptions({
+        customerKey: 'acme',
+        renderedHtml: '/no/such/rendered.html',
+        heroMap: '/no/such/hero.json',
+      });
+      expect(errors.join(' ')).toMatch(/--rendered-html file not found/);
+      expect(errors.join(' ')).toMatch(/--hero-map file not found/);
+    });
+
+    it('accepts --rendered-html and --hero-map when the files exist', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'agent-srcflags-'));
+      try {
+        const html = join(dir, 'rendered.html');
+        const hero = join(dir, 'hero.json');
+        writeFileSync(html, '<img src="/a.png">');
+        writeFileSync(hero, '{"grocery":"apples.jpg"}');
+        const opts = parseArgs([
+          '--customer-key', 'acme', '--rendered-html', html, '--hero-map', hero,
+        ]);
+        expect(opts.renderedHtml).toBe(html);
+        expect(opts.heroMap).toBe(hero);
+        expect(validateOptions(opts)).toEqual([]);
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
