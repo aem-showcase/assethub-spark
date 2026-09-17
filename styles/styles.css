@@ -13,7 +13,7 @@
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
   --light-color: #F3F7EE;
-  --dark-color: #2C2C2C;
+  --dark-color: #173328;
   --text-color: #163229;
   --text-primary: #163229;
   --link-color: #163229;
@@ -27,16 +27,16 @@
   --secondary-color: #1B4677;
 
   /* Neutral & shape tokens */
-  --color-neutral-50: #fff;
-  --color-neutral-100: #fafafa;
-  --color-neutral-200: #f5f5f5;
-  --color-neutral-300: #e8e8e8;
-  --color-neutral-400: #d6d6d6;
-  --color-neutral-500: #b8b8b8;
-  --color-neutral-600: #8f8f8f;
-  --color-neutral-700: #666;
-  --color-neutral-800: #3d3d3d;
-  --color-neutral-900: #292929;
+  --color-neutral-50: #FCFEFB;
+  --color-neutral-100: #F6FAF3;
+  --color-neutral-200: #EEF4E7;
+  --color-neutral-300: #DCE6D3;
+  --color-neutral-400: #C7D3C0;
+  --color-neutral-500: #AAB7A4;
+  --color-neutral-600: #7E8D7A;
+  --color-neutral-700: #586757;
+  --color-neutral-800: #314032;
+  --color-neutral-900: #1D281F;
   --shape-border-radius-1: 3px;
   --shape-border-radius-2: 8px;
   --shape-border-radius-3: 24px;
@@ -89,7 +89,7 @@
   --primary-color-disabled: var(--color-neutral-300);
   --button-disabled-bg: var(--color-neutral-300);
   --button-disabled-text: var(--color-neutral-700);
-  --button-secondary-color: #fff;
+  --button-secondary-color: var(--color-neutral-50);
 
   /* status badge colors */
   --status-not-started: var(--primary-color);
@@ -113,10 +113,17 @@
   --icon-color-active: var(--primary-color);
 
   /* clearance colors */
-  --clearance-available: #7fb078;
+  --clearance-available: #6CB57B;
   --clearance-not-available: var(--color-red);
   --clearance-exceptions: var(--accent-tertiary);
   --clearance-partial: var(--accent-secondary);
+
+  /* Welcome/login split panel */
+  --welcome-panel-bg: #0B1F12;
+  --welcome-panel-accent-rgb: #6AAAE4;
+  --welcome-panel-mark-image: url('/icons/heineken-beans.svg');
+  --welcome-tagline-line1: "Brew the next matchday moment,";
+  --welcome-tagline-line2: "with Heineken India at your fingertips.";
 
   /* action button colors */
   --button-primary: var(--primary-color);
@@ -236,13 +243,13 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Dark brand background with the logo mark as a large decorative accent */
 body:has(.section.welcome) > main::before {
   content: '';
   background-color: var(--welcome-panel-bg, #0B1F12);
   background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
+    radial-gradient(ellipse 80% 55% at 15% 110%, color-mix(in srgb, var(--welcome-panel-accent-rgb, #6AAAE4) 22%, transparent) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 45% at 90% -5%, color-mix(in srgb, var(--welcome-panel-accent-rgb, #6AAAE4) 10%, transparent) 0%, transparent 100%),
     var(--welcome-panel-mark-image, url('/icons/heineken-beans.svg'));
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, 42%;
@@ -260,7 +267,7 @@ body:has(.section.welcome) > main::before {
 body:has(.section.welcome) > main::after {
   content: var(--welcome-tagline-line1, '"Brew the next matchday moment,') "\A" var(--welcome-tagline-line2, 'with Heineken India at your fingertips."');
   white-space: pre;
-  font-family: baskerville, serif;
+  font-family: var(--heading-font-family);
   font-size: 1rem;
   font-style: italic;
   line-height: 1.6;
@@ -753,7 +760,7 @@ button.button.secondary,
 button.secondary {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
-  color: #fff;
+  color: var(--color-neutral-50);
 }
 
 a.button.secondary:hover,
@@ -761,7 +768,7 @@ button.button.secondary:hover,
 button.secondary:hover {
   background-color: var(--color-dark-red);
   border-color: var(--color-dark-red);
-  color: #fff;
+  color: var(--color-neutral-50);
 }
 
 main img {
@@ -847,7 +854,7 @@ main .section.dark-red {
 }
 
 main .section.hero-white { background-color: white; }
-main .section.hero-black { background-color: #000; }
+main .section.hero-black { background-color: #09110A; }
 main .section.dark-blue { background-color: var(--color-dark-blue); }
 main .section.red { background-color: var(--color-red); }
 main .section.dark-red { background-color: var(--color-dark-red); }
@@ -1019,7 +1026,7 @@ main .section.search-hero .query-input-container {
 }
 
 main .section.search-hero .query-input-bar {
-  background-color: #fff;
+  background-color: var(--color-neutral-50);
   box-shadow: 0 12px 30px rgb(22 50 41 / 14%);
 }
 
@@ -1302,7 +1309,7 @@ button.primary-button.primary-is-loading::before {
 /* Secondary Button - White with border */
 button.secondary-button {
   background-color: var(--button-secondary-color);
-  border: 1.5px solid #9a9a9a;
+  border: 1.5px solid #819780;
   color: var(--text-color);
   font-family: var(--type-condensed-font-family);
   font-size: .875rem;
@@ -1330,7 +1337,7 @@ button.secondary-button:focus {
 button.secondary-button:disabled {
   background-color: var(--button-secondary-color);
   color: var(--secondary-color);
-  border-color: #ccc;
+  border-color: #B9C5B4;
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
@@ -1363,7 +1370,7 @@ input[type="checkbox"] {
   cursor: pointer;
   appearance: none;
   background-color: white;
-  border: 2px solid #828181;
+  border: 2px solid #6D7A6A;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1422,7 +1429,7 @@ input[type="checkbox"]:checked::after {
 picture.missing {
   width: 100%;
   height: 100%;
-  background-color: #ffccc7;
+  background-color: #F7D6D1;
   position: relative;
   display: block;
 }
@@ -1463,11 +1470,11 @@ picture.missing img {
   left: 50%;
   bottom: calc(100% + 10px);
   transform: translateX(-50%);
-  background-color: #fff;
-  color: #000;
+  background-color: var(--color-neutral-50);
+  color: #132019;
   text-align: center;
   border-radius: 4px;
-  border: 1px solid #d4d4d5;
+  border: 1px solid #CBD6C7;
   padding: 8px 12px;
   width: max-content;
   max-width: 300px;
@@ -1487,7 +1494,7 @@ picture.missing img {
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #fff transparent transparent;
+  border-color: var(--color-neutral-50) transparent transparent;
   filter: drop-shadow(0 0 1px rgb(122 122 122 / 100%));
 }
 
@@ -1511,7 +1518,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="bottom"]::before {
   top: 100%;
   bottom: auto;
-  border-color: transparent transparent #fff;
+  border-color: transparent transparent var(--color-neutral-50);
 }
 
 [data-tooltip][data-tooltip-position="left"]::after {
@@ -1522,7 +1529,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="left"]::before {
   inset: 50% 100% auto auto;
   transform: translateY(-50%);
-  border-color: transparent transparent transparent #fff;
+  border-color: transparent transparent transparent var(--color-neutral-50);
 }
 
 [data-tooltip][data-tooltip-position="right"]::after {
@@ -1533,7 +1540,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="right"]::before {
   inset: 50% auto auto 100%;
   transform: translateY(-50%);
-  border-color: transparent #fff transparent transparent;
+  border-color: transparent var(--color-neutral-50) transparent transparent;
 }
 
 .inline-loading-spinner {
@@ -1541,14 +1548,14 @@ picture.missing img {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: #5C6B59;
   font-size: 12px;
 }
 
 .inline-loading-spinner .spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid #e0e0e0;
+  border: 3px solid #D8E2D4;
   border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: facet-spin 0.8s linear infinite;
@@ -1580,7 +1587,7 @@ picture.missing img {
   }
 
   &::-webkit-scrollbar-track {
-    background-color: #f1f1f1;
+    background-color: #E8EFE5;
     border-radius: 10px;
   }
 

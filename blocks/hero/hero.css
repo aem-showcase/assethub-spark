@@ -180,8 +180,8 @@ main > .section.hero-container {
 
 .hero .button-container .button:not(.secondary):any-link:hover,
 .hero .button-container .button:not(.secondary):any-link:focus-visible {
-  background-color: #f9f0e5;
-  border-color: #f9f0e5;
+  background-color: #F3F7EE;
+  border-color: #F3F7EE;
 }
 
 .hero .button-container .button.secondary:any-link {
