@@ -25,11 +25,24 @@ arithmetic on a logo, and nothing downstream could tell.
 So the preflight has an **artifact** as its exit condition, not a
 capability:
 
-1. **Confirm the plugin is installed.** Run the operator setup check
-   (`claude plugin list`, `claude skill list`, or the CLI equivalent). If it
-   is not, follow `docs/excat-setup.md`. Installing/enabling the plugin is
-   the *entire* dependency — it ships both the extractor and a bundled
-   Chromium. **Never `git clone` excat and never `npm install` it.**
+1. **Confirm the toolchain is ready.** Run:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --check
+   ```
+
+   This is the check to run — not `claude plugin list`, which reports whether
+   a *skill is loadable* and cannot see the two things extraction actually
+   consumes (the extractor file and a launchable browser). `--check` exits 0
+   with `OK`, or exits 3 naming the one command that fixes it. If it exits 3,
+   surface that message to the operator and follow `docs/excat-setup.md`.
+
+   **At run time there is never a `git clone` and never an `npm install`.**
+   The plugin ships the extractor; if either seems necessary mid-demo, the
+   plugin is not installed and that is the thing to fix. (Installing the
+   plugin in the first place is excat's own one-time setup, and it does use
+   npm — that is setup time, not run time. The Chromium binary is *not*
+   inside the plugin: Playwright keeps browsers in a machine-global cache.)
 
 2. **Get the source URL.** If a source website URL is present, that URL is
    the design source. If none is present, ask for one — excat's own Step 1.1
@@ -81,6 +94,28 @@ capability:
 `provenance.gatePassed: true` and non-empty `tokens.colors`.** Until then,
 `hooks/guard-brand-extraction.sh` blocks edits to `styles/styles.css` and
 `styles/brand.css`.
+
+### Hard rules for this step
+
+Each of these corresponds to a specific way an observed run went wrong.
+(They lived in `docs/excat-setup.md` until that file was narrowed to human
+setup; they are agent policy, so they belong here.)
+
+- **A source website URL is enough input** for design matching. Nothing else
+  is required to begin.
+- **Measure the source site before editing the theme.** A loaded skill is not
+  a measured brand (invariant I10); `hooks/guard-brand-extraction.sh`
+  enforces this.
+- **A missing `page-templates.json` is not a blocker.** excat's own `SKILL.md`
+  says to pass `[]`, and the extractor defaults to it. This was cited as the
+  reason for abandoning extraction in *every* run where it was abandoned.
+- **Do not ask the customer for colours or a palette** while excat is
+  available.
+- **Do not treat a generic WebFetch failure as a blocker.**
+- **Do not route this work to DesignSync.**
+- **Treat a denial, failure, or unavailability of the skill as a halt.** One
+  observed run had its skill spawn denied by a classifier, absorbed the
+  denial silently, and continued from recalled brand knowledge.
 
 ### Then hand off to excat
 

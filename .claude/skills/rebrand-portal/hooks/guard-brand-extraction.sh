@@ -124,8 +124,8 @@ if not os.path.isfile(brand_path):
         "migration-work/brand.json does not exist, so the source site has not been measured.\n"
         "Editing the theme now means the colours come from memory or a guess — that is the\n"
         "defect this gate exists to prevent, and it is not detectable later.",
-        "Measure the source site first (the excat plugin ships both the extractor and the\n"
-        "browser; no clone or npm install is needed):\n" + EXTRACT_CMD,
+        "Measure the source site first (no clone or npm install is needed at run time;\n"
+        "if the toolchain is not ready, --check prints the fix):\n" + EXTRACT_CMD,
     )
 
 try:

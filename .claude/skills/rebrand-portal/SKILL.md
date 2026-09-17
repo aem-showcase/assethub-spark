@@ -215,16 +215,19 @@ new gates such as Step 4g's color verification before assets.
    copied docs, PR scope, or the facets panel can still carry stale base
    branding.
 
-1a. **Check excat availability now — before Step 3.** Run `claude plugin
-    list` / `claude skill list` (or equivalent) and confirm
-    `excat-complete-design-expert` is invokable in this session. The three
-    states and their handling are in `docs/excat-setup.md`. If it is not
-    invokable: surface the state to the operator and follow the setup
-    steps. **Do not block Steps 1–3 on this** — DA copy and branch work
-    need no excat; proceed through Steps 1–3 while the operator resolves
-    it. Do block Step 4 as before. Surfacing this early avoids a
-    mid-flow restart after the DA setup is already done.
-    **Availability is necessary, not sufficient.** Step 4's real gate is a
+1a. **Check excat availability now — before Step 3.** Run
+    `node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs
+    --check`. Exit 0 means ready; exit 3 prints the exact fix. Use this, not
+    `claude plugin list` — a plugin listing says a skill is *loadable*, which
+    is a different question from whether the extractor file and a launchable
+    browser are on disk, and it is green on machines that fail. (Those
+    listing commands are also Claude Code-specific and do not exist in
+    Copilot CLI.) If it exits 3: surface the printed message to the operator
+    and point at `docs/excat-setup.md`. **Do not block Steps 1–3 on this** —
+    DA copy and branch work need no excat; proceed through Steps 1–3 while
+    the operator resolves it. Do block Step 4 as before. Surfacing this early
+    avoids a mid-flow restart after the DA setup is already done.
+    **Readiness is necessary, not sufficient.** Step 4's real gate is a
     measured `migration-work/brand.json` — the skill has loaded successfully
     and then gone unused in every failure we have a transcript for. See
     `docs/step-4-rebrand.md` "Step 4 preflight".
@@ -300,16 +303,20 @@ searchable.
 
 ## Operator setup (not customer-facing)
 
-⚠️ **Read `docs/excat-setup.md` in full before Step 4.** It covers the
-three plugin states (invokable / installed-not-enabled / not-installed),
-the one-time marketplace bootstrap, and the publish guard hook. Never
-hand-roll the rebrand as a substitute for fixing the tool.
+⚠️ **Operator setup lives in `docs/excat-setup.md`** — it is written for the
+human, not for you. Read it only to quote a fix to the operator; the rules
+that govern *your* behaviour during design matching are in
+`docs/step-4-rebrand.md` ("Hard rules for this step") and `invariants.md`
+(I10). Never hand-roll the rebrand as a substitute for fixing the tool.
 
-**Installing the plugin is the entire dependency** — it ships both the
-brand extractor and a bundled Chromium. At run time there is never a
-`git clone` or an `npm install`; if either seems necessary to make
-extraction work, the plugin is not installed or not enabled, and that is
-what to fix.
+**Design matching needs two things on the operator's machine: the excat
+plugin (which ships the brand extractor) and a Chromium for it to drive.
+The browser is not inside the plugin** — Playwright keeps browsers in a
+machine-global cache — so the two can come apart. `extract-brand.mjs
+--check` verifies both in one command and prints the fix for whichever is
+missing. **At run time there is never a `git clone` or an `npm install`;**
+if either seems necessary to make extraction work, the plugin is not
+installed, and that is what to fix.
 
 
 # The steps — summaries + where the full detail lives

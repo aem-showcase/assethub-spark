@@ -3,6 +3,8 @@ import { detectGate, resolveExcatRoot } from '../../scripts/rebrand/extract-bran
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 /**
  * Gate detection is the difference between "we measured the source site" and
@@ -151,5 +153,52 @@ describe('the excat extractor contract', () => {
     const src = readFileSync(join(root, 'sub-agents', 'excat-block-design-expert', 'brand-extract.js'), 'utf8');
     // page.evaluate(src) on an arrow-function expression returns undefined silently.
     expect(src).toMatch(/\(\)\s*=>\s*\{/);
+  });
+});
+
+/**
+ * A missing Chromium used to surface as exit 4 ("extraction failed against
+ * <url>"), because the launch sat inside the navigation try/catch. That points
+ * the reader at the customer's website when the actual problem is their own
+ * machine — and it is the failure a fresh operator is most likely to hit,
+ * since the browser lives in a machine-global cache rather than in the plugin.
+ */
+describe('toolchain readiness', () => {
+  const SCRIPT = fileURLToPath(new URL('../../scripts/rebrand/extract-brand.mjs', import.meta.url));
+  const hasPlugin = Boolean(resolveExcatRoot());
+  const noBrowsers = join(tmpdir(), 'rebrand-no-browsers-fixture');
+
+  const run = (args, env) => spawnSync(process.execPath, [SCRIPT, ...args], {
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
+
+  it.skipIf(!hasPlugin)('--check exits 3 and names the fix when the browser is absent', () => {
+    const r = run(['--check'], { PLAYWRIGHT_BROWSERS_PATH: noBrowsers });
+    expect(r.status).toBe(3);
+    expect(r.stderr).toMatch(/npx playwright install chromium/);
+    // The fix must be resolved against the real install, not a hardcoded version.
+    expect(r.stderr).toContain(resolveExcatRoot());
+  });
+
+  it.skipIf(!hasPlugin)('a real run blames the machine, not the website, when the browser is absent', () => {
+    const r = run(['--url', 'https://example.com', '--repo-root', tmpdir()], {
+      PLAYWRIGHT_BROWSERS_PATH: noBrowsers,
+    });
+    expect(r.status).toBe(3);
+    expect(r.stderr).not.toMatch(/extraction failed against/);
+    expect(r.stderr).toMatch(/npx playwright install chromium/);
+  });
+
+  it('exits 3, not 4, when the plugin itself cannot be found', () => {
+    const r = run(['--check'], { HOME: join(tmpdir(), 'rebrand-no-home-fixture'), EXCAT_ROOT: '' });
+    expect(r.status).toBe(3);
+    expect(r.stderr).toMatch(/Could not locate the excat plugin/);
+  });
+
+  it('still reports usage errors as 2', () => {
+    const r = run([], {});
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--check/);
   });
 });

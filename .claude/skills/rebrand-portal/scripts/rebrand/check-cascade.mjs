@@ -38,7 +38,7 @@ import { pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { loadBrand, normalizeHex } from './brand-contract.mjs';
-import { resolveExcatRoot } from './extract-brand.mjs';
+import { resolveToolchain, launchChromium } from './extract-brand.mjs';
 
 const PLAYWRIGHT_REL = join('hooks', 'import-validator', 'node_modules', 'playwright', 'index.mjs');
 
@@ -136,11 +136,10 @@ async function main() {
       + 'Run the base-brand capture step first.');
   }
 
-  const excatRoot = resolveExcatRoot();
-  if (!excatRoot) fail(3, 'excat plugin not found — see docs/excat-setup.md. It ships the browser this check needs.');
-  const pwPath = join(excatRoot, PLAYWRIGHT_REL);
-  if (!existsSync(pwPath)) fail(3, `excat bundled Playwright missing at ${pwPath}`);
-  const { chromium } = await import(pathToFileURL(pwPath).href);
+  // Shared with extract-brand.mjs so a missing browser reports as a setup
+  // problem (exit 3, with the fix) here too, rather than as "cascade check
+  // failed" — which would read as a fault in the site being checked.
+  const toolchain = resolveToolchain();
 
   const pages = [
     { label: 'home', url: `${origin}/companies/${opt.company}/en/` },
@@ -148,9 +147,8 @@ async function main() {
   ];
 
   const surfaces = [];
-  let browser;
+  const browser = await launchChromium(toolchain, { headless: true });
   try {
-    browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: true });
     for (const pg of pages) {
       const page = await ctx.newPage();

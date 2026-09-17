@@ -40,9 +40,11 @@
  * reason extraction can be trusted. See detectGate() below.
  *
  * Exit codes (distinct so callers and hooks can react differently):
- *   0 — extracted and written
+ *   0 — extracted and written (or, with --check, the toolchain is ready)
  *   2 — usage error
- *   3 — excat plugin or its bundled browser could not be located
+ *   3 — toolchain not ready: the excat plugin, its Playwright package, or the
+ *       Chromium binary that package drives could not be found. These are
+ *       setup problems with distinct fixes, so each message names its own.
  *   4 — navigation or in-page extraction failed
  *   5 — HALT: landed on a gate/interstitial, or the yield was degenerate.
  *       Writes migration-work/brand.rejected.json for inspection and writes
@@ -68,11 +70,47 @@ function fail(code, msg) {
 
 // ---- locating excat -------------------------------------------------------
 /**
- * The plugin being installed is the entire dependency — no clone, no npm
- * install. CLAUDE_PLUGIN_ROOT is set when a skill or hook invokes us, but NOT
- * in an arbitrary shell, so fall back to scanning the plugin caches. Multiple
- * versions can coexist; take the highest that actually carries the extractor.
+ * CLAUDE_PLUGIN_ROOT is set when a skill or hook invokes us, but NOT in an
+ * arbitrary shell, so fall back to discovering the install.
+ *
+ * There are two shapes, and only one is a cache:
+ *
+ *  - **copied**: the host copies the plugin into its own cache
+ *    (`~/.claude/plugins/cache/...`). Multiple versions can coexist.
+ *  - **live**: the host loads it straight from a directory marketplace and
+ *    never copies it. Copilot CLI reports these as "Live Plugins (loaded from
+ *    a local marketplace directory, never copied)" and records the path in
+ *    `~/.copilot/settings.json` under `extraKnownMarketplaces`; Claude records
+ *    directory marketplaces in `known_marketplaces.json`.
+ *
+ * Scanning only the caches made a live install look like no install at all —
+ * `--check` reported "Could not locate the excat plugin" on a machine where
+ * the host had the plugin loaded and working. A false negative here is
+ * expensive: it tells an operator to fix something that is not broken.
  */
+function marketplaceDirs(env) {
+  const home = env.HOME || '';
+  const out = [];
+  const addPath = (p) => { if (p && typeof p === 'string') out.push(p); };
+
+  // Copilot CLI
+  try {
+    const s = JSON.parse(readFileSync(join(home, '.copilot', 'settings.json'), 'utf8'));
+    Object.values(s.extraKnownMarketplaces || {}).forEach((m) => addPath(m?.source?.path));
+  } catch { /* absent or unreadable */ }
+
+  // Claude Code
+  try {
+    const s = JSON.parse(readFileSync(join(home, '.claude', 'plugins', 'known_marketplaces.json'), 'utf8'));
+    Object.values(s || {}).forEach((m) => {
+      if (m?.source?.source === 'directory') addPath(m.source.path);
+      addPath(m?.installLocation);
+    });
+  } catch { /* absent or unreadable */ }
+
+  return out;
+}
+
 export function resolveExcatRoot(env = process.env) {
   const candidates = [];
   if (env.EXCAT_ROOT) candidates.push(env.EXCAT_ROOT);
@@ -95,6 +133,13 @@ export function resolveExcatRoot(env = process.env) {
     for (const v of versions) candidates.push(join(base, v));
   }
 
+  // Live (never-copied) installs: the marketplace directory holds the plugin
+  // under its own name, e.g. <marketplace>/excat.
+  for (const dir of marketplaceDirs(env)) {
+    candidates.push(join(dir, 'excat'));
+    candidates.push(dir);
+  }
+
   for (const c of candidates) {
     if (c && existsSync(join(c, EXTRACTOR_REL))) return c;
   }
@@ -111,6 +156,74 @@ function excatVersion(root) {
   let file = null;
   try { file = readFileSync(join(root, 'VERSION'), 'utf8').trim() || null; } catch { /* absent */ }
   return { dir, file };
+}
+
+// ---- toolchain readiness --------------------------------------------------
+/**
+ * Three things must be present, and they fail for three different reasons:
+ *
+ *   1. the plugin        — installed via the host's plugin system
+ *   2. playwright        — the npm package, shipped inside the plugin
+ *   3. the Chromium binary — NOT inside the plugin. Playwright keeps browsers
+ *      in a machine-global cache (~/Library/Caches/ms-playwright on macOS),
+ *      populated by `playwright install`. A plugin copied between machines, or
+ *      a cleaned browser cache, leaves 1 and 2 present and 3 missing.
+ *
+ * (3) used to surface as exit 4 "extraction failed", because the launch sat
+ * inside the navigation try/catch — pointing whoever read it at the website
+ * rather than at their own machine. Each case now exits 3 with its own fix.
+ */
+export function resolveToolchain(env = process.env) {
+  const excatRoot = resolveExcatRoot(env);
+  if (!excatRoot) {
+    fail(3, [
+      'Could not locate the excat plugin.',
+      'The plugin supplies the brand extractor; installing it is a one-time',
+      'setup step, never something a demo run should need to do.',
+      'Install it with excat\'s own instructions:',
+      '  https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions',
+      'Then see .claude/skills/rebrand-portal/docs/excat-setup.md and re-run.',
+      'To point at a non-standard install: EXCAT_ROOT=/path/to/excat ...',
+    ].join('\n'));
+  }
+  const pwPath = join(excatRoot, PLAYWRIGHT_REL);
+  if (!existsSync(pwPath)) {
+    fail(3, [
+      `excat is at ${excatRoot}, but its Playwright package is missing at:`,
+      `  ${pwPath}`,
+      'The plugin was installed from a source tree whose dependencies were',
+      "never installed (excat's node_modules are gitignored, so a fresh clone",
+      'has none). Reinstall the plugin per excat\'s own setup instructions.',
+    ].join('\n'));
+  }
+  return { excatRoot, pwPath };
+}
+
+/**
+ * Launch outside the navigation try/catch, and translate Playwright's
+ * "Executable doesn't exist" into the one command that fixes it — resolved
+ * against this install, so the version in the path is never stale.
+ */
+export async function launchChromium({ excatRoot, pwPath }, { headless = true } = {}) {
+  const { chromium } = await import(pathToFileURL(pwPath).href);
+  try {
+    return await chromium.launch({ headless, args: ['--no-sandbox'] });
+  } catch (e) {
+    if (/Executable doesn't exist|please run.*playwright install/is.test(e.message)) {
+      fail(3, [
+        'The excat plugin is installed, but the Chromium it drives is not on',
+        'this machine. Playwright stores browsers in a machine-global cache,',
+        'not inside the plugin, so this is normal on a new machine.',
+        '',
+        'Fix (one command, ~150MB, once per machine):',
+        `  cd ${join(excatRoot, 'hooks', 'import-validator')} && npx playwright install chromium`,
+        '',
+        'Then re-run. Verify any time with: extract-brand.mjs --check',
+      ].join('\n'));
+    }
+    fail(3, `could not start the browser: ${e.message}`);
+  }
+  return null;
 }
 
 // ---- passing interstitials ------------------------------------------------
@@ -359,6 +472,7 @@ function parseArgs(argv) {
     gateInteraction: true,
     dob: '1980-01-01',
     country: null,
+    check: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
@@ -370,8 +484,30 @@ function parseArgs(argv) {
     else if (a === '--no-gate-interaction') opt.gateInteraction = false;
     else if (a === '--dob') opt.dob = argv[++i];
     else if (a === '--country') opt.country = argv[++i];
+    else if (a === '--check') opt.check = true;
   }
   return opt;
+}
+
+/**
+ * The prerequisite check a human can run before starting a 60-minute demo.
+ * It launches the browser rather than stat-ing files: the old documented check
+ * (`ls .../node_modules/playwright/index.mjs`) passes on a machine with no
+ * Chromium at all, which is precisely the machine that fails 20 minutes in.
+ */
+async function runCheck() {
+  const tc = resolveToolchain();
+  const browser = await launchChromium(tc, { headless: true });
+  const version = browser.version();
+  await browser.close().catch(() => {});
+  process.stdout.write([
+    'OK — design extraction is ready.',
+    `  plugin:    ${tc.excatRoot}`,
+    `  extractor: ${EXTRACTOR_REL}`,
+    `  browser:   ${version}`,
+    '',
+  ].join('\n'));
+  process.exit(0);
 }
 
 function resolveRepoRoot(arg) {
@@ -385,8 +521,9 @@ function resolveRepoRoot(arg) {
 
 async function main() {
   const opt = parseArgs(process.argv.slice(2));
+  if (opt.check) await runCheck();
   if (!opt.url) {
-    fail(2, 'usage: extract-brand.mjs --url <sourceUrl> [--repo-root <dir>] [--selectors \'["sel"]\'] [--timeout ms]');
+    fail(2, 'usage: extract-brand.mjs --url <sourceUrl> [--repo-root <dir>] [--selectors \'["sel"]\'] [--timeout ms]\n       extract-brand.mjs --check   (verify the plugin and browser are ready)');
   }
   if (!URL.canParse(opt.url)) fail(2, `--url is not a valid absolute URL: ${opt.url}`);
 
@@ -402,21 +539,7 @@ async function main() {
   }
 
   const repoRoot = resolveRepoRoot(opt.repoRoot);
-  const excatRoot = resolveExcatRoot();
-  if (!excatRoot) {
-    fail(3, [
-      'Could not locate the excat plugin.',
-      'The plugin being installed and enabled is the only dependency — it ships both',
-      'the extractor and a bundled Chromium. Do NOT git clone or npm install it.',
-      'See .claude/skills/rebrand-portal/docs/excat-setup.md, then re-run.',
-      'To point at a non-standard install: EXCAT_ROOT=/path/to/excat ...',
-    ].join('\n'));
-  }
-
-  const pwPath = join(excatRoot, PLAYWRIGHT_REL);
-  if (!existsSync(pwPath)) {
-    fail(3, `excat is at ${excatRoot} but its bundled Playwright is missing at ${pwPath} — reinstall/re-enable the plugin.`);
-  }
+  const { excatRoot, pwPath } = resolveToolchain();
 
   const rawSrc = readFileSync(join(excatRoot, EXTRACTOR_REL), 'utf8');
   // TRAP 1: replaceAll, not replace. The doc comment on line 17 shadows the
@@ -426,14 +549,14 @@ async function main() {
     fail(4, 'placeholder substitution failed — extractor still contains __DEFAULT_CONTENT_SELECTORS__');
   }
 
-  const { chromium } = await import(pathToFileURL(pwPath).href);
+  // Launched BEFORE the try below on purpose: a missing browser is a setup
+  // problem (exit 3), not a failure of the customer's website (exit 4).
+  const browser = await launchChromium({ excatRoot, pwPath }, { headless: !opt.keepOpen });
 
-  let browser;
   let result; let finalUrl; let title;
   let gateActions = [];
   let accents = [];
   try {
-    browser = await chromium.launch({ headless: !opt.keepOpen, args: ['--no-sandbox'] });
     const ctx = await browser.newContext({
       // Match excat's own MCP config: a desktop UA, because many sources serve a
       // stripped mobile or bot variant otherwise — and a stripped variant would
