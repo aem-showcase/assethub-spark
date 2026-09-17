@@ -36,9 +36,16 @@
     "mode-selector",
     "generate-mode",
     "query-search-btn",
-    "base-panel"
+    "base-panel",
+    "cart-panel",
+    "save-intended-use-toggle-btn",
+    "media-channels-warning",
+    "download-panel"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$"
   ]
 }
