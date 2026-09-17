@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.costco.com/",
+    "finalUrl": "https://www.costco.com/",
+    "pageTitle": "Access Denied",
+    "extractedAt": "2026-09-17T15:14:10.633Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": false,
+    "warnings": [],
+    "gateSignals": [
+      "page title looks like an interstitial: \"Access Denied\"",
+      "degenerate yield: navHeight=\"\" and contentMaxWidth=\"\" — no nav and no content column is not a real content page"
+    ]
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "Times",
+        "familySet": "Times"
+      },
+      "heading": {
+        "family": "Times",
+        "familySet": "Times"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "32px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": ""
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": ""
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(0, 0, 0)",
+      "link": "",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "",
+      "contentMaxWidth": "",
+      "navHeight": ""
+    },
+    "favicons": [
+      {
+        "url": "https://www.costco.com/favicon.ico",
+        "rel": "icon"
+      }
+    ],
+    "defaultContentCss": "h1 {\n  font-size: 32px;\n  font-weight: 700;\n  font-family: Times;\n  line-height: normal;\n  color: rgb(0, 0, 0);\n  margin: 21.44px 0px;\n}\n\np {\n  font-size: 16px;\n  font-family: Times;\n  line-height: normal;\n  color: rgb(0, 0, 0);\n  margin: 16px 0px;\n}\n"
+  }
+}

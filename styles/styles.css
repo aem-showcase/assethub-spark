@@ -11,20 +11,27 @@
  */
 
 :root {
-  /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
+  /* Brand palette (semantic tokens — single source of truth)
+     Costco-Us: measured from https://www.costco.com/ (migration-work/brand.json)
+     #005dab = primary blue (accents[0], weight 569045, background/interactive-text/svg-fill/border)
+     #ffcc00 = brand yellow (accents[1], svg-fill)
+     #0000ee = interactive link blue (accents[2], interactive-text)
+     #e51937 = brand red (accents[3], svg-fill/background)
+     #ffffff = page background (colors.background)
+     #000000 = body text (colors.text) */
+  --light-color: #FFFFFF;
   --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  --text-color: #000000;
+  --text-primary: #000000;
+  --link-color: #0000EE;
+  --link-hover-color: #004A87;
+  --primary-color: #005DAB;
+  --primary-color-hover: #004A87;
+  --color-red: #E51937;
+  --color-dark-red: #E51937;
+  --accent-secondary: #FFCC00;
+  --accent-tertiary: #CC9900;
+  --secondary-color: #E51937;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -120,7 +127,14 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: #004A87;
+
+  /* Welcome/login split-screen brand panel tokens — Costco-Us overrides */
+  --welcome-panel-bg: #001F3F;
+  --welcome-panel-accent-rgb: 255 204 0;
+  --welcome-panel-mark-image: url('/icons/costco-us-beans.svg');
+  --welcome-tagline-line1: '"Quality goods,';
+  --welcome-tagline-line2: 'unbeatable value."';
 
   /* label colors */
   --label-color: var(--text-color);
@@ -210,7 +224,7 @@ body.appear {
 body:has(.section.welcome) {
   /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #001f3f);
   overflow: hidden;
 }
 
@@ -239,7 +253,7 @@ body:has(.section.welcome) > main {
 /* Dark coffee background with the gold beans icon as a large decorative mark */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #001f3f);
   background-image:
     radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
     radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
@@ -1614,23 +1628,23 @@ picture.missing img {
 }
 
 
-.frescopa-background-red {
+.costco-us-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.costco-us-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.costco-us-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.costco-us-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.costco-us-background-black {
   background-color: var(--dark-color);
 }
 
@@ -1652,23 +1666,23 @@ main > .section + .background > div {
 }
 
 @media (width >= 900px) {
-.frescopa-background-red {
+.costco-us-background-red {
   background-color: var(--color-red);
 }
 
-.frescopa-background-yellow {
+.costco-us-background-yellow {
   background-color: var(--accent-tertiary);
 }
 
-.frescopa-background-blue {
+.costco-us-background-blue {
   background-color: var(--primary-color);
 }
 
-.frescopa-background-beige {
+.costco-us-background-beige {
   background-color: var(--light-color);
 }
 
-.frescopa-background-black {
+.costco-us-background-black {
   background-color: var(--dark-color);
 }
 

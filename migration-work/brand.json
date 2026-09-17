@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.costco.com/warehouse-locations",
+    "finalUrl": "https://www.costco.com/w/-/locations",
+    "pageTitle": "Warehouse Locations | Costco",
+    "extractedAt": "2026-09-17T15:15:59.805Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": true,
+    "warnings": []
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "Costco Sans Web",
+        "familySet": "\"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif"
+      },
+      "heading": {
+        "family": "Costco Sans Web",
+        "familySet": "\"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "18px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": "16px"
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": "16px"
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": "16px"
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": "16px"
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(0, 0, 0)",
+      "link": "rgb(51, 51, 51)",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "16px",
+      "contentMaxWidth": "",
+      "navHeight": "56px"
+    },
+    "favicons": [
+      {
+        "url": "https://www.costco.com/nextGBrowseAssets/favicon.ico",
+        "rel": "icon"
+      }
+    ],
+    "defaultContentCss": "h1 {\n  font-size: 18px;\n  font-weight: 700;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 23.4px;\n  color: rgb(51, 51, 51);\n}\n\nh2 {\n  font-size: 16px;\n  font-weight: 400;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: normal;\n  color: rgb(51, 51, 51);\n}\n\nh3 {\n  font-size: 16px;\n  font-weight: 700;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 24px;\n  color: rgb(0, 128, 0);\n}\n\nh4 {\n  font-size: 16px;\n  font-weight: 700;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 24px;\n  color: rgb(51, 51, 51);\n}\n\nh5 {\n  font-size: 16px;\n  font-weight: 400;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: normal;\n  color: rgb(51, 51, 51);\n}\n\np {\n  font-size: 14px;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 23.8px;\n  color: rgb(51, 51, 51);\n}\n\na:any-link {\n  color: rgb(0, 0, 238);\n  text-decoration: underline;\n}\n\nul {\n  margin: 0px 0px -8px;\n  list-style-type: none;\n}\n",
+    "accents": [
+      {
+        "hex": "#005dab",
+        "weight": 569045,
+        "why": [
+          "background",
+          "interactive-text",
+          "svg-fill",
+          "border"
+        ]
+      },
+      {
+        "hex": "#ffcc00",
+        "weight": 113600,
+        "why": [
+          "svg-fill"
+        ]
+      },
+      {
+        "hex": "#0000ee",
+        "weight": 30000,
+        "why": [
+          "interactive-text"
+        ]
+      },
+      {
+        "hex": "#e51937",
+        "weight": 14989,
+        "why": [
+          "svg-fill",
+          "background"
+        ]
+      },
+      {
+        "hex": "#008000",
+        "weight": 1600,
+        "why": [
+          "svg-fill"
+        ]
+      },
+      {
+        "hex": "#4499ff",
+        "weight": 1000,
+        "why": [
+          "border"
+        ]
+      }
+    ]
+  },
+  "tokenMap": [
+    {
+      "role": "primary",
+      "oldHex": "#00647D",
+      "newHex": "#005DAB",
+      "cssVar": "--primary-color",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#004A87",
+      "cssVar": "--primary-color-hover",
+      "source": "derived",
+      "derivedFrom": "#005DAB darkened ~10%"
+    },
+    {
+      "role": "button-primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#004A87",
+      "cssVar": "--button-primary-hover",
+      "source": "derived",
+      "derivedFrom": "#005DAB darkened ~10%"
+    },
+    {
+      "role": "light-background",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFFFFF",
+      "cssVar": "--light-color",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "text",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-color / --text-primary",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "link",
+      "oldHex": "#58181D",
+      "newHex": "#0000EE",
+      "cssVar": "--link-color",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "link-hover",
+      "oldHex": "#00647D",
+      "newHex": "#004A87",
+      "cssVar": "--link-hover-color",
+      "source": "derived",
+      "derivedFrom": "#005DAB darkened ~10%"
+    },
+    {
+      "role": "dark-red / error",
+      "oldHex": "#95351D",
+      "newHex": "#E51937",
+      "cssVar": "--color-dark-red",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "secondary",
+      "oldHex": "#95351D",
+      "newHex": "#E51937",
+      "cssVar": "--secondary-color",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "red",
+      "oldHex": "#A33532",
+      "newHex": "#E51937",
+      "cssVar": "--color-red",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "accent-secondary (clearance-partial)",
+      "oldHex": "#DC6E52",
+      "newHex": "#FFCC00",
+      "cssVar": "--accent-secondary",
+      "source": "measured",
+      "derivedFrom": null
+    },
+    {
+      "role": "accent-tertiary (status-in-progress)",
+      "oldHex": "#EBA439",
+      "newHex": "#CC9900",
+      "cssVar": "--accent-tertiary",
+      "source": "derived",
+      "derivedFrom": "#FFCC00 darkened ~20%"
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#001F3F",
+      "cssVar": "--welcome-panel-bg",
+      "source": "derived",
+      "derivedFrom": "#005DAB darkened navy shade"
+    },
+    {
+      "role": "welcome-panel-accent-rgb",
+      "oldHex": "234 163 58",
+      "newHex": "255 204 0",
+      "cssVar": "--welcome-panel-accent-rgb",
+      "source": "measured",
+      "derivedFrom": "rgb of #FFCC00"
+    },
+    {
+      "role": "welcome-panel-mark-image",
+      "oldHex": "/icons/frescopa-beans.svg",
+      "newHex": "/icons/costco-us-beans.svg",
+      "cssVar": "--welcome-panel-mark-image",
+      "source": "asset-swap",
+      "derivedFrom": null
+    }
+  ]
+}
