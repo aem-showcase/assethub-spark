@@ -116,6 +116,34 @@ MANDATORY_CHECKS = {
     "welcome-header-home-link",
     "header-logo",
     "icon-render",
+    # Added after the Heineken run. `residue` proves the OLD brand is gone; only
+    # brand-fidelity proves the NEW brand is the one that was actually measured
+    # from the source site, and background-shorthand catches the specific cascade
+    # reset that let a surface silently revert. stale-card-images shipped in PR #44
+    # with a passing eval but was never added here, so it gated nothing — the same
+    # stale-card defect then recurred on a later run. A check that is not in this
+    # set does not exist; tests/rebrand/enforced-checks.test.js now asserts that
+    # every check verify.mjs exports is either listed here or explicitly waived.
+    "brand-fidelity",
+    "background-shorthand",
+    "stale-card-images",
+}
+
+# Checks deliberately NOT gated here, each with the reason it is safe to omit.
+# Keeping this explicit is what makes the meta-test meaningful: a new check must
+# be a conscious decision in one of the two sets, never an oversight.
+WAIVED_CHECKS = {
+    # Needs a live preview host; Step 5 can legitimately run before one exists.
+    "nav-404-loop": "requires --preview; not always available at Step 5",
+    # Subsumed by brand-fidelity, which checks the new values rather than only
+    # the absence of the old ones.
+    "applied-css": "superseded by brand-fidelity",
+    # Needs the enrichment report, which Step 5 is what produces.
+    "card-count": "requires the Step 5 enrichment report as input",
+    "hero-quality": "requires the Step 5 enrichment report as input",
+    # Needs a browser and a deployed origin; gated separately at Step 4g rather
+    # than blocking asset enrichment.
+    "cascade": "requires a browser and deployed AEM origin; gated at 4g sign-off",
 }
 
 
@@ -125,7 +153,9 @@ def deny(reason):
         "Run the consolidated verify.mjs pass with --write-report before Step 5:\n"
         "  node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs "
         "--preview <branch>.dev.frescopamedia.com --company <companyKey> "
-        "--write-report .internal/verify-report.json\n"
+        "--report <enrichment-report.json> --write-report .internal/verify-report.json\n"
+        "brand-fidelity needs migration-work/brand.json — produce it with:\n"
+        "  node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --url <sourceSiteUrl>\n"
     )
     sys.exit(2)
 

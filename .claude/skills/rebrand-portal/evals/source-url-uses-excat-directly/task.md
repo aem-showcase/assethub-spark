@@ -29,8 +29,13 @@ direction."
 
 ## Output Specification
 
-Proceed with the design handoff using `excat-complete-design-expert` in Complete
-Migration mode. Pass the source URL and copied `/urbn/...` verification targets.
-Do not ask how to source the look. Do not ask for colors or a palette. Do not
-route to DesignSync. Do not treat WebFetch as a blocker. If setup is mentioned,
-it should be only to say Catalyst is available and being used.
+Measure the source site first:
+`node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --url https://urbnworld.com/`
+(selectors default to `[]`; a missing `page-templates.json` is **not** a
+blocker). Then proceed with the design handoff using
+`excat-complete-design-expert` in Complete Migration mode, supplying the source
+URL, the measured `migration-work/brand.json`, and copied `/urbn/...`
+verification targets. Do not ask how to source the look. Do not ask for colors
+or a palette. Do not route to DesignSync. Do not treat WebFetch as a blocker. Do
+not state brand colours from memory. If setup is mentioned, it should be only to
+say Catalyst is available and being used.

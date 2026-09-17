@@ -57,6 +57,14 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
     (`demo/<companyKey>-2`, `-3`, …) in its own worktree
     (`../assethub-spark.worktrees/demo-<companyKey>-2`), leaving the
     existing branch/worktree and its PR intact.
+    **The `-2`/`-3` suffix disambiguates the BRANCH only. `companyKey` does
+    not change** — it stays `heineken` on branch `demo/heineken-3`, and so
+    do `/companies/heineken`, `/content/dam/heineken`, and the
+    `:heineken-icon:` shortcode. Letting the suffix leak into `companyKey`
+    produced a header that rendered the literal text `:heineken-3-icon:`,
+    because AEM's shortcode converter does not handle a `-<digit>-` segment
+    (see I6). The DA folder for a repeat demo is reused or replaced, not
+    numbered.
   Ask in plain outcome language (I1), e.g. "I already have a version of
   Disney's copy in progress — keep building on that one, or start a
   brand-new one and leave the existing as-is?" Honor the answer.

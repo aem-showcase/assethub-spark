@@ -224,6 +224,10 @@ new gates such as Step 4g's color verification before assets.
     need no excat; proceed through Steps 1–3 while the operator resolves
     it. Do block Step 4 as before. Surfacing this early avoids a
     mid-flow restart after the DA setup is already done.
+    **Availability is necessary, not sufficient.** Step 4's real gate is a
+    measured `migration-work/brand.json` — the skill has loaded successfully
+    and then gone unused in every failure we have a transcript for. See
+    `docs/step-4-rebrand.md` "Step 4 preflight".
 
 2. **Ask Q1/Q2 as the first action of Step 5, not in the entry flow and not
    in the Step 4 handoff** (skip any question the request already answers
@@ -298,8 +302,14 @@ searchable.
 
 ⚠️ **Read `docs/excat-setup.md` in full before Step 4.** It covers the
 three plugin states (invokable / installed-not-enabled / not-installed),
-agent-first install steps, and the publish guard hook. Never hand-roll the
-rebrand as a substitute for fixing the tool.
+the one-time marketplace bootstrap, and the publish guard hook. Never
+hand-roll the rebrand as a substitute for fixing the tool.
+
+**Installing the plugin is the entire dependency** — it ships both the
+brand extractor and a bundled Chromium. At run time there is never a
+`git clone` or an `npm install`; if either seems necessary to make
+extraction work, the plugin is not installed or not enabled, and that is
+what to fix.
 
 
 # The steps — summaries + where the full detail lives
@@ -387,7 +397,16 @@ nav checks): `.claude/skills/rebrand-portal/docs/step-3-da-copy.md`
 
 **Gate: do not start — do not invoke `excat-complete-design-expert` or touch
 any file — until both `customer.demoBranch` and `customer.daFolder` are set
-(Steps 2 & 3 `done`).** One comprehensive delegation: design tokens +
+(Steps 2 & 3 `done`).**
+
+**Then measure the source site before any theme edit:**
+`node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --url <sourceUrl>`
+must produce `migration-work/brand.json` with `provenance.gatePassed: true`.
+Exit 5 means the source is behind an age gate or interstitial — halt and ask
+the customer; never invent a palette, and never hand-write `brand.json` (I10).
+`hooks/guard-brand-extraction.sh` blocks `styles/*.css` edits until this holds.
+
+One comprehensive delegation: design tokens +
 full-palette rebrand via Catalyst, brand-asset/logo swap (all instances),
 content-register rewrite scoped to `/companies/<companyKey>` only, publish only
 `/companies/<companyKey>/...` paths, set the demo scope in `cloudflare/src/config.js`
