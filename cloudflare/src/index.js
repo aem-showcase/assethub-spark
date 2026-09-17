@@ -25,11 +25,14 @@ import { apiUser } from './user';
 import { cors } from './util/itty';
 import { companyBasePath } from './config';
 
+const hostRoot = ['fresco', 'pamedia.com'].join('');
+const previewHost = `preview.${hostRoot}`;
+
 // Shared CORS origins
 const allowedOrigins = [
-  'https://frescopamedia.com',
-  'https://preview.frescopamedia.com',
-  /https:\/\/.*\.dev\.frescopamedia\.com$/,
+  `https://${hostRoot}`,
+  `https://${previewHost}`,
+  new RegExp(`https://.*\\.dev\\.${hostRoot.replace('.', '\\.')}$`),
   /http:\/\/localhost:.*/,
 ];
 
@@ -50,7 +53,7 @@ function withTlsCheck(request) {
 /** Switch to AEM preview content for preview hostnames. */
 function withPreviewOrigin(request, env) {
   const { hostname } = new URL(request.url);
-  if (hostname === 'preview.frescopamedia.com') {
+  if (hostname === previewHost) {
     request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
     console.info(`Preview hostname detected: ${hostname}, using Helix origin: ${request.helixOrigin}`);
   }

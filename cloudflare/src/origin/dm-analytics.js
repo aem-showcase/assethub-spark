@@ -152,7 +152,7 @@ const PARAM_ATTACHMENT_VALUE = 'true';
 // Internal Helper Functions
 // ==========================================
 
-/** Matches Frescopa unified search page: /{locale}/search (no /all|/assets suffix). */
+/** Matches the unified search page: /{locale}/search (no /all|/assets suffix). */
 const UNIFIED_SEARCH_PATH = /\/search\/?$/i;
 
 /**
@@ -173,7 +173,7 @@ function extractSearchType(request) {
   if (referer.includes(SEARCH_TYPE_PATHS.products)) return 'products';
   if (referer.includes(SEARCH_TYPE_PATHS.templates)) return 'templates';
 
-  // Unified search UI (e.g. /en/search?query=…) — Frescopa default search route.
+  // Unified search UI (e.g. /en/search?query=…) — default search route.
   try {
     const { pathname } = new URL(referer);
     if (UNIFIED_SEARCH_PATH.test(pathname)) return 'all';

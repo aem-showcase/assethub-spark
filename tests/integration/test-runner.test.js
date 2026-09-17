@@ -26,7 +26,7 @@ if (!cookie) {
     '',
     '  To fix:',
     '    1. Open DevTools → Application → Cookies',
-    '    2. Copy the "session" cookie for frescopamedia.com',
+    '    2. Copy the "session" cookie for the deployed host',
     '    3. export TEST_SESSION_COOKIE="<value>"',
     '    4. Re-run the tests',
     '',

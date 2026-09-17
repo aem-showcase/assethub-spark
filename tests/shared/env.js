@@ -6,8 +6,8 @@
  */
 
 const ENV_URLS = {
-  production: 'https://frescopamedia.com',
-  preview: 'https://preview.frescopamedia.com',
+  production: process.env.TEST_PRODUCTION_URL || 'https://production.example.com',
+  preview: process.env.TEST_PREVIEW_URL || 'https://preview.example.com',
   local: 'http://localhost:8787',
 };
 
@@ -17,10 +17,10 @@ const ENV_URLS = {
 export function getBaseUrl() {
   const env = process.env.TEST_ENV || 'production';
 
-  // branch:my-feature → https://my-feature.dev.frescopamedia.com
+  // branch:my-feature → https://my-feature.dev.example.com
   if (env.startsWith('branch:')) {
     const branch = env.split(':')[1];
-    return `https://${branch}.dev.frescopamedia.com`;
+    return `https://${branch}.dev.example.com`;
   }
 
   return ENV_URLS[env] || ENV_URLS.production;
