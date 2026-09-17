@@ -46,14 +46,27 @@ tool_name = (
 # Only git commit/add/stage/push commands run through a shell tool are in
 # scope; file edits themselves are how the bypass gets uncommented/recommented
 # and must stay allowed.
-if tool_name not in {"Bash", "Terminal", "execute_command", "run_command"}:
+#
+# Host CLIs disagree on both the tool name and the argument key: Claude Code sends
+# tool_name/tool_input, Copilot CLI sends toolName/toolArgs and lowercase tool names.
+# Matching only one dialect makes the guard silently inert on the other host.
+BASH_TOOLS = {
+    "bash", "terminal", "execute_command", "run_command", "shell", "run_in_terminal",
+}
+if tool_name.lower() not in BASH_TOOLS:
     sys.exit(0)
 
-command = (
-    event.get("tool_input", {}).get("command")
-    if isinstance(event.get("tool_input"), dict)
-    else None
-) or blob
+
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+command = tool_input_of(event).get("command") or blob
 
 if not re.search(r"\bgit\s+(commit|add|push|stage)\b", command):
     sys.exit(0)

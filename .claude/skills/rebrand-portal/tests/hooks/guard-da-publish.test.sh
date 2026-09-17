@@ -84,5 +84,21 @@ run "no-cd publish /companies/apple falls back to main state, blocked" block \
 # Edit-family tools short-circuit to allow.
 run "Edit tool allowed" allow "$(ev Edit "{\"file_path\":\"/x\"}")"
 
+# Packaged publish CLI: the URLs live inside the script, so only --path is visible.
+# Without the rule for it, the supported route would be the one route that escapes scope.
+PPCLI=".claude/skills/rebrand-portal/scripts/assets/publish-page.js"
+run "publish-page.js --push outside the company folder blocked" block \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --push /tmp/i.html\"}")"
+run "publish-page.js --publish outside the company folder blocked" block \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path=companies/samsung/en/index --publish\"}")"
+run "publish-page.js --push inside the company folder allowed" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/apple/en/index --push /tmp/i.html\"}")"
+run "publish-page.js --pull outside the folder allowed (a read is not a publish)" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --pull /tmp/i.html\"}")"
+run "publish-page.js --dry-run outside the folder allowed" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --publish --dry-run\"}")"
+run "grep for the publish CLI path allowed (mention, not invocation)" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && grep -rn '$PPCLI --path companies/samsung/en/index --push' docs/\"}")"
+
 echo "----"; echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ] || exit 1

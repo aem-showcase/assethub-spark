@@ -63,18 +63,39 @@ tool_name = (
     or ""
 )
 
-tool_input = event.get("tool_input") if isinstance(event.get("tool_input"), dict) else {}
+# Host CLIs disagree on both the tool name and the argument key: Claude Code sends
+# tool_name/tool_input, Copilot CLI sends toolName/toolArgs and lowercase tool names.
+# Matching only one dialect makes the guard silently inert on the other host.
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+tool_input = tool_input_of(event)
+tool_key = tool_name.lower()
+
+EDIT_TOOLS = {
+    "edit", "write", "multiedit", "notebookedit", "create", "str_replace_editor",
+    "apply_patch", "str_replace_based_edit_tool",
+}
+BASH_TOOLS = {
+    "bash", "terminal", "execute_command", "run_command", "shell", "run_in_terminal",
+}
 
 # Theme files whose colour values must trace to a measurement.
 GUARDED = ("styles/styles.css", "styles/brand.css")
 
 targets = []
-if tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit", "create", "edit", "str_replace_editor"}:
+if tool_key in EDIT_TOOLS:
     for key in ("file_path", "path", "notebook_path", "filePath"):
         v = tool_input.get(key)
         if isinstance(v, str):
             targets.append(v)
-elif tool_name in {"Bash", "Terminal", "execute_command", "run_command"}:
+elif tool_key in BASH_TOOLS:
     cmd = tool_input.get("command") or ""
     # Only writes. A grep/cat/sed -n of the file is not an edit.
     if re.search(r"(?:>|>>|\btee\b|\bsed\s+-i\b|\bperl\s+-p?i\b|\bpatch\b)", cmd):

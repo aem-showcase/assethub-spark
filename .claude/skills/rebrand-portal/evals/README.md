@@ -27,17 +27,19 @@ evals/
 
 ```bash
 cd runner
-node run.mjs --eval <eval-name> --label baseline        # one run
-node run.mjs --eval <eval-name> --n 3 --label baseline   # average of 3
-node run.mjs --all --n 3 --label baseline                # every eval, 3 reps each
+# --engine is required: claude or copilot, one per invocation, never inferred.
+node run.mjs --engine claude --eval <eval-name> --label baseline        # one run
+node run.mjs --engine claude --eval <eval-name> --n 3 --label baseline  # average of 3
+node run.mjs --engine copilot --all --n 3 --label baseline              # every eval, 3 reps each
 ```
 
 `--all` discovers every eval directory automatically (no name list to keep in
 sync) and prints a combined summary table after running each one. See
 `runner/README.md` for exact semantics (partial-failure handling, etc.).
 
-Results land in `runner/results/<label>/` (gitignored). See `runner/README.md`
-for flags and how a run is scored.
+Results land in `runner/results/<label>/<engine>/` (gitignored), so the same
+label can hold a Claude and a Copilot baseline side by side. See
+`runner/README.md` for flags, engine differences, and how a run is scored.
 
 ## Design rule
 

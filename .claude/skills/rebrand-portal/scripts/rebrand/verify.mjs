@@ -16,7 +16,7 @@
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
  *   icon-reference-resolution, welcome-header-home-link, icon-render,
  *   background-shorthand, brand-fidelity (brand-fidelity also uses --preview when given).
- * Preview checks (need --preview + --company): nav-404-loop, applied-css.
+ * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
  * Cascade check (needs --cascade-report): cascade.
  *
@@ -34,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { walk, captureAllBaseHexes } from './fs-walk.mjs';
 import { loadBrand, normalizeHex, hexVariants } from './brand-contract.mjs';
+import { MAX_CARDS } from '../assets/constants.js';
 
 function resolveRepoRoot(arg) {
   if (arg) return resolve(arg);
@@ -686,7 +687,101 @@ export function checkCardCount(reportPath) {
       reason: `${brokenCards.length} card(s) missing href or image: ${brokenCards.map((c) => c.slug).join(', ')}`,
     };
   }
+  if (cards.length > MAX_CARDS) {
+    return {
+      name: 'card-count',
+      pass: false,
+      reason: `${cards.length} card(s); the demo carries exactly ${MAX_CARDS} categories. Narrow the contract to the strongest categories rather than widening the page.`,
+    };
+  }
   return { name: 'card-count', pass: true, reason: `${cards.length} card(s), one per populated category, all with href + image` };
+}
+
+// ---- CHECK: card-ceiling (preview) ----------------------------------------------
+// The ceiling asserted against the DELIVERED ARTIFACT rather than the run's own report.
+//
+// Every previous card check read report.json — the file the run writes about itself. A run
+// that authored the page by some other route (hand-edited HTML, an ad-hoc script, raw curl)
+// produces a report that says nothing about what actually shipped. `stale-card-images`
+// shipped twice for exactly this reason. This check fetches the published page and counts
+// what a visitor sees.
+export async function checkCardCeiling(previewHost, company) {
+  if (!previewHost || !company) {
+    return { name: 'card-ceiling', pass: false, reason: 'needs --preview and --company' };
+  }
+  const base = previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
+  const url = `${base}/companies/${company}/en/index.plain.html`;
+  let html;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      return { name: 'card-ceiling', pass: false, reason: `${url} returned ${res.status}` };
+    }
+    html = await res.text();
+  } catch (e) {
+    return { name: 'card-ceiling', pass: false, reason: `fetch error: ${e.message}` };
+  }
+
+  const block = extractBlockInner(html, ['carousel', 'tiles']);
+  if (block === null) {
+    return { name: 'card-ceiling', pass: false, reason: `no .carousel.tiles block found at ${url}` };
+  }
+  const rows = countTopLevelDivs(block);
+  if (rows > MAX_CARDS) {
+    return {
+      name: 'card-ceiling',
+      pass: false,
+      reason: `${rows} category cards are published at ${url}; the demo carries exactly ${MAX_CARDS}.`,
+    };
+  }
+  // A leftover "Top Brands" .cards block is the other way the page grows past its shape.
+  if (extractBlockInner(html, ['cards']) !== null) {
+    return {
+      name: 'card-ceiling',
+      pass: false,
+      reason: `a secondary .cards ("Top Brands") block is still published at ${url}; it must be removed, not repopulated.`,
+    };
+  }
+  return { name: 'card-ceiling', pass: true, reason: `${rows} published category card(s), no secondary cards block` };
+}
+
+/** Inner HTML of the first <div> carrying every class token, or null. */
+function extractBlockInner(html, classTokens) {
+  const openRe = /<div\b[^>]*\bclass=(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
+  for (let match = openRe.exec(html); match !== null; match = openRe.exec(html)) {
+    const classValue = (match[1] || match[2] || '').split(/\s+/);
+    if (!classTokens.every((t) => classValue.includes(t))) continue;
+    const openEnd = openRe.lastIndex;
+    let depth = 1;
+    const tagRe = /<\/?div\b[^>]*>/gi;
+    tagRe.lastIndex = openEnd;
+    for (let tag = tagRe.exec(html); tag !== null; tag = tagRe.exec(html)) {
+      if (tag[0].startsWith('</')) {
+        depth -= 1;
+        if (depth === 0) return html.slice(openEnd, tag.index);
+      } else {
+        depth += 1;
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
+/** Count direct-child <div> elements of a block's inner HTML (one per authored row). */
+function countTopLevelDivs(inner) {
+  const tagRe = /<\/?div\b[^>]*>/gi;
+  let depth = 0;
+  let count = 0;
+  for (let tag = tagRe.exec(inner); tag !== null; tag = tagRe.exec(inner)) {
+    if (tag[0].startsWith('</')) {
+      depth -= 1;
+    } else {
+      if (depth === 0) count += 1;
+      depth += 1;
+    }
+  }
+  return count;
 }
 
 // ---- CHECK: hero-quality (report) -----------------------------------------------
@@ -766,6 +861,7 @@ async function main() {
   if (want('cascade')) results.push(checkCascade(opt.cascadeReport));
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
+  if (opt.preview && want('card-ceiling')) results.push(await checkCardCeiling(opt.preview, opt.company));
   if (opt.report && want('stale-card-images')) results.push(checkStaleCardImages(opt.report));
   if (opt.report && want('card-count')) results.push(checkCardCount(opt.report));
   if (opt.report && want('hero-quality')) results.push(checkHeroQuality(opt.report));
@@ -785,6 +881,12 @@ async function main() {
     const report = {
       checkedAt: new Date().toISOString(),
       checkedCommit: currentCommit(repoRoot),
+      // Which demo these results describe. Tree checks are worktree-scoped, but the
+      // preview checks (card-ceiling especially) assert against a specific published
+      // company page — without this a report from one demo could be used to wave
+      // through the publish of another.
+      company: opt.company || null,
+      preview: opt.preview || null,
       results: Object.fromEntries(results.map((r) => [r.name, { pass: r.pass, reason: r.reason }])),
     };
     writeFileSync(opt.writeReport, `${JSON.stringify(report, null, 2)}\n`);

@@ -50,11 +50,19 @@ tool_name = (
 if tool_name in {"Write", "Edit", "MultiEdit", "NotebookEdit", "str_replace_editor"}:
     sys.exit(0)
 
-tool_input = (
-    event.get("tool_input")
-    or (event.get("tool") or {}).get("input")
-    or {}
-)
+
+# Host CLIs disagree on the argument key: Claude Code sends tool_input, Copilot CLI sends
+# toolArgs. Reading only one dialect makes the guard silently inert on the other host.
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+tool_input = tool_input_of(event)
 command = tool_input.get("command", "") if isinstance(tool_input, dict) else ""
 
 
@@ -209,6 +217,22 @@ if scan:
         company = "/companies/" + key
         if not under_folder(company):
             violations.append("DA copy script destination -> " + company)
+
+    # 5) Packaged publish CLI. It builds both the DA source URL and the Helix admin
+    #    URL internally, so neither literal appears in the command and rules 1-2 see
+    #    nothing. Its --path is the target; enforce it directly, or the supported
+    #    route would be the one route that escapes folder scope.
+    if re.search(
+        r"(?:^|[;&|]|\bnode\s+|(?<=\s)\./)\s*"
+        r"(?:[^\s\"';&|]*/)?scripts/assets/publish-page\.js\b",
+        scan,
+    ):
+        writes = re.search(r"--(?:push|publish|preview-only)(?:\s|=|$)", scan)
+        if writes and not re.search(r"--dry-run(?:\s|=|$)", scan):
+            pm = re.search(r"--path[=\s]+([^\s\"';&|]+)", scan)
+            path = pm.group(1) if pm else ""
+            if not under_folder(path):
+                violations.append("publish-page.js --path -> " + (path or "(missing)"))
 
 if violations:
     if not da_folder:

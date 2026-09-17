@@ -65,15 +65,21 @@ what the site *serves*, not by looking at a picture of it:
      linked to the template's content is a defect that has now shipped
      twice.
    - `card-count` (report) — every populated contract category has a card
-     with an href + image (catches "only 4 of 6 categories show"; the
-     missing ones must NOT be carved into a "Top Brands" section).
+     with an href + image, and the page does not exceed the demo's category
+     count (catches "only 4 of 6 categories show" and its opposite).
+   - `card-ceiling` (preview) — the same ceiling asserted against the
+     **published** page rather than the run's own report. A page authored by
+     any other route (hand-edited HTML, an ad-hoc script, raw curl) produces a
+     report that says nothing about what shipped; this check counts what a
+     visitor actually sees, and fails if a "Top Brands" block is still there.
    - `hero-quality` (report) — no card hero is a flat logo/wordmark/chrome
      (scored by AEM's own smart-tag signal, not a filename list).
 
-   **`card-count` and `hero-quality` need the Step-5 report**, so re-run
-   verify.mjs (or just those two `--only card-count,hero-quality`) after
-   enrichment produces the report — the icon/CSS/nav checks run at 4g before
-   Step 5, the card checks run once the report exists.
+   **`card-count` and `hero-quality` need the Step-5 report, and `card-ceiling`
+   needs the published page**, so re-run verify.mjs (or just those
+   `--only card-count,hero-quality,card-ceiling`) after enrichment produces the
+   report and the page is previewed — the icon/CSS/nav checks run at 4g before
+   Step 5, the card checks run once the report and page exist.
 
    **The mandatory set mechanically blocks Step 5.** A `PreToolUse` hook
    (`hooks/guard-step5-verify-gate.sh`) reads a `verify.mjs --write-report`
@@ -94,6 +100,32 @@ what the site *serves*, not by looking at a picture of it:
      --report .internal/<companyKey>-assets-report.json \
      --write-report .internal/verify-report.json
    ```
+
+   **`card-ceiling` mechanically blocks the live publish.** It cannot be in
+   the set above — it reads the published page, which does not exist yet at
+   Step 5 — so it is gated at the other end instead, by
+   `hooks/guard-live-publish-ceiling.sh`. The sequence is therefore:
+
+   ```
+   author → preview (ungated) → verify --only card-ceiling → publish live (gated)
+   ```
+
+   Promoting the landing page to `live` is refused unless
+   `.internal/verify-report.json` holds a **passing** `card-ceiling` for
+   **this company**, recorded within the last 30 minutes. Preview is
+   deliberately left open: gating it would make the check unsatisfiable,
+   since the check needs a previewed page to read. The freshness window is
+   time-based rather than commit-based because the published page is not a
+   git artifact — re-authoring it leaves `HEAD` untouched.
+
+   This is the one barrier that does not depend on which script authored the
+   page. Runs have hand-edited the index HTML and imported block primitives
+   directly; none of that is blocked, and none of it can skip publishing.
+
+   **Drive the sequence with `scripts/assets/publish-page.js`** — use
+   `--push --preview-only`, run the `card-ceiling` check, then
+   `--publish`. The guard recognises the CLI as well as raw `curl`, so the
+   packaged route is gated exactly the same way; it is not a bypass.
 
    **`card-count` and `hero-quality` stay self-healing — a FAIL on these
    two never halts the demo.** On a FAIL: fix the cause in place and

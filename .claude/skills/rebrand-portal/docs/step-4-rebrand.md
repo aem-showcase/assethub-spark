@@ -455,19 +455,21 @@ split it across turns:
    map correctly; `productCategory` is write-once, so the map is what makes the
    first write right.
 
-   **Category floor — propose at least 5 real candidates.** This initial
-   contract must name **at least 5** real, source-derived candidate
-   categories before handing off to Step 5 (`MIN_CARDS` in
-   `scripts/assets/constants.js` is `5` — the same floor Step 5's card gate
-   enforces on the surviving, actually-enriched categories). If genuine
+   **Category count — propose exactly 5 real candidates.** This initial
+   contract must name **exactly 5** real, source-derived categories before
+   handing off to Step 5 (`MIN_CARDS` in `scripts/assets/constants.js` is `5` —
+   the same floor Step 5's card gate enforces on the surviving, actually-
+   enriched categories). The demo carries 5 categories; proposing more does not
+   produce a richer page, it produces categories that never ship. If genuine
    derivation from the source site yields fewer than 5 real candidates, say
    so plainly and widen derivation — check more nav sections, product pages,
    disease/category pages, business-line listings — before handing off; don't
-   hand Step 5 a sub-5 contract and expect it to backfill the gap later. This
-   is a *candidate* floor, not a guarantee of survival: Step 5 may still find
-   that one of these candidates has zero real assets after scraping, in
-   which case Step 5's own floor rule (`docs/step-5-assets.md`) governs
-   whether to widen, drop, or use a last-resort placeholder for that one.
+   hand Step 5 a sub-5 contract and expect it to backfill the gap later.
+   There is deliberately no slack: each of the 5 must yield at least 2 assets,
+   so pick the 5 with the strongest source imagery. Step 5 may still find that
+   one of these candidates has zero real assets after scraping, in which case
+   Step 5's own floor rule (`docs/step-5-assets.md`) governs whether to widen,
+   drop, or use a last-resort placeholder for that one.
 
    Ask the customer to choose categories only when the source site is
    genuinely ambiguous after inspection. Otherwise state the decision

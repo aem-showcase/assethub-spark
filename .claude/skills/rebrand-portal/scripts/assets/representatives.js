@@ -64,13 +64,25 @@ function representativeFor(plan, groupValue) {
  * @param {Array<{asset:Object,fields?:Object,skip?:boolean}>} planned
  * @param {Object} options
  * @param {string[]} [options.expectedCategories] category slugs from curated cards
+ * @param {Object} [options.heroMap] `slug -> fileName|assetId` pins from --hero-map. A
+ *   pinned asset wins its category outright, whatever it scores. This is the supported
+ *   escape for the one case automatic ranking gets wrong — a flat logo or piece of site
+ *   chrome scoring above a real product shot — and replaces hand-written fix-up scripts.
  * @returns {{groupBy:string,expected:string[],missing:string[],items:Object}}
  */
 export function buildProductCategoryRepresentatives(planned = [], options = {}) {
   const expected = Array.isArray(options.expectedCategories)
     ? options.expectedCategories.map(cleanString).filter(Boolean)
     : [];
+  const heroMap = options.heroMap && typeof options.heroMap === 'object' ? options.heroMap : {};
   const items = {};
+
+  const pinnedFor = (groupValue) => (cleanString(heroMap[groupValue]) || '').toLowerCase();
+  const identifiers = (plan) => [
+    cleanString(plan?.asset?.repoName),
+    cleanString(plan?.asset?.assetId),
+    cleanString(plan?.asset?.fileName),
+  ].filter(Boolean).map((s) => s.toLowerCase());
 
   // Keep the best-scoring plan seen per category, not the first. Iteration order is stable,
   // so a strict `>` comparison leaves the first-seen asset winning any tie (never regresses
@@ -79,10 +91,16 @@ export function buildProductCategoryRepresentatives(planned = [], options = {}) 
   planned.forEach((plan, index) => {
     const groupValue = cleanString(plan?.fields?.productCategory);
     if (!groupValue) return;
+    const pin = pinnedFor(groupValue);
+    const pinned = Boolean(pin) && identifiers(plan).includes(pin);
     const score = contentRichnessScore(plan);
     const current = best[groupValue];
-    if (!current || score > current.score) {
-      best[groupValue] = { plan, score, index };
+    // A pin outranks every score; a later pin never displaces an earlier one.
+    if (current?.pinned && !pinned) return;
+    if (!current || (pinned && !current.pinned) || score > current.score) {
+      best[groupValue] = {
+        plan, score, index, pinned,
+      };
     }
   });
   for (const [groupValue, { plan }] of Object.entries(best)) {

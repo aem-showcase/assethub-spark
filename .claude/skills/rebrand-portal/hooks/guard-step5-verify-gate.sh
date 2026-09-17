@@ -52,14 +52,27 @@ tool_name = (
     or ""
 )
 
-if tool_name not in {"Bash", "Terminal", "execute_command", "run_command"}:
+# Host CLIs disagree on both the tool name and the argument key: Claude Code sends
+# tool_name/tool_input, Copilot CLI sends toolName/toolArgs and lowercase tool names.
+# Matching only one dialect makes the guard silently inert on the other host — which is
+# exactly how a live Copilot session ran with none of these guards in effect.
+BASH_TOOLS = {
+    "bash", "terminal", "execute_command", "run_command", "shell", "run_in_terminal",
+}
+if tool_name.lower() not in BASH_TOOLS:
     sys.exit(0)
 
-command = (
-    event.get("tool_input", {}).get("command")
-    if isinstance(event.get("tool_input"), dict)
-    else None
-) or blob
+
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+command = tool_input_of(event).get("command") or blob
 
 # Only a real invocation of enrich-assets.js (start of command, or after
 # &&/;/|/bash/sh/./) is in scope — a grep/cat/rg of the script's path as an
@@ -141,6 +154,11 @@ WAIVED_CHECKS = {
     # Needs the enrichment report, which Step 5 is what produces.
     "card-count": "requires the Step 5 enrichment report as input",
     "hero-quality": "requires the Step 5 enrichment report as input",
+    # Asserts the ceiling against the PUBLISHED page, which does not exist until
+    # Step 5 has authored and previewed it — so it cannot be a precondition for
+    # Step 5. It is NOT unenforced: hooks/guard-live-publish-ceiling.sh requires a
+    # fresh passing card-ceiling before the landing page is promoted to live.
+    "card-ceiling": "requires the published index; gated at live publish, not here",
     # Needs a browser and a deployed origin; gated separately at Step 4g rather
     # than blocking asset enrichment.
     "cascade": "requires a browser and deployed AEM origin; gated at 4g sign-off",

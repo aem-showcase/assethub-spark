@@ -157,6 +157,20 @@ export const STATUS_APPROVED = 'approved';
 // discovery is genuinely exhausted).
 export const MIN_CARDS = 5;
 
+// --- Demo shape: the category/asset budget ---------------------------------------
+// The demo is a fixed shape, not an open-ended crawl: MAX_CARDS categories, each with
+// MIN_ASSETS_PER_CATEGORY..MAX_ASSETS_PER_CATEGORY assets. Every other bring-in bound is
+// derived from these two numbers so they can never drift apart (a previous build shipped
+// a hard floor of 20 downloaded images alongside a target of 10-15, which failed on every
+// run by construction).
+//
+// MAX_CARDS intentionally equals MIN_CARDS: the contract must name exactly this many real
+// categories. There is no slack — a category that yields nothing fails the run loudly
+// rather than silently shrinking the page.
+export const MAX_CARDS = MIN_CARDS;
+export const MIN_ASSETS_PER_CATEGORY = 2;
+export const MAX_ASSETS_PER_CATEGORY = 3;
+
 // The DAM content root. The Assets HTTP API mirrors this tree under /api/assets.
 // NOTE: the DAM asset folder stays FLAT — /content/dam/<companyKey> — because assets are
 // scoped by the `company` metadata tag, not by URL path. Only the DA content path and portal
@@ -173,11 +187,13 @@ export function companyBasePath(companyKey) {
 }
 
 // --- Bring-in (E3: scrape a site -> upload) limits ---
-// Sensible demo-scale bounds so a scrape can't run away or pull a huge binary.
-export const BRING_IN_MAX_IMAGES = 50;
-// Below this many downloaded images, the bring-in result is too thin for a credible demo;
-// the controller warns loudly (see enrich-classic.js) instead of silently proceeding.
-export const BRING_IN_MIN_TARGET_IMAGES = 20;
+// Derived from the demo shape above — NOT free-standing magic numbers. The total a run may
+// bring in is exactly the budget the landing page can show; anything beyond it would be
+// downloaded, uploaded, processed and enriched only to be invisible.
+export const BRING_IN_MAX_IMAGES = MAX_CARDS * MAX_ASSETS_PER_CATEGORY;
+// Below this many downloaded images the bring-in result is too thin for a credible demo;
+// the controller warns loudly instead of silently proceeding.
+export const BRING_IN_MIN_TARGET_IMAGES = MIN_CARDS * MIN_ASSETS_PER_CATEGORY;
 export const BRING_IN_MAX_BYTES = 15 * 1024 * 1024;
 // Skip images smaller than this — typically icons, flags, or tiny renditions.
 export const BRING_IN_MIN_BYTES = 10 * 1024;

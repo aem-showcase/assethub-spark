@@ -444,6 +444,15 @@ pending and fix Step 4.
 
 ## Step 5 — Upload and enrich the company's assets
 
+**HARD RULE — the demo carries exactly 5 categories, 2–3 assets each, 15
+total maximum.** A target shape, not a floor to beat: 8 assets in a category
+is as wrong as 0. Do not split the work into extra runs to fit more in — the
+ceiling is scoped to the **demo**, not the run, and re-running converges on
+the same 15. This applies identically if you write your own script instead of
+using the controller. **Before your first scrape/upload/enrichment command,
+state which 5 categories you chose and how many assets each will get.** A live
+run that skipped this shipped 252 assets across 7 categories in 194 minutes.
+
 **Preflight gate: all Step 4g checks must have passed in this session
 before any `--dry-run` or live enrichment.** If `assetsLane`/`assetsEnrichNow`
 aren't already known from the original request, ask Q1/Q2 now (Entry flow
@@ -459,9 +468,13 @@ Pass the Step 4 category contract via `--categories <slugs>` (one shared
 vocabulary, no hardcoded list); every asset is mapped to exactly one contract
 category. The run emits `report.cards` (label + blurb + facet href + proxy
 image per category) and a **card gate** that fails on a zero-asset category or
-fewer than `MIN_CARDS` cards. Author the copied `/companies/<companyKey>/en/index`
-carousel + cards rows from `report.cards` (via `update-index-cards.js`),
-preserving the block wrappers. Scope the portal via config.js.
+on a card count that is anything other than `MIN_CARDS`. Author the copied
+`/companies/<companyKey>/en/index` carousel rows from `report.cards` (via
+`update-index-cards.js`, which emits the demo's fixed card count whatever the
+report holds, and removes the secondary "Top Brands" block), preserving the
+block wrappers. Pull and publish that page with `publish-page.js`
+(`--pull` → edit → `--push --publish`) rather than hand-rolled DA/Helix calls.
+Scope the portal via config.js.
 Marks `assets-uploaded`, `assets-enriched`, `search-scoped`. Then continue
 to Step 6 automatically — unless `assetsEnrichNow` is `false`, in which
 case leave `assets-enriched`/`search-scoped`/`collections-created`
