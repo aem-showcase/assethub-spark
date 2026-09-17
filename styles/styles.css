@@ -14,8 +14,8 @@
   /* Brand palette (semantic tokens — single source of truth) */
   --light-color: #eff5f9;
   --dark-color: #2C2C2C;
-  --text-color: #000000;
-  --text-primary: #000000;
+  --text-color: #000;
+  --text-primary: #000;
   --link-color: #005dab;
   --link-hover-color: #004a88;
   --primary-color: #005dab;
