@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="329" height="230" viewBox="0 0 329 230" role="img" aria-label="Costco-Us mark">
+  <g>
+    <rect x="34" y="10" width="260" height="210" rx="32" fill="#005dab"/>
+    <path d="M84 78h168l-18 98a20 20 0 0 1-19.7 16.4H121.7A20 20 0 0 1 102 176Z" fill="#fff"/>
+    <path d="M84 78 72 42H46" stroke="#fff" stroke-width="14" stroke-linecap="round" fill="none"/>
+    <rect x="84" y="78" width="168" height="20" fill="#ffcc00"/>
+    <circle cx="140" cy="216" r="15" fill="#e51937"/>
+    <circle cx="214" cy="216" r="15" fill="#e51937"/>
+  </g>
+</svg>

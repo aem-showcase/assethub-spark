@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1391" height="378" viewBox="0 0 1391 378" role="img" aria-label="Costco-Us">
+  <g id="Costco_Us_Logotype" data-name="Costco-Us Logotype">
+    <rect width="1391" height="378" fill="#fff" opacity="0"/>
+    <!-- Warehouse-cart mark -->
+    <g transform="translate(20 60)">
+      <rect x="0" y="0" width="258" height="258" rx="36" fill="#005dab"/>
+      <path d="M46 92h166l-18 96a20 20 0 0 1-19.7 16.4H83.7A20 20 0 0 1 64 188.4Z" fill="#fff"/>
+      <path d="M46 92 34 56H8" stroke="#fff" stroke-width="14" stroke-linecap="round" fill="none"/>
+      <circle cx="102" cy="228" r="16" fill="#e51937"/>
+      <circle cx="176" cy="228" r="16" fill="#e51937"/>
+      <rect x="46" y="92" width="166" height="20" fill="#ffcc00"/>
+    </g>
+    <!-- Wordmark: geometric block letterforms drawn as vector paths so the
+         wordmark actually renders when the icon shortcode loads this file as an img -->
+    <path d="M340,110 L440,110 L440,134 L364,134 L364,236 L440,236 L440,260 L340,260 Z" fill="#005dab"/>
+    <path d="M460,110 H560 V260 H460 Z M484,134 H536 V236 H484 Z" fill="#005dab"/>
+    <path d="M580,110 L680,110 L680,134 L604,134 L604,173 L680,173 L680,236 L680,260 L580,260 L580,236 L656,236 L656,197 L580,197 L580,134 Z" fill="#005dab"/>
+    <path d="M700,110 L800,110 L800,134 L762,134 L762,260 L738,260 L738,134 L700,134 Z" fill="#005dab"/>
+    <path d="M820,110 L920,110 L920,134 L844,134 L844,236 L920,236 L920,260 L820,260 Z" fill="#005dab"/>
+    <path d="M940,110 H1040 V260 H940 Z M964,134 H1016 V236 H964 Z" fill="#005dab"/>
+    <path d="M1070,173 H1130 V197 H1070 Z" fill="#e51937"/>
+    <path d="M1150,110 L1174,110 L1174,236 L1226,236 L1226,110 L1250,110 L1250,260 L1150,260 Z" fill="#e51937"/>
+    <path d="M1270,110 L1370,110 L1370,134 L1294,134 L1294,173 L1370,173 L1370,236 L1370,260 L1270,260 L1270,236 L1346,236 L1346,197 L1270,197 L1270,134 Z" fill="#e51937"/>
+  </g>
+</svg>
