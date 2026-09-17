@@ -1025,6 +1025,7 @@ main .section.search-hero .query-input-bar {
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
+
   /* NOTE: search-hero and category-tiles are two styles on ONE combined section
      (see comment below on h2:first-of-type). Do not set `background` here — the
      shorthand fully replaces search-hero's `--light-color` + big.svg background
