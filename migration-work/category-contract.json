@@ -1,0 +1,44 @@
+{
+  "company": "Heineken",
+  "companyKey": "heineken",
+  "market": "India",
+  "sourceSite": "https://www.heineken.com/in/en",
+  "categories": [
+    {
+      "slug": "original-lager",
+      "label": "Heineken Original",
+      "evidence": "Heineken's flagship premium lager is featured across the official product catalogue and brand pages.",
+      "sourceUrl": "https://www.heineken.com/en/our-products/heineken-original"
+    },
+    {
+      "slug": "silver-lager",
+      "label": "Heineken Silver",
+      "evidence": "The official Heineken Silver page positions it as a smoother, extra-refreshing lager for social occasions.",
+      "sourceUrl": "https://www.heineken.com/en/our-products/heineken-silver"
+    },
+    {
+      "slug": "heineken-00",
+      "label": "Heineken 0.0",
+      "evidence": "Heineken 0.0 is promoted on the official product page as the alcohol-free line for daytime and moderation-friendly moments.",
+      "sourceUrl": "https://www.heineken.com/en/our-products/heineken-00"
+    },
+    {
+      "slug": "draught-serve",
+      "label": "Draught & Serve Rituals",
+      "evidence": "The draught product pages emphasise glassware, pouring ritual, and on-trade serve moments that need dedicated assets.",
+      "sourceUrl": "https://www.heineken.com/en/our-products/heineken-draught"
+    },
+    {
+      "slug": "matchday-campaigns",
+      "label": "Matchday Campaigns",
+      "evidence": "Heineken's football sponsorship hub showcases UEFA Champions League and fan-experience campaigns that drive seasonal creative.",
+      "sourceUrl": "https://www.heineken.com/en/sponsorships/football"
+    },
+    {
+      "slug": "live-music",
+      "label": "Live Music & Experiences",
+      "evidence": "Official campaigns highlight live music, nightlife, and culture-led Heineken experiences that require localized promotional assets.",
+      "sourceUrl": "https://www.heineken.com/en/campaigns/music"
+    }
+  ]
+}
