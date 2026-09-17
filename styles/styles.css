@@ -22,13 +22,13 @@
   --text-color: #1D1D1F;
   --text-primary: #1D1D1F;
   --link-color: #2997FF;
-  --link-hover-color: #06C;
+  --link-hover-color: #0066CC;
   --primary-color: #0071E3;
-  --primary-color-hover: #06C;
+  --primary-color-hover: #0066CC;
   --color-red: #A33532;
   --color-dark-red: #1D1D1F;
   --accent-secondary: #2997FF;
-  --accent-tertiary: #06C;
+  --accent-tertiary: #0066CC;
   --secondary-color: #1D1D1F;
 
   /* Neutral & shape tokens */
@@ -125,7 +125,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #06C;
+  --button-primary-hover: #0066CC;
 
   /* label colors */
   --label-color: var(--text-color);
