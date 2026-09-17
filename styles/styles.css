@@ -19,18 +19,18 @@
      #e51937 = brand red (accents[3], svg-fill/background)
      #ffffff = page background (colors.background)
      #000000 = body text (colors.text) */
-  --light-color: #FFFFFF;
+  --light-color: #FFF;
   --dark-color: #2C2C2C;
-  --text-color: #000000;
-  --text-primary: #000000;
-  --link-color: #0000EE;
+  --text-color: #000;
+  --text-primary: #000;
+  --link-color: #00E;
   --link-hover-color: #004A87;
   --primary-color: #005DAB;
   --primary-color-hover: #004A87;
   --color-red: #E51937;
   --color-dark-red: #E51937;
-  --accent-secondary: #FFCC00;
-  --accent-tertiary: #CC9900;
+  --accent-secondary: #FC0;
+  --accent-tertiary: #C90;
   --secondary-color: #E51937;
 
   /* Neutral & shape tokens */
