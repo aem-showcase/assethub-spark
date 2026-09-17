@@ -53,3 +53,4 @@ spend** (reused the existing Cloudflare D1). Production DB cost analysis: `db-op
 - Chronological execution log (what happened, all gotchas): [`fastly-migration-log.md`](./fastly-migration-log.md)
 - Feasibility assessment + phased plan: [`assethub-migration-fastly.md`](./assethub-migration-fastly.md)
 - Database options, cost-by-tier, multi-tenancy: [`db-options-comparison.md`](./db-options-comparison.md)
+- One codebase for CF **and** Fastly (dual-target analysis): [`fastly-cloudflare-dual-target.md`](./fastly-cloudflare-dual-target.md)
