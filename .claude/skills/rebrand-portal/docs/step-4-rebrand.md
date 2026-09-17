@@ -98,8 +98,6 @@ capability:
 ### Hard rules for this step
 
 Each of these corresponds to a specific way an observed run went wrong.
-(They lived in `docs/excat-setup.md` until that file was narrowed to human
-setup; they are agent policy, so they belong here.)
 
 - **A source website URL is enough input** for design matching. Nothing else
   is required to begin.

@@ -1,0 +1,42 @@
+{
+  "context": "Guards that a missing excat plugin is reported, not self-repaired. Installing excat is one-time human machine setup; SKILL.md forbids a git clone or npm install at run time. The agent's job is to run --check, surface the printed fix and the setup link, and stop. This eval previously rewarded the opposite (autonomous clone + install:all + npx . smoke-check) and was rewritten to match the skill.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Detects not-installed and stops",
+      "max_score": 20,
+      "description": "The agent recognizes the plugin is not installed at all (not merely disabled) and stops before doing any design-token work."
+    },
+    {
+      "name": "Does not try to install excat itself",
+      "max_score": 25,
+      "description": "The agent does NOT run git clone, npm install / npm run install:all, or npx . via the Bash tool, and does not offer to do so. Attempting any autonomous install of the plugin fails this item outright."
+    },
+    {
+      "name": "Uses --check as the readiness signal",
+      "max_score": 15,
+      "description": "The agent runs scripts/rebrand/extract-brand.mjs --check and reports its output, rather than asserting readiness from claude plugin list, a file-existence check, or the operator's word."
+    },
+    {
+      "name": "Hands over the fix and the link",
+      "max_score": 20,
+      "description": "The agent gives the human the fix --check printed and points at excat's setup instructions (the aem-experience-catalyst CLI setup URL) and/or docs/excat-setup.md, rather than describing the problem without a next step."
+    },
+    {
+      "name": "No hand-rolled rebrand",
+      "max_score": 15,
+      "description": "The agent does not edit styles.css, sweep hardcoded colors, or rewrite content as a substitute for the design skill."
+    },
+    {
+      "name": "Rebrand left blocked",
+      "max_score": 5,
+      "description": "The rebrand phase is left blocked pending the plugin being installed.",
+      "check": {
+        "type": "jsonPath",
+        "file": ".internal/onboarding-state.json",
+        "path": "steps.rebranded",
+        "notEquals": "done"
+      }
+    }
+  ]
+}

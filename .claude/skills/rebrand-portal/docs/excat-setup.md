@@ -1,35 +1,46 @@
-# Experience Catalyst (excat) — operator setup
+# Set up Experience Catalyst (excat)
 
-**Audience: the human running the demo.** Agent-facing rules for design
-matching live in `step-4-rebrand.md`; brand-provenance policy lives in
-`invariants.md` (I10). Nothing in this file is customer-facing.
+Do this once on your machine, before your first demo. Most of the time is
+downloads.
 
-This is machine setup. Do not put machine-specific paths, Bedrock tokens, or
-generated settings into the project repo.
+The rebrand skill copies the real colours, fonts and logo from the customer's
+website. To do that it needs two things: the **excat plugin**, and a
+**Chromium browser** for it to drive.
 
-## What design matching actually needs
+## Before you start
 
-Two things, and they fail for different reasons:
+- Node 20 or newer — check with `node -v`
+- Claude Code 2.0.15 or newer, or GitHub Copilot CLI
+- Access to the `Adobe-AEM-Foundation` GitHub org
 
-| # | Thing | Comes from | Lives |
-|---|---|---|---|
-| 1 | the brand extractor (`brand-extract.js`) | the excat plugin | inside the plugin |
-| 2 | a Chromium that can run it | `playwright install` | a **machine-global** cache (`~/Library/Caches/ms-playwright`), **not** inside the plugin |
+## 1. Install the plugin
 
-Installing the plugin normally delivers both, because installing its
-dependencies triggers Playwright's browser download. They come apart when a
-plugin install is copied between machines, or when the browser cache is
-cleaned — leaving (1) present and (2) missing.
+Follow excat's own instructions:
 
-A plugin can also be **live** — loaded straight from a local marketplace
-directory and never copied into a cache. Copilot CLI shows these as
-"Live Plugins"; `--check` below finds both shapes.
+**<https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions>**
 
-## Verify — one command
+They have four steps: add your Bedrock token to `~/.claude/settings.json`,
+clone their repo and run `npm run install:all`, add the marketplace, then
+install the plugin. Do all four — the settings file on its own only *enables*
+a plugin, it can't install one.
+
+If the clone fails with `Authentication failed`, use SSH:
+
+```bash
+git clone git@github.com:Adobe-AEM-Foundation/aem-experience-catalyst.git
+```
+
+If it fails with `Repository not found` on both HTTPS and SSH, you don't have
+access to the repo yet — ask for it, or ask a colleague to share their
+marketplace folder.
+
+## 2. Check it worked
 
 ```bash
 node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --check
 ```
+
+You want this:
 
 ```
 OK — design extraction is ready.
@@ -38,101 +49,46 @@ OK — design extraction is ready.
   browser:   145.0.7632.6
 ```
 
-Exit 0 means ready. Exit 3 prints the fix. Run it **before** starting a demo —
-it takes seconds, and the alternative is discovering the problem ~20 minutes
-in, after the content copy and branch work are already done.
+Run it before every demo. It takes a few seconds, and it's the difference
+between finding a problem now and finding it twenty minutes in, after the
+content is already copied.
 
-> Do not substitute `claude plugin list` or a file-existence check such as
-> `ls .../node_modules/playwright/index.mjs`. The first reports only that a
-> skill is *loadable*; the second passes on a machine with **no browser at
-> all**. Both return green on exactly the machine that fails. `--check`
-> launches the browser, so it cannot false-green.
+If it prints something else, find the message below.
 
-## If `--check` fails
-
-### "Could not locate the excat plugin"
-
-You don't have the plugin. Install it with **excat's own instructions** —
-maintained by that project, so they stay current as it changes:
-
-**<https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions>**
-
-Their four steps, in order:
-
-1. Install Claude Code (Node 20+), and create `~/.claude/settings.json` with
-   your Bedrock token and `"enabledPlugins": { "excat@excat-marketplace": true }`.
-2. Clone the repo, then `npm run install:all` inside
-   `resources/plugins/aem-excat-plugin/excat-marketplace`.
-3. `/plugin marketplace add /absolute/path/to/.../excat-marketplace`
-4. `/plugin install excat@excat-marketplace`
-
-Two things worth knowing before you start:
-
-- **Step 1 alone is not enough.** `enabledPlugins` only *enables* a plugin
-  that is already installed; it cannot install one. Steps 2–4 are required.
-- **Step 2 is excat's, not ours.** Their marketplace is a local directory of
-  source whose `node_modules` are gitignored, so a fresh clone has none and
-  `install:all` is what supplies them — including the Chromium download. We
-  deliberately do not reproduce those commands here: a copy would drift from
-  the original, and a stale copy of someone else's install procedure is worse
-  than a link to the current one.
-
-If the clone fails with `Authentication failed` over HTTPS, use SSH instead:
-
-```bash
-git clone git@github.com:Adobe-AEM-Foundation/aem-experience-catalyst.git
-```
-
-(or configure the HTTPS credential helper with `gh auth login`; excat's README
-also notes `gh auth switch` if you need a different account).
-
-If it fails with `Repository not found` over **both** HTTPS and SSH, that is
-an access problem, not an auth-method problem — request access, or ask a
-colleague for the marketplace directory (excat's README covers sharing under
-*Distribution*). Copilot CLI can also install a plugin straight from a repo
-subdirectory without any clone:
-
-```bash
-copilot plugin install <owner>/<repo>:resources/plugins/aem-excat-plugin/excat-marketplace/excat
-```
-
-which works as soon as the repo is readable by your account.
-
-**If you already have the plugin, none of this applies to you.**
-
-Non-standard install location? `export EXCAT_ROOT=/path/to/excat`.
+## If the check fails
 
 ### "the Chromium it drives is not on this machine"
 
-The plugin is fine; only the browser is missing. `--check` prints the exact
-command, resolved against your installed version:
+Most common, and expected on a new machine — the browser is a separate
+download, not part of the plugin. The check prints the exact command; it looks
+like this:
 
 ```bash
-cd <path --check printed>/hooks/import-validator && npx playwright install chromium
+cd <the plugin path the check printed>/hooks/import-validator && npx playwright install chromium
 ```
 
-Roughly 150 MB, once per machine. Run from that directory so it uses the
-Playwright version the plugin pins, and therefore installs the matching
-browser build.
+About 150 MB, once per machine. Run it from that folder so you get the browser
+version the plugin expects.
+
+### "Could not locate the excat plugin"
+
+The plugin isn't installed. Go back to step 1.
+
+If you installed it somewhere unusual, point at it directly:
+
+```bash
+export EXCAT_ROOT=/path/to/excat
+```
 
 ### "its Playwright package is missing"
 
-The plugin was installed from a source tree whose dependencies were never
-installed. Reinstall it per excat's instructions above.
+The plugin was installed before its dependencies were. Reinstall it using
+excat's instructions in step 1.
 
-## During a demo run
+## Notes
 
-**There is never a `git clone` and never an `npm install` while a demo is
-running.** If either appears necessary mid-run, the plugin is not installed —
-fix that, then resume. Setup-time and run-time are different, and only
-setup-time involves npm.
-
-## Prerequisites
-
-- Node 20 or newer.
-- A host that loads the plugin — Claude Code 2.0.15+ or GitHub Copilot CLI.
-  Plugin *management* commands (`/plugin list`, `/plugin install`) are
-  Claude Code's; Copilot CLI resolves an already-installed plugin from the
-  same on-disk cache, so one install serves both.
-- If the environment uses AWS Bedrock, configure credentials only in your
-  user-home settings. Do not add Bedrock tokens to this repo.
+- Keep your Bedrock token in your home settings (`~/.claude/settings.json`).
+  Never put it in this repo.
+- One plugin install covers both Claude Code and Copilot CLI.
+- Copilot CLI can install straight from the repo without cloning:
+  `copilot plugin install <owner>/<repo>:resources/plugins/aem-excat-plugin/excat-marketplace/excat`
