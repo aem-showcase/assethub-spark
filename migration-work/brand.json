@@ -130,122 +130,105 @@
     {
       "role": "primary",
       "oldHex": "#00647D",
-      "newHex": "#005DAB",
+      "newHex": "#005dab",
       "cssVar": "--primary-color",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "primary-hover",
       "oldHex": "#004D61",
-      "newHex": "#004A87",
+      "newHex": "#004a87",
       "cssVar": "--primary-color-hover",
       "source": "derived",
-      "derivedFrom": "#005DAB darkened ~10%"
+      "derivedFrom": "#005dab"
     },
     {
       "role": "button-primary-hover",
       "oldHex": "#004D61",
-      "newHex": "#004A87",
+      "newHex": "#004a87",
       "cssVar": "--button-primary-hover",
       "source": "derived",
-      "derivedFrom": "#005DAB darkened ~10%"
+      "derivedFrom": "#005dab"
+    },
+    {
+      "role": "link-hover",
+      "oldHex": "#00647D",
+      "newHex": "#004a87",
+      "cssVar": "--link-hover-color",
+      "source": "derived",
+      "derivedFrom": "#005dab"
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#001f3f",
+      "cssVar": "--welcome-panel-bg",
+      "source": "derived",
+      "derivedFrom": "#005dab"
     },
     {
       "role": "light-background",
       "oldHex": "#F4E9DC",
-      "newHex": "#FFFFFF",
+      "newHex": "#ffffff",
       "cssVar": "--light-color",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "text",
       "oldHex": "#58181D",
       "newHex": "#000000",
-      "cssVar": "--text-color / --text-primary",
-      "source": "measured",
-      "derivedFrom": null
+      "cssVar": "--text-color",
+      "source": "extracted"
     },
     {
       "role": "link",
       "oldHex": "#58181D",
-      "newHex": "#0000EE",
+      "newHex": "#0000ee",
       "cssVar": "--link-color",
-      "source": "measured",
-      "derivedFrom": null
-    },
-    {
-      "role": "link-hover",
-      "oldHex": "#00647D",
-      "newHex": "#004A87",
-      "cssVar": "--link-hover-color",
-      "source": "derived",
-      "derivedFrom": "#005DAB darkened ~10%"
+      "source": "extracted"
     },
     {
       "role": "dark-red / error",
       "oldHex": "#95351D",
-      "newHex": "#E51937",
+      "newHex": "#e51937",
       "cssVar": "--color-dark-red",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "secondary",
       "oldHex": "#95351D",
-      "newHex": "#E51937",
+      "newHex": "#e51937",
       "cssVar": "--secondary-color",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "red",
       "oldHex": "#A33532",
-      "newHex": "#E51937",
+      "newHex": "#e51937",
       "cssVar": "--color-red",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "accent-secondary (clearance-partial)",
       "oldHex": "#DC6E52",
-      "newHex": "#FFCC00",
+      "newHex": "#ffcc00",
       "cssVar": "--accent-secondary",
-      "source": "measured",
-      "derivedFrom": null
+      "source": "extracted"
     },
     {
       "role": "accent-tertiary (status-in-progress)",
       "oldHex": "#EBA439",
-      "newHex": "#CC9900",
+      "newHex": "#cc9900",
       "cssVar": "--accent-tertiary",
       "source": "derived",
-      "derivedFrom": "#FFCC00 darkened ~20%"
+      "derivedFrom": "#ffcc00"
     },
     {
-      "role": "welcome-panel-bg",
-      "oldHex": "#2F2318",
-      "newHex": "#001F3F",
-      "cssVar": "--welcome-panel-bg",
-      "source": "derived",
-      "derivedFrom": "#005DAB darkened navy shade"
-    },
-    {
-      "role": "welcome-panel-accent-rgb",
-      "oldHex": "234 163 58",
-      "newHex": "255 204 0",
-      "cssVar": "--welcome-panel-accent-rgb",
-      "source": "measured",
-      "derivedFrom": "rgb of #FFCC00"
-    },
-    {
-      "role": "welcome-panel-mark-image",
-      "oldHex": "/icons/frescopa-beans.svg",
-      "newHex": "/icons/costco-us-beans.svg",
-      "cssVar": "--welcome-panel-mark-image",
-      "source": "asset-swap",
-      "derivedFrom": null
+      "role": "text",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-primary",
+      "source": "extracted"
     }
   ]
 }
