@@ -1018,20 +1018,20 @@ main .section.search-hero .search-bar-wrapper {
 }
 
 main .section.search-hero .query-input-container {
-  background: transparent;
+  background-color: transparent;
   min-height: unset;
   padding: 0;
 }
 
 main .section.search-hero .query-input-bar {
-  background: #fff;
-  box-shadow: 0 12px 30px rgb(88 24 29 / 14%);
+  background-color: #fff;
+  box-shadow: 0 12px 30px rgb(29 29 31 / 14%);
 }
 
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(235 164 57 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  background-color: rgb(0 113 227 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
   text-align: center;
 }
 
@@ -1066,16 +1066,16 @@ main .section.category-tiles .cards > ul > li {
   height: auto;
   flex-direction: column;
   text-align: left;
-  background: var(--color-neutral-50);
-  border: 1px solid rgb(88 24 29 / 8%);
+  background-color: var(--color-neutral-50);
+  border: 1px solid rgb(29 29 31 / 8%);
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
+  box-shadow: 0 8px 22px rgb(29 29 31 / 8%);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 main .section.category-tiles .cards > ul > li:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
+  box-shadow: 0 12px 26px rgb(29 29 31 / 12%);
 }
 
 /* Text-only tile (no image cell) collapses to its body — never reserve a blank
@@ -1115,7 +1115,7 @@ main .section.category-tiles .cards.icon-tiles .cards-card-image img {
 
 main .section.category-tiles .cards .cards-card-body,
 main .section.category-tiles .cards > ul > li:hover .cards-card-body {
-  background: transparent;
+  background-color: transparent;
   padding: 18px;
   gap: 8px;
   min-height: 60px;
@@ -1143,7 +1143,7 @@ main .section.category-tiles .cards .button-container {
 }
 
 main .section.category-tiles .cards a.button {
-  background: transparent;
+  background-color: transparent;
   border: none;
   padding: 0;
   margin: 0;

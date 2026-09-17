@@ -4,13 +4,37 @@
     "\\.editing-mode",
     "\\.impersonating",
     "\\[aria-invalid\\]",
+    "--color-red",
+    "--color-neutral-",
+    "--button-secondary-color",
+    "--status-",
+    "--clearance-",
     "--warning-",
     "--error-",
     "--success-",
     "--chart-",
-    "--data-viz-"
+    "--data-viz-",
+    "button\\.secondary",
+    "button\\.secondary-button",
+    "main \\.section\\.hero-black",
+    "query-input-bar",
+    "input\\[type=\"checkbox\"\\]",
+    "picture\\.missing",
+    "\\[data-tooltip\\]",
+    "inline-loading-spinner",
+    "scrollbar-track",
+    "\\.dropdown-menu",
+    "header-dropdown-portal",
+    "\\.my-account",
+    "\\.nav-wrapper",
+    "\\.nav-sections"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^blocks/header/header\\.css$",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$"
   ]
 }
