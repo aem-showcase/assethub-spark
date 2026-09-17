@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Costco Business Delivery emblem">
+  <rect width="240" height="240" rx="56" fill="#005DAB"/>
+  <circle cx="120" cy="120" r="92" fill="#66A7D8" opacity="0.16"/>
+  <path fill="#FFFFFF" d="M88 72h20v96H88c-33.1 0-60-21.5-60-48s26.9-48 60-48Zm0 24c-17.7 0-32 10.8-32 24s14.3 24 32 24h4V96h-4Z"/>
+  <path fill="#FFFFFF" d="M120 72h34c26.5 0 48 19.7 48 44 0 14-7.2 26.4-18.7 34.5C196 157.1 204 169.8 204 185c0 29.3-25 53-55.8 53H120V72Zm24 24v43h12c12.1 0 22-9.7 22-21.5S168.1 96 156 96h-12Zm0 67v51h15.5c12.4 0 22.5-10.3 22.5-23s-10.1-23-22.5-23H144Z"/>
+  <path fill="#D9ECF9" d="M84 188h88l20-18h-62l-10-12-36 30Z" opacity="0.9"/>
+</svg>

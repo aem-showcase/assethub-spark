@@ -1,0 +1,36 @@
+{
+  "companyKey": "costco-business",
+  "source": "https://www.costcobusinessdelivery.com/",
+  "categories": [
+    {
+      "slug": "appliances",
+      "label": "Appliances",
+      "evidence": "Homepage category tile \"Appliances\" appears in source HTML and category page title is \"Commercial Appliances | Costco\".",
+      "sourceUrl": "https://www.costcobusinessdelivery.com/appliances.html"
+    },
+    {
+      "slug": "beverages",
+      "label": "Beverages",
+      "evidence": "Homepage category tile \"Beverages\" appears in source HTML and category page title is \"Beverages | Costco\".",
+      "sourceUrl": "https://www.costcobusinessdelivery.com/beverages.html"
+    },
+    {
+      "slug": "disposables",
+      "label": "Disposables",
+      "evidence": "Homepage category tile \"Disposables\" appears in source HTML and category page title is \"Disposables | Costco\".",
+      "sourceUrl": "https://www.costcobusinessdelivery.com/disposables.html"
+    },
+    {
+      "slug": "grocery",
+      "label": "Grocery",
+      "evidence": "Homepage category tile \"Grocery\" appears in source HTML and category page title is \"Grocery | Costco\".",
+      "sourceUrl": "https://www.costcobusinessdelivery.com/grocery.html"
+    },
+    {
+      "slug": "janitorial-supplies",
+      "label": "Janitorial Supplies",
+      "evidence": "Homepage category tile \"Janitorial Supplies\" appears in source HTML and category page title is \"Janitorial Supplies | Costco\".",
+      "sourceUrl": "https://www.costcobusinessdelivery.com/janitorial-supplies.html"
+    }
+  ]
+}

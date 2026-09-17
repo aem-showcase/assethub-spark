@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.costcobusinessdelivery.com/",
+    "finalUrl": "https://www.costcobusinessdelivery.com/",
+    "pageTitle": "Costco Business Center",
+    "extractedAt": "2026-09-17T20:14:47.627Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": true,
+    "warnings": []
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "Costco Sans Web",
+        "familySet": "\"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif"
+      },
+      "heading": {
+        "family": "Costco Sans Web",
+        "familySet": "\"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "32px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": "24px"
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": ""
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(0, 0, 0)",
+      "link": "rgb(0, 93, 171)",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "16px",
+      "contentMaxWidth": "",
+      "navHeight": "56px"
+    },
+    "favicons": [
+      {
+        "url": "https://www.costcobusinessdelivery.com/nextGBrowseAssets/favicon.ico",
+        "rel": "icon"
+      }
+    ],
+    "defaultContentCss": "h1 {\n  font-size: 32px;\n  font-weight: 700;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: normal;\n  color: rgb(0, 0, 0);\n  margin: -1px;\n}\n\nh2 {\n  font-size: 24px;\n  font-weight: 400;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 31.2px;\n  color: rgb(51, 51, 51);\n}\n\np {\n  font-size: 12px;\n  font-family: \"Costco Sans Web\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, sans-serif;\n  line-height: 20.4px;\n  color: rgb(0, 0, 0);\n  margin: 12px 0px;\n}\n\na:any-link {\n  color: rgb(0, 93, 171);\n  text-decoration: underline;\n}\n",
+    "accents": [
+      {
+        "hex": "#005dab",
+        "weight": 251013,
+        "why": [
+          "interactive-text",
+          "svg-fill",
+          "border",
+          "background"
+        ]
+      }
+    ]
+  },
+  "tokenMap": [
+    {
+      "role": "surface",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFFFFF",
+      "cssVar": "--light-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-primary",
+      "source": "extracted"
+    },
+    {
+      "role": "link",
+      "oldHex": "#58181D",
+      "newHex": "#005DAB",
+      "cssVar": "--link-color",
+      "source": "extracted"
+    },
+    {
+      "role": "link-hover",
+      "oldHex": "#00647D",
+      "newHex": "#004C8A",
+      "cssVar": "--link-hover-color",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "primary",
+      "oldHex": "#00647D",
+      "newHex": "#005DAB",
+      "cssVar": "--primary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#004C8A",
+      "cssVar": "--primary-color-hover",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "secondary",
+      "oldHex": "#95351D",
+      "newHex": "#003F75",
+      "cssVar": "--secondary-color",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "secondary-strong",
+      "oldHex": "#95351D",
+      "newHex": "#003F75",
+      "cssVar": "--color-dark-red",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#66A7D8",
+      "cssVar": "--accent-secondary",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#D9ECF9",
+      "cssVar": "--accent-tertiary",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "dark-surface",
+      "oldHex": "#2F2318",
+      "newHex": "#000000",
+      "cssVar": "--dark-color",
+      "source": "extracted"
+    },
+    {
+      "role": "welcome-panel",
+      "oldHex": "#2F2318",
+      "newHex": "#003F75",
+      "cssVar": "--welcome-panel-bg",
+      "source": "derived",
+      "derivedFrom": "#005DAB"
+    },
+    {
+      "role": "welcome-panel-accent",
+      "oldHex": "#EBA439",
+      "newHex": "#005DAB",
+      "cssVar": "--welcome-panel-accent",
+      "source": "extracted"
+    }
+  ]
+}
