@@ -87,18 +87,47 @@ original — the dead Analytics-Engine code was dropped, not diverged.)*
 
 ---
 
-## 4. Recommendation
+## 4. Should you build it? — decision guidance
 
-For "**pick CF or Fastly per customer with minimal change**," go **Option A**. It's a *Medium* lift, not a
-rewrite — the PoC showed the divergence is ~300 lines of adapter + ~6 portable adaptation points over a shared
-business core. Two decisions drive most of the residual risk:
+**It hinges on one question: is there a real, near-term need to run *both* platforms simultaneously (per
+customer)?**
 
-1. **Database (#8):** the cleanest dual-target is **Turso/libSQL for *both* platforms** (uniform, SQLite dialect,
-   one interface). The alternative — D1-on-CF + Turso-on-Fastly behind the same `.prepare()` interface — works,
-   but means operating two DB backends. (Full comparison: [`db-options-comparison.md`](./db-options-comparison.md).)
-2. **Fetch/body discipline (#5/#6):** route **every** subrequest and body-read through the adapter helpers, or
-   Fastly breaks subtly (undeclared backend, no auto-decompress, no `clone()`) — exactly the bug class the PoC
-   surfaced (and the metadata-auth fail-open).
+- **Real / likely** → build **Option A** (adapter). It's a *Medium* lift (~4–6 wks) and the PoC already did ~60%.
+- **Speculative / none** → **don't build it now.** The PoC already banked the *optionality* (it proved a Medium
+  lift). Keep the parallel tree as evidence and do a one-off migration (Option C) if/when a concrete need lands.
+  A dual-target adapter built speculatively is complexity you pay for **forever**.
+- **Committing fully to Fastly** (e.g. AEM's CS-provisioned `.aem.run`) → do a **one-way** migration, not
+  dual-target.
+
+### Pros of dual-target (Option A)
+- **One source of truth** — a fix/feature ships to both by rebuild; no fork drift.
+- **Per-customer platform choice** — procurement, existing CDN contracts, data residency, vendor-lock hedging.
+- **Optionality / leverage** — flip a customer, or use it in vendor negotiations.
+- **Cheap relative to a rewrite** — the seam is ~300 lines and mostly already built + proven.
+
+### Cons / ongoing costs
+- **Permanent tax** — every subrequest, storage call, and body-read must go through the adapter forever; every
+  contributor has to learn it.
+- **Doubled build / test / CI / deploy** surfaces.
+- **Lowest-common-denominator** — using CF-only (D1, Durable Objects, Analytics Engine) or Fastly-only features
+  means adapter branches or giving them up.
+- **DB is the sticking point** (the only High-risk category) — the cleanest dual-target standardizes on **Turso
+  for both**, i.e. moving *Cloudflare* off D1 too; the alternative runs two DB backends behind one interface.
+- **YAGNI risk** — built without a real need, it's complexity for a maybe.
+
+### Triggers that justify building it *now*
+- A signed / near-term customer that **requires Fastly** (or a non-CF CDN) while others stay on CF.
+- A mandate to **avoid single-vendor lock-in** at the edge.
+- AEM strategy lands on **customer-choice** infra (some CF, some CS-provisioned Fastly) rather than one platform.
+
+### Bottom line
+**Consider it: yes.** **Build it: only on a concrete trigger.** The expensive part — proving it's feasible and
+*Medium*-effort — is already done, so keep that optionality in your pocket and pull it out when a real
+per-customer need appears. Until then, Cloudflare stays the single source of truth and Fastly is a proven, ready
+target. If you *do* build it, the two things that drive the residual risk are the **DB choice** (Turso-for-both
+is cleanest) and **fetch/body discipline** (route everything through the adapter, or Fastly breaks subtly — the
+undeclared-backend / no-decompress / no-`clone()` bug class the PoC surfaced, including the metadata-auth
+fail-open).
 
 ---
 
