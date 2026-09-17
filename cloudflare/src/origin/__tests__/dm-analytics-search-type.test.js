@@ -18,7 +18,7 @@ const contentAIQuery = {
 };
 
 describe('extractSearchContext search type from referer', () => {
-  it('accepts Frescopa unified search page /en/search', () => {
+  it('accepts unified search page /en/search', () => {
     const request = requestWithReferer(
       'https://lookandfeel-improvements.spark.aem.media/en/search?query=machines',
     );

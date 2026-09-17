@@ -181,8 +181,10 @@ export async function createSession(request, env) {
   const permissions = await resolvePermissions(request, env, email);
 
   const host = request.headers.get('host') || '';
-  const liveHosts = ['localhost', 'frescopamedia.com'];
-  const isNonLiveHost = !liveHosts.some((h) => host === h || host.startsWith(`${h}:`));
+  const isBranchPreview = /\.dev\./.test(host);
+  const isNamedPreview = host.startsWith('preview.');
+  const isLocalHost = host === 'localhost' || host.startsWith('localhost:');
+  const isNonLiveHost = !isLocalHost && (isBranchPreview || isNamedPreview);
   if (isNonLiveHost) {
     if (!permissions.includes('preview')) {
       console.warn('User has no permission to access preview environments:', email);

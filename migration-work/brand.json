@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.apple.com/in/",
+    "finalUrl": "https://www.apple.com/in/",
+    "pageTitle": "Apple (India)",
+    "extractedAt": "2026-09-17T13:27:40.875Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/Documents/code/aem-experience-catalyst/resources/plugins/aem-excat-plugin/excat-marketplace/excat",
+    "excatVersion": {
+      "dir": "excat",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": true,
+    "warnings": []
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "SF Pro Text",
+        "familySet": "\"SF Pro Text\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+      },
+      "heading": {
+        "family": "SF Pro Text",
+        "familySet": "\"SF Pro Text\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "34px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": "12px"
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": "40px"
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(29, 29, 31)",
+      "link": "rgb(41, 151, 255)",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "0px",
+      "contentMaxWidth": "",
+      "navHeight": "44px"
+    },
+    "favicons": [
+      {
+        "url": "https://www.apple.com/favicon.ico",
+        "rel": "icon"
+      }
+    ],
+    "defaultContentCss": "h2 {\n  font-size: 56px;\n  font-weight: 600;\n  font-family: \"SF Pro Display\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 60px;\n  letter-spacing: -0.28px;\n  color: rgb(245, 245, 247);\n}\n\nh3 {\n  font-size: 40px;\n  font-weight: 600;\n  font-family: \"SF Pro Display\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 44px;\n  color: rgb(245, 245, 247);\n  margin: 4px 0px -5px;\n}\n\np {\n  font-size: 14px;\n  font-family: \"SF Pro Text\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 20.0003px;\n  color: rgb(245, 245, 247);\n}\n\na:any-link {\n  color: rgb(245, 245, 247);\n  text-decoration: underline;\n}\n",
+    "accents": [
+      {
+        "hex": "#2997ff",
+        "weight": 107500,
+        "why": [
+          "interactive-text",
+          "border"
+        ]
+      },
+      {
+        "hex": "#0066cc",
+        "weight": 86000,
+        "why": [
+          "interactive-text",
+          "border"
+        ]
+      },
+      {
+        "hex": "#0071e3",
+        "weight": 39845,
+        "why": [
+          "background"
+        ]
+      }
+    ]
+  },
+  "tokenMap": [
+    {
+      "role": "light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#F5F5F7",
+      "cssVar": "--light-color",
+      "source": "derived",
+      "derivedFrom": "#ffffff"
+    },
+    {
+      "role": "text-color",
+      "oldHex": "#58181D",
+      "newHex": "#1d1d1f",
+      "cssVar": "--text-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#1d1d1f",
+      "cssVar": "--text-primary",
+      "source": "extracted"
+    },
+    {
+      "role": "link-color",
+      "oldHex": "#58181D",
+      "newHex": "#2997ff",
+      "cssVar": "--link-color",
+      "source": "extracted"
+    },
+    {
+      "role": "link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#0066cc",
+      "cssVar": "--link-hover-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#0071e3",
+      "cssVar": "--primary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color-hover",
+      "oldHex": "#004D61",
+      "newHex": "#0066cc",
+      "cssVar": "--primary-color-hover",
+      "source": "extracted"
+    },
+    {
+      "role": "secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#1d1d1f",
+      "cssVar": "--secondary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#2997ff",
+      "cssVar": "--accent-secondary",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#0066cc",
+      "cssVar": "--accent-tertiary",
+      "source": "extracted"
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#1d1d1f",
+      "cssVar": "--welcome-panel-bg",
+      "source": "extracted"
+    }
+  ]
+}

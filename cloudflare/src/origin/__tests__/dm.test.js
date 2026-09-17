@@ -1345,7 +1345,7 @@ describe('stampCollectionCompany', () => {
 
   beforeEach(() => {
     savedDemoCompany = config.DEMO_COMPANY;
-    config.DEMO_COMPANY = 'frescopa';
+    config.DEMO_COMPANY = 'apple';
   });
 
   afterEach(() => {
@@ -1355,13 +1355,13 @@ describe('stampCollectionCompany', () => {
   it('stamps custom:metadata.company on a create body with no metadata', () => {
     const body = { title: 'My Collection', items: [] };
     const out = stampCollectionCompany(body);
-    expect(out['custom:metadata']).toEqual({ company: 'frescopa' });
+    expect(out['custom:metadata']).toEqual({ company: 'apple' });
   });
 
   it('preserves existing custom:metadata fields while adding company', () => {
     const body = { title: 'X', 'custom:metadata': { note: 'keep me' } };
     const out = stampCollectionCompany(body);
-    expect(out['custom:metadata']).toEqual({ note: 'keep me', company: 'frescopa' });
+    expect(out['custom:metadata']).toEqual({ note: 'keep me', company: 'apple' });
   });
 
   it('re-stamps company on an update body that dropped/overrode it', () => {
@@ -1373,13 +1373,13 @@ describe('stampCollectionCompany', () => {
       'custom:metadata': { company: 'someone-else' },
     };
     const out = stampCollectionCompany(updateBody);
-    expect(out['custom:metadata'].company).toBe('frescopa');
+    expect(out['custom:metadata'].company).toBe('apple');
   });
 
   it('overrides a caller-supplied company with the configured scope', () => {
     const body = { title: 'X', 'custom:metadata': { company: 'somethingelse' } };
     const out = stampCollectionCompany(body);
-    expect(out['custom:metadata'].company).toBe('frescopa');
+    expect(out['custom:metadata'].company).toBe('apple');
   });
 
   it('is a no-op when DEMO_COMPANY is unset', () => {

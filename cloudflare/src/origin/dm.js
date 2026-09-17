@@ -583,7 +583,7 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   const clauses = [];
 
   // --- Customer scope filter (always applied) ---
-  // config.DEMO_COMPANY is always set (default: 'frescopa'). Every asset search is
+  // config.DEMO_COMPANY is always set (configured demo scope). Every asset search is
   // restricted to assets tagged assetMetadata.company === DEMO_COMPANY. The agent
   // auto-patches this to the prospect's key after enrichment. Injected BEFORE the admin
   // bypass so even admins only see the configured customer's assets.

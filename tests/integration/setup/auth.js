@@ -15,7 +15,7 @@ export function getSessionCookie() {
   if (!cookie) {
     throw new Error(
       'TEST_SESSION_COOKIE is not set.\n'
-        + 'Get it from DevTools → Application → Cookies → session for frescopamedia.com\n'
+        + 'Get it from DevTools → Application → Cookies → session for the deployed host\n'
         + 'Then: export TEST_SESSION_COOKIE="<value>"',
     );
   }

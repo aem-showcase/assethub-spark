@@ -1,0 +1,34 @@
+{
+  "categories": [
+    {
+      "slug": "iphone",
+      "label": "iPhone",
+      "evidence": "apple.com/in top nav + product line"
+    },
+    {
+      "slug": "mac",
+      "label": "Mac",
+      "evidence": "apple.com/in top nav + product line"
+    },
+    {
+      "slug": "ipad",
+      "label": "iPad",
+      "evidence": "apple.com/in top nav + product line"
+    },
+    {
+      "slug": "watch",
+      "label": "Apple Watch",
+      "evidence": "apple.com/in top nav + product line"
+    },
+    {
+      "slug": "airpods",
+      "label": "AirPods",
+      "evidence": "apple.com/in top nav + product line"
+    },
+    {
+      "slug": "accessories",
+      "label": "Accessories",
+      "evidence": "apple.com/in top nav + product line"
+    }
+  ]
+}
