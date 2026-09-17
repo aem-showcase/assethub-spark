@@ -1025,7 +1025,12 @@ main .section.search-hero .query-input-bar {
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(212 175 55 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  /* NOTE: search-hero and category-tiles are two styles on ONE combined section
+     (see comment below on h2:first-of-type). Do not set `background` here — the
+     shorthand fully replaces search-hero's `--light-color` + big.svg background
+     (last rule in source order wins for the same property on the same element),
+     which previously made the whole landing hero look like a flat warm/cream
+     tint instead of the intended pale Heineken-green hero. */
   text-align: center;
 }
 
