@@ -8,9 +8,28 @@
     "--error-",
     "--success-",
     "--chart-",
-    "--data-viz-"
+    "--data-viz-",
+    "--dark-color$",
+    "--color-red$",
+    "--color-neutral-",
+    "--button-secondary-color$",
+    "--status-completed$",
+    "--clearance-available$",
+    "^button\\.secondary(-button)?(:hover|:disabled)?$",
+    "^main \\.section\\.hero-black$",
+    "^main \\.section\\.search-hero \\.query-input-bar$",
+    "^input\\[type=\"checkbox\"\\]$",
+    "^picture\\.missing$",
+    "\\[data-tooltip\\]",
+    "^\\.inline-loading-spinner",
+    "::-webkit-scrollbar-track$"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^blocks/header/header\\.css$",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$"
   ]
 }

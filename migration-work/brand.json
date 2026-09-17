@@ -102,7 +102,6 @@
     { "role": "color-dark-red (secondary)", "oldHex": "#95351D", "newHex": "#00335e", "cssVar": "--color-dark-red", "source": "derived", "derivedFrom": "#005dab" },
     { "role": "accent-secondary", "oldHex": "#DC6E52", "newHex": "#5995c8", "cssVar": "--accent-secondary", "source": "derived", "derivedFrom": "#005dab" },
     { "role": "accent-tertiary", "oldHex": "#EBA439", "newHex": "#99bedd", "cssVar": "--accent-tertiary", "source": "derived", "derivedFrom": "#005dab" },
-    { "role": "welcome-panel-bg", "oldHex": "#2f2318", "newHex": "#00203b", "cssVar": "--welcome-panel-bg", "source": "derived", "derivedFrom": "#005dab" },
-    { "role": "welcome-panel-accent-rgb", "oldHex": "234 163 58", "newHex": "0 93 171", "cssVar": "--welcome-panel-accent-rgb", "source": "extracted" }
+    { "role": "welcome-panel-bg", "oldHex": "#2f2318", "newHex": "#00203b", "cssVar": "--welcome-panel-bg", "source": "derived", "derivedFrom": "#005dab" }
   ]
 }
