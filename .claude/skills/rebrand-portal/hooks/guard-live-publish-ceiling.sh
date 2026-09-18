@@ -30,13 +30,18 @@
 # bypass and removes the accidental one; it does not make the bypass impossible.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for
 # Claude Code, Codex and Copilot CLI PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
 export FALLBACK_PROJECT_DIR
@@ -47,6 +52,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 from datetime import datetime, timezone
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
@@ -188,19 +196,22 @@ MAX_AGE_MINUTES = 30
 
 
 def deny(reason):
-    sys.stderr.write(
-        "Blocked by rebrand-portal live-publish ceiling gate: " + reason + "\n"
-        "The landing page is about to go live without a current check that it carries\n"
-        "the demo's card count. Preview it first, then run:\n"
-        "  node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs "
-        "--preview <branch>.dev.frescopamedia.com --company <companyKey> "
-        "--only card-ceiling --write-report .internal/verify-report.json\n"
-        "If it FAILs, re-author the page with:\n"
-        "  node .claude/skills/rebrand-portal/scripts/assets/update-index-cards.js "
-        "--index-file <index.html> --report-file <enrichment-report.json> --out <index.html>\n"
-        "Do not hand-edit the page to satisfy this gate.\n"
+    guardlib.deny(
+        "live-publish ceiling gate",
+        reason + " The landing page is about to go live without a current check that "
+        "it carries the demo's card count.",
+        route=(
+            "preview it first, then run:\n"
+            "  node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs "
+            "--preview <branch>.dev.frescopamedia.com --company <companyKey> "
+            "--only card-ceiling --write-report .internal/verify-report.json\n"
+            "If it FAILs, re-author the page with:\n"
+            "  node .claude/skills/rebrand-portal/scripts/assets/update-index-cards.js "
+            "--index-file <index.html> --report-file <enrichment-report.json> "
+            "--out <index.html>\n"
+            "Do not hand-edit the page to satisfy this gate."
+        ),
     )
-    sys.exit(2)
 
 
 if not os.path.isfile(report_path):

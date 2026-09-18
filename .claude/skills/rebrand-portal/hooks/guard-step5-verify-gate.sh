@@ -20,13 +20,18 @@
 # report-file check, so unusual command shapes can slip past.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
-# Claude Code and Copilot CLI PreToolUse hooks.
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for Claude Code and Copilot CLI
+# PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
 export FALLBACK_PROJECT_DIR
@@ -37,6 +42,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 fallback_project_dir = os.environ.get("FALLBACK_PROJECT_DIR", "")
@@ -166,16 +174,19 @@ WAIVED_CHECKS = {
 
 
 def deny(reason):
-    sys.stderr.write(
-        "Blocked by rebrand-portal Step 5 verify gate: " + reason + "\n"
-        "Run the consolidated verify.mjs pass with --write-report before Step 5:\n"
-        "  node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs "
-        "--preview <branch>.dev.frescopamedia.com --company <companyKey> "
-        "--report <enrichment-report.json> --write-report .internal/verify-report.json\n"
-        "brand-fidelity needs migration-work/brand.json — produce it with:\n"
-        "  node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --url <sourceSiteUrl>\n"
+    guardlib.deny(
+        "Step 5 verify gate",
+        reason,
+        route=(
+            "run the consolidated verify.mjs pass with --write-report before Step 5:\n"
+            "  node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs "
+            "--preview <branch>.dev.frescopamedia.com --company <companyKey> "
+            "--report <enrichment-report.json> --write-report .internal/verify-report.json\n"
+            "brand-fidelity needs migration-work/brand.json — produce it with:\n"
+            "  node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs "
+            "--url <sourceSiteUrl>"
+        ),
     )
-    sys.exit(2)
 
 
 repo_root = resolve_worktree(command)

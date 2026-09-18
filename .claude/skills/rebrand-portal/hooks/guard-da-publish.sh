@@ -13,13 +13,18 @@
 # args (SKILL.md Step 4) to keep them visible here.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
-# Claude Code and Copilot CLI PreToolUse hooks.
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for Claude Code and Copilot CLI
+# PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 # Fallback state file only — the real resolution happens in Python below,
 # scoped to the worktree the command actually targets. This env value is
@@ -34,6 +39,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 fallback_state_file = os.environ.get("FALLBACK_STATE_FILE", "")
@@ -158,13 +166,12 @@ def under_folder(path):
 
 
 def deny(reason):
-    sys.stderr.write(
-        "Blocked by rebrand-portal publish guard: " + reason + "\n"
-        "Demo publishes are scoped to the company folder "
-        f"({da_folder or '<unset>'}). "
-        "Only publish paths under that folder.\n"
+    guardlib.deny(
+        "publish",
+        reason,
+        route="demo publishes are scoped to the company folder "
+              f"({da_folder or '<unset>'}). Only publish paths under that folder.",
     )
-    sys.exit(2)
 
 
 # Only an executed shell command can publish/copy. Scan the Bash command
@@ -258,16 +265,15 @@ if scan:
 
 if violations:
     if missing_worktree_state:
-        sys.stderr.write(
-            "Blocked by rebrand-portal publish guard: this command targets a demo "
-            "worktree that has no .internal/onboarding-state.json of its own, so the "
-            "company folder cannot be resolved. `.internal/` is gitignored, so a fresh "
-            "`git worktree add` starts without it. This is NOT a problem with the "
-            "command, the credentials, or the target path — recreate the worktree's "
-            "state file (Step 2) and re-run. "
-            + "; ".join(violations) + "\n"
+        guardlib.deny(
+            "publish",
+            "this command targets a demo worktree that has no "
+            ".internal/onboarding-state.json of its own, so the company folder cannot "
+            "be resolved. `.internal/` is gitignored, so a fresh `git worktree add` "
+            "starts without it. This is NOT a problem with the command, the "
+            "credentials, or the target path. Violations: " + "; ".join(violations),
+            route="recreate the worktree's state file (Step 2) and re-run.",
         )
-        sys.exit(2)
     if not da_folder:
         deny(
             "no company folder resolved yet (customer.daFolder unset) — "

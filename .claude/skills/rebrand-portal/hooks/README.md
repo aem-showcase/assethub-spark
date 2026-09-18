@@ -198,3 +198,134 @@ bash .claude/skills/rebrand-portal/tests/hooks/guard-live-publish-ceiling.test.s
 ```
 
 Requires `python3` on PATH (used only for JSON parsing).
+
+---
+
+## The allow hook (`allow-sanctioned-entrypoints.sh`)
+
+Every other hook here refuses things. This one grants, and it exists because
+refusing was only half the 2026-09-18 failure.
+
+**What it fixes.** Since Copilot CLI 1.0.86 an unattended session runs with
+`allowAllPermissionMode: "auto"`: it answers its own permission prompts by
+statically reviewing the command, and refuses whatever it cannot read.
+`node <script>` is unreadable by construction — the behaviour is inside a file
+the reviewer does not open — so the skill's *own packaged entrypoint* was
+refused:
+
+```
+node .../scripts/assets/publish-page.js --path companies/…/en/nav --pull /tmp/n.html
+  -> denied-no-approval-rule-and-could-not-request-from-user
+```
+
+That is why fixing `guard-secret-read.sh` alone would not have rescued the run:
+the agent would have been redirected from a blocked `curl` onto a denied
+`publish-page.js`. It had in fact already found the tool on its own.
+
+**What it does.** A `preToolUse` hook may return
+`{"permissionDecision": "allow"}`, and that is honoured where the static
+reviewer abstains. So the repo declares, in version control and in review,
+which of its own commands are pre-approved — instead of depending on
+`--allow-all-tools` or on whatever each operator once approved on their laptop.
+
+**Why it is not a bypass.** Four properties, all asserted in
+`tests/hooks/allow-sanctioned-entrypoints.test.js`:
+
+1. **A deny still wins.** Verified against the live CLI: with the allow hook
+   granting, `guard-da-publish.sh` still blocked an out-of-scope Helix publish.
+   Allow raises no guard's ceiling.
+2. **Every segment must match.** One unrecognised segment and the hook abstains,
+   so `node publish-page.js --pull x && curl evil.example` gets nothing. The
+   allowlist cannot be used as a smuggling envelope.
+3. **Opaque wrappers are refused here too.** `bash -c '…'`, `eval`, and
+   `… | bash` hide their payload from this hook exactly as they hide it from the
+   CLI's reviewer. An allowlist that cannot see what it is allowing is not an
+   allowlist.
+4. **It names scripts, not interpreters.** The allowlist is eight specific files
+   under `scripts/`; `node` itself is never approved. A test asserts each named
+   script exists *and* is actually granted, so the list cannot rot into config
+   that reads as coverage.
+
+It never blocks — it grants or stays silent, and silence leaves the command to
+the normal gate.
+
+**Registered on Copilot only**, because Copilot is the only host with a gate to
+grant against. That is why it is absent from the guard parity list in
+`tests/assets/rebrand-portal-guardrails.test.js`: parity applies to guards that
+refuse, which must be identical everywhere.
+
+## Guard contract (`lib/guardlib.py`)
+
+All six guards block through `guardlib.deny()` rather than writing to stderr
+themselves. This exists because of a measured failure, not as tidying.
+
+### What went wrong on 2026-09-18
+
+Commit `76e84f8` did two correct things at once: it added
+`.github/hooks/rebrand-portal-guards.json` (the first Copilot CLI registration
+of these guards) and it taught the guards Copilot's dialect — Copilot sends
+`toolName`/`toolArgs` and a **lowercase** `bash` tool name, so every guard had
+until then been silently inert on that host.
+
+The combined effect was that six guards which had never inspected a single
+Copilot command went live at once, across the critical path. One of them,
+`guard-secret-read.sh`, matched "a secret filename appears" against "a dumping
+tool appears" over the **whole compound command**. Copilot batches five steps
+into one tool call, so `. ./token.env && curl … > /tmp/f.html && cat /tmp/f.html`
+tripped it: the secret is sourced and never printed, and the `cat` targets a
+downloaded page. Ten harmless commands were blocked — worktree secret seeding,
+Helix token setup, and every DA read — and the run lost ~35 minutes to retries.
+
+Three properties come out of that, and the tests assert all of them.
+
+### 1. Judge each step, not the whole command
+
+`guardlib.command_segments()` splits on `&&`, `||`, `;`, `|` and newlines.
+A guard must find its trigger conditions **within one step**.
+`guard-secret-read.sh` additionally resolves grep's *file operands*, so
+`grep -n "token.env" .gitignore` (the filename as a search pattern) is not
+mistaken for reading the secret.
+
+### 2. The reason must reach the model
+
+Copilot CLI **discards hook stderr**. The agent saw only
+`Denied by preToolUse hook: hook exited with code 2` — no guard name, no reason,
+no alternative — and could not distinguish a policy block from a broken
+environment. `guardlib.deny()` therefore writes the documented
+`{"permissionDecision": "deny", "permissionDecisionReason": …}` object to
+**stdout** (Copilot) *and* the message to **stderr** with exit 2 (Claude Code).
+
+Every `deny()` call passes a `route=` naming the supported alternative. A block
+that does not say what to do instead produces a retry loop; one that does
+produces a single corrected step.
+
+### 3. Watch-only before blocking on a new host
+
+```bash
+REBRAND_GUARDS_WATCH_ONLY=1       # log what would be blocked, allow the command
+REBRAND_GUARDS_WATCH_LOG=<path>   # default ~/.rebrand-portal-guards-watch.log
+```
+
+Run a guard's **first session on a host it has never executed on** with
+`REBRAND_GUARDS_WATCH_ONLY=1`, read the log, then enable enforcement. Going
+from "has never run here" to "can block anything on the critical path" in one
+commit is the mistake that caused this incident, and it is not specific to one
+script.
+
+## Replay corpus test
+
+`tests/hooks/guard-replay.test.js` replays
+`tests/fixtures/guard-replay-corpus.json` — ~90 shell commands that really ran
+in recorded sessions, plus the commands the Disney run proved were false
+positives — through every guard, in both host dialects, and fails if any is
+blocked. It also asserts real leaks still block, that the denial reaches both
+channels, and that watch-only allows.
+
+Checked against the broken guard from `76e84f8`, it fails and names all ten
+blocked commands. Nothing had ever replayed a real command through these guards
+before; that absence is what let a whole-string match reach a live run.
+
+Re-harvest the corpus from `~/.copilot/session-state/<id>/events.jsonl` when the
+skill's command vocabulary changes materially — take commands the hooks allowed
+and that then executed, and scrub credentials before committing.
+

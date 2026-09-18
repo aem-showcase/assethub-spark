@@ -12,13 +12,18 @@
 # working-tree file check, so unusual command shapes can slip past.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
-# Claude Code and Copilot CLI PreToolUse hooks.
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for Claude Code and Copilot CLI
+# PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
 AUTH_FILE="${PROJECT_DIR}/cloudflare/src/auth.js"
@@ -28,6 +33,9 @@ import json
 import os
 import re
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 auth_file = "${AUTH_FILE}"
@@ -87,15 +95,14 @@ uncommented = re.search(
 )
 
 if uncommented:
-    sys.stderr.write(
-        "Blocked by rebrand-portal auth-bypass guard: "
+    guardlib.deny(
+        "auth-bypass",
         "cloudflare/src/auth.js has the DISABLE_AUTHENTICATION bypass block "
         "UNCOMMENTED. This is a local-testing-only helper (see "
-        "docs/step-4g-verification.md) and must never be committed or "
-        "pushed. Re-comment the block in auth.js before running git "
-        "commit/add/push.\n"
+        "docs/step-4g-verification.md) and must never be committed or pushed.",
+        route="re-comment the DISABLE_AUTHENTICATION block in cloudflare/src/auth.js, "
+              "then re-run the git commit/add/push.",
     )
-    sys.exit(2)
 
 sys.exit(0)
 PY

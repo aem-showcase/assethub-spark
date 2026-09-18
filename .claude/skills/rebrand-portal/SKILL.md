@@ -420,8 +420,16 @@ content-register rewrite scoped to `/companies/<companyKey>` only, publish only
 (`DEMO_COMPANY`/`DEMO_BASE_PATH` = companyKey), and push into the draft PR
 opened in Step 2, marking it ready for review (open, never merge — I3;
 never close/delete — I5; never a second `gh pr create`). Token setup is
-Step 4a (`token.env`, `DA_TOKEN` only). Marks `rebranded`, `demo-company-set`,
-`published`, `landed-via-pr`.
+Step 4a (`token.env`, `DA_TOKEN` only). Read and write every DA document with
+`publish-page.js` (`--path <da/path> --pull <file>` → edit →
+`--push <file> --publish`), never a hand-rolled `curl` that sources `token.env`
+inline — the latter is blocked by the secret-read guard and refused as
+unreviewable by Copilot CLI's permission reviewer. **On Copilot CLI, probe that
+entrypoint with `--dry-run` during the Step 4 preflight**: an unattended session
+denies `node <script>` unless it is pre-approved, and a denial arrives with no
+message. Rewriting the command never clears it — see `docs/step-4-rebrand.md`
+preflight item 2. Marks `rebranded`,
+`demo-company-set`, `published`, `landed-via-pr`.
 
 ▶ **Read now, before acting** (preflight, 4a token setup, 4b–4f delegation,
 all checklists): `.claude/skills/rebrand-portal/docs/step-4-rebrand.md`

@@ -31,13 +31,17 @@
 # is to make the correct path the path of least resistance, and to make the incorrect one
 # require a conscious, visible override.
 #
-# Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow, exit 2 = block
-# (stderr is shown to the model). Works for Claude Code and Copilot CLI.
+# Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow, exit 2 = block.
+# On block the reason goes to stderr (Claude Code) *and* to a permissionDecision object
+# on stdout (Copilot CLI, which discards stderr) -- see lib/guardlib.py and README.md.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
 export FALLBACK_PROJECT_DIR
@@ -47,6 +51,9 @@ import json
 import os
 import re
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 fallback_project_dir = os.environ.get("FALLBACK_PROJECT_DIR", "")
@@ -129,10 +136,7 @@ brand_path = os.path.join(repo_root, "migration-work", "brand.json")
 
 
 def deny(reason, remedy):
-    sys.stderr.write(
-        "Blocked by rebrand-portal brand-extraction gate: " + reason + "\n\n" + remedy + "\n"
-    )
-    sys.exit(2)
+    guardlib.deny("brand-extraction gate", reason, route=remedy)
 
 
 EXTRACT_CMD = (

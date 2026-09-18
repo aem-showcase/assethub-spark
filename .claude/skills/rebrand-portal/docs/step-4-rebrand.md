@@ -44,12 +44,47 @@ capability:
    npm — that is setup time, not run time. The Chromium binary is *not*
    inside the plugin: Playwright keeps browsers in a machine-global cache.)
 
-2. **Get the source URL.** If a source website URL is present, that URL is
+2. **Probe the authoring route before you need it (Copilot CLI especially).**
+   Run the sanctioned DA entrypoint in dry-run — it performs no network write
+   and costs a second:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/assets/publish-page.js \
+     --path companies/<companyKey>/en/index --preview-only \
+     --org <org> --repo <repo> --dry-run
+   ```
+
+   Expect one line beginning `[agent] dry-run: would POST …` and exit 0.
+
+   **If it produces no output and no exit code, stop — that is a permission
+   denial, not a broken script.** On Copilot CLI an unattended session
+   (`allowAllPermissionMode: "auto"`, the default since 1.0.86) refuses any
+   command it cannot statically review, and `node <script>` is unreviewable by
+   construction: the work is inside a file the reviewer cannot open. It records
+   `denied-no-approval-rule-and-could-not-request-from-user` and tells the agent
+   nothing. This is exactly what happened on 2026-09-18 — the run reached this
+   step, could not read or write a single DA document, and spent 35 minutes
+   rephrasing commands in the belief that the environment was flaky.
+
+   The remedy is already in the repo: `hooks/allow-sanctioned-entrypoints.sh`
+   pre-approves this skill's own CLIs (registered for Copilot in
+   `.github/hooks/rebrand-portal-guards.json`). If the probe is still denied,
+   the hook is not loaded — check `/env`, and note that hook *registration* is
+   read at session start, so a session started before this file existed will not
+   see it. Restart the session; only if that fails, fall back to approving
+   `node` interactively or launching with `--allow-all-tools`.
+
+   **Do not respond to a denial by rewriting the command.** Every rewrite —
+   `bash -c '…'`, a helper script, an inline `curl` that sources `token.env` —
+   is either equally unreviewable or trips the secret-read guard. There is no
+   phrasing that gets past a missing approval.
+
+3. **Get the source URL.** If a source website URL is present, that URL is
    the design source. If none is present, ask for one — excat's own Step 1.1
    says to, and an unanswered URL is the one thing that legitimately blocks
    this step.
 
-3. **Measure it.** This is the step that was always skipped:
+4. **Measure it.** This is the step that was always skipped:
 
    ```sh
    node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs \
@@ -77,7 +112,7 @@ capability:
    **Selectors default to `[]` and that is correct.** A missing
    `page-templates.json` is not a blocker — do not treat it as one.
 
-4. **Handle a HALT properly.** Exit code 5 means the extractor landed on an
+5. **Handle a HALT properly.** Exit code 5 means the extractor landed on an
    age gate, cookie wall or bot interstitial *that it could not clear*, and it
    writes `brand.rejected.json` instead of `brand.json`. The tokens on such a
    page are real, plausible and completely wrong — an age gateway's greys and
@@ -413,6 +448,28 @@ split it across turns:
    in each. (Only the **shared root** nav/footer are off-limits; the
    `/companies/<companyKey>` copies are in scope.) Never hand it "the whole site" or
    an un-prefixed path.
+
+   **Read and write each DA document with `publish-page.js` — never hand-rolled
+   `curl`.** The packaged CLI resolves `DA_TOKEN` itself (from `token.env` or
+   `--da-token-file`), so you never source credentials into a shell command, and
+   it handles the `admin.hlx.page` `401 -> x-content-source-authorization` retry:
+
+   ```
+   # pull the current document to a local file
+   node .claude/skills/rebrand-portal/scripts/assets/publish-page.js \
+     --path companies/<companyKey>/en/footer --pull /tmp/footer.html
+
+   # edit /tmp/footer.html, then push and publish it
+   node .claude/skills/rebrand-portal/scripts/assets/publish-page.js \
+     --path companies/<companyKey>/en/footer --push /tmp/footer.html --publish
+   ```
+
+   This is the supported route for `nav`, `footer`, `welcome` and every page
+   doc. A hand-rolled `curl` that sources `token.env` inline is what the
+   secret-read guard exists to stop, and on Copilot CLI it is also refused by
+   the permission reviewer as an unreviewable script — so it will not work, and
+   the failure looks like a flaky environment rather than a wrong approach.
+   See `docs/step-5-assets.md` for the full flag reference.
 
    **Preserve the login page's `welcome` section style — never flatten it.**
    The split-screen login (left brand panel / right sign-in) is driven
