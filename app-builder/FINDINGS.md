@@ -1,11 +1,16 @@
-# FINDINGS — Porting the Spark/Frescopamedia server layer to Adobe App Builder
+# FINDINGS: Porting the Spark/Frescopamedia server layer to Adobe App Builder
 
 **Goal:** Feasibility PoC (Project Archimedes): show what works and where the hard limits are.
 **Scope:** only the `cloudflare/` Worker layer. EDS frontend unchanged. Deploy to default `adobeioruntime.net` URLs.
 **Status:** deployed and verified live on Stage (`245266-sparkappbuilderpoc-stage`). Storage fully migrated from **D1 to native `@adobe/aio-lib-db`** (all 4 tables).
 
 ## Bottom line
-Only one real blocker: the **1 MB response cap and no streaming**. App Builder runs the portal's **JSON APIs, auth/session, KV, and relational/reporting data** well (now on `aio-lib-db`). It cannot be the authenticated proxy that **streams assets, pages, and images**. Redirect tricks skip the auth layer, and that auth is the whole point of the portal. Everything else ports or has a workaround.
+Only one real blocker: the **1 MB response cap and no streaming**.
+
+- App Builder runs the JSON APIs, auth/session, KV, and reporting data well (now on `aio-lib-db`).
+- It cannot be the authenticated proxy that streams assets, pages, and images.
+- Redirect tricks skip the auth layer. That auth is the whole point of the portal.
+- Everything else ports or has a workaround.
 
 ## Cloudflare ↔ App Builder (+ aio-lib-db) comparison
 Verdict key (most → least severe): 🔴 blocks a core function · 🟡 minor · ⚪ soft gap · 🟢 ported/closed. **Confirmed** = observed live in this PoC.
@@ -25,7 +30,17 @@ Verdict key (most → least severe): 🔴 blocks a core function · 🟡 minor �
 | **Auth / JWT** | `jose` + Entra SSO | `jose` on Node 22, unchanged | 🟢 — ported (live SSO needs `redirect_uri` registered in Entra) |
 | **Cron** | `scheduled()` monthly | `/whisk.system/alarms` feed | 🟢 — ported (left un-triggered; handler is a no-op) |
 
-**Pros of moving to App Builder:** native to Adobe/IMS; JSON API, auth, and the relational/reporting layer all run on-platform; managed document DB with aggregation reporting; simpler secrets and `.env`. **Cons:** no large or streamed responses (structural); cold-start and off-edge latency; no built-in per-PR previews; no relational SQL or transactions (worked around by modeling).
+**Pros of moving to App Builder:**
+- Native to Adobe and IMS.
+- JSON API, auth, and the reporting layer all run on-platform.
+- Managed document DB with aggregation reporting.
+- Simpler secrets and `.env`.
+
+**Cons:**
+- No large or streamed responses. This is structural.
+- Cold-start and off-edge latency.
+- No built-in per-PR previews.
+- No relational SQL or transactions. Worked around by modeling.
 
 ### Verified runtime limits (Adobe I/O Runtime `system_settings`, Sep 2026)
 | Limit | Value |
@@ -65,12 +80,21 @@ The four gaps and how they're handled:
 
 **Conclusion:** the port is **done and proven live**. Transaction and FK guarantees moved from the DB into data modeling (for example `search_event_markets` FK became an embedded `markets[]`). Pick a purpose-built store only for strict multi-entity ACID or warehouse-scale OLAP. Report payloads still fall under the 1 MB response cap, so paginate and aggregate on the server. Full plan and status: **`docs/D1-TO-AIOLIBDB-PLAN.md`**. Follow-ups (non-blocking): search-event write hook, one-time backfill (needs CF D1 token), and Production `provisionRequest()`.
 
-## Path A — browsable UI on the raw Runtime URL (no custom domain)
-The routing and reserved-extension limits are engineering obstacles, not walls. Path A (`actions/lib/basepath.js` plus the dispatcher, driven by `BASE_PATH`) makes the whole portal work under the bare action prefix. It rewrites URLs on the server (HTML `href`/`src`, redirects and `Location`, CSS `url()`, `localizePath()` JS), adds an injected client shim, and uses a `/x-asset` proxy for reserved-extension assets. **Verified live on Stage:** the Fréscopa home and `/en/search` render with styles, icons (via `/x-asset`), a live Smart Collections card, and **0 broken icons**; the SSO `redirect_uri` is correctly prefixed. **It does not fix the 1 MB cap.** Any single asset over ~1 MB still 400s, so production parity still wants a CDN or edge in front, with the streaming asset tier kept off App Builder.
+## Path A: browsable UI on the raw Runtime URL (no custom domain)
+The routing and reserved-extension limits are engineering obstacles, not walls. Path A makes the whole portal work under the bare action prefix. It lives in `actions/lib/basepath.js` plus the dispatcher, driven by `BASE_PATH`.
+
+What it does:
+- Rewrites URLs on the server: HTML `href`/`src`, redirects and `Location`, CSS `url()`, and `localizePath()` JS.
+- Adds an injected client shim.
+- Uses a `/x-asset` proxy for reserved-extension assets.
+
+**Verified live on Stage:** the Fréscopa home and `/en/search` render with styles, icons (via `/x-asset`), a live Smart Collections card, and **0 broken icons**. The SSO `redirect_uri` is correctly prefixed.
+
+**It does not fix the 1 MB cap.** Any single asset over ~1 MB still 400s. So production parity still wants a CDN or edge in front, and the streaming asset tier stays off App Builder.
 
 ## Adapter gotchas (found wiring `dm.js`, handled in `lib/ow-http.js`)
 - **Request body is base64** on `web: raw` (decode it always; `__ow_isBase64Encoded` is response-only).
 - **Platform recomputes transfer headers.** Strip upstream `content-encoding`/`content-length`, `transfer-encoding`, `connection`, and `keep-alive`, or you get an HTTP 400 header/content mismatch.
 
 ## Sources
-- **[0]** Adobe I/O Runtime — System Settings (1 MB `result` + `payload` caps, not configurable): https://developer.adobe.com/app-builder/docs/guides/runtime_guides/system-settings
+- **[0]** Adobe I/O Runtime System Settings (1 MB `result` + `payload` caps, not configurable): https://developer.adobe.com/app-builder/docs/guides/runtime_guides/system-settings
