@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="378" height="378" viewBox="0 0 378 378" role="img" aria-label="Disney India brand mark">
+  <!-- Path-only "D" monogram (no text elements, per icon-render check: a font-based
+       wordmark renders blank when loaded as an <img> via the EDS icon shortcode). Colors
+       are "extracted"/"derived" from migration-work/brand.json measured accents. -->
+  <path
+    d="M60 40 H160 C240 40 300 100 300 189 C300 278 240 338 160 338 H60 Z
+       M120 100 H160 C205 100 240 140 240 189 C240 238 205 278 160 278 H120 Z"
+    fill="#0077da"
+    fill-rule="evenodd"
+  />
+  <circle cx="330" cy="90" r="26" fill="#2a60b3"/>
+</svg>

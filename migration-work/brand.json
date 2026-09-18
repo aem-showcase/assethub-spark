@@ -1,52 +1,47 @@
 {
   "schemaVersion": 1,
   "provenance": {
-    "sourceUrl": "https://www.heineken.com/in/en/",
-    "finalUrl": "https://www.heineken.com/in/en/home/",
-    "pageTitle": "Welcome to the world of Heineken® | Heineken.com",
-    "extractedAt": "2026-09-17T13:03:35.090Z",
+    "sourceUrl": "https://www.disney.in/",
+    "finalUrl": "https://www.disney.in/",
+    "pageTitle": "Disney India | The Official Home For All Things Disney",
+    "extractedAt": "2026-09-18T16:53:44.393Z",
     "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
-    "excatRoot": "/Users/mohitar/Documents/code/aem-experience-catalyst/resources/plugins/aem-excat-plugin/excat-marketplace/excat",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
     "excatVersion": {
-      "dir": "excat",
+      "dir": "2.1.6",
       "file": "2.1.1"
     },
     "defaultContentSelectors": [],
-    "gateInteraction": [
-      "consent: clicked #onetrust-accept-btn-handler",
-      "country: selected India (IN)",
-      "dob: filled 3 field(s) with 1980-01-01",
-      "submit: clicked text:enter"
-    ],
+    "gateInteraction": null,
     "gatePassed": true,
     "warnings": []
   },
   "tokens": {
     "fonts": {
       "body": {
-        "family": "PT Sans",
-        "familySet": "\"PT Sans\", sans-serif"
+        "family": "NotoSans",
+        "familySet": "NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif"
       },
       "heading": {
-        "family": "HeinekenSerif18",
-        "familySet": "HeinekenSerif18, \"PT Sans\", serif"
+        "family": "NotoSans",
+        "familySet": "NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif"
       },
       "headingSizes": {
         "xxl": {
           "mobile": "36px",
-          "desktop": "36px"
+          "desktop": "48px"
         },
         "xl": {
           "mobile": "28px",
-          "desktop": "60px"
+          "desktop": "30px"
         },
         "l": {
           "mobile": "24px",
-          "desktop": "11px"
+          "desktop": ""
         },
         "m": {
           "mobile": "20px",
-          "desktop": "14px"
+          "desktop": ""
         },
         "s": {
           "mobile": "18px",
@@ -63,106 +58,126 @@
       }
     },
     "colors": {
-      "background": "rgb(255, 255, 255)",
-      "text": "rgb(153, 153, 153)",
-      "link": "rgb(100, 100, 100)",
+      "background": "rgb(248, 249, 250)",
+      "text": "rgba(0, 0, 0, 0.7)",
+      "link": "rgb(85, 85, 85)",
       "linkHover": null,
-      "light": "",
-      "dark": ""
+      "light": "rgb(42, 96, 179)",
+      "dark": "rgb(42, 96, 179)"
     },
     "spacing": {
       "sectionPadding": "0px",
-      "contentMaxWidth": "1920px",
-      "navHeight": "90px"
+      "contentMaxWidth": "100%",
+      "navHeight": "24.1953px"
     },
     "favicons": [
       {
-        "url": "https://www.heineken.com/media/bekjkjk0/hnk-favicon.ico",
-        "rel": "shortcut icon",
-        "type": "image/x-icon"
+        "url": "https://static-mh.content.disney.io/matterhorn/assets/favicon-94e3862e7fb9.ico",
+        "rel": "shortcut icon"
       },
       {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=152&height=152&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "152x152"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=144&height=144&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "144x144"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=120&height=120&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "120x120"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=114&height=114&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "114x114"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=76&height=76&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "76x76"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=72&height=72&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "72x72"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=57&height=57&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed"
+        "url": "https://static-mh.content.disney.io/matterhorn/assets/apple-touch-icon-2747f4e2a5dd.png",
+        "rel": "apple-touch-icon"
       }
     ],
-    "defaultContentCss": "h1 {\n  font-size: 36px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 41.4px;\n  color: rgb(19, 103, 11);\n  margin: 0px 0px 20px;\n}\n\nh2 {\n  font-size: 60px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 69px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 20px;\n}\n\nh3 {\n  font-size: 11px;\n  font-weight: 700;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 13px;\n  letter-spacing: 1px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 5px;\n}\n\np {\n  font-size: 14px;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 30px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 10px;\n}\n",
+    "defaultContentCss": "h1 {\n  font-size: 48px;\n  font-weight: 400;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 52px;\n  color: rgb(0, 0, 0);\n}\n\nh2 {\n  font-size: 30px;\n  font-weight: 400;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 30px;\n  color: rgba(0, 0, 0, 0.9);\n}\n\np {\n  font-size: 16px;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 24px;\n  color: rgb(0, 0, 0);\n}\n\na:any-link {\n  color: rgb(255, 255, 255);\n  text-decoration: none;\n}\n\nul {\n  list-style-type: none;\n}\n\nli {\n  font-size: 16px;\n  line-height: 19.2px;\n  margin: 0px 40px 5px 0px;\n}\n",
     "accents": [
       {
-        "hex": "#13670b",
-        "weight": 658328,
-        "why": [
-          "background",
-          "border"
-        ]
-      },
-      {
-        "hex": "#1b4677",
-        "weight": 9444,
+        "hex": "#2a60b3",
+        "weight": 946541,
         "why": [
           "background"
         ]
       },
       {
-        "hex": "#346e4a",
-        "weight": 2500,
+        "hex": "#0077da",
+        "weight": 116520,
         "why": [
-          "border"
-        ]
-      },
-      {
-        "hex": "#6aaae4",
-        "weight": 2500,
-        "why": [
+          "interactive-text",
           "background"
         ]
       },
       {
-        "hex": "#32ae88",
-        "weight": 1300,
+        "hex": "#0d3c7a",
+        "weight": 5000,
         "why": [
-          "border",
-          "svg-fill"
-        ]
-      },
-      {
-        "hex": "#ff0000",
-        "weight": 535,
-        "why": [
-          "background"
+          "interactive-text"
         ]
       }
     ]
   },
-  "tokenMap": []
+  "tokenMap": [
+    {
+      "cssVar": "--light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#f8f9fa",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--text-color",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--link-color",
+      "oldHex": "#58181D",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--primary-color-hover",
+      "oldHex": "#004D61",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#2a60b3",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#2a60b3",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    }
+  ]
 }
