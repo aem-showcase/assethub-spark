@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Disney India">
+  <circle cx="12" cy="12" r="11" fill="#2A60B3"/>
+  <path transform="translate(12,12) scale(0.72)" fill="#fff" fill-rule="evenodd"
+    d="M -5,-8 L -5,8 L 1,8 C 6,8 9,4 9,0 C 9,-4 6,-8 1,-8 Z
+       M -1,-4 L -1,4 L 1,4 C 3.5,4 5,2.2 5,0 C 5,-2.2 3.5,-4 1,-4 Z"/>
+</svg>
