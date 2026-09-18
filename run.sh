@@ -28,9 +28,11 @@ BG_MAGENTA=$'\033[45m'
 # ANSI Reset
 NC=$'\033[0m'
 
-if [ ! -d cloudflare/node_modules ]; then
-  echo "${RED}Error: cloudflare/node_modules not found. Run 'npm install' first.${NC}" >&2
-  exit 1
+if [ ! -d node_modules ] || [ ! -d cloudflare/node_modules ]; then
+  echo "${BG_BLUE}[dev]${NC} Installing dependencies..."
+  # SHARP_IGNORE_GLOBAL_LIBVIPS: make sharp (cloudflare/) use its prebuilt binary
+  # instead of trying to build against a Homebrew libvips, which fails.
+  SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install
 fi
 
 # aem up requires a git repo with a main branch and an origin remote
@@ -129,12 +131,14 @@ function filter_cf_logs() {
 }
 
 function run_cloudflare() {
-  # Symlink .secrets from main checkout if running in a worktree
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  if [[ "$SCRIPT_DIR" == */.worktrees/* ]] && [ ! -e cloudflare/.secrets ]; then
-    MAIN_SECRETS="${SCRIPT_DIR}/../../cloudflare/.secrets"
-    if [ -f "$MAIN_SECRETS" ]; then
-      ln -sf "$MAIN_SECRETS" cloudflare/.secrets
+  # Fallback: symlink .secrets from the main checkout if running in a git worktree
+  # and no hook (.claude/hooks/worktree-create.js, .husky/post-checkout) did it yet.
+  if [ ! -e cloudflare/.secrets ] && [ ! -L cloudflare/.secrets ]; then
+    GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+    MAIN_ROOT="$(dirname "${GIT_COMMON_DIR%/}")"
+    if [ -n "$GIT_COMMON_DIR" ] && [ "$MAIN_ROOT" != "$(pwd)" ] && [ -f "$MAIN_ROOT/cloudflare/.secrets" ]; then
+      ln -s "$MAIN_ROOT/cloudflare/.secrets" cloudflare/.secrets
+      echo "${BG_YELLOW}[cfl]${NC} Linked cloudflare/.secrets from main checkout ${MAIN_ROOT}"
     fi
   fi
 

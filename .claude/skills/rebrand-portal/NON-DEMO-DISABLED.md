@@ -102,7 +102,7 @@ and README point at their own fork.
 
 Using the org/repo from B.2:
 
-- Repoint `AEM_PAGES_URL` in `local.sh` (the line with its `:-` default)
+- Repoint `AEM_PAGES_URL` in `run.sh` (the line with its `:-` default)
   to `https://main--{repo}--{org}.aem.page`.
 - Repoint `HELIX_ORIGIN` in **both** `[env.production.vars]` and
   `[env.branch.vars]` of `cloudflare/wrangler.toml` to
@@ -110,7 +110,7 @@ Using the org/repo from B.2:
 - Correct `README.md`'s Live/Preview URLs and its `AEM_PAGES_URL` example
   row to the same values.
 
-Do not touch `local.sh`'s placeholder `git remote add origin` line — it
+Do not touch `run.sh`'s placeholder `git remote add origin` line — it
 only runs inside a guard for repos with no `origin` at all, which is not
 this customer's situation (they have a real fork with a real remote).
 
@@ -136,7 +136,7 @@ while the dedicated path is disabled — never re-ask it here):
     (`auth-mode-applied` → `done`). No Entra/real sign-in for a demo. (If
     the branch is later merged for a shareable link, the deploy stage's
     D.1 gate re-comments this bypass before it goes live.)
-  - **B.11** (minimal `npm run dev` boot) — just enough to view the
+  - **B.11** (minimal `npm start` boot) — just enough to view the
     company-scoped search; this is where Phase C's C.8 verification runs.
   - **Skip the entire deploy stage** unless the customer later opts to
     merge the branch for a shareable link (Phase C completion offer).
@@ -196,7 +196,7 @@ denied. Don't oversell option 2 as "everything works."
 ### If `"preview"`
 
 Running `npx aem up` alone serves the site's raw EDS pages directly and
-does not start the Cloudflare Worker at all — `local.sh` runs the AEM dev
+does not start the Cloudflare Worker at all — `run.sh` runs the AEM dev
 server and the worker as two independent processes, and everything in
 `cloudflare/src/auth.js`/`index.js` (session cookies, Entra login,
 `DISABLE_AUTHENTICATION`) lives only inside the worker. So preview needs
@@ -326,7 +326,7 @@ the customer through their own Entra app registration (steps:
 (and `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET` into `cloudflare/.secrets` for
 SMTP). Set `customer.authBypassActive` to `false`.
 
-Then set the local run environment for `npm run dev`, regardless of
+Then set the local run environment for `npm start`, regardless of
 branch:
 
 - `AEM_PAGES_URL` = `https://main--{repo}--{org}.aem.page` (from B.2/B.3).
@@ -335,7 +335,7 @@ branch:
   `"local-no-login"`, where the block is now uncommented; harmless
   otherwise).
 
-Note `wrangler.toml`'s `HELIX_ORIGIN` isn't consulted by `local.sh` for
+Note `wrangler.toml`'s `HELIX_ORIGIN` isn't consulted by `run.sh` for
 local dev (the local worker always targets the local `aem up` server) —
 it matters only for CI/deploy, handled in B.4 and the deploy rename. Mark
 step `done`.
@@ -359,7 +359,7 @@ check whether the current branch is behind `origin/main`
 - If up to date (or a merge would conflict) → say so and continue; don't
   force it.
 
-Then run `npm run dev` with the environment from B.9. Wait for both the
+Then run `npm start` with the environment from B.9. Wait for both the
 AEM dev server and the Cloudflare worker dev server to report ready (watch
 for the script's own "Ready on http://localhost:{port}" line). Open the
 **worker** port in the browser (not the aem-up port) — that's the one
@@ -544,7 +544,7 @@ Mirror var changes into **both** `[env.production.vars]` and
 
 **Files to update:** the complete inventory lives in
 `docs/onboarding/deploy-plan.md` §B (functional/CI) and §C (docs) —
-re-derive by searching rather than trusting the list verbatim. `README.md` and `local.sh`'s `AEM_PAGES_URL` are **not** here
+re-derive by searching rather than trusting the list verbatim. `README.md` and `run.sh`'s `AEM_PAGES_URL` are **not** here
 (B.4 handled them). Three items from that inventory need explicit care:
 
 - **Security-relevant, don't miss:** `cloudflare/src/index.js` CORS

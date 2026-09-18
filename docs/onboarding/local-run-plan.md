@@ -13,13 +13,13 @@ in `entry-flow-plan.md`. (Phase B was originally a standalone
 
 ## Context — two scope findings that shaped local-run
 
-An early draft treated `wrangler.toml`/`local.sh` as almost entirely
+An early draft treated `wrangler.toml`/`run.sh` as almost entirely
 out-of-scope for a local-only flow. Checking a real fork and its
 onboarding transcript showed the opposite, and produced the two facts the
 local-run steps are built around:
 
 1. **`HELIX_ORIGIN` stays pointed at the upstream template after forking**
-   — in both `wrangler.toml` and `local.sh` — silently serving the old
+   — in both `wrangler.toml` and `run.sh` — silently serving the old
    template's content instead of the fork's own. A real, live bug, not
    theoretical. This is why B.4 (Helix URL / README correction) always
    runs, even for a preview-only customer, and why B.3 verifies Code Sync
@@ -90,7 +90,7 @@ outcome choice (`scopeChoice`: `"preview"` / `"local-no-login"` /
 `"local-login"`) rather than a single "run it" path:
 
 - **preview** — `npx aem up` alone serves raw EDS pages and does not
-  start the Cloudflare Worker at all (`local.sh` runs the two as
+  start the Cloudflare Worker at all (`run.sh` runs the two as
   independent processes; everything auth-related lives only in the
   worker). No secrets, no Content Hub creds, no Entra app needed.
 - **local-no-login** — the auth bypass on; real search, thumbnails,
@@ -126,7 +126,7 @@ everywhere git is mutated. (Considered and rejected: committing the
 identity, `.internal` is gitignored on purpose, and same-machine resume
 already works from the on-disk file.)
 
-Run `npm run dev`, open the **worker** port (it serves `/api/*`, not the
+Run `npm start`, open the **worker** port (it serves `/api/*`, not the
 aem-up port). Then verify, in order:
 
 1. The server is serving **this repo's own local files**, not a stale or

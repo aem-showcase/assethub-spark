@@ -1,15 +1,38 @@
 #!/usr/bin/env sh
 
+# Fallback for worktrees created outside Claude Code (plain `git worktree add`,
+# other tools): symlink the files listed in .worktreeinclude from the main
+# checkout into the new worktree. `claude -w` does the same via
+# .claude/hooks/worktree-create.js; both skip entries that already exist, so it
+# is safe for both to run on the same worktree.
+#
+# Dependencies are not installed here; run.sh (npm start) does that lazily.
+
 # Only run on new worktree creation (prev ref is all zeros)
-if [ "$1" = "0000000000000000000000000000000000000000" ]; then
-  # Find the main worktree root (where .git is a directory, not a file)
-  main_root="$(git rev-parse --path-format=absolute --git-common-dir)"
-  main_root="${main_root%/.git}"
-
-  # Symlink secret/config files (add more lines as needed)
-  ln -s "$main_root/cloudflare/.secrets" "$(pwd)/cloudflare/.secrets"
-
-  # Install dependencies
-  echo "post-checkout: installing dependencies..."
-  npm install
+if [ "$1" != "0000000000000000000000000000000000000000" ]; then
+  exit 0
 fi
+
+# Main checkout root = parent of the shared git dir
+main_root="$(git rev-parse --path-format=absolute --git-common-dir)"
+main_root="$(dirname "${main_root%/}")"
+worktree_root="$(pwd)"
+
+include_file="$main_root/.worktreeinclude"
+[ -f "$include_file" ] || exit 0
+
+while IFS= read -r rel || [ -n "$rel" ]; do
+  case "$rel" in ''|'#'*) continue ;; esac
+  src="$main_root/$rel"
+  dst="$worktree_root/$rel"
+  # -L: treat an existing (even dangling) symlink as present
+  if [ -e "$src" ] && [ ! -e "$dst" ] && [ ! -L "$dst" ]; then
+    mkdir -p "$(dirname "$dst")"
+    # Relative target (like worktree-create.js) so the link survives the repo
+    # being moved elsewhere; falls back to an absolute path without python3.
+    rel_src="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' \
+      "$src" "$(dirname "$dst")" 2>/dev/null || echo "$src")"
+    ln -s "$rel_src" "$dst"
+    echo "post-checkout: linked $rel from main checkout"
+  fi
+done < "$include_file"

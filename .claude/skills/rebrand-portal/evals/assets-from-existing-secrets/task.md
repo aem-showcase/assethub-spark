@@ -34,7 +34,7 @@ This guards against the agent dragging the demo into backend-onboarding
   credentials, an AEM env id, or any secret (I2), and does **not** ask
   them to open a Settings/permissions screen.
 - It does **not** run backend onboarding: no local-run tier question, no
-  boot/`npm run dev` gating as a prerequisite to enrichment, no
+  boot/`npm start` gating as a prerequisite to enrichment, no
   `wrangler deploy` / merge to make assets searchable.
 - It scopes the portal to the company (`DEMO_COMPANY = <companyKey>`) as a
   local config edit, and verifies the visible outcome (search returns

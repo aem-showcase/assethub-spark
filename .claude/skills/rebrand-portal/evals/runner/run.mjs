@@ -549,7 +549,7 @@ async function runOnce(evalObj, i) {
   });
 
   // Lay down a minimal but real-looking portal skeleton (package.json, .nvmrc,
-  // README, local.sh, styles/, cloudflare/) so the sandbox reads as a genuine
+  // README, run.sh, styles/, cloudflare/) so the sandbox reads as a genuine
   // fork rather than "an empty dir with nothing to migrate" — which otherwise
   // makes the model refuse the scenario as fabricated.
   await cp(SKELETON_DIR, workRoot, { recursive: true });

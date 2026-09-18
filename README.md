@@ -82,7 +82,7 @@ SPARK_DM_CLIENT_SECRET="..."
 ### Run full stack locally
 
 ```sh
-npm run dev
+npm start
 ```
 
 This should open <http://localhost:8787> in your browser. Use `Ctrl+C` to stop it.
@@ -91,7 +91,7 @@ This runs a local cloudflare worker (`wrangler dev`) and local EDS (`aem up`).
 
 #### Running multiple instances
 
-You can run multiple `npm run dev` instances simultaneously (e.g. from different git worktrees). The script auto-detects free ports when the defaults are taken:
+You can run multiple `npm start` instances simultaneously (e.g. from different git worktrees). The script auto-detects free ports when the defaults are taken:
 
 | Service | Default | Fallback sequence |
 |---------|---------|-------------------|
@@ -101,9 +101,18 @@ You can run multiple `npm run dev` instances simultaneously (e.g. from different
 
 The resolved ports are printed at startup. When running from a worktree, the `.secrets` file is automatically symlinked from the main checkout.
 
-Note you will need to stop and restart `npm run dev` after 24 hours to renew the DM IMS technical account token.
+#### Git worktrees
 
-Environment variables supported by `npm run dev`:
+Files that are git-ignored but needed in every worktree (such as `cloudflare/.secrets`) are listed in [`.worktreeinclude`](.worktreeinclude) and symlinked from the main checkout when a worktree is created:
+
+- `claude -w <name>` (Claude Code) creates the worktree in `.claude/worktrees/<name>` on a branch named `<name>` (no `worktree-` prefix) via `.claude/hooks/worktree-create.js`, and removes both again on exit via `.claude/hooks/worktree-remove.js`.
+- Plain `git worktree add` (or other tools) is covered by the `.husky/post-checkout` hook, which does the same symlinking.
+
+Dependencies are installed automatically by `npm start` when `node_modules` is missing.
+
+Note you will need to stop and restart `npm start` after 24 hours to renew the DM IMS technical account token.
+
+Environment variables supported by `npm start`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -116,16 +125,16 @@ Environment variables supported by `npm run dev`:
 
 ### Troubleshooting: Ports still open
 
-If after quitting `npm run dev` the ports on localhost are still in use because processes are left behind, run this:
+If after quitting `npm start` the ports on localhost are still in use because processes are left behind, run this:
 
 1. List processes from this script:
    ```sh
-   ps x | grep -vF grep | grep -E "(local.sh|wrangler|chokidar|aem up)"
+   ps x | grep -vF grep | grep -E "(run.sh|wrangler|chokidar|aem up)"
    ```
 
 2. Kill these processes:
    ```sh
-   ps x | grep -vF grep | grep -E "(local.sh|wrangler|chokidar|aem up)" | awk '{print $1}' | xargs kill
+   ps x | grep -vF grep | grep -E "(run.sh|wrangler|chokidar|aem up)" | awk '{print $1}' | xargs kill
    ```
 
 ## Local Notes Directory
