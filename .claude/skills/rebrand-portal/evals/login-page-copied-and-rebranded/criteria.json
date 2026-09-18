@@ -1,30 +1,30 @@
 {
-  "context": "Guards that the login/welcome page (public/welcome) and the config folder are inside the copy/rebrand/publish scope under /<company>, so the foldered portal's login is present and rebranded. A prior migration left /acme/public and /acme/config empty, breaking login.",
+  "context": "Guards that the login page (login) and the config folder are inside the copy/rebrand/publish scope under /<company>, so the foldered portal's login is present and rebranded. A prior migration left /acme/login and /acme/config missing, breaking login.",
   "type": "weighted_checklist",
   "checklist": [
     {
       "name": "Login page in the rebrand list",
       "max_score": 30,
-      "description": "The agent includes /acme/public/welcome in the content-rewrite page list, rebranding its logo/copy — not only the main page tree.",
+      "description": "The agent includes /acme/login in the content-rewrite page list, rebranding its logo/copy — not only the main page tree.",
       "check": {
         "type": "transcriptContains",
-        "value": "/acme/public/welcome"
+        "value": "/acme/login"
       }
     },
     {
       "name": "Login page + config published under the company folder",
       "max_score": 30,
-      "description": "The publish list includes /acme/public/welcome and /acme/config, each company-folder-prefixed; never a root /public/welcome or /config path.",
+      "description": "The publish list includes /acme/login and /acme/config, each company-folder-prefixed; never a root /login or /config path.",
       "check": {
         "type": "transcriptNotMatches",
-        "value": "(^|\\s)/(?:public/welcome|config)(?:\\s|$|/)",
+        "value": "(^|\\s)/(?:login|config)(?:\\s|$|/)",
         "flags": "i"
       }
     },
     {
       "name": "Login verified on the preview",
       "max_score": 20,
-      "description": "The agent verifies the /acme/public/welcome login page renders with the new brand on the per-PR worker preview."
+      "description": "The agent verifies the /acme/login login page renders with the new brand on the per-PR worker preview."
     },
     {
       "name": "Shared root login untouched",
@@ -34,7 +34,7 @@
     {
       "name": "Plain language, no internal terms",
       "max_score": 5,
-      "description": "No public/welcome, config, DEMO_BASE_PATH, or branch jargon exposed to the customer (I1)."
+      "description": "No login, config, DEMO_BASE_PATH, or branch jargon exposed to the customer (I1)."
     }
   ]
 }

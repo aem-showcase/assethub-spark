@@ -19,7 +19,7 @@ filter actually run. First confirm the PR diff **includes
 `cloudflare/src/config.js`** with `DEMO_COMPANY`/`DEMO_BASE_PATH` =
 companyKey (without it the deployed worker is unscoped — abort and fix).
 Then open the preview: confirm the rebranded `/<company>` pages render,
-the `/companies/<company>/public/welcome` login page shows the new brand, and
+the `/companies/<company>/login` login page shows the new brand, and
 searching returns **only** this company's assets. Run the asset-color
 sweep against that **preview URL** (not the local tree, not after a
 merge).
@@ -230,7 +230,7 @@ misses and re-run clean.
 **Brand-residue check on the copied DA docs — the footer/logo guard.**
 The asset sweep covers the *repo*; this covers the *content*. Fetch each
 published company-scoped doc — `/companies/<companyKey>/en/nav`,
-**`/companies/<companyKey>/en/footer`**, and `/companies/<companyKey>/public/welcome` — from
+**`/companies/<companyKey>/en/footer`**, and `/companies/<companyKey>/login` — from
 the preview (or via `admin.da.live/source`).
 
 **Fetch with status verification — a non-200 response is a failure, not a
@@ -255,7 +255,7 @@ Then confirm the logo (header + login), footer, and section backgrounds all
 read as the NEW brand — catching a surviving cream/coffee background, a
 stale footer/welcome logo, or an empty-circle header that a repo grep alone
 misses. Do this by reading served content, not a screenshot: fetch
-`/companies/<companyKey>/public/welcome.plain.html` and assert it contains
+`/companies/<companyKey>/login.plain.html` and assert it contains
 `<div class="welcome">` (the two-panel split layout is present, not
 flattened) and that the brand marks resolve; the served-CSS applied-check
 and the header-logo check above already prove the panel and section colors.

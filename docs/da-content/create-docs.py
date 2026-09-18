@@ -413,7 +413,7 @@ def build_renditions():
 
 
 def build_welcome():
-    """Login/welcome page: shown to unauthenticated users at /public/welcome.
+    """Login page: shown to unauthenticated users at /login.
 
     Centered-card layout (styled via Section Metadata style=welcome in styles.css):
       coffee-bean mark -> serif heading -> subtext -> single Sign in button.
@@ -446,9 +446,9 @@ def build_welcome():
         ('footer', 'no'),
     ])
 
-    path = OUT / 'welcome.docx'
+    path = OUT / 'login.docx'
     doc.save(path)
-    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> public/welcome')
+    print(f'Wrote {path}  -> upload into DA: aem-showcase/assethub-spark -> login')
 
 
 def build_footer():

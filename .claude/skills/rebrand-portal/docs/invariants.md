@@ -57,7 +57,7 @@
   "/companies/<companyKey>"`), and the asset folder
   **`/content/dam/<companyKey>`** (the DAM path stays FLAT — assets are scoped
   by the `company` metadata tag, not by URL). Reject empty slugs and reserved
-  names such as `companies`, `en`, `ja`, `config`, `public`, `api`, `auth`,
+  names such as `companies`, `en`, `ja`, `config`, `login`, `public`, `api`, `auth`,
   `tools`, `scripts`, `styles`, `blocks`, `icons`, `media`, and `fonts`.
   Use a specific slug instead, e.g. `acme-demo`.
 - **I7 — Publish every copied path, not a hand-picked subset.** Step 3 copies

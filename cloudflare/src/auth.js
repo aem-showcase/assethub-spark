@@ -5,13 +5,17 @@ import { createSession, getUser } from './user.js';
 import { createSignedCookie, deleteCookie, isValidUrl, setCookie, validateSignedCookie } from './util/http.js';
 import { maskEmail } from './util/log-utils.js';
 
-/* Configure the path of the custom login/welcome page here.
+/* Configure the path of the custom login page here.
    Users without a session cookie are always sent to this page. Users with an expired or
    invalid session cookie are sent directly to the IDP login instead (fast SSO re-login).
-   This page must be rendered by Helix or other origin without authentication (not done here).
-   Foldered demos serve the welcome page under /<companyKey>/public/welcome, so the base
+   This page is authored in DA and served by Helix without authentication: index.js exposes
+   exactly this path (and its .plain.html variant) before the auth middleware.
+   Foldered demos serve the login page under /<companyKey>/login, so the base
    path (config.DEMO_BASE_PATH, '' at the repo root) is prepended. */
-export const LOGIN_PAGE = `${companyBasePath()}/public/welcome`;
+export const LOGIN_PAGE = `${companyBasePath()}/login`;
+
+/* Former location of the login page; permanently redirected to LOGIN_PAGE. */
+export const LEGACY_LOGIN_PAGE = `${companyBasePath()}/public/welcome`;
 
 /* Configure the URL path prefix for auth flows here */
 const AUTH_PREFIX = '/auth';
