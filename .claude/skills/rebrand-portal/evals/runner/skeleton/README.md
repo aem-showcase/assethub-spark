@@ -11,5 +11,5 @@ site with a Cloudflare Workers backend.
 ```bash
 nvm use
 npm install
-npm run dev   # runs ./local.sh (AEM dev server + Cloudflare worker)
+npm start     # runs ./run.sh (AEM dev server + Cloudflare worker)
 ```

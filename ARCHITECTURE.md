@@ -739,7 +739,7 @@ Jobs:
 
 ```bash
 npm install          # Installs root + cloudflare deps (postinstall)
-npm run dev          # Runs local.sh → aem up + wrangler dev
+npm start            # Runs run.sh → aem up + wrangler dev
 ```
 
 ### Local Stack

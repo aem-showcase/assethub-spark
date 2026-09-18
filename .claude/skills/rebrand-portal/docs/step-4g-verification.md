@@ -115,7 +115,7 @@ browser-automation tool and cannot screenshot — running local lets you
 fetch and diff the rendered DOM without a login. `cloudflare/src/auth.js`
 carries a commented-out bypass block (search `DISABLE_AUTHENTICATION`) that
 short-circuits `withAuthentication` with a fake local-dev user when
-`DISABLE_AUTHENTICATION=true` is set for `npm run dev` (see `local.sh`).
+`DISABLE_AUTHENTICATION=true` is set for `npm start` (see `run.sh`).
 To use it: uncomment the block, run locally, test, then **immediately
 re-comment it before doing anything else** — never leave it uncommented
 between turns. **Never `git commit`, `git add`, or `git push` while it is

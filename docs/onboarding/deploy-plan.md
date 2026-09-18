@@ -73,7 +73,7 @@ together) — because these are mechanical substitutions, not judgment calls.
 | `cloudflare/scripts/deploy.sh` | `REPO`, `ORG`, `WORKER`, `WORKER_DOMAIN` — drives Helix origin + worker URL construction at deploy time |
 | `.github/workflows/build.yaml` | Helix origin + route built from repo/org/domain — PR/branch CI deploys target wrong origin/domain if unchanged |
 | `.github/workflows/release.yaml` | GitHub Environments UI shows wrong URL after prod deploy if unchanged |
-| `local.sh` | `AEM_PAGES_URL` default, `AEM_ENV_ID` default, placeholder `git remote add origin` — local dev content source + env id defaults (note: `AEM_PAGES_URL` is corrected earlier by B.4, not here) |
+| `run.sh` | `AEM_PAGES_URL` default, `AEM_ENV_ID` default, placeholder `git remote add origin` — local dev content source + env id defaults (note: `AEM_PAGES_URL` is corrected earlier by B.4, not here) |
 | `package.json` (root), `cloudflare/package.json` | npm package identity |
 | `package-lock.json`, `cloudflare/package-lock.json` | generated — regenerate via `npm install` after renaming `package.json`, don't hand-edit |
 | `sonar-project.properties` | wrong value pushes analysis to wrong/inaccessible SonarQube project |
@@ -100,7 +100,7 @@ messages, DA-upload print statements). None drive runtime behavior, but a
 customer's own README/docs describing the template owner's demo instead of
 their own fork is a real onboarding-quality problem, and every one is the
 same handful of substitution values from section A — so they're fixed in
-the same pass. (`README.md` and `local.sh`'s `AEM_PAGES_URL` are handled
+the same pass. (`README.md` and `run.sh`'s `AEM_PAGES_URL` are handled
 earlier by B.4, since they need no Cloudflare-account data — see
 `local-run-plan.md`.)
 
