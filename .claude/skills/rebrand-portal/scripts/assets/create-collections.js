@@ -225,6 +225,49 @@ export async function createCollectionsRun({
     visibilityTimeoutMs, visibilityPollIntervalMs,
   } = options;
 
+  if (!seededAssets && typeof client?.searchCompanyCollections === 'function') {
+    const existingCollections = await client.searchCompanyCollections({
+      company: customerKey,
+      limit,
+    });
+    if (existingCollections.length > 0) {
+      const report = {
+        company: customerKey,
+        groupBy,
+        dryRun: Boolean(dryRun),
+        assetsFound: 0,
+        collections: existingCollections.map((collection) => ({
+          title: collection.title,
+          collectionId: collection.collectionId,
+          company: collection.company || customerKey,
+          itemCount: collection.itemCount,
+          status: 'exists',
+        })),
+        existing: existingCollections.length,
+        created: 0,
+        skipped: existingCollections.length,
+        failed: 0,
+        visibility: {
+          ready: true,
+          assetsFound: 0,
+          facetCounts: {},
+          missingFacetValues: [],
+          skippedReason: 'same-company-collections-exist',
+        },
+        visibilityAttempts: 0,
+        visibilityElapsedMs: 0,
+      };
+      log.warn(
+        `[collections] ${existingCollections.length} collection(s) already exist for company "${customerKey}"; `
+        + 'no collection changes needed.',
+      );
+      existingCollections.forEach((collection) => {
+        log.warn(`[collections] exists "${collection.title}"${collection.collectionId ? ` id=${collection.collectionId}` : ''}`);
+      });
+      return { report };
+    }
+  }
+
   const expectedFacetValues = groupBy === 'productCategory' && categoryLabels
     ? Object.keys(categoryLabels)
     : [];

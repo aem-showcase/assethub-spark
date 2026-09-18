@@ -85,6 +85,16 @@ function createFakeDam() {
       if (op === 'rendition') return makeRes({ status: 404 });
 
       if (op === 'sling') {
+        if (p === `${FOLDER}.1.json` || p === `${FOLDER}.children.json`) {
+          return makeRes({
+            body: {
+              items: [...assets.entries()].map(([repoPath, a]) => ({
+                assetId: a.assetId,
+                repositoryMetadata: { 'repo:path': repoPath, 'repo:name': a.repoName },
+              })),
+            },
+          });
+        }
         const repoPath = decodeURIComponent(p.split('/jcr:content')[0]);
         const asset = assets.get(repoPath);
         if (!asset) return makeRes({ status: 404, body: {} });

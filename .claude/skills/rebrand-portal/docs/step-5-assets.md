@@ -144,15 +144,17 @@ searching and filtering on what's in each one." `customer.assetsLane`
   enrichment itself stays `deferred` until a later request.
 
   **Detect first, then say plainly what's needed — some assets may already
-  be searchable.** The tool checks each existing asset and reuses the ones
-  that are already searchable/filterable as-is; it only labels the ones that
-  aren't (this is per-asset — a folder is rarely all-or-nothing). Tell the
-  customer the real split in outcome language, no internal terms: if all are
-  already searchable, "your N assets are already searchable and filterable —
-  using them as they are"; if some aren't, "N of your assets are already
+  be searchable.** The tool lists only `/content/dam/<companyKey>` (never a
+  tenant-wide asset scan) and reuses the assets in that folder that are
+  already searchable/filterable as-is; it only labels the ones that aren't
+  (this is per-asset — a folder is rarely all-or-nothing). Tell the customer
+  the real split in outcome language, no internal terms: if all are already
+  searchable, "your N assets are already searchable and filterable — using
+  them as they are"; if some aren't, "N of your assets are already
   searchable; I'll label the other M so they're findable too." An asset
-  counted as already-searchable (reported `skipped`, reason `already-enriched`)
-  is **reused work, not a failure** — never present it as an error or re-do it.
+  counted as already-searchable (reported `skipped`, reason
+  `already-enriched`) is **reused work, not a failure** — never present it as
+  an error or re-do it.
 - **Bring-in** (`assetsLane = bring-in`) — the customer named a source
   website; pull sample images and linked documents from it into the
   folder first using the AEM UI's repository blob-upload API, then label
@@ -231,6 +233,10 @@ make a run bring in *fewer* assets.
   `company` scope value; they are the same value by construction. The
   controller rejects reserved route keys and any `--dam-path` outside
   `/content/dam/<companyKey>`.
+- Existing-asset discovery is folder-scoped. A log like
+  `scanned 2266 repo assets, 12 under /content/dam/<companyKey>` is a
+  regression: the controller should report only the company folder count,
+  e.g. `folder /content/dam/<companyKey>: 12 asset(s) found`.
 - Default lane is enrich-existing; `--source-url <url>` selects the
   source-site lane (auto-creates the folder through
   `/adobe/repository/content/dam;api=create;path=<companyKey>;intermediates=true`,

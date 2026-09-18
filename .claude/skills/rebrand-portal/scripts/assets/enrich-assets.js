@@ -509,9 +509,9 @@ async function discoverTargetAssets({
   const {
     assets, scanned, matched, exceededWindow,
   } = await enumerateFolder({ client, folderPath });
-  log.info?.(`[agent] scanned ${scanned} repo assets, ${matched} under ${folderPath}`);
+  log.info?.(`[agent] folder ${folderPath}: ${matched} asset(s) found`);
   if (exceededWindow) {
-    log.warn?.(`[agent] hit the scan cap before exhausting the repo — some assets under ${folderPath} may be missed; narrow with --dam-path`);
+    log.warn?.(`[agent] folder listing hit its window cap — some assets under ${folderPath} may be missed`);
   }
 
   if (options.limit && Number.isFinite(options.limit)) {

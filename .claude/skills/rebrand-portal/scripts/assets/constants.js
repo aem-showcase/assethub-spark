@@ -82,10 +82,8 @@ export function buildDeliveryHost(aemEnvId) {
 // --- Limits (grounded in schema) ---
 export const SEARCH_PAGE_LIMIT = 50;
 export const SEARCH_TOTALCOUNT_CAP = 10000;
-// Folder enumeration scans the tenant repo and filters by repo:path prefix client-side,
-// because the author search's field-scoped startsWith operator does NOT prefix-match
-// repo:path (verified live: it only returns the exact full path, and match-alls on
-// repo:ancestors). This caps how many assets we page through before giving up.
+// Legacy scan cap retained for compatibility with older helpers. Current enrichment
+// discovery lists /content/dam/<companyKey> directly and must not tenant-scan assets.
 export const SEARCH_SCAN_CAP = 20000;
 export const CSV_MAX_BYTES = 10 * 1024 * 1024;
 

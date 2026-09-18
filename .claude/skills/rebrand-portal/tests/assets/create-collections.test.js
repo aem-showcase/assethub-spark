@@ -84,6 +84,42 @@ describe('create-collections controller', () => {
       });
     });
 
+    it('reports existing same-company collections without searching assets or creating more', async () => {
+      const log = silentLog();
+      const client = {
+        searchCompanyCollections: vi.fn(async () => [
+          {
+            collectionId: 'c1',
+            title: 'Disney India — Disney Cruise',
+            company: 'disney-in',
+            itemCount: 3,
+          },
+        ]),
+        searchCompanyAssets: vi.fn(async () => ASSETS),
+        createCollection: vi.fn(async () => ({ collectionId: 'new' })),
+      };
+
+      const { report } = await createCollectionsRun({
+        options: parseArgs(['--customer-key', 'disney-in', '--display-name', 'Disney India']),
+        client,
+        log,
+      });
+
+      expect(report.existing).toBe(1);
+      expect(report.created).toBe(0);
+      expect(report.skipped).toBe(1);
+      expect(report.collections).toEqual([{
+        title: 'Disney India — Disney Cruise',
+        collectionId: 'c1',
+        company: 'disney-in',
+        itemCount: 3,
+        status: 'exists',
+      }]);
+      expect(client.searchCompanyAssets).not.toHaveBeenCalled();
+      expect(client.createCollection).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(expect.stringMatching(/already exist/));
+    });
+
     it('uses --display-name verbatim in titles instead of title-casing the slug', async () => {
       const client = {
         searchCompanyAssets: vi.fn(async () => ASSETS),

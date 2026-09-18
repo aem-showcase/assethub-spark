@@ -4,7 +4,9 @@ import {
 import {
   DmCollectionsClient,
   buildCompanyAssetSearchBody,
+  buildCompanyCollectionsSearchBody,
   assetHitToRecord,
+  collectionHitToRecord,
 } from '../../scripts/assets/dm-collections-client.js';
 import { makeRes } from './helpers.js';
 
@@ -26,6 +28,18 @@ describe('dm-collections-client', () => {
       const termBlock = and.find((c) => c.and);
       expect(termBlock.and[0]).toEqual({ term: { 'assetMetadata.company': ['acme'] } });
     });
+
+    describe('buildCompanyCollectionsSearchBody', () => {
+      it('scopes collection search to collections stamped for the company', () => {
+        const body = buildCompanyCollectionsSearchBody({ company: 'disney-in', limit: 10 });
+        expect(body.limit).toBe(10);
+        const { and } = body.query[0];
+        expect(and).toContainEqual({ exists: { field: 'collectionMetadata.custom:metadata.company' } });
+        expect(and).toContainEqual({
+          term: { 'collectionMetadata.custom:metadata.company': ['disney-in'] },
+        });
+      });
+    });
     it('adds a cursor when provided', () => {
       const body = buildCompanyAssetSearchBody({ company: 'acme', cursor: 'c1' });
       expect(body.cursor).toBe('c1');
@@ -39,6 +53,24 @@ describe('dm-collections-client', () => {
         assetMetadata: {
           'dc:title': 'Hero', productCategory: 'coffee', campaign: 'spring', company: 'acme',
         },
+      });
+
+      describe('collectionHitToRecord', () => {
+        it('extracts id, title and company metadata', () => {
+          expect(collectionHitToRecord({
+            collectionId: 'c1',
+            collectionMetadata: {
+              title: 'Disney India — Cruise',
+              itemCount: 3,
+              'custom:metadata': { company: 'disney-in' },
+            },
+          })).toEqual({
+            collectionId: 'c1',
+            title: 'Disney India — Cruise',
+            company: 'disney-in',
+            itemCount: 3,
+          });
+        });
       });
       expect(rec).toEqual({
         assetId: 'urn:1',
@@ -58,6 +90,41 @@ describe('dm-collections-client', () => {
       }));
       const client = new DmCollectionsClient({
         tokenProvider: stubTokenProvider(), clientId: 'dm-client', deliveryHost: HOST, fetchFn,
+      });
+
+      describe('searchCompanyCollections', () => {
+        it('uses the Content Hub collections api-key and search headers', async () => {
+          const fetchFn = vi.fn(async () => makeRes({
+            body: {
+              hits: {
+                results: [{
+                  collectionId: 'c1',
+                  collectionMetadata: {
+                    title: 'Disney India — Cruise',
+                    'custom:metadata': { company: 'disney-in' },
+                  },
+                }],
+              },
+            },
+          }));
+          const client = new DmCollectionsClient({
+            tokenProvider: stubTokenProvider(), clientId: 'dm-client', deliveryHost: HOST, fetchFn,
+          });
+
+          const collections = await client.searchCompanyCollections({ company: 'disney-in', limit: 50 });
+
+          expect(collections).toEqual([{
+            collectionId: 'c1',
+            title: 'Disney India — Cruise',
+            company: 'disney-in',
+            itemCount: null,
+          }]);
+          const [url, init] = fetchFn.mock.calls[0];
+          expect(url).toBe(`${HOST}/adobe/experimental/collectionsearch-expires-20260915/assets/collections/search`);
+          expect(init.headers['x-api-key']).toBe('aem-assets-content-hub-1');
+          expect(init.headers['x-ch-request']).toBe('search');
+          expect(init.headers['x-polaris-search-provider']).toBe('3');
+        });
       });
       const assets = await client.searchCompanyAssets({ company: 'acme', limit: 50 });
       expect(assets).toEqual([{
