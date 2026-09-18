@@ -76,30 +76,6 @@ jobs:
         token: '${{ github.token }}'
         environment: 'Cloudflare: ${{ steps.setup.outputs.ref }}'
 
-    - name: Pin branch worker route to its zone
-      # The `dev.frescopamedia.com` zone has Cloudflare for SaaS (Custom Hostnames)
-      # enabled, which makes the Workers Routes API reject a bare pattern-only route
-      # (error 10082: "When using wildcard host ssl for saas entitlement you must
-      # specify the zone per route using zone_id or zone_name"). `wrangler deploy
-      # --route <pattern>` has no CLI flag to attach a zone, so the per-PR route is
-      # written into env.branch.routes in wrangler.jsonc instead, alongside the
-      # explicit zone_name production already uses below.
-      working-directory: cloudflare
-      run: |
-        node -e '
-          const fs = require("fs");
-          const path = "wrangler.jsonc";
-          const pattern = "${{ steps.setup.outputs.ref }}.dev.frescopamedia.com/*";
-          let text = fs.readFileSync(path, "utf8");
-          const anchor = "\"branch\": {";
-          const idx = text.indexOf(anchor);
-          if (idx === -1) throw new Error("env.branch block not found in wrangler.jsonc");
-          const insertAt = idx + anchor.length;
-          const routesBlock = `\n      "routes": [{ "pattern": ${JSON.stringify(pattern)}, "zone_name": "frescopamedia.com" }],`;
-          text = text.slice(0, insertAt) + routesBlock + text.slice(insertAt);
-          fs.writeFileSync(path, text);
-        '
-
     - name: Deploy branch worker
       uses: cloudflare/wrangler-action@v4
       with:
@@ -109,6 +85,9 @@ jobs:
           deploy --env branch
           --name "spark-eds-pr-${{ github.event.pull_request.number }}"
           --var "HELIX_ORIGIN:${{ steps.setup.outputs.helix-origin }}"
+          --x-route-zones
+          --route "${{ steps.setup.outputs.ref }}.dev.frescopamedia.com/*"
+          --zone frescopamedia.com
           --tag "${{ steps.setup.outputs.tag }}"
           --message "${{ steps.setup.outputs.message }}"
 
