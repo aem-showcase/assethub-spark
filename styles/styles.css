@@ -14,12 +14,12 @@
   /* Brand palette (semantic tokens — single source of truth) */
   --light-color: #FFECD4;
   --dark-color: #2C2C2C;
-  --text-color: #000000;
-  --text-primary: #000000;
-  --link-color: #000000;
-  --link-hover-color: #FF0000;
-  --primary-color: #FF0000;
-  --primary-color-hover: #CC0000;
+  --text-color: #000;
+  --text-primary: #000;
+  --link-color: #000;
+  --link-hover-color: #F00;
+  --primary-color: #F00;
+  --primary-color-hover: #C00;
   --color-red: #A33532;
   --color-dark-red: #1A1A1A;
   --accent-secondary: #FFE300;
@@ -120,7 +120,7 @@
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #CC0000;
+  --button-primary-hover: #C00;
 
   /* label colors */
   --label-color: var(--text-color);
