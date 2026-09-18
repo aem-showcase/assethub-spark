@@ -28,13 +28,17 @@ import {
   createSessionJWT,
   verifySessionJWT,
   verifyIdToken,
-  sessionFromIdToken,
 } from '../lib/session.js';
 import { kvBinding } from '../storage/kv.js';
 import { originHelix } from '../origin/helix.js';
 import { stub } from '../api/stubs.js';
 // REAL Worker handler, reused unchanged — only the binding access path differs.
 import { originDynamicMedia } from '../../../cloudflare/src/origin/dm.js';
+// REAL Worker session builder + per-request user resolver, reused unchanged so
+// the App Builder identity (roles, userType, countries, permissions) is byte-for
+// -byte identical to Cloudflare: same Entra token + same Helix /config/access/*
+// sheets => same dm.js asset-auth filters => same search results.
+import { createSession, getUser } from '../../../cloudflare/src/user.js';
 // Native @adobe/aio-lib-db handlers — the document-DB port replacing the four
 // D1-backed feature APIs (see docs/D1-TO-AIOLIBDB-PLAN.md).
 import { smartCollectionsDbApi } from '../api/smart-collections-db.js';
@@ -84,7 +88,31 @@ async function currentUser(request, env) {
   const cookies = parseCookies(request);
   const jwt = cookies[COOKIE_SESSION];
   if (!jwt) return null;
-  return verifySessionJWT(originOf(request), env.COOKIE_SECRET, jwt);
+  const session = await verifySessionJWT(originOf(request), env.COOKIE_SECRET, jwt);
+  if (!session) return null;
+  // Worker parity: run getUser -> handleSudo so `SUDO_*` simulation cookies are
+  // honoured identically. No-op (no sheet fetch) unless simulation is active and
+  // the real user holds the sudo permission.
+  request.cookies = cookies;
+  try {
+    return await getUser(request, workerAuthEnv(env), session);
+  } catch (e) {
+    console.warn('getUser/sudo failed, using base session:', e.message);
+    return session;
+  }
+}
+
+/**
+ * Worker-shaped env for reusing cloudflare/src/user.js (createSession, getUser)
+ * and the Helix-sheet fetches they trigger. Only the two fields those code paths
+ * read are provided; HELIX_ORIGIN_AUTHENTICATION is wrapped as the Secrets-Store
+ * `{ get() }` shape the Worker expects.
+ */
+function workerAuthEnv(env) {
+  return {
+    HELIX_ORIGIN: env.HELIX_ORIGIN,
+    HELIX_ORIGIN_AUTHENTICATION: secretShim(env.HELIX_ORIGIN_AUTHENTICATION),
+  };
 }
 
 function startLogin(request, originalUrl, base = '') {
@@ -144,7 +172,22 @@ async function handleCallback(request, env) {
   } catch (e) {
     return owError(401, `Invalid id_token: ${e.message}`);
   }
-  const session = sessionFromIdToken(claims);
+  // Worker-parity identity: reuse cloudflare/src/user.js createSession so roles,
+  // userType, countries and permissions are resolved from the SAME Helix
+  // /config/access/{users,application} sheets the Worker reads. This makes the
+  // dm.js asset-auth filters (and therefore search results) identical to CF.
+  request.idToken = claims;
+  request.cookies = parseCookies(request);
+  let session;
+  try {
+    session = await createSession(request, workerAuthEnv(env));
+  } catch (e) {
+    return owError(401, `Session build failed: ${e.message}`);
+  }
+  // createSession returns null (no email in token) or false (env requires the
+  // `preview` permission and this user lacks it) — mirror the Worker's denial.
+  if (session === null) return owError(401, 'No email in id_token');
+  if (session === false) return owError(403, 'User not allowed to access this environment (missing preview permission)');
   // Persist the login for reporting (Worker parity: auth.js upsertUserLogin).
   // Native aio-lib-db write; never blocks login (upsert swallows its own errors).
   await upsertUserLoginDb(env, {
