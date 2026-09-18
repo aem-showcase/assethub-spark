@@ -865,7 +865,7 @@ html.base-panel-open {
   display: flex;
   align-items: center;
   padding: 12px;
-  background-color: #f8dcae;
+  background-color: #eaf4ff;
   border-radius: 8px;
   width: 100%;
   box-sizing: border-box;
@@ -902,7 +902,7 @@ html.base-panel-open {
 }
 
 .save-intended-use-btn:hover {
-  background-color: var(--primary-color-hover, #004d61);
+  background-color: var(--primary-color-hover, #0d3c7a);
 }
 
 .save-intended-use-btn:disabled {

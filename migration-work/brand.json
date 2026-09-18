@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.disney.in/",
+    "finalUrl": "https://www.disney.in/",
+    "pageTitle": "Disney India | The Official Home For All Things Disney",
+    "extractedAt": "2026-09-18T16:53:44.393Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": true,
+    "warnings": []
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "NotoSans",
+        "familySet": "NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif"
+      },
+      "heading": {
+        "family": "NotoSans",
+        "familySet": "NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "48px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": "30px"
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": ""
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(248, 249, 250)",
+      "text": "rgba(0, 0, 0, 0.7)",
+      "link": "rgb(85, 85, 85)",
+      "linkHover": null,
+      "light": "rgb(42, 96, 179)",
+      "dark": "rgb(42, 96, 179)"
+    },
+    "spacing": {
+      "sectionPadding": "0px",
+      "contentMaxWidth": "100%",
+      "navHeight": "24.1953px"
+    },
+    "favicons": [
+      {
+        "url": "https://static-mh.content.disney.io/matterhorn/assets/favicon-94e3862e7fb9.ico",
+        "rel": "shortcut icon"
+      },
+      {
+        "url": "https://static-mh.content.disney.io/matterhorn/assets/apple-touch-icon-2747f4e2a5dd.png",
+        "rel": "apple-touch-icon"
+      }
+    ],
+    "defaultContentCss": "h1 {\n  font-size: 48px;\n  font-weight: 400;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 52px;\n  color: rgb(0, 0, 0);\n}\n\nh2 {\n  font-size: 30px;\n  font-weight: 400;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 30px;\n  color: rgba(0, 0, 0, 0.9);\n}\n\np {\n  font-size: 16px;\n  font-family: NotoSans, NotoSerif, Matterhorn, Helvetica, sans-serif;\n  line-height: 24px;\n  color: rgb(0, 0, 0);\n}\n\na:any-link {\n  color: rgb(255, 255, 255);\n  text-decoration: none;\n}\n\nul {\n  list-style-type: none;\n}\n\nli {\n  font-size: 16px;\n  line-height: 19.2px;\n  margin: 0px 40px 5px 0px;\n}\n",
+    "accents": [
+      {
+        "hex": "#2a60b3",
+        "weight": 946541,
+        "why": [
+          "background"
+        ]
+      },
+      {
+        "hex": "#0077da",
+        "weight": 116520,
+        "why": [
+          "interactive-text",
+          "background"
+        ]
+      },
+      {
+        "hex": "#0d3c7a",
+        "weight": 5000,
+        "why": [
+          "interactive-text"
+        ]
+      }
+    ]
+  },
+  "tokenMap": [
+    {
+      "cssVar": "--light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#f8f9fa",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--text-color",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--link-color",
+      "oldHex": "#58181D",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--primary-color-hover",
+      "oldHex": "#004D61",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#2a60b3",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#2a60b3",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#0077da",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    },
+    {
+      "cssVar": "--welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#0d3c7a",
+      "source": "extracted"
+    }
+  ]
+}

@@ -17,6 +17,14 @@ approved and index-visible before they can be collected. Leave
 `search-scoped` are themselves `deferred` (the customer chose to leave
 enrichment for a later step — Entry flow Q2).
 
+Step 6 is also the bounded post-enrichment visibility gate for Step 5. The
+controller polls delivery/search for the company-scoped assets and expected
+category facets for at most `ASSET_VISIBILITY_POLL_TIMEOUT_MS` (10 minutes
+overall). If assets or required category buckets still are not visible by
+then, stop and report a timeout; do **not** loop, do not create partial
+collections, and do not mark `assets-enriched`, `search-scoped`, or
+`collections-created` done. Resume later after indexing catches up.
+
 ## Existing environment — no provisioning
 
 Like Step 5, Step 6 **reuses the existing environment**. The controller
@@ -39,6 +47,7 @@ node .claude/skills/rebrand-portal/scripts/assets/create-collections.js \
   [--display-name "<Company Display Name>"] \
   [--group-by productCategory|campaign|channel] \
   [--limit 200] [--min-assets 1] [--access-level public] \
+  [--visibility-timeout-ms 600000] [--visibility-poll-interval-ms 10000] \
   [--dry-run] [--report-file <path>] \
   [--secrets-file cloudflare/.secrets] [--fixture <assets.json>]
 ```

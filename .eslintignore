@@ -1,6 +1,7 @@
 helix-importer-ui
 cloudflare
 migration
+.worktrees
 tools/assets-browser/assets
 tools/assets-browser/config.js
 tools/user-permission-tester

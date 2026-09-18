@@ -1,5 +1,111 @@
 # Step 5 — Upload and enrich the company's assets
 
+## THE DEMO SHAPE — read before anything else in this step
+
+**Exactly 5 categories. 2–3 assets per category. 15 assets total, maximum.**
+
+This is a **hard rule**, and it is the single most violated rule in this
+skill. A live Costco run shipped **252 assets across 7 categories** — 16.8×
+this shape — and took **194 minutes**, because nothing in the run ever
+stated this number up front.
+
+Read these four points before you plan a single command:
+
+1. **This is a target shape, not a floor to beat.** A category with 8 assets
+   is exactly as wrong as a category with 0. If you catch yourself writing
+   "comfortably above", "well above the floor", or "237 assets found — looks
+   solid", you have already failed this step. Those are verbatim quotes from
+   the 252-asset run.
+2. **`MIN_CARDS = 5` is a CARD-count floor, not an asset-count target.**
+   The 252-asset run repeatedly compared *assets per category* against it
+   ("30/30/30/30/30/29/29/29 … well above the MIN_CARDS=5 floor") and
+   concluded more was better. Assets per category are governed by the 2–3
+   band above, and by nothing else.
+3. **Do not split the work into more runs to get more assets in.** The
+   252-asset run hit a 50-item cap and responded by "restructuring into 7
+   separate single-category runs" — 7 × 36 = 252. The ceiling is scoped to
+   **the demo**, not to the run. Re-running is safe and converges on the same
+   15 assets; it is never a way to add more.
+4. **More categories is not more impressive.** 5 curated categories is the
+   deliverable. If the source site offers 9 good ones, you still pick 5.
+
+**If you write your own script for this step** — a wrapper around
+`enrichAssets`, a `curl` loop, anything — *this rule still applies to you*.
+It is a property of the demo being delivered, not of the tool used to build
+it. The published page is verified against this shape (`card-ceiling`) and
+the live publish is blocked if it does not hold, regardless of how the page
+was authored.
+
+**State the shape back before you start.** Before your first scrape, upload,
+or enrichment command, say plainly which **5** categories you have chosen and
+how many assets each will get. If that list has 6+ entries, or any count
+above 3, stop and re-scope — do not start the work and trim later. Trimming
+later is what cost 194 minutes and 202 discarded downloads.
+
+## Use the packaged scripts — do not write your own
+
+**Default to the shipped CLIs. A hand-written `.mjs` or `curl` loop is a last
+resort, not a shortcut.** Work done off the supported path produces no report,
+trips no gate, and is invisible to verification — which is how 252 assets
+shipped without anything catching it.
+
+The four runnable entrypoints:
+
+| Job | Use this |
+|---|---|
+| Scrape, upload, enrich, build `report.cards` | `scripts/assets/enrich-assets.js` |
+| Author the landing carousel + drop "Top Brands" | `scripts/assets/update-index-cards.js` |
+| Pull / push / publish a DA page | `scripts/assets/publish-page.js` |
+| Build collections | `scripts/assets/create-collections.js` |
+
+Everything else in `scripts/assets/` is a library module. **Importing one into
+your own script is the thing to avoid** — that is precisely what previous runs
+did (`/tmp/run-enrich.mjs`, `/tmp/pick-and-upload-cards.mjs`,
+`/tmp/author-landing-cards.mjs`), and each time the run left the supported path
+without meaning to.
+
+### The landing page, end to end — three commands, no script
+
+```
+node .claude/skills/rebrand-portal/scripts/assets/publish-page.js \
+  --path companies/<key>/en/index --pull /tmp/index.html
+
+node .claude/skills/rebrand-portal/scripts/assets/update-index-cards.js \
+  --index-file /tmp/index.html --report-file .internal/<key>-assets-report.json \
+  --out /tmp/index.html
+
+node .claude/skills/rebrand-portal/scripts/assets/publish-page.js \
+  --path companies/<key>/en/index --push /tmp/index.html --publish
+```
+
+`--publish` posts preview then live, in that order, and retries the Helix admin
+call with `x-content-source-authorization` if the plain bearer is rejected.
+Use `--preview-only` to stop before live (for example, to run `verify.mjs
+--only card-ceiling` against the previewed page first — the live publish is
+gated on a fresh passing result). `--dry-run` prints the URLs without calling
+them. Both publish guards understand this CLI, so it is a supported route, not
+a way around them.
+
+**Before writing any script, check for a flag first.** The controller already
+accepts `--cookie` and `--header` (WAF/session-gated sources),
+`--rendered-html` (client-rendered pages with no server `<img>` tags),
+`--hero-map` (override a bad hero pick), `--categories`, `--category-map`,
+`--source-urls`, and `--limit`. Real runs hand-rolled scripts for three of
+these before the flags existed.
+
+**If no flag fits, say so out loud before you write anything** — name the
+capability that is missing and why the packaged path cannot do it. Do not
+silently improvise. One known gap where a script may still be needed:
+
+- **Excluding specific source images.** There is no `--exclude` flag. The
+  scraper already drops sub-100px images and extreme-aspect banner strips
+  automatically, so check whether you actually need this before working
+  around it.
+
+Anything you do write is still bound by the demo shape above.
+
+---
+
 > **Run from the worktree** (`customer.worktreePath`). The controller
 > `enrich-assets.js` resolves the repo root from cwd and reads
 > `cloudflare/.secrets` (asset creds) + `cloudflare/src/config.js` (AEM env
@@ -10,7 +116,9 @@
 ## Step 5 preflight — rebrand verification gate
 
 Before any `--dry-run` or live asset enrichment, assert all of these are
-true in the current session: Step 4g passed on the deployed PR worker;
+true in the current session: **the demo shape above is stated back — the 5
+chosen category slugs, and 2–3 assets each**; Step 4g passed on the deployed
+PR worker;
 `cloudflare/src/config.js` is scoped to the company; the
 **background-color applied check passed with zero mismatches** across all
 landmark selectors (not just eyeballed — the computed-vs-expected diff
@@ -79,19 +187,44 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   [--source-urls <url1,url2,url3,...>] \
   [--categories <slug1,slug2,...>] \
   [--category-map .internal/<companyKey>-category-map.json] \
+  [--hero-map .internal/<companyKey>-hero-map.json] \
+  [--cookie '<cookie header>'] [--header 'Name: value'] \
+  [--rendered-html .internal/<companyKey>-rendered.html] \
   [--dry-run] [--force] \
   [--report-file .internal/<companyKey>-assets-report.json] \
   [--secrets-file cloudflare/.secrets]
 ```
 
+**When the source site blocks the scrape, use the flags — don't reach for
+curl.** A 403/404 from a source page usually means a WAF or bot manager
+(Akamai and friends), not a dead URL; a browser loads the same page fine. Pass
+the browser's session with `--cookie 'name=value; name2=value2'` and any other
+required request header with `--header 'Name: value'` (repeatable). Both are
+merged into the page fetch *and* the image downloads, on top of the User-Agent
+and Referer the script already sends. If the page is client-rendered and its
+server HTML carries no `<img>` tags, save the rendered DOM and pass
+`--rendered-html <file>` to parse that instead of re-fetching.
+
+These exist because the alternative is hand-rolled `curl` and one-off `.mjs`
+scripts, which move the work off the supported path — no report, no gates, no
+verification. If you find yourself about to write one, the flag you need is
+probably here; if it genuinely isn't, say so rather than improvising.
+
 **Scrape every category's source page in ONE run — do not loop the script
 page-by-page.** In Step 4 you already derived the category contract from the
 source nav; while you're there, capture the *source URL for each category*
 (the model/section page that carries that category's imagery). Pass the full
-page list as `--source-urls` (combined with `--source-url` and deduped;
-`--limit` still caps total downloads across all pages). This removes the single
-biggest Step-5 time sink: the serial "scrape one page → discover a thin category
-→ scrape the next page" loop. Front-loading turns ~10 serial passes into one.
+page list as `--source-urls` (combined with `--source-url` and deduped). This
+removes the single biggest Step-5 time sink: the serial "scrape one page →
+discover a thin category → scrape the next page" loop. Front-loading turns ~10
+serial passes into one.
+
+This is not just faster — it is the only thing that works. The run brings in a
+fixed demo-sized set, measured against what the DAM folder already holds, so a
+second run finds the quotas filled and contributes nothing. Splitting the work
+across several invocations does not get you more assets; it gets you a demo
+missing the categories you left for later. `--limit` is optional and can only
+make a run bring in *fewer* assets.
 
 - `<companyKey>` is the same slug as Steps 2–4 (`customer.companyKey`) —
   it drives both the DAM folder `/content/dam/<companyKey>` and the
@@ -126,17 +259,28 @@ the current page exposes direct image asset links.
 not a one-off workaround.** Some source sites block non-browser HTTP
 clients outright (verified live: a 403 that a browser-like User-Agent
 header alone did not fix, indicating TLS-fingerprint/JS-challenge bot
-protection, not just a missing header). When the scraper's plain fetch is
-blocked this way, use a real browser session (e.g. a Playwright MCP tool,
-if available in this session) to load the page and capture its rendered
-HTML, then feed that HTML into the scraper's own exported extraction
-functions (`extractPageEvidence`, `extractAssetUrls`,
-`resolveOriginalUrl`, `fileNameFromUrl` in `scrape-site.js`) instead of
-re-fetching the page. This reuses the packaged evidence/extraction logic
-exactly as-is — only the page-fetch step changes — so category/keyword
-evidence stays consistent with the normal path. Do not conclude a
-bot-protected source site can't be scraped at all; this fallback is the
-expected next step, not an improvisation to invent fresh each time.
+protection, not just a missing header). Work through it in this order:
+
+1. **Pass the session.** Capture the browser's cookies for the site and
+   pass them as `--cookie 'name=value; name2=value2'`, plus any other
+   header the challenge requires via repeatable `--header 'Name: value'`.
+   This clears ordinary WAF/bot-manager blocks, and the normal path — with
+   its report, gates, and verification — stays intact.
+2. **Supply the rendered DOM.** If the page is JS-rendered, or the
+   challenge cannot be carried by headers, load it in a real browser (e.g.
+   a Playwright MCP tool, if available in this session), save the rendered
+   HTML, and pass `--rendered-html <file>`. The page fetch is skipped and
+   that HTML is parsed instead; image downloads still go over the network,
+   carrying `--cookie`/`--header` if you set them. Relative URLs resolve
+   against `--source-url`, so still pass the real page URL.
+3. **Only then consider anything else,** and say plainly what you are
+   doing and why.
+
+Do not hand-roll `curl` loops or write a `.mjs` that imports the scraper's
+internals. A live run did exactly that — 273 curl requests — and the result
+was work no gate could see. Do not conclude a bot-protected source site
+can't be scraped; steps 1 and 2 are the expected next moves, not
+improvisations to invent fresh each time.
 
 **There is one enrichment path — no mode flag to choose between.** Before
 reading any asset's metadata, the controller waits for AEM's own
@@ -221,6 +365,20 @@ all. `verify.mjs --only hero-quality` FAILs a hero with zero AEM smart-tag
 signal (a likely logo/chrome pick); on a FAIL, re-pick — widen discovery if the
 category genuinely has no real photo, or note it and continue if not.
 
+**To re-pick, use `--hero-map` — not a fix-up script.** It is a JSON object of
+`slug -> fileName` (or `assetId`) that pins a category's hero outright,
+whatever it scores:
+
+```json
+{ "grocery": "fresh-produce-display.jpg", "beverages": "cold-case.jpg" }
+```
+
+A pinned asset must already be in that category; a pin naming something that
+isn't there is ignored and ranking applies as usual, so a typo degrades rather
+than breaks. Because a category now carries only a handful of assets, the
+ranking pool is small and a bad pick is more likely than it was when dozens
+competed — this flag, not hand-written JS, is the supported correction.
+
 **Write `--category-map` from the dry-run report — this is how you get the
 write-once category right on the first write.** `productCategory` is write-once:
 whatever slug an asset lands in on its first metadata write is permanent
@@ -288,29 +446,33 @@ copied `/companies/<companyKey>/en/index` already carries the landing blocks:
 and `<div class="cards">` for the secondary "Top" section. Both are already
 generic in count and already wire whole-card clickability off each tile's
 link — do **not** replace them with a bare `cards` block or a link-less
-section (that is exactly what produced blank/dead tiles). Use
-`.claude/skills/rebrand-portal/scripts/assets/update-index-cards.js`
-(`updateIndexCards(indexHtml, report, { topAreasCount })`) to rewrite each
-block's rows from `report.cards`, keeping the wrappers. Each row is authored in
-the exact shape the base index uses: image cell (col 0) + heading + blurb +
-facet `Browse →` link (col 1).
+section (that is exactly what produced blank/dead tiles). Rewrite the carousel
+rows from `report.cards` with the CLI, keeping the wrappers:
 
-- **ALL contract categories go in the carousel — leave `topAreasCount` at its
-  default 0.** Do **not** pass `topAreasCount > 0` to spill the "extra"
-  categories into the secondary `.cards`/"Top Brands" block. The carousel is
-  paginated and absorbs any N; carving categories out of it produces the exact
-  verified failure (Nescafé: `topAreasCount:2` left only 4 of 6 categories in
-  the carousel and dumped the other 2 into "Top Brands" as image-only orphans
-  with no brand names). The secondary section is for a *distinct* curated
-  brand/featured set with its own 1:1 images (see the drop-by-default rule
-  below) — never for category-card overflow. `verify.mjs --only card-count`
-  FAILs if a populated category has no carousel card.
-- **Count is whatever the contract yields, above the 5-category floor** — the
-  carousel absorbs any N ≥ 5. The **card gate** in the enrichment run already
-  fails when a contract category has zero assets or fewer than `MIN_CARDS`
-  (5) cards exist, so a sparse page can't ship; fix coverage (widen source
-  discovery — see the category-floor rule above) rather than authoring a thin
-  grid.
+```bash
+node .claude/skills/rebrand-portal/scripts/assets/update-index-cards.js \
+  --index-file <copied index.html> --report-file <report.json>
+```
+
+Each row is authored in the exact shape the base index uses: image cell (col 0)
++ heading + blurb + facet `Browse →` link (col 1).
+
+- **ALL contract categories go in the carousel.** The secondary
+  `.cards`/"Top Brands" block is **removed** by `update-index-cards.js`, not
+  repopulated — carving categories out of the carousel produced the exact
+  verified failure (Nescafé: only 4 of 6 categories in the carousel, the other
+  2 dumped into "Top Brands" as image-only orphans with no brand names), and
+  leaving the copied block in place shipped a stale base-template placeholder
+  twice. `verify.mjs --only card-count` FAILs if a populated category has no
+  carousel card.
+- **The demo carries exactly 5 categories, each with 2–3 assets.** This is the
+  target shape, not a minimum to beat: a category with 8 assets is as wrong as
+  one with none. The **card gate** in the enrichment run fails a contract
+  category with zero assets or fewer than `MIN_CARDS` (5) cards, so a sparse
+  page can't ship; fix coverage (widen source discovery — see the
+  category-floor rule above) rather than authoring a thin grid. Step 4 must
+  therefore propose exactly 5 viable categories that each yield at least 2
+  assets — there is no slack, and a dud category is a loud failure by design.
 - **Card blurbs are short, authored-style sentences — never a slice of
   `autogen:description`.** `autogen:description` is per-asset pixel-
   description evidence for classification only (see
@@ -319,16 +481,13 @@ facet `Browse →` link (col 1).
   fragments on a real demo (`"adding con"`, `"Subtle wi"`). Generate a fresh,
   independent sentence per category in the template's existing style (e.g.
   "Cancer therapy product and campaign imagery.").
-- **A secondary curated section with no reliable per-item source image is
-  dropped by default, not filled with a mismatched stand-in.** E.g. a "Top
-  Brands"/"Featured" section naming specific products/brands: if there's no
-  real 1:1 image for each named item, drop the section entirely rather than
-  reuse a category image as a generic stand-in or leave it pointing at a
-  stale placeholder from an unrelated base-template repo (verified live:
-  Pfizer's "Top Brands" section pointed at
-  `content.da.live/aem-showcase/assethub-spark/...` — a different org/repo
-  than the company's own branch). State this as the default when confirming
-  with the user, don't re-derive it from scratch each run.
+- **The secondary curated "Top Brands"/"Featured" section is gone.** It named
+  specific products/brands with no reliable 1:1 source image, and shipped twice
+  pointing at a stale placeholder from an unrelated base-template repo
+  (verified live: Pfizer's section pointed at
+  `content.da.live/aem-showcase/assethub-spark/...` — a different org/repo than
+  the company's own branch). `update-index-cards.js` deletes the block, so
+  there is nothing to fill, drop, or confirm with the user.
 - Every card row has a facet `href` and a `cardImageUrl` by construction (the
   gate enforces it) — a card can't be link-less or image-less.
 - The card href facet slug equals the asset's `productCategory` (both are the
@@ -389,6 +548,31 @@ it.
 
 ## Verify (before marking Step 5 done)
 
+**Publishing the landing page is gated on the ceiling.** The order is
+`author → preview → verify → publish live`, and it is not optional:
+`hooks/guard-live-publish-ceiling.sh` refuses to promote
+`/companies/<companyKey>/en/index` to **live** unless
+`.internal/verify-report.json` holds a passing `card-ceiling` for this company
+from the last 30 minutes. Preview is ungated — the check reads the previewed
+page, so it must exist first. Produce the report with a **full** verify run
+(`.internal/verify-report.json` is shared with the Step-5 gate, so writing it
+from an `--only` run would drop the other checks and block the next
+enrichment):
+
+```
+node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+  --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+  --report .internal/<companyKey>-assets-report.json \
+  --write-report .internal/verify-report.json
+```
+
+Use `--only card-ceiling` (without `--write-report`) for a quick read while
+iterating.
+
+If it FAILs, the page carries more cards or more assets per card than the demo
+shape allows — re-run `update-index-cards.js` against the report rather than
+editing the HTML by hand, then re-preview and re-verify.
+
 Confirm the **visible outcome** in the running portal, not just that calls
 returned success:
 
@@ -397,15 +581,17 @@ returned success:
    and confirm buckets exist for the written values with **non-zero
    counts** — e.g. `Movies & Shows (N)`, `N ≥ 1`, not `(0)`. A bucket
    stuck at `(0)` after labelling/approval is this step's known failure
-   (values not written, not indexed, or the asset is not visible) — confirm
+   (values not written, not indexed, or the asset is not visible). Confirm
    the assets carry `company`, `productCategory`, `dam:status=approved`, and
-   `allowedCountries=global`, then retry after indexing.
+   `allowedCountries=global`, then wait only within the bounded visibility
+   gate below — never keep retrying indefinitely.
 3. **Every category card is a live, non-zero bucket.** For each card in
    `report.cards`, click it on the preview and confirm it returns **> 0**
    assets (not the "coffee (0)" failure). The card gate already blocks a
    zero-asset contract category, so a `(0)` here means a coverage/indexing
-   drift — confirm the assets carry `company`, `productCategory`,
-   `dam:status=approved`, `allowedCountries=global`, then retry after indexing.
+   drift. Confirm the assets carry `company`, `productCategory`,
+   `dam:status=approved`, `allowedCountries=global`, then wait only within
+   the bounded visibility gate below — never keep retrying indefinitely.
 4. **Card visuals are real customer assets — verified in a browser, not
    inferred.** Every card (carousel and the secondary section) uses its
    `cardImageUrl` from `report.cards`; no base-brand placeholder icons, stale
@@ -444,6 +630,24 @@ returned success:
    (not just an admin) gets non-zero search results.
 7. Filtering by a bucket narrows results to matching assets, and only this
    company's assets appear.
+
+## Bounded visibility wait — maximum 10 minutes
+
+After upload/enrichment writes succeed, the author metadata write is not
+enough to mark `assets-enriched` or `search-scoped` done. The delivery/search
+index must show the visible outcome above: company-scoped assets, non-zero
+category facets, and category-card searches that return assets.
+
+Use the Step 6 controller's delivery-search gate (`create-collections.js`) as
+the bounded readiness check. It polls the company-scoped searchable assets and
+category facet values with `ASSET_VISIBILITY_POLL_TIMEOUT_MS` (10 minutes
+overall) and `ASSET_VISIBILITY_POLL_INTERVAL_MS`. If that deadline expires,
+**stop**: report exactly which visibility checks were still missing, leave
+`assets-enriched`, `search-scoped`, and `collections-created` pending or
+blocked, and do not call the demo complete. A later resume can continue after
+indexing catches up. The 10-minute cap is total for this post-enrichment
+visibility wait; it is separate from the per-asset
+`dam:assetState=processed` polling before metadata generation.
 
 Mark `assets-uploaded`, `assets-enriched`, `search-scoped` `done` once all
 pass.

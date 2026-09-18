@@ -114,9 +114,12 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
   --customer-key <customerKey> \
   --categories <slug1,slug2,...> \
   [--category-map <fileName-to-slug.json>] \
+  [--hero-map <slug-to-fileName.json>] \
   [--dam-path /content/dam/<customerKey>] \
   [--source-url <url>] \
   [--source-urls <url1,url2,...>] \
+  [--cookie '<cookie header>'] [--header 'Name: value'] \
+  [--rendered-html <rendered.html>] \
   [--dry-run] [--force] \
   [--concurrency <n>] \
   [--limit <n>] \
@@ -129,8 +132,10 @@ node .claude/skills/rebrand-portal/scripts/assets/enrich-assets.js \
 `--source-urls` takes a comma/space/newline list of additional source pages;
 it is combined with `--source-url` and deduped, so ONE run scrapes every
 per-category page (downloaded assets are deduped by file name across pages).
-`--limit` still caps the total across all pages. Prefer this over invoking the
-script once per page.
+The run brings in a fixed demo-sized set, measured against what the DAM folder
+already holds — so re-running adds nothing, and splitting the work across
+several invocations only leaves categories out. `--limit` is optional and can
+only lower what a run brings in. Always pass every page in one run.
 
 `--category-map` is a JSON object mapping `fileName` (or `assetId`) to a contract
 slug, e.g. `{ "Cap_Desktop.png": "accessories", "civic-sedan.jpg": "sedans" }`.
@@ -236,14 +241,19 @@ Important fields:
   never has).
 
 **Card gate.** After building `cards`, the tool fails (non-zero exit) unless every contract
-category has ≥1 asset, at least `MIN_CARDS` (5) cards exist, and every card row has both an
-`href` and a `cardImageUrl`. A card cannot exist without a facet link and an image — this
-structurally prevents the "blank tile / dead un-clickable card" failure. The floor is hard:
-5 real, source-derived categories minimum, both at Step 4's initial contract proposal and
-here at Step 5's post-enrichment gate. A zero-asset category is not simply dropped if that
-would breach the floor — widen source discovery for a real replacement first; a clearly-
-flagged placeholder category is only a last resort once real discovery is genuinely
-exhausted, and only after asking the user.
+category has ≥1 asset, the card count is exactly `MIN_CARDS` (5) — the gate fails both
+below it and above it — and every card row has both an `href` and a `cardImageUrl`. A card
+cannot exist without a facet link and an image: this structurally prevents the "blank tile /
+dead un-clickable card" failure. Five real, source-derived categories is the shape of the
+demo, both at Step 4's initial contract proposal and here at Step 5's post-enrichment gate —
+there is no slack in either direction, so a sixth category is as much a failure as a fourth.
+A zero-asset category is not simply dropped: widen source discovery for a real replacement
+first; a clearly-flagged placeholder category is only a last resort once real discovery is
+genuinely exhausted, and only after asking the user.
+
+Each of those categories carries a small, curated set of assets rather than everything the
+source page happens to expose. The run measures what the destination folder already holds
+and brings in only the shortfall, so the totals converge no matter how many times it runs.
 
 Example:
 

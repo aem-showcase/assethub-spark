@@ -15,7 +15,7 @@ How to run the `rebrand-portal` skill to produce a branded demo of the Assets Hu
 
 ## Prerequisites
 
-- [ ] Claude Code ≥ 2.0.15 installed
+- [ ] Claude Code ≥ 2.0.15 **or** GitHub Copilot CLI
 - [ ] Node ≥ 20
 - [ ] GitHub access to push branches and open PRs on this repo
 - [ ] `cloudflare/.secrets` file with the three required secrets (see [README](../README.md#local-development))
@@ -24,7 +24,19 @@ How to run the `rebrand-portal` skill to produce a branded demo of the Assets Hu
   DA_TOKEN="..."
   ```
   See [Token setup](#token-setup) below for how to get this.
-- [ ] excat plugin installed and enabled — see [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md) if it's not; the skill will also pause and tell you exactly what to run if it's missing
+- [ ] Design matching ready — run this and expect `OK`:
+  ```bash
+  node .claude/skills/rebrand-portal/scripts/rebrand/extract-brand.mjs --check
+  ```
+  It verifies the two things visual matching needs: the excat plugin, and the
+  browser it drives. If it fails it prints the exact command to fix it — see
+  [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md).
+  Don't have the plugin at all? Follow
+  [excat's CLI setup](https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions)
+  first.
+  **Run it before you start.** On a new machine the browser is a ~150 MB
+  download, and it is not checked anywhere else until ~20 minutes into the
+  build.
 
 The agent will ask you to confirm this checklist is done before it starts building a demo.
 
@@ -45,7 +57,7 @@ Both the company name and the source site URL are required. The source URL is us
 
 ## Invoke
 
-Open Claude Code in the repo root and type:
+Open Claude Code or Copilot CLI in the repo root and type:
 
 ```
 Create a demo portal for [company] using [source URL]
@@ -108,9 +120,9 @@ The skill runs a sequence of steps, asks a few questions along the way (asset so
 
 The skill may pause and ask for input at a couple of points:
 - **Before assets**: whether to enrich assets that are already in AEM, or pull samples from the source site, and whether to enrich them now or later
-- **Excat not installed**: if the design plugin isn't present, the skill stops and gives you the exact commands to run (also in [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md)); say "continue" once done
+- **Design tool not ready**: if the plugin or its browser is missing, the skill stops and gives you the exact command to run (also in [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md)); say "continue" once done
 
-Progress is saved in `.internal/onboarding-state.json` (gitignored). If the session stops for any reason, reopen Claude Code and use the same trigger phrase — the skill resumes from where it left off.
+Progress is saved in `.internal/onboarding-state.json` (gitignored). If the session stops for any reason, reopen your CLI and use the same trigger phrase — the skill resumes from where it left off.
 
 ### What the agent does
 
@@ -210,7 +222,8 @@ DA_TOKEN=eyJ...
 
 | Symptom | Fix |
 |---|---|
-| Skill stops and shows `/plugin marketplace add ...` commands | Run those commands (see [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md) for the full walkthrough), restart Claude Code, say "continue" |
+| Skill stops saying the design plugin is missing | Follow the printed fix (full walkthrough in [excat setup](../.claude/skills/rebrand-portal/docs/excat-setup.md)), restart your CLI, say "continue" |
+| Skill stops saying Chromium is not on this machine | The plugin is fine, only the browser is missing. Run the one `npx playwright install chromium` command it prints (~150 MB, once per machine), then say "continue". Confirm with `extract-brand.mjs --check` |
 | DA token error | Regenerate at [da.live](https://da.live), update `token.env`, say "continue" |
 | Branch name rejected | Use a shorter company slug (keep the demo branch name under 33 characters total including `demo/` prefix) |
 | DA token expired | DA token belongs to a user without access to the site — regenerate for the right account |

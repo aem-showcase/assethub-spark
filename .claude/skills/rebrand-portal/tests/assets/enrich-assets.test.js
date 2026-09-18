@@ -221,8 +221,12 @@ describe('enrichAssets controller', () => {
       log: silent,
     });
 
-    // Discovery never used the search API...
-    expect(client.calls.some((c) => c.op === 'search')).toBe(false);
+    // Discovery never falls back to a search-API recovery scan: the only search call is
+    // the destination-capacity probe, which runs BEFORE anything is uploaded. (A recovery
+    // scan would run after the upload and would miss the just-uploaded asset.)
+    const searchCalls = client.calls.filter((c) => c.op === 'search');
+    expect(searchCalls.length).toBeLessThanOrEqual(1);
+    if (searchCalls.length) expect(client.calls[0].op).toBe('search');
     // ...and the uploaded asset was enriched (reached the Sling write), not marked
     // "not found by folder enumeration".
     expect(out.report.counts().enriched).toBe(1);

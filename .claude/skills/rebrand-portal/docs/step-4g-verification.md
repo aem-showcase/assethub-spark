@@ -34,13 +34,25 @@ what the site *serves*, not by looking at a picture of it:
    served stylesheet — resolve the cascade, do not eyeball it.
 
    **Run it as ONE consolidated pass**, not scattered greps. All checks in a
-   single invocation (tree + preview + report):
+   single invocation (tree + preview + report + cascade):
    ```
    node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
      --preview <branch>.dev.frescopamedia.com --company <companyKey> \
-     --report .internal/<companyKey>-assets-report.json
+     --report .internal/<companyKey>-assets-report.json \
+     --cascade-report .internal/cascade-report.json
    ```
    Checks and what each catches:
+   - `brand-fidelity` (tree + preview) — every mapped CSS variable carries the
+     value **measured from the source site** (`migration-work/brand.json`),
+     in the tree and as served. This is the only check that proves the NEW
+     colors are *right*; all the residue checks prove only that the OLD ones
+     are gone, which a stylesheet with nothing correct in it also satisfies.
+   - `background-shorthand` (tree) — a `background:` shorthand on a
+     `.section.*` rule resetting a layered background set at equal
+     specificity. This is the mechanism that left a surface cream.
+   - `cascade` (needs `--cascade-report` from `check-cascade.mjs`) — the
+     **computed** background on the rendered page, home canvas included. No
+     static check can see a correct declaration that loses the cascade.
    - `residue`, `structural-residue`, `icon-reference-resolution`,
      `welcome-header-home-link`, `header-logo`, `applied-css`,
      `nav-404-loop` — colors (including one-off literals in block-level CSS
@@ -48,29 +60,72 @@ what the site *serves*, not by looking at a picture of it:
      resolve to a file, the welcome-header home link resolving through
      `localizePath()`, logo sizing, applied CSS, 404 loop.
    - `icon-render` (tree) — header wordmark is vector, not blank `<text>`.
+   - `stale-card-images` (report) — no published card image points at a
+     base-template asset. A card retitled for the new company but still
+     linked to the template's content is a defect that has now shipped
+     twice.
    - `card-count` (report) — every populated contract category has a card
-     with an href + image (catches "only 4 of 6 categories show"; the
-     missing ones must NOT be carved into a "Top Brands" section).
+     with an href + image, and the page does not exceed the demo's category
+     count (catches "only 4 of 6 categories show" and its opposite).
+   - `card-ceiling` (preview) — the same ceiling asserted against the
+     **published** page rather than the run's own report. A page authored by
+     any other route (hand-edited HTML, an ad-hoc script, raw curl) produces a
+     report that says nothing about what shipped; this check counts what a
+     visitor actually sees, and fails if a "Top Brands" block is still there.
    - `hero-quality` (report) — no card hero is a flat logo/wordmark/chrome
      (scored by AEM's own smart-tag signal, not a filename list).
 
-   **`card-count` and `hero-quality` need the Step-5 report**, so re-run
-   verify.mjs (or just those two `--only card-count,hero-quality`) after
-   enrichment produces the report — the icon/CSS/nav checks run at 4g before
-   Step 5, the card checks run once the report exists.
+   **`card-count` and `hero-quality` need the Step-5 report, and `card-ceiling`
+   needs the published page**, so re-run verify.mjs (or just those
+   `--only card-count,hero-quality,card-ceiling`) after enrichment produces the
+   report and the page is previewed — the icon/CSS/nav checks run at 4g before
+   Step 5, the card checks run once the report and page exist.
 
-   **`residue`, `structural-residue`, `icon-reference-resolution`, and
-   `welcome-header-home-link` mechanically block Step 5.** A
-   `PreToolUse` hook (`hooks/guard-step5-verify-gate.sh`) reads a
-   `verify.mjs --write-report` output and refuses to run
-   `enrich-assets.js` unless these checks (plus `header-logo` and
-   `icon-render`) all passed against the current commit. A FAIL here must
-   be fixed, not noted and skipped — write the report with:
+   **The mandatory set mechanically blocks Step 5.** A `PreToolUse` hook
+   (`hooks/guard-step5-verify-gate.sh`) reads a `verify.mjs --write-report`
+   output and refuses to run `enrich-assets.js` unless `residue`,
+   `structural-residue`, `icon-reference-resolution`,
+   `welcome-header-home-link`, `header-logo`, `icon-render`,
+   **`brand-fidelity`, `background-shorthand`** and **`stale-card-images`**
+   all passed against the current commit. Every other check is listed in
+   that hook's `WAIVED_CHECKS` with the reason it is not gated — a check
+   belongs to exactly one of the two sets, and
+   `tests/rebrand/enforced-checks.test.js` fails if a new one belongs to
+   neither. (`stale-card-images` spent months in neither: it shipped with a
+   passing eval, gated nothing, and the defect it was written for recurred.)
+   A FAIL here must be fixed, not noted and skipped — write the report with:
    ```
    node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
      --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+     --report .internal/<companyKey>-assets-report.json \
      --write-report .internal/verify-report.json
    ```
+
+   **`card-ceiling` mechanically blocks the live publish.** It cannot be in
+   the set above — it reads the published page, which does not exist yet at
+   Step 5 — so it is gated at the other end instead, by
+   `hooks/guard-live-publish-ceiling.sh`. The sequence is therefore:
+
+   ```
+   author → preview (ungated) → verify --only card-ceiling → publish live (gated)
+   ```
+
+   Promoting the landing page to `live` is refused unless
+   `.internal/verify-report.json` holds a **passing** `card-ceiling` for
+   **this company**, recorded within the last 30 minutes. Preview is
+   deliberately left open: gating it would make the check unsatisfiable,
+   since the check needs a previewed page to read. The freshness window is
+   time-based rather than commit-based because the published page is not a
+   git artifact — re-authoring it leaves `HEAD` untouched.
+
+   This is the one barrier that does not depend on which script authored the
+   page. Runs have hand-edited the index HTML and imported block primitives
+   directly; none of that is blocked, and none of it can skip publishing.
+
+   **Drive the sequence with `scripts/assets/publish-page.js`** — use
+   `--push --preview-only`, run the `card-ceiling` check, then
+   `--publish`. The guard recognises the CLI as well as raw `curl`, so the
+   packaged route is gated exactly the same way; it is not a bypass.
 
    **`card-count` and `hero-quality` stay self-healing — a FAIL on these
    two never halts the demo.** On a FAIL: fix the cause in place and
@@ -128,53 +183,96 @@ PR.
 
 **Background-color applied check — a hard gate, before the residue
 sweep.** The residue sweep below catches leftover old-brand values; it
-does NOT catch a new-brand token that excat wrote into `styles/styles.css`
+does NOT catch a new-brand token that was written into `styles/styles.css`
 but that never actually took effect on the rendered page (a cascade miss,
 a more-specific selector winning, a stale cached build). Check that
 separately, and first, because a token that isn't applied makes the
 residue grep moot:
 
-1. **Build the selector → expected-value map from excat's own edit** —
-   not from any external fetch or user-supplied reference. Read the exact
-   `background`/`background-color` value (or the `var(--token)` it
-   resolves to) that excat's Step 1 edit wrote in `styles/styles.css` for
-   each landmark: `body`, `main .section.search-hero`,
-   `main .section.category-tiles`, `.cards-card-body`,
-   `.section.welcome`, and the facets/filter panel
-   (`.facet-filter-panel`). Excat already fetched the source site and
-   already decided these values — this step reuses that decision as the
-   expected value, it does not re-derive brand colors from anywhere else.
-   **Include the home landing page's dominant surfaces explicitly** — the
-   search-page selectors above are not enough; the base surface
-   (`baseSurfaceHex`) commonly survives on the home canvas even when the
-   search page is clean (verified live). Add: the **home landing canvas**
-   at `/companies/<companyKey>/en/` — resolve
-   it once on the preview as the element whose computed `background-color`
-   actually paints the full-page background behind the cards (typically
-   `body` or the top-level `main`/section wrapper) — and the
-   **section-container band behind the category cards** (the wrapper parent
-   of `main .section.category-tiles`, where the band color usually lives,
-   not just `.category-tiles` itself).
-2. **Read the actual computed value on the deployed PR preview** for each
-   of those same selectors (not the local tree, not source-inspection —
-   the rendered, cascaded result).
-3. **Hard fail on any mismatch.** Computed ≠ expected for any landmark
-   selector blocks Step 5 the same way a missing welcome-panel token does
-   (Step 4b–4f item 1) — go back and fix the losing declaration (check for
-   a later `background-color` override, an `!important`, or a
-   more-specific selector winning — `structural-residue` below flags an
-   unchanged literal at the same selector, which is often the cause), then
-   re-check. Do not downgrade this to a screenshot judgment call — it is
-   binary pass/fail per selector.
-4. **Anti-regression: no surface may still be the base cream.** In addition
-   to the expected-value match, assert that the computed `background-color`
-   on every surface selector (especially the two home-page surfaces added
-   in step 1) does **not** equal `baseSurfaceHex` — the base surface value
-   captured before Step 4b (see `step-4-rebrand.md`, "Capture the base
-   brand's current values"). Any surface still resolving to the captured
-   base cream is a hard FAIL regardless of what the expected map says; this
-   catches surfaces that were never named in the map. `baseSurfaceHex` is
-   already captured — nothing new to read.
+> **This procedure used to say: "Build the selector → expected-value map
+> from excat's own edit — Excat already fetched the source site and already
+> decided these values, so this step reuses that decision as the expected
+> value." That was wrong, and it is the single reason a cream background
+> shipped while every check reported PASS.**
+>
+> It made the gate circular: the expected values were read out of
+> `styles/styles.css`, and then compared against `styles/styles.css`.
+> Expected equalled actual by construction, so the gate could not fail —
+> not for a cascade miss, and not for an invented colour. Worse, its stated
+> premise ("excat already fetched the source site") was false in every run
+> we have transcripts for: excat's extraction step was loaded and then
+> abandoned 13 times out of 13, so the "decision" being reused was often
+> just a colour the agent recalled or derived from a logo.
+>
+> **The expected value must come from outside the artifact being checked.**
+> That is `migration-work/brand.json`, written by `extract-brand.mjs`
+> directly from the rendered source site. Never re-derive expectations from
+> the stylesheet, from a screenshot of your own work, or from memory.
+
+1. **Confirm the measured record exists and is real.** `migration-work/brand.json`
+   must be present with `provenance.gatePassed: true`. If it is missing, or
+   `brand.rejected.json` is there instead, extraction landed on an age gate
+   or interstitial and **no colour in the theme is trustworthy** — stop and
+   re-extract from a URL that renders real content. Do not hand-write
+   `brand.json` to get past this; a fabricated record defeats every check
+   below. (A `PreToolUse` hook, `hooks/guard-brand-extraction.sh`, blocks
+   theme edits while this is unmet, but don't rely on the hook instead of
+   checking.)
+
+2. **Run the fidelity check** — it performs the comparison that used to be
+   done by eye, against `brand.json` rather than against the stylesheet:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+     --only brand-fidelity,background-shorthand \
+     --preview <branch>.dev.frescopamedia.com
+   ```
+
+   `brand-fidelity` asserts every `tokenMap` entry's CSS variable is
+   declared with the value that was measured from the source, in the tree
+   **and** in the served stylesheet (a correct tree that never deployed
+   looks identical to a correct deployment if you only read the tree).
+   `background-shorthand` catches the specific mechanism behind the cream
+   background: a `background:` **shorthand** on a `.section.*` rule
+   resetting the layered background another `.section.*` rule set at equal
+   specificity. `search-hero` and `category-tiles` are two classes on **one
+   element** — the later rule won, and the shorthand wiped the tint and the
+   SVG, not just the colour. Prefer `background-color` on section rules.
+
+3. **Read the actual computed value on the rendered page.** Static checks
+   are structurally blind to a declaration that is present and correct but
+   loses the cascade — which is exactly what happened. This step needs a
+   browser, which is why it was never performed before; it is now
+   executable, using the browser the excat plugin already ships:
+
+   ```sh
+   node .claude/skills/rebrand-portal/scripts/rebrand/check-cascade.mjs \
+     --origin https://<branch>--assethub-spark--aem-showcase.aem.page \
+     --company <companyKey> --write-report .internal/cascade-report.json
+   ```
+
+   Point it at the **AEM content origin, not the worker preview** — the
+   worker is behind Entra login, so a headless browser would measure the
+   login page's colours (the same failure mode as the age gate). The AEM
+   origin serves the same CSS and DOM unauthenticated.
+
+   It resolves what actually *paints* behind each landmark (walking up
+   through transparent ancestors, because a transparent section shows its
+   parent's colour and that is what the customer sees) and hard-fails any
+   surface still painting a captured base-brand hex. It covers the **home
+   landing canvas** as well as the search page: the base surface commonly
+   survives on the home canvas even when the search page is clean, which is
+   how the cream background escaped review.
+
+4. **Gate on the result.** Feed the cascade report into the consolidated
+   pass (`--cascade-report .internal/cascade-report.json`) so `cascade`
+   appears in the verify report as a real pass/fail. Any failing surface
+   blocks Step 5 the same way a missing welcome-panel token does — go back
+   and fix the losing declaration (check for a later `background-color`
+   override, an `!important`, or a more-specific selector winning;
+   `structural-residue` below flags an unchanged literal at the same
+   selector, which is often the cause), then re-check. Do not downgrade
+   this to a screenshot judgment call — it is binary pass/fail per surface.
 
 **Asset-file color sweep — a fixed checklist, not an ad hoc grep** (a
 manual eyeball pass has missed real cases). Run the whole checklist twice:
