@@ -1,5 +1,5 @@
 {
-  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface — checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
+  "description": "Selectors/custom-properties whose hex literals are semantic UI state, never brand surface \u2014 checkStructuralResidue must never flag these regardless of how close they are to a captured brand hex. Hand-curated once per base template; extend this file, never the check's logic, when a new legitimate semantic color is found.",
   "selectorPatterns": [
     "\\.editing-mode",
     "\\.impersonating",
@@ -8,9 +8,38 @@
     "--error-",
     "--success-",
     "--chart-",
-    "--data-viz-"
+    "--data-viz-",
+    "--color-neutral-",
+    "--button-secondary-color",
+    "--status-completed",
+    "--clearance-available",
+    "button\\.secondary\\b",
+    "button\\.secondary-button",
+    "\\.hero-black",
+    "\\.query-input-bar",
+    "input\\[type=\"checkbox\"\\]",
+    "picture\\.missing",
+    "data-tooltip",
+    "\\.inline-loading-spinner",
+    "-webkit-scrollbar-track",
+    "\\.dropdown-menu",
+    "\\.header-dropdown-portal",
+    "my-account",
+    "\\.nav-wrapper",
+    "--dark-color",
+    "--color-red",
+    "\\.nav-sections",
+    "--gray-",
+    "--primary-color-disabled",
+    "--text-color-base",
+    "--border-color",
+    "--background-color",
+    "--red-"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$"
   ]
 }

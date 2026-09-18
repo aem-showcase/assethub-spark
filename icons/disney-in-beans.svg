@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Disney India brand mark">
+  <circle cx="120" cy="120" r="118" fill="#0D3C7A"/>
+  <circle cx="120" cy="120" r="86" fill="none" stroke="#2A60B3" stroke-width="6"/>
+  <circle cx="120" cy="120" r="54" fill="#2A60B3"/>
+  <path transform="translate(120,120) scale(2.6)" fill="#fff" fill-rule="evenodd"
+    d="M -5,-8 L -5,8 L 1,8 C 6,8 9,4 9,0 C 9,-4 6,-8 1,-8 Z
+       M -1,-4 L -1,4 L 1,4 C 3.5,4 5,2.2 5,0 C 5,-2.2 3.5,-4 1,-4 Z"/>
+</svg>
