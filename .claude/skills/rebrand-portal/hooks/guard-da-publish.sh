@@ -25,6 +25,7 @@ export HOOK_INPUT
 # scoped to the worktree the command actually targets. This env value is
 # the last resort when no worktree can be parsed from the command.
 FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
+export FALLBACK_PROJECT_DIR
 export FALLBACK_STATE_FILE="${FALLBACK_PROJECT_DIR}/.internal/onboarding-state.json"
 
 python3 <<'PY'
@@ -36,6 +37,12 @@ import sys
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 fallback_state_file = os.environ.get("FALLBACK_STATE_FILE", "")
+FALLBACK_PROJECT_DIR = os.environ.get("FALLBACK_PROJECT_DIR", "")
+
+# Sentinel: a demo worktree was identified from the command, but it has no
+# onboarding state of its own. Distinct from "no worktree named at all",
+# which legitimately falls back to the main checkout.
+MISSING_WORKTREE_STATE = "\0missing-worktree-state"
 
 try:
     event = json.loads(blob) if blob.strip().startswith("{") else {}
@@ -87,10 +94,11 @@ def resolve_state_file():
         candidate_dirs.append(m.group(1).strip().strip("'\""))
 
     # An absolute path to a repo file/script also identifies the worktree
-    # (e.g. /…/assethub-spark.worktrees/demo-acme/.claude/skills/…/copy-folder.sh).
+    # (e.g. /…/<mainRoot>/.worktrees/demo-acme/.claude/skills/…/copy-folder.sh).
     for pm in re.finditer(r"(/[^\s;&|'\"]+/\.claude/skills/rebrand-portal/[^\s;&|'\"]+)", command):
         candidate_dirs.append(os.path.dirname(pm.group(1)))
 
+    resolved_worktree = None
     for d in candidate_dirs:
         try:
             root = subprocess.run(
@@ -103,6 +111,18 @@ def resolve_state_file():
             sf = os.path.join(root, ".internal", "onboarding-state.json")
             if os.path.isfile(sf):
                 return sf
+            # A real worktree was identified but carries no state file
+            # (.internal/ is gitignored, so `git worktree add` starts without
+            # it). Falling back to the main checkout here would silently
+            # authorise this demo against WHATEVER company ran last — e.g.
+            # approving a Disney copy against /companies/woolworths, then
+            # denying it as "outside the company folder". Remember it so we
+            # can say what is actually wrong instead of guessing.
+            if resolved_worktree is None:
+                resolved_worktree = root
+
+    if resolved_worktree and resolved_worktree != FALLBACK_PROJECT_DIR:
+        return MISSING_WORKTREE_STATE
 
     return fallback_state_file
 
@@ -111,12 +131,14 @@ state_file = resolve_state_file()
 
 # Resolve the allowed company folder from the onboarding state file.
 da_folder = None
-try:
-    with open(state_file, "r", encoding="utf-8") as fh:
-        state = json.load(fh)
-    da_folder = (state.get("customer") or {}).get("daFolder")
-except (OSError, ValueError):
-    da_folder = None
+missing_worktree_state = state_file == MISSING_WORKTREE_STATE
+if not missing_worktree_state:
+    try:
+        with open(state_file, "r", encoding="utf-8") as fh:
+            state = json.load(fh)
+        da_folder = (state.get("customer") or {}).get("daFolder")
+    except (OSError, ValueError):
+        da_folder = None
 
 if isinstance(da_folder, str):
     da_folder = da_folder.strip().rstrip("/")
@@ -235,6 +257,17 @@ if scan:
                 violations.append("publish-page.js --path -> " + (path or "(missing)"))
 
 if violations:
+    if missing_worktree_state:
+        sys.stderr.write(
+            "Blocked by rebrand-portal publish guard: this command targets a demo "
+            "worktree that has no .internal/onboarding-state.json of its own, so the "
+            "company folder cannot be resolved. `.internal/` is gitignored, so a fresh "
+            "`git worktree add` starts without it. This is NOT a problem with the "
+            "command, the credentials, or the target path — recreate the worktree's "
+            "state file (Step 2) and re-run. "
+            + "; ".join(violations) + "\n"
+        )
+        sys.exit(2)
     if not da_folder:
         deny(
             "no company folder resolved yet (customer.daFolder unset) — "

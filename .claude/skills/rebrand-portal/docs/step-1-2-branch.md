@@ -23,10 +23,11 @@ showcase repo itself, not a fork. The demo branch is `demo/<companyKey>`.
 demo gets a dedicated worktree + branch so multiple demos build in
 parallel without branch-switch contention or a shared working tree, and
 the checkout you invoked from is never switched or dirtied. Worktree path
-convention: `../assethub-spark.worktrees/demo-<companyKey>` (grouped under
-one `.worktrees` dir, sibling to the checkout so it's outside the tracked
-tree; `demo-` prefix makes it self-documenting). The main checkout's root
-is `git rev-parse --show-toplevel` (call this `<mainRoot>`).
+convention: `<mainRoot>/.worktrees/demo-<companyKey>` (grouped under one
+`.worktrees` dir *inside* the checkout so it inherits the checkout's path
+authorization — see below; `.worktrees/` is gitignored, so it stays out of
+the tracked tree; `demo-` prefix makes it self-documenting). The main
+checkout's root is `git rev-parse --show-toplevel` (call this `<mainRoot>`).
 
 **Always check for an existing brand branch first, and ASK if one is
 found — never silently reuse or recreate it.** Check local and remote:
@@ -39,7 +40,7 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
 
 - **None exists** → create the worktree with a new branch off `origin/main`:
   ```
-  git worktree add ../assethub-spark.worktrees/demo-<companyKey> \
+  git worktree add .worktrees/demo-<companyKey> \
     -b demo/<companyKey> origin/main
   ```
 - **One exists** → **stop and ask the customer** (do not choose for them;
@@ -47,7 +48,7 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
   - **Continue on the existing one** — attach it to a new worktree and
     keep building (its open PR keeps updating):
     ```
-    git worktree add ../assethub-spark.worktrees/demo-<companyKey> \
+    git worktree add .worktrees/demo-<companyKey> \
       demo/<companyKey>
     ```
     If that branch is *already* checked out in a worktree (`git worktree
@@ -55,7 +56,7 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
     add a second (git refuses).
   - **Start a fresh one** — create a new, non-colliding branch
     (`demo/<companyKey>-2`, `-3`, …) in its own worktree
-    (`../assethub-spark.worktrees/demo-<companyKey>-2`), leaving the
+    (`.worktrees/demo-<companyKey>-2`), leaving the
     existing branch/worktree and its PR intact.
     **The `-2`/`-3` suffix disambiguates the BRANCH only. `companyKey` does
     not change** — it stays `heineken` on branch `demo/heineken-3`, and so
@@ -69,6 +70,53 @@ git worktree list        # a branch already in a worktree can't be re-checked-ou
   Disney's copy in progress — keep building on that one, or start a
   brand-new one and leave the existing as-is?" Honor the answer.
 
+**The worktree lives INSIDE the checkout, and that is deliberate.** A
+worktree placed *beside* the checkout is a separate location as far as the
+host CLI's path permissions are concerned, and creating it does not grant
+access to it. On Copilot CLI every command that then runs in it — `gh pr
+create`, `scripts/da/copy-folder.sh`, the asset CLIs — is refused with:
+
+```
+✗ Auto approval declined for shell path (.../demo-<companyKey>)
+```
+
+which a non-interactive session cannot escalate, so the run dead-ends with
+nothing wrong with the command. Keeping the worktree under `<mainRoot>`
+means it inherits the checkout's existing permission and no authorization
+step is needed from anyone. `.worktrees/` is already gitignored, so it
+stays out of the tracked tree exactly as a sibling directory would.
+
+**If an existing worktree is outside `<mainRoot>` (older demos used a
+sibling `../assethub-spark.worktrees/` directory), do NOT try to `cd` into
+it, `git worktree move` it, or otherwise name its path — every command
+that mentions an unauthorized path is refused, including the one that
+would move it. Instead attach the same branch to a fresh in-repo
+worktree, which never names the old path:**
+
+```
+git worktree add --force .worktrees/demo-<companyKey> demo/<companyKey>
+```
+
+`--force` is required because the branch is still checked out in the old
+worktree; this is safe and additive — the branch, its commits, and its PR
+are untouched, and the stale directory can be pruned later by a human.
+Then re-copy the secrets (they are gitignored and do not follow a new
+worktree) and update `customer.worktreePath` in the state file to match.
+
+**Never ask the customer to authorize a path, run `/add-dir`, or run any
+CLI command.** They are a demo customer, not an operator. If a path is
+genuinely unauthorized, that is a setup defect to fix here — not a task to
+hand to them.
+
+**If a command is declined on `shell path`, that is this gate** — not a
+missing authorization for the action itself. Do not re-ask for permission
+to open the PR, and do not conclude that credentials, the guards, or the
+script are at fault. Check the worktree is under `<mainRoot>` first.
+Observed failure: a run read "Auto approval declined for shell path" as a
+refusal to authorize *PR creation*, asked twice for approval it already
+had, invented a security rationale, and abandoned the demo with
+everything else complete.
+
 **Seed the gitignored secrets into the worktree (copy — each worktree is
 fully independent).** A fresh `git worktree add` starts without `token.env`
 (DA_TOKEN, used from Step 3) or `cloudflare/.secrets` (asset creds, used
@@ -78,9 +126,9 @@ concurrent demos never share or overwrite each other's secrets or state.
 
 ```
 cp <mainRoot>/token.env \
-  ../assethub-spark.worktrees/demo-<companyKey>/token.env
+  .worktrees/demo-<companyKey>/token.env
 cp <mainRoot>/cloudflare/.secrets \
-  ../assethub-spark.worktrees/demo-<companyKey>/cloudflare/.secrets
+  .worktrees/demo-<companyKey>/cloudflare/.secrets
 ```
 
 (If `token.env` doesn't exist yet in `<mainRoot>`, Step 4a creates it in
@@ -129,7 +177,7 @@ marks ready; nothing later opens a second PR. Mark `pr-opened` `done`.
 
 **Cleanup (not now).** The worktree lives through Steps 3–6 (assets need
 it). Remove it only when the demo is fully done or abandoned:
-`git worktree remove ../assethub-spark.worktrees/demo-<companyKey>`. The
+`git worktree remove .worktrees/demo-<companyKey>`. The
 branch and its open PR survive removal — never delete the branch (I5).
 **If a demo is abandoned before Step 4 completes**, its draft PR stays
 open per I5 — there is no cleanup path for it, and that's an accepted

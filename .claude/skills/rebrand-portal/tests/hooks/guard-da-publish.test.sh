@@ -35,6 +35,15 @@ mkdir -p "$SB/main/.internal"
 ( cd "$SB/main" && git init -q && git config user.email t@t && git config user.name t )
 printf '{"customer":{"daFolder":"/companies/xiaomi"}}' > "$SB/main/.internal/onboarding-state.json"
 
+# A demo worktree with NO state of its own. `.internal/` is gitignored, so a fresh
+# `git worktree add` starts without it. Falling back to main here would authorise the
+# demo against whatever company ran last (observed: a Disney copy judged against
+# /companies/woolworths, then denied as "outside the company folder" — a true statement
+# that names the wrong problem and sent a run chasing credentials for hours).
+mkdir -p "$SB/wt-nostate"
+( cd "$SB/wt-nostate" && git init -q && git config user.email t@t && git config user.name t )
+NOSTATE="$SB/wt-nostate"
+
 export CLAUDE_PROJECT_DIR="$SB/main"   # harness always points this at main
 APPLE="$SB/wt-apple"
 DA="https://admin.da.live"
@@ -99,6 +108,24 @@ run "publish-page.js --dry-run outside the folder allowed" allow \
   "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --publish --dry-run\"}")"
 run "grep for the publish CLI path allowed (mention, not invocation)" allow \
   "$(ev Bash "{\"command\":\"cd $APPLE && grep -rn '$PPCLI --path companies/samsung/en/index --push' docs/\"}")"
+
+# A worktree without its own state must be blocked, and the message must name the
+# missing state file -- NOT report the target as "outside" some unrelated company's
+# folder, which is what sent a live run chasing credentials and guards for hours.
+run "worktree with no state file is blocked" block \
+  "$(ev Bash "{\"command\":\"cd $NOSTATE && curl -X POST $DA/copy/o/r/f -F destination=/companies/disney-in/en\"}")"
+
+nostate_msg="$(ev Bash "{\"command\":\"cd $NOSTATE && curl -X POST $DA/copy/o/r/f -F destination=/companies/disney-in/en\"}" | bash "$HOOK" 2>&1 || true)"
+if printf '%s' "$nostate_msg" | grep -q 'onboarding-state.json'; then
+  pass=$((pass+1)); echo "ok   missing-state message names the state file"
+else
+  fail=$((fail+1)); echo "FAIL missing-state message does not name the state file: $nostate_msg"
+fi
+if printf '%s' "$nostate_msg" | grep -q '/companies/xiaomi'; then
+  fail=$((fail+1)); echo "FAIL missing-state message leaked the fallback company folder"
+else
+  pass=$((pass+1)); echo "ok   missing-state message does not name an unrelated company"
+fi
 
 echo "----"; echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -205,9 +205,12 @@ describe('guard hook registration parity', () => {
     'guard-live-publish-ceiling.sh',
   ];
 
+  // Only hosts that are actually configured for this repo. `.codex/hooks.json` was
+  // removed deliberately (commit e9817a9); asserting it here would re-impose a host
+  // config the repo owner chose to drop. Add a host back to this list when it is
+  // reintroduced — that is what keeps the remaining hosts from drifting apart.
   const hostConfigs = [
     '.claude/settings.json',
-    '.codex/hooks.json',
     '.github/hooks/rebrand-portal-guards.json',
   ];
 

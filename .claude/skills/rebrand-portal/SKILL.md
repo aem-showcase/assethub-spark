@@ -121,7 +121,7 @@ and resume to `pending` on a later "now enrich the assets" follow-up
 request).
 `customer.companyKey` is the slug of `customer.name` (lowercase, hyphens);
 `daFolder` is `/companies/<companyKey>`. `customer.worktreePath` is the demo's
-dedicated git worktree (`../assethub-spark.worktrees/demo-<companyKey>`,
+dedicated git worktree (`.worktrees/demo-<companyKey>`,
 set in Step 2); **Steps 3–6 run with cwd = this worktree**, not the main
 checkout, so parallel demos never contend over one working tree.
 `customer.prUrl`/`customer.prNumber` are set in Step 2 when the draft PR
@@ -358,7 +358,7 @@ original is never changed — I1). Mark `demo-confirmed` `done`.
 Resolve `customer.name` + `customer.companyKey` (apply I6 for empty/reserved
 slugs). Resolve `{org}/{repo}` from the origin remote (this shared repo, not
 a fork). Demo branch is `demo/<companyKey>`, created in its **own git
-worktree** (`../assethub-spark.worktrees/demo-<companyKey>`) — not the main
+worktree** (`.worktrees/demo-<companyKey>`) — not the main
 checkout — so parallel demos don't contend. Copy the gitignored
 `token.env` + `cloudflare/.secrets` into it (each worktree fully
 independent; nothing shared back to the main checkout). **Always check for an existing
