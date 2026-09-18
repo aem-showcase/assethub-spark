@@ -27,7 +27,7 @@ Verdict key (most → least severe): 🔴 blocks a core function · 🟡 minor �
 | **KV cache** (`AUTH_TOKENS`) | CF KV | **`aio-lib-state`** — KV, ~1 MB/item, TTL ≤ 365 d | 🟢 — ported |
 | **Routing / entry** | All traffic through one Worker at site root | Action URL `/api/v1/web/<pkg>/<action>`, not a root | 🟢 — dispatcher + **Path A** self-host under prefix (live); true domain root needs CDN |
 | **Reserved extensions** | None | `.svg/.json/.html/.text` paths intercepted → **400** (confirmed) | 🟢 — `/x-asset` proxy dodges it (live) |
-| **Auth / JWT** | `jose` + Entra SSO | `jose` on Node 22, unchanged | 🟢 — ported (live SSO needs `redirect_uri` registered in Entra) |
+| **Auth / JWT** | `jose` + Entra SSO | `jose` on Node 22, unchanged | 🟢 — ported; live SSO wired (`redirect_uri` registered in Entra) |
 | **Cron** | `scheduled()` monthly | `/whisk.system/alarms` feed | 🟢 — ported (left un-triggered; handler is a no-op) |
 
 **Pros of moving to App Builder:**
@@ -60,7 +60,7 @@ Entry point: `…/api/v1/web/spark/dispatcher`. One `dispatcher` (`web: raw`) ac
 | Dispatcher / routing | ✅ Ported — `__ow_*`↔Fetch adapters (`lib/ow-http.js`), route table + CORS replace itty |
 | Auth — session + Entra verify | ✅ Ported — `jose` HS256 session + Entra JWKS verify on Node 22; `GET /api/user` → 200 |
 | Auth — unauth gate | ✅ Ported — public allow-list serves; all other routes 302 → Entra SSO (live) |
-| Auth — live SSO round-trip | ⚠️ Ported, not wired — needs `adobeioruntime.net` `redirect_uri` registered; PoC `/auth/dev-login` for testing (remove before shared use) |
+| Auth — live SSO round-trip | ✅ Ported and wired — `redirect_uri` registered in Entra; real SSO login works on Stage. `/auth/dev-login` stays as a PoC shortcut (remove before shared use) |
 | KV (`AUTH_TOKENS` → aio-lib-state) | ✅ Ported — `storage/kv.js` get/put/delete |
 | SQL (D1 → `aio-lib-db`, all 4 tables) | ✅ Ported (native) — smart_collections CRUD; audit event/summary/csv; search write + 16 metrics; user_logins upsert + CSV |
 | DM proxy — ContentAI asset search | ✅ Ported — unchanged `dm.js` behind binding shim; real IMS S2S token exchange; returns real assets (JSON < 1 MB) |
