@@ -82,7 +82,7 @@ Place each link on its own line:
 
 ## Live Examples
 
-- Welcome page buttons: [da.live/edit#/.../public/welcome](https://da.live/edit#/aem-showcase/assethub-spark/public/welcome)
+- Login page buttons: [da.live/edit#/.../login](https://da.live/edit#/aem-showcase/assethub-spark/login)
 - Content Stores page: [da.live/edit#/.../all-content-stores](https://da.live/edit#/aem-showcase/assethub-spark/all-content-stores)
 
 

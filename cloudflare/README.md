@@ -20,7 +20,7 @@ Here are the various URL paths handled by the worker:
 | `/api/adobe/assets/*`  | ✅ | 🖼️  Adobe Dynamic Media OpenAPI | `delivery-*.adobeaemcloud.com` | Everything after `/api` |
 | `/api/adobe/assets/search-collections`  | ✅ | 🖼️  Adobe Dynamic Media OpenAPI.<br><br>Search index `*_collections` | `delivery-*.adobeaemcloud.com` | `/adobe/assets/search` |
 | `/content/share`<br>`/content/experience-fragments`<br>`/content/dam`<br>`/home/users`<br>`/etc.clientlibs`<br>`/libs`       | ✅ | ↪️ AEM CS Publish (for Chili templates functionality only) | `publish-*.adobeaemcloud.com` | as is |
-| `/public/*`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js#L44) | ❌ | 🌎  Public content & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
+| `/login`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js) | ❌ | 🌎  Login page & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
 | `/*`                   | ✅ | 📑  Adobe Helix content | `*.aem.live` / `*.aem.page` | `/*` |
 
 
@@ -52,7 +52,7 @@ For testing email functionality locally without OAuth2 configuration:
 
 ### Local server
 
-It is recommended to run the [full local development stack](../README.md#local-development) using `npm run dev` in the **root folder of the git repository**.
+It is recommended to run the [full local development stack](../README.md#local-development) using `npm start` in the **root folder of the git repository**.
 
 The default wrangler port is 8787, but when that port is taken (e.g. another instance is already running), the script automatically picks the next free port starting at 9001. The resolved port is printed at startup. See [Running multiple instances](../README.md#running-multiple-instances) for details.
 
@@ -131,7 +131,7 @@ Options:
 
 ### Local logs
 
-When running `npm run dev`, logs are shown in the console.
+When running `npm start`, logs are shown in the console.
 
 * Set the `CLOUDFLARE_LOG_LEVEL` environment variable to control the log level.
 * Set the `CLOUDFLARE_REQUEST_LOGS` environment variable to `1` to show request logs.
@@ -281,7 +281,7 @@ Most configuration is done via environment variables in the `wrangler.toml` file
 
 To ease rotation of secrets, without having to re-deploy the worker, we use [Secret Store](https://developers.cloudflare.com/secrets-store/) instead of worker secrets ([explanation of the differences](https://github.com/cloudflare/workers-sdk/issues/10585#issuecomment-3271987962)).
 
-To configure these secrets locally (for use with `npm run dev`), create a `.secrets` file in this folder and add the secret store secrets there.
+To configure these secrets locally (for use with `npm start`), create a `.secrets` file in this folder and add the secret store secrets there.
 
 Secret Store ID: `1e5b0170484843c69f8b9bb71c055468`
 

@@ -32,11 +32,11 @@ from Step 2. It reads `DA_TOKEN` from `token.env` (never printed) and:
 
 - **Authenticated recursive list** of `/<org>/<repo>`, following the
   `da-continuation-token` paging header — the whole tree, not one page.
-- **Recursive folder copy** of **only the three portal content trees —
-  `en`, `config`, `public`** (nothing else at the root: no sibling company
+- **Recursive copy** of **only the three portal content entries —
+  `en`, `config`, `login`** (nothing else at the root: no sibling company
   demo folders like `/disney` or `/urbn`, no stray files). `en` carries the
   authored pages plus `nav`/`footer`/`metadata` and the `reports`/`my-dam`
-  subtrees; **`public`** carries the login/`welcome` page; **`config`**
+  subtrees; **`login`** is the login page document; **`config`**
   carries site config incl. `config/access` (the access-control sheet).
   Each is copied into `/companies/<companyKey>/...` via
   `POST https://admin.da.live/copy/{org}/{repo}/{path}` (multipart
@@ -45,7 +45,7 @@ from Step 2. It reads `DA_TOKEN` from `token.env` (never printed) and:
   re-POSTed until **204** — the script does this loop; a hand-written
   `curl` almost always forgets it and copies only part of the tree. It
   copies, never moves. Re-runs are idempotent (the company folder is
-  skipped). (The allowlist is `en config public`; override only via the
+  skipped). (The allowlist is `en config login.html`; override only via the
   `DA_COPY_ALLOW` env var if a site genuinely has more.)
 - **Parallel demos are safe under the shared `companies` container.** Two demos
   running at once write **disjoint** subtrees (`/companies/<keyA>/…` and
@@ -74,7 +74,7 @@ from Step 2. It reads `DA_TOKEN` from `token.env` (never printed) and:
   its exact source path, preserving the extension (never re-authored, never
   converted to a different type). Only if something is *still* missing after
   the repair does it fail (exit `4`) and list the paths. A count-only check
-  is what previously let `public`/`config` come across empty while the total
+  is what previously let the login page/`config` come across empty while the total
   still "passed" — never weaken it back to a count, and never hand-author a
   replacement doc in place of the copy.
 

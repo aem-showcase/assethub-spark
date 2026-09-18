@@ -28,9 +28,17 @@ BG_MAGENTA=$'\033[45m'
 # ANSI Reset
 NC=$'\033[0m'
 
-if [ ! -d cloudflare/node_modules ]; then
-  echo "${RED}Error: cloudflare/node_modules not found. Run 'npm install' first.${NC}" >&2
-  exit 1
+if [ ! -d node_modules ] || [ ! -d cloudflare/node_modules ]; then
+  echo "${BG_BLUE}[dev]${NC} Installing dependencies..."
+  # SHARP_IGNORE_GLOBAL_LIBVIPS: make sharp (cloudflare/) use its prebuilt binary
+  # instead of trying to build against a Homebrew libvips, which fails.
+  SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install
+fi
+
+if [ ! -f cloudflare/.secrets ]; then
+  echo "${RED}Warning: cloudflare/.secrets not found. The cloudflare worker will fail to start.${NC}" >&2
+  echo "${RED}         See README.md 'Local development' for the required secrets. In a git worktree,${NC}" >&2
+  echo "${RED}         the file is linked from the main checkout on creation (see .worktreeinclude).${NC}" >&2
 fi
 
 # aem up requires a git repo with a main branch and an origin remote
@@ -93,31 +101,13 @@ function prefix() {
   sed "s/^/${1}${2}$NC /"
 }
 
-function read_helix_site_token() {
-  local secrets_file="cloudflare/.secrets"
-  if [ ! -f "$secrets_file" ]; then
-    return
-  fi
-  # shellcheck disable=SC2002
-  grep -m 1 '^SPARK_HELIX_ORIGIN_AUTHENTICATION=' "$secrets_file" \
-    | sed -E 's/^[^=]+="?([^"]*)"?/\1/'
-}
-
 function run_aem() {
-  local helix_site_token
-  helix_site_token="$(read_helix_site_token)"
-  local site_token_args=()
-  if [ -n "$helix_site_token" ]; then
-    site_token_args=(--site-token "$helix_site_token")
-    echo "${BG_MAGENTA}[aem]${NC} Using Helix site token from cloudflare/.secrets"
-  else
-    echo "${BG_MAGENTA}[aem]${NC} No Helix site token in cloudflare/.secrets — aem up may prompt for Helix login"
-  fi
-
+  # No --site-token here: the cloudflare worker sends the Helix site token
+  # (HELIX_ORIGIN_AUTHENTICATION from cloudflare/.secrets) as authorization
+  # header and aem up forwards it to the EDS origin.
   # add "--log-level silly" if full aem logs are needed
   npx aem up --no-open --livereload --port "${AEM_PORT}" \
-    --log-level "${AEM_LOG_LEVEL}" --url "${AEM_PAGES_URL}" \
-    "${site_token_args[@]}"
+    --log-level "${AEM_LOG_LEVEL}" --url "${AEM_PAGES_URL}"
 }
 
 function filter_cf_logs() {
@@ -129,15 +119,6 @@ function filter_cf_logs() {
 }
 
 function run_cloudflare() {
-  # Symlink .secrets from main checkout if running in a worktree
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  if [[ "$SCRIPT_DIR" == */.worktrees/* ]] && [ ! -e cloudflare/.secrets ]; then
-    MAIN_SECRETS="${SCRIPT_DIR}/../../cloudflare/.secrets"
-    if [ -f "$MAIN_SECRETS" ]; then
-      ln -sf "$MAIN_SECRETS" cloudflare/.secrets
-    fi
-  fi
-
   cd cloudflare
 
   # add "--live-reload" if auto-reload on cloudflare changes is needed
@@ -188,7 +169,7 @@ echo "${BG_YELLOW}[cfl]$NC CLOUDFLARE_REQUEST_LOGS  = ${CLOUDFLARE_REQUEST_LOGS}
 echo "${BG_YELLOW}[cfl]$NC DISABLE_AUTHENTICATION   = ${DISABLE_AUTHENTICATION} (Microsoft Entra login)"
 if [ "${DISABLE_AUTHENTICATION}" = "true" ]; then
   echo "${BG_BLUE}[dev]$NC Note: Helix content login is separate. If you see an Adobe/Helix login,"
-  echo "${BG_BLUE}[dev]$NC       complete it once OR add a fresh SPARK_HELIX_ORIGIN_AUTHENTICATION to cloudflare/.secrets."
+  echo "${BG_BLUE}[dev]$NC       add a fresh SPARK_HELIX_ORIGIN_AUTHENTICATION to cloudflare/.secrets."
 fi
 echo
 echo "${BG_BLUE}[dev]$NC EDS site origin (AEM_PAGES_URL) : ${AEM_PAGES_URL}"
