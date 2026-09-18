@@ -16,8 +16,8 @@ This project uses Adobe AEM Edge Delivery Services that serves as the foundation
 
 ## Setup Commands
 
-- Install dependencies: `npm install-all`
-- Start local development: `npm run dev` (requires AEM CLI)
+- Install dependencies: `npm install`
+- Start local development: `npm start` (requires AEM CLI)
 - Run linting: `npm run lint`
 - Fix linting issues: `npm run lint:fix`
 

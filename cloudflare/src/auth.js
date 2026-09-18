@@ -5,12 +5,17 @@ import { createSession, getUser } from './user.js';
 import { createSignedCookie, deleteCookie, isValidUrl, setCookie, validateSignedCookie } from './util/http.js';
 import { maskEmail } from './util/log-utils.js';
 
-/* Configure the path of a custom login/welcome page here.
-   If not set (= undefined), unauthenticated users will always be redirected directly to the IDP login page.
-   This page must be rendered by Helix or other origin without authentication (not done here).
-   Foldered demos serve the welcome page under /<companyKey>/public/welcome, so the base
+/* Configure the path of the custom login page here.
+   Users without a session cookie are always sent to this page. Users with an expired or
+   invalid session cookie are sent directly to the IDP login instead (fast SSO re-login).
+   This page is authored in DA and served by Helix without authentication: index.js exposes
+   exactly this path (and its .plain.html variant) before the auth middleware.
+   Foldered demos serve the login page under /<companyKey>/login, so the base
    path (config.DEMO_BASE_PATH, '' at the repo root) is prepended. */
-export const LOGIN_PAGE = `${companyBasePath()}/public/welcome`;
+export const LOGIN_PAGE = `${companyBasePath()}/login`;
+
+/* Former location of the login page; permanently redirected to LOGIN_PAGE. */
+export const LEGACY_LOGIN_PAGE = `${companyBasePath()}/public/welcome`;
 
 /* Configure the URL path prefix for auth flows here */
 const AUTH_PREFIX = '/auth';
@@ -18,7 +23,6 @@ const AUTH_PREFIX = '/auth';
 /* Cookie and request parameter names */
 const COOKIE_SESSION = 'Session';
 const COOKIE_STATE = 'State';
-const COOKIE_LOGIN_VISITED = 'LoginVisited';
 const ORIGINAL_URL_PARAM = 'url';
 
 /* Required Cloudflare configuration = env variables.
@@ -126,12 +130,13 @@ function redirect(url, status = 302) {
   return response;
 }
 
-function redirectToLoginPage(request, seenBefore = request.cookies[COOKIE_LOGIN_VISITED]) {
+function redirectToLoginPage(request, expiredSession = false) {
   // build login page url
   const loginPage = new URL(request.uri.origin);
 
-  // if login page was visited before, redirect to MS login directly (which might auto-SSO)
-  loginPage.pathname = seenBefore ? `${AUTH_PREFIX}/login` : LOGIN_PAGE;
+  // if the user had a session that expired, redirect to MS login directly (which might auto-SSO),
+  // otherwise show the login page
+  loginPage.pathname = expiredSession ? `${AUTH_PREFIX}/login` : LOGIN_PAGE;
 
   // with original url path and query string as parameter
   const originalUrl = new URL(request.url);
@@ -216,19 +221,14 @@ authRouter
   // middleware for login page special cases
   .get(LOGIN_PAGE, async (request, env) => {
     if (env.DISABLE_AUTHENTICATION !== 'true') {
-      // a) if no session cookie, but has seenBefore cookie, redirect to MS login directly
+      // a) if valid session cookie, redirect to url param or main page
       const sessionJWT = request.cookies[COOKIE_SESSION];
-      if (!sessionJWT && request.cookies[COOKIE_LOGIN_VISITED]) {
-        return redirectToLoginPage(request, true);
-      }
-
-      // b) if valid session cookie, redirect to url param or main page
       const session = await validateSessionJWT(request, env, sessionJWT);
       if (session) {
         return redirect(getOriginalRedirectUrl(request, request.uri.searchParams.get(ORIGINAL_URL_PARAM)));
       }
 
-      // c) otherwise show login page = do nothing here and pass through
+      // b) otherwise show login page = do nothing here and pass through
     }
   })
 
@@ -282,12 +282,6 @@ authRouter
       Secure: userAgent?.includes('Chrome') || userAgent?.includes('Firefox') || request.uri.hostname !== 'localhost',
       // extra safe guarding, 10 minutes for the login flow should be enough
       MaxAge: 60 * 10,
-    });
-
-    // track visit of login page (special requirement)
-    setCookie(response, COOKIE_LOGIN_VISITED, '1', {
-      // "permanent" cookie
-      Expires: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toUTCString(),
     });
 
     return response;

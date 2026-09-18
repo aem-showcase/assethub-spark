@@ -1,5 +1,5 @@
 {
-  "context": "Guards that the DA copy (Step 3) is full-tree (including the public login folder and config) and verified path-by-path rather than by a document count. A count-only check previously let /acme/public and /acme/config come across empty while the total still passed, breaking login.",
+  "context": "Guards that the DA copy (Step 3) is full-tree (including the login page and config) and verified path-by-path rather than by a document count. A count-only check previously let /acme/login and /acme/config come across missing while the total still passed, breaking login.",
   "type": "weighted_checklist",
   "checklist": [
     {
@@ -12,9 +12,9 @@
       }
     },
     {
-      "name": "Full-tree copy including public and config",
+      "name": "Full-tree copy including login and config",
       "max_score": 30,
-      "description": "The agent expects every top-level entry copied into /acme, explicitly including the public (login/welcome) and config folders, not just the visible page tree."
+      "description": "The agent expects every top-level entry copied into /acme, explicitly including the login page and config folder, not just the visible page tree."
     },
     {
       "name": "Path-by-path verification, not a count",
@@ -35,7 +35,7 @@
     {
       "name": "Plain language, no internal terms",
       "max_score": 5,
-      "description": "No da-copy-folder.sh, public, config, exit code, or branch jargon exposed to the customer (I1)."
+      "description": "No da-copy-folder.sh, login, config, exit code, or branch jargon exposed to the customer (I1)."
     }
   ]
 }

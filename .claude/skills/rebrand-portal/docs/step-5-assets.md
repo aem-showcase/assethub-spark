@@ -542,7 +542,7 @@ confirm they equal `<companyKey>`. The worker injects a
 `company = <companyKey>` filter into every search. **This edit must be in
 the PR** — the per-PR preview worker (I3) is built from this file, so it is
 what scopes the shared preview URL, not just local dev. It also applies
-locally on the next `npm run dev` restart. No production merge /
+locally on the next `npm start` restart. No production merge /
 `wrangler deploy` is needed — the PR's own worker deploy already serves
 it.
 

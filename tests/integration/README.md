@@ -147,5 +147,5 @@ Use `expectByEnv` to set per-environment expectations:
   403 as a valid response for report endpoints.
 
 **Tests fail on local**
-→ Make sure the dev server is running (`npm run dev`) and check that the
+→ Make sure the dev server is running (`npm start`) and check that the
   feature is available locally.

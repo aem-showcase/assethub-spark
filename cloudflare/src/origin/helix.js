@@ -85,10 +85,8 @@ export async function originHelix(request, env) {
   req.headers.set('user-agent', req.headers.get('user-agent'));
   req.headers.set('x-forwarded-host', req.headers.get('host'));
   req.headers.set('x-byo-cdn-type', 'cloudflare');
-  // Local aem up manages its own Helix token (.hlx/.hlx-token); forwarding a
-  // worker secret to localhost causes token-mismatch errors upstream.
-  const isLocalHelix = /^http:\/\/localhost:\d+$/.test(helixOrigin);
-  if (env.HELIX_ORIGIN_AUTHENTICATION && !isLocalHelix) {
+  // Also sent to a local aem up, which forwards it to the EDS origin.
+  if (env.HELIX_ORIGIN_AUTHENTICATION) {
     req.headers.set('authorization', `token ${await env.HELIX_ORIGIN_AUTHENTICATION.get()}`);
   }
   const pushInvalidation = config.HELIX_PUSH_INVALIDATION !== 'disabled';

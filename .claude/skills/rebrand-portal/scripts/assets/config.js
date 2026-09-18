@@ -25,6 +25,7 @@ export const RESERVED_CUSTOMER_KEYS = new Set([
   'fonts',
   'icons',
   'ja',
+  'login',
   'media',
   'public',
   'scripts',
