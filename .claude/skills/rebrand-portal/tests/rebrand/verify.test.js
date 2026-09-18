@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import {
   checkHeaderLogo, checkResidue, checkStaleCardImages,
   checkStructuralResidue, checkIconReferenceResolution, checkWelcomeHeaderHomeLink,
-  checkCardCeiling, checkCardCount,
+  checkCardCeiling, checkCardCount, checkAccessJson,
 } from '../../scripts/rebrand/verify.mjs';
 import { MAX_CARDS } from '../../scripts/assets/constants.js';
 
@@ -427,5 +427,113 @@ describe('checkCardCount ceiling', () => {
     try {
       expect(checkCardCount(p).pass).toBe(true);
     } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+describe('checkAccessJson', () => {
+  const sheet = (data) => ({
+    total: data.length,
+    limit: data.length,
+    offset: 0,
+    data,
+    ':type': 'sheet',
+  });
+  const res = ({ status = 200, body = {} } = {}) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  });
+
+  it('PASSES when company-scoped access sheets are published and grant preview', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'preview,sudo' }]),
+      }))
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'mohitar@adobe.com', roles: 'admin' }]),
+      }));
+
+    const result = await checkAccessJson('preview.test', 'disney-in', fetchFn);
+
+    expect(result.pass).toBe(true);
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://preview.test/companies/disney-in/config/access/application.json',
+      { redirect: 'manual' },
+    );
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      2,
+      'https://preview.test/companies/disney-in/config/access/users.json',
+      { redirect: 'manual' },
+    );
+  });
+
+  it('reads the branch AEM origin when given a dev worker preview host', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'preview' }]),
+      }))
+      .mockResolvedValueOnce(res({ body: sheet([]) }));
+
+    await checkAccessJson('demo-disney-in-6.dev.frescopamedia.com', 'disney-in', fetchFn);
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://demo-disney-in-6--assethub-spark--aem-showcase.aem.page/companies/disney-in/config/access/application.json',
+      { redirect: 'manual' },
+    );
+  });
+
+  it('FAILS when application.json is not published under the company folder', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({ status: 404 })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/application\.json.*404/);
+  });
+
+  it('FAILS when users.json is not published under the company folder', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: ['preview'] }]),
+      }))
+      .mockResolvedValueOnce(res({ status: 404 }));
+
+    const result = await checkAccessJson('preview.test', 'disney-in', fetchFn);
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/users\.json.*404/);
+  });
+
+  it('FAILS when application.json has no preview permission grant', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'sudo' }]),
+      })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/no row granting preview/);
+  });
+
+  it('FAILS when a path serves media or HTML instead of EDS sheet JSON', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({ body: { html: '<p>not a sheet</p>' } })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/not an EDS sheet JSON/);
+  });
+
+  it('needs --preview and --company', async () => {
+    expect((await checkAccessJson(null, 'acme')).pass).toBe(false);
+    expect((await checkAccessJson('preview.test', null)).pass).toBe(false);
   });
 });

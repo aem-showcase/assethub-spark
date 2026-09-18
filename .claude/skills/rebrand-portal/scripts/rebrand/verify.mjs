@@ -16,7 +16,8 @@
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
  *   icon-reference-resolution, welcome-header-home-link, icon-render,
  *   background-shorthand, brand-fidelity (brand-fidelity also uses --preview when given).
- * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling.
+ * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling,
+ *   access-json.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
  * Cascade check (needs --cascade-report): cascade.
  *
@@ -412,6 +413,94 @@ export async function checkAppliedCss(previewHost, repoRoot, baseBrand) {
     return { name: 'applied-css', pass: true, reason: 'served styles.css carries no old brand hex' };
   } catch (e) {
     return { name: 'applied-css', pass: false, reason: `fetch error: ${e.message}` };
+  }
+}
+
+function previewBase(previewHost) {
+  return previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
+}
+
+function accessJsonBase(previewHost) {
+  const base = previewBase(previewHost);
+  const url = new URL(base);
+  const match = url.hostname.match(/^(.+)\.dev\.frescopamedia\.com$/);
+  if (match) {
+    return `https://${match[1]}--assethub-spark--aem-showcase.aem.page`;
+  }
+  return base;
+}
+
+function isSheetJson(json) {
+  return json
+    && typeof json === 'object'
+    && Array.isArray(json.data)
+    && (json[':type'] === 'sheet'
+      || ['total', 'limit', 'offset'].some((key) => Object.hasOwn(json, key)));
+}
+
+function permissionList(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
+}
+
+function hasPreviewGrant(rows = []) {
+  return rows.some((row) => permissionList(row.permissions).includes('preview'));
+}
+
+async function fetchAccessJson(url, fetchFn) {
+  const res = await fetchFn(url, { redirect: 'manual' });
+  if (!res.ok) {
+    return { ok: false, reason: `${url} returned ${res.status}` };
+  }
+  try {
+    const json = await res.json();
+    if (!isSheetJson(json)) {
+      return {
+        ok: false,
+        reason: `${url} is not an EDS sheet JSON response`,
+      };
+    }
+    return { ok: true, json };
+  } catch (e) {
+    return { ok: false, reason: `${url} did not return parseable JSON: ${e.message}` };
+  }
+}
+
+// ---- CHECK: access-json (preview) ----------------------------------------------
+// Foldered demos authenticate through company-scoped access sheets, not root
+// /config/access. DA Author showing the sheets is not enough; the worker reads the
+// published .json endpoints from the branch AEM origin. The worker route itself protects
+// /config/access, so this check intentionally reads the underlying origin JSON.
+export async function checkAccessJson(previewHost, company, fetchFn = fetch) {
+  if (!previewHost || !company) {
+    return { name: 'access-json', pass: false, reason: 'needs --preview and --company' };
+  }
+  const base = accessJsonBase(previewHost);
+  const prefix = `${base}/companies/${company}/config/access`;
+  const applicationUrl = `${prefix}/application.json`;
+  const usersUrl = `${prefix}/users.json`;
+
+  try {
+    const application = await fetchAccessJson(applicationUrl, fetchFn);
+    if (!application.ok) return { name: 'access-json', pass: false, reason: application.reason };
+    if (!hasPreviewGrant(application.json.data)) {
+      return {
+        name: 'access-json',
+        pass: false,
+        reason: `${applicationUrl} has no row granting preview permission`,
+      };
+    }
+
+    const users = await fetchAccessJson(usersUrl, fetchFn);
+    if (!users.ok) return { name: 'access-json', pass: false, reason: users.reason };
+
+    return {
+      name: 'access-json',
+      pass: true,
+      reason: 'company-scoped access application/users sheets are published as JSON and grant preview',
+    };
+  } catch (e) {
+    return { name: 'access-json', pass: false, reason: `fetch error: ${e.message}` };
   }
 }
 
@@ -862,6 +951,7 @@ async function main() {
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
   if (opt.preview && want('card-ceiling')) results.push(await checkCardCeiling(opt.preview, opt.company));
+  if (opt.preview && want('access-json')) results.push(await checkAccessJson(opt.preview, opt.company));
   if (opt.report && want('stale-card-images')) results.push(checkStaleCardImages(opt.report));
   if (opt.report && want('card-count')) results.push(checkCardCount(opt.report));
   if (opt.report && want('hero-quality')) results.push(checkHeroQuality(opt.report));

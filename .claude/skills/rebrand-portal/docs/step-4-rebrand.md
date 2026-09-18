@@ -583,6 +583,12 @@ split it across turns:
    every path is prefixed with `customer.daFolder`; abort if any isn't
    (the `guard-da-publish.sh` hook enforces this independently). Poll each
    job to completion and report confirmed per-path success/failure.
+   **Explicit JSON-sheet publish minimum:** the publish report must include
+   both `companies/<companyKey>/config/access/application` and
+   `companies/<companyKey>/config/access/users`, previewed and live-published
+   with `REF=main`. Do not mark `published` done until both return 200 as
+   `.json` from the branch AEM origin, and `verify.mjs --only access-json`
+   passes.
 5. **Apply the demo scope config (`demo-company-set`)** — edit
    `cloudflare/src/config.js`: set **`DEMO_COMPANY: '<companyKey>'`** and
    **`DEMO_BASE_PATH: '/companies/<companyKey>'`** (the same key as the branch, the
@@ -667,4 +673,3 @@ split it across turns:
 
 Mark `rebranded`, `demo-company-set`, `published`, and `landed-via-pr`
 `done` as each completes.
-

@@ -55,10 +55,11 @@ what the site *serves*, not by looking at a picture of it:
      static check can see a correct declaration that loses the cascade.
    - `residue`, `structural-residue`, `icon-reference-resolution`,
      `welcome-header-home-link`, `header-logo`, `applied-css`,
-     `nav-404-loop` — colors (including one-off literals in block-level CSS
+     `nav-404-loop`, `access-json` — colors (including one-off literals in block-level CSS
      that were never a named `:root` token), CSS icon references that don't
      resolve to a file, the welcome-header home link resolving through
-     `localizePath()`, logo sizing, applied CSS, 404 loop.
+     `localizePath()`, logo sizing, applied CSS, 404 loop, and the published
+     company-scoped access sheets the callback reads.
    - `icon-render` (tree) — header wordmark is vector, not blank `<text>`.
    - `stale-card-images` (report) — no published card image points at a
      base-template asset. A card retitled for the new company but still
@@ -72,6 +73,11 @@ what the site *serves*, not by looking at a picture of it:
      any other route (hand-edited HTML, an ad-hoc script, raw curl) produces a
      report that says nothing about what shipped; this check counts what a
      visitor actually sees, and fails if a "Top Brands" block is still there.
+   - `access-json` (preview/origin) — the company-scoped access sheets that the
+     worker reads during login are published as JSON under
+     `/companies/<companyKey>/config/access/`, and the application sheet grants
+     `preview`. This catches the DA-authoring-vs-published-JSON mismatch that
+     returns "User not allowed to access this application" after callback.
    - `hero-quality` (report) — no card hero is a flat logo/wordmark/chrome
      (scored by AEM's own smart-tag signal, not a filename list).
 
@@ -86,8 +92,8 @@ what the site *serves*, not by looking at a picture of it:
    output and refuses to run `enrich-assets.js` unless `residue`,
    `structural-residue`, `icon-reference-resolution`,
    `welcome-header-home-link`, `header-logo`, `icon-render`,
-   **`brand-fidelity`, `background-shorthand`** and **`stale-card-images`**
-   all passed against the current commit. Every other check is listed in
+   **`brand-fidelity`, `background-shorthand`**, **`stale-card-images`**, and
+   **`access-json`** all passed against the current commit. Every other check is listed in
    that hook's `WAIVED_CHECKS` with the reason it is not gated — a check
    belongs to exactly one of the two sets, and
    `tests/rebrand/enforced-checks.test.js` fails if a new one belongs to
@@ -416,15 +422,26 @@ un-rescoped `/en/` logo link 404s).
 **Auth verification (the login-gating guard).** The worker resolves login
 and permissions from the **company-scoped** access sheets
 (`companyBasePath()/config/access/application` and `.../users`), not the
-root ones. After publish: (a) GET
-`<preview>/companies/<companyKey>/config/access/application.json` and confirm **200 +
+root ones. After publish: (a) GET the branch AEM origin JSON
+`https://<branch>--assethub-spark--aem-showcase.aem.page/companies/<companyKey>/config/access/application.json`
+and confirm **200 +
 an EDS sheet shape** (`{":type":"sheet",…}`) — a `404` or an `.xlsx`/media
 response means the sheet wasn't published under `/companies/<companyKey>` (or landed
 as media, not a `.json` sheet); (b) sign in on the preview as a known demo
 user and confirm you **reach the portal**, NOT "User not allowed to access
 this application". Either failure means Step 3/4 didn't get the company
 `config/access/*` sheets published as `.json` — fix and republish before
-declaring the rebrand done.
+declaring the rebrand done. The executable gate is:
+
+```
+node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
+  --preview <branch>.dev.frescopamedia.com --company <companyKey> \
+  --only access-json
+```
+
+The check derives the branch AEM origin from the worker preview host because
+the worker route protects `/config/access/*`; an unauthenticated GET to the
+worker can redirect to login even when the origin JSON is correctly published.
 
 **Sign-in redirect check (hard gate — the dead-login guard).** On the
 deployed preview, load `/companies/<companyKey>/en/` (or the welcome page) and

@@ -1,0 +1,31 @@
+{
+  "context": "Tests that rebrand-portal treats company-scoped config/access JSON publication as a required readiness gate. DA Author can show the sheets, but the worker reads published branch-origin JSON under DEMO_BASE_PATH; a 404 there causes the login callback to reject preview users.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Does not claim readiness",
+      "max_score": 20,
+      "description": "The agent does not call the demo ready/complete while company-scoped access JSON endpoints return 404."
+    },
+    {
+      "name": "Separates DA Author from published JSON",
+      "max_score": 25,
+      "description": "The agent explicitly distinguishes sheets existing in DA Author from the published .json endpoints consumed by the worker."
+    },
+    {
+      "name": "Checks company-scoped endpoints",
+      "max_score": 25,
+      "description": "The agent verifies or instructs verification of /companies/disney-in/config/access/application.json and /users.json on the branch AEM origin, not only root /config/access or the protected worker route."
+    },
+    {
+      "name": "Names the correct login blocker",
+      "max_score": 20,
+      "description": "The agent identifies missing/unpublished company-scoped access JSON as the reason preview permission resolves empty and callback denies the user."
+    },
+    {
+      "name": "No auth loosening fallback",
+      "max_score": 10,
+      "description": "The agent does not recommend weakening OAuth/callback validation or relying on root access sheets as the primary fix."
+    }
+  ]
+}

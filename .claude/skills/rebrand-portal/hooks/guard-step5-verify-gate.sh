@@ -148,6 +148,7 @@ MANDATORY_CHECKS = {
     "brand-fidelity",
     "background-shorthand",
     "stale-card-images",
+    "access-json",
 }
 
 # Checks deliberately NOT gated here, each with the reason it is safe to omit.
