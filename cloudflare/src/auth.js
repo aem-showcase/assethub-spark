@@ -131,7 +131,7 @@ function redirectToLoginPage(request, expiredSession = false) {
   const loginPage = new URL(request.uri.origin);
 
   // if the user had a session that expired, redirect to MS login directly (which might auto-SSO),
-  // otherwise show the welcome page
+  // otherwise show the login page
   loginPage.pathname = expiredSession ? `${AUTH_PREFIX}/login` : LOGIN_PAGE;
 
   // with original url path and query string as parameter
