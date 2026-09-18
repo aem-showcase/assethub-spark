@@ -360,8 +360,11 @@ cloudflare/src/
 | Cookie | Purpose |
 |--------|---------|
 | `State` | OIDC state + nonce (signed JWT, short-lived) |
-| `LoginVisited` | Skip welcome page on return visits |
 | `SUDO_*` | Impersonation overrides (admin only) |
+
+### Unauthenticated Requests
+
+Requests without a `Session` cookie (first visit, after logout, after a browser restart) are redirected to the welcome page `/public/welcome`. Requests with an expired or invalid `Session` cookie are sent directly to `/auth/login`, so Entra can silently re-authenticate the user via SSO.
 
 ### Dev Bypass
 
