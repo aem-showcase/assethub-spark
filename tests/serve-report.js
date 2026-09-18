@@ -2,7 +2,7 @@
 /**
  * Serves a Vitest HTML report directory over HTTP so the browser can load
  * ES modules (file:// URLs block them due to CORS). Opens the browser
- * automatically, then shuts down after 5 minutes of inactivity.
+ * automatically, then shuts down after 5 minutes of inactivity
  *
  * Usage: node tests/serve-report.js <report-dir>
  */
