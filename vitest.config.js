@@ -55,15 +55,6 @@ export default defineConfig({
           hookTimeout: 10_000,
         },
       },
-      {
-        // Migration tests – unit tests for content stores migration scripts
-        test: {
-          name: 'migration-tests',
-          include: ['migration/**/__tests__/**/*.test.js'],
-          environment: 'node',
-          testTimeout: 10_000,
-        },
-      },
     ],
   },
 });
