@@ -69,7 +69,7 @@ Each row becomes one accordion item. Add as many rows as needed.
 
 ## Live Examples
 
-- Welcome page accordion: [da.live/edit#/.../public/welcome](https://da.live/edit#/aem-showcase/assethub-spark/public/welcome)
+- Login page accordion: [da.live/edit#/.../login](https://da.live/edit#/aem-showcase/assethub-spark/login)
 - FAQ page: [da.live/edit#/.../help/faq](https://da.live/edit#/aem-showcase/assethub-spark/help/faq)
 
 ## Tips

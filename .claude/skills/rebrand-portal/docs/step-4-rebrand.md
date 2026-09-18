@@ -267,9 +267,9 @@ split it across turns:
    shared **root** (`/en/...`, `/nav`, `/footer`) or any page outside
    `/companies/<companyKey>`; have it identify the files first and report modified
    files after. **The rewrite list MUST include the company-scoped `nav`,
-   `footer`, and login/welcome copies** —
+   `footer`, and login page copies** —
    `/companies/<companyKey>/en/nav`, `/companies/<companyKey>/en/footer`, and
-   `/companies/<companyKey>/public/welcome`. These are **copies** (Step 3), not the
+   `/companies/<companyKey>/login`. These are **copies** (Step 3), not the
    shared root, and they carry the brand logo shortcode, tagline, contact
    details, and copyright — rewriting the pages but skipping the footer is
    exactly how a Fréscopa footer (logo + "© … Fréscopa") survives on an
@@ -281,14 +281,14 @@ split it across turns:
    **Preserve the login page's `welcome` section style — never flatten it.**
    The split-screen login (left brand panel / right sign-in) is driven
    purely by the `.section.welcome` section style (a `Section Metadata`
-   `Style: welcome` on `/companies/<companyKey>/public/welcome`) plus the
+   `Style: welcome` on `/companies/<companyKey>/login`) plus the
    `--welcome-panel-*` tokens from step 1. The rewrite MUST keep the
    `welcome` **section wrapper and its Section Metadata** intact and swap
    BOTH marks (`:<companyKey>-icon:` and `:<companyKey>-beans:`) — it must
    NOT collapse the page to plain paragraphs. A rewrite that drops the
    section style renders the login as a single off-brand column with broken
    marks (verified live). After rewrite, the published
-   `/companies/<companyKey>/public/welcome.plain.html` must still contain
+   `/companies/<companyKey>/login.plain.html` must still contain
    `<div class="welcome">` (i.e. `.section.welcome`).
    (The site-wide design tokens from step 1 are the deliberate global
    exception; this per-page content step stays scoped.)
@@ -372,7 +372,7 @@ split it across turns:
 4. **Publish** — publish **only `/companies/<companyKey>/...` paths** via Helix
    Admin (`admin.hlx.page` preview+publish with `HLX_ADMIN_TOKEN`), over
    exactly the documents copied in Step 3 and rewritten in step 3 above —
-   **including the login page `/companies/<companyKey>/public/welcome` and the
+   **including the login page `/companies/<companyKey>/login` and the
    `/companies/<companyKey>/config` tree — which MUST include
    `/companies/<companyKey>/config/access/application` and
    `/companies/<companyKey>/config/access/users`** (without these the foldered
@@ -394,7 +394,7 @@ split it across turns:
    DA folder, and the asset company). This is **mandatory and must be
    committed to the PR** — the per-PR worker (I3) is built from this file,
    so it is what makes the preview's company filter, `/<company>` routing,
-   and `/companies/<company>/public/welcome` login actually work.
+   and `/companies/<company>/login` login actually work.
    `.claude/skills/rebrand-portal/scripts/assets/enrich-assets.js` also writes both keys in Step 5, but
    do it here too so the preview is scoped and working immediately after
    Step 4, even when asset enrichment is deferred to a later step. Mark

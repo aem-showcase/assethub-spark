@@ -284,8 +284,8 @@ cloudflare/src/
 | Priority | Path Pattern | Handler | Auth Required |
 |----------|-------------|---------|---------------|
 | 1 | `/auth/*` | authRouter | No |
-| 2 | `/public/*`, `/scripts/*`, `/styles/*`, `/blocks/*`, `/icons/*`, `/fonts/*` | originHelix | No |
-| 3 | `/public/download/original/*` | originPublishPassthrough | No |
+| 2 | `/login` (DA-authored login page), `/scripts/*`, `/styles/*`, `/blocks/*`, `/icons/*`, `/fonts/*` | originHelix | No |
+| 3 | `/public/welcome` (legacy login page URL) | 301 redirect to `/login` | No |
 | 4 | `/content/dam/*` (Basic Auth) | originPublishChili | No (Chili auth) |
 | 5 | **Auth Gate** | withAuthentication | — |
 | 6 | `GET /api/user` | apiUser | Yes |
@@ -364,7 +364,7 @@ cloudflare/src/
 
 ### Unauthenticated Requests
 
-Requests without a `Session` cookie (first visit, after logout, after a browser restart) are redirected to the login page `/public/welcome`. Requests with an expired or invalid `Session` cookie are sent directly to `/auth/login`, so Entra can silently re-authenticate the user via SSO.
+Requests without a `Session` cookie (first visit, after logout, after a browser restart) are redirected to the login page `/login`. Requests with an expired or invalid `Session` cookie are sent directly to `/auth/login`, so Entra can silently re-authenticate the user via SSO.
 
 ### Dev Bypass
 

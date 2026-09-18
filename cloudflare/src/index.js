@@ -15,7 +15,7 @@ import { analyticsApi, searchMetricsApi } from './api/analytics';
 import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
 import { smartCollectionsApi } from './api/smart-collections';
-import { authRouter, withAuthentication } from './auth';
+import { authRouter, LEGACY_LOGIN_PAGE, LOGIN_PAGE, withAuthentication } from './auth';
 import { originCoa, originCoaImage } from './origin/coa';
 import { originDynamicMedia } from './origin/dm';
 import { originHelix } from './origin/helix';
@@ -64,12 +64,12 @@ const { preflight, corsify } = cors({
 });
 
 // Content base path for this deploy: '' at the repo root (production), or '/<companyKey>'
-// for a foldered company demo. Drives the root redirect, the unauthenticated login/public
-// route, and (via auth.js) LOGIN_PAGE — all from the single config.DEMO_BASE_PATH value.
+// for a foldered company demo. Drives the root redirect and (via auth.js) LOGIN_PAGE — all
+// from the single config.DEMO_BASE_PATH value.
 const BASE = companyBasePath();
 
 // The 404 page is a SHARED repo-root static file (./404.html), served like /favicon.ico —
-// it is NOT copied per-company (Step 3's DA copy allowlist is en/config/public only).
+// it is NOT copied per-company (Step 3's DA copy allowlist is en/config/login only).
 // Redirect to the un-prefixed root /404.html: a company-prefixed /<company>/404.html does
 // not exist for a foldered demo, so it 404s and re-triggers this handler -> an infinite
 // redirect loop (shipped live on a demo; see rebrand-portal skill). Never prefix BASE here.
@@ -121,8 +121,15 @@ router
     return Response.redirect(`${url.origin}${BASE}${url.pathname}${url.search}`, 302);
   })
 
-  // public static assets
-  .get(`${BASE}/public/*`, originHelix)
+  // former login page location: permanent redirect to the new one, keeping the ?url= param
+  .get(LEGACY_LOGIN_PAGE, (request) => {
+    const url = new URL(request.url);
+    return Response.redirect(`${url.origin}${LOGIN_PAGE}${url.search}`, 301);
+  })
+
+  // login page (authored in DA) and public static assets
+  .get(LOGIN_PAGE, originHelix)
+  .get(`${LOGIN_PAGE}.plain.html`, originHelix)
   .get('/tools/*', originHelix)
   .get('/scripts/*', originHelix)
   .get('/styles/*', originHelix)

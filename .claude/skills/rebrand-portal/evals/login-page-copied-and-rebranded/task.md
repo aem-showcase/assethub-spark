@@ -1,19 +1,19 @@
-# The login/welcome page must be copied, rebranded, and published under /<company>
+# The login page must be copied, rebranded, and published under /<company>
 
 ## Problem/Feature Description
 
-The portal's login page is the DA document `public/welcome`. In a foldered
-demo the worker serves it from `/<company>/public/welcome` (the login base
+The portal's login page is the DA document `login`. In a foldered
+demo the worker serves it from `/<company>/login` (the login base
 is `DEMO_BASE_PATH`). If the copy/rebrand/publish scope only covers the
-visible page tree and skips the `public` (and `config`) folders, the
+visible page tree and skips the `login` document (and `config` folder), the
 foldered portal's login page is missing or shows the old brand — a real
-failure from a prior migration where `/acme/public` and `/acme/config`
-came across empty and login broke.
+failure from a prior migration where the login page and `/acme/config`
+came across missing and login broke.
 
 So the rebrand scope (Step 4) must:
-- treat `/<company>/public/welcome` as one of the pages rewritten to the
+- treat `/<company>/login` as one of the pages rewritten to the
   new brand (it carries brand logo/copy), and
-- publish `/<company>/public/welcome` and `/<company>/config` alongside
+- publish `/<company>/login` and `/<company>/config` alongside
   the rest of the `/<company>` documents.
 
 ## Setup
@@ -28,15 +28,15 @@ So the rebrand scope (Step 4) must:
 
 ## Output Specification
 
-- The agent includes the login/welcome page `/acme/public/welcome` in the
+- The agent includes the login page `/acme/login` in the
   content-rewrite page list (rebranding its logo/copy), not only the main
   page tree.
-- The publish list includes `/acme/public/welcome` and `/acme/config`,
-  each prefixed with the company folder — never a root `/public/welcome`
+- The publish list includes `/acme/login` and `/acme/config`,
+  each prefixed with the company folder — never a root `/login`
   or `/config` path.
 - The agent verifies the login page renders with the new brand on the
-  preview (the per-PR worker's `/acme/public/welcome`).
+  preview (the per-PR worker's `/acme/login`).
 - Nothing outside `/acme` is rewritten or published (the shared root login
   page is untouched).
-- Plain language to the customer (I1) — no `public/welcome`, `config`,
+- Plain language to the customer (I1) — no `login`, `config`,
   `DEMO_BASE_PATH`, or `branch` jargon exposed.

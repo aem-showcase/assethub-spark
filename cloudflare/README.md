@@ -20,7 +20,7 @@ Here are the various URL paths handled by the worker:
 | `/api/adobe/assets/*`  | ✅ | 🖼️  Adobe Dynamic Media OpenAPI | `delivery-*.adobeaemcloud.com` | Everything after `/api` |
 | `/api/adobe/assets/search-collections`  | ✅ | 🖼️  Adobe Dynamic Media OpenAPI.<br><br>Search index `*_collections` | `delivery-*.adobeaemcloud.com` | `/adobe/assets/search` |
 | `/content/share`<br>`/content/experience-fragments`<br>`/content/dam`<br>`/home/users`<br>`/etc.clientlibs`<br>`/libs`       | ✅ | ↪️ AEM CS Publish (for Chili templates functionality only) | `publish-*.adobeaemcloud.com` | as is |
-| `/public/*`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js#L44) | ❌ | 🌎  Public content & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
+| `/login`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js) | ❌ | 🌎  Login page & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
 | `/*`                   | ✅ | 📑  Adobe Helix content | `*.aem.live` / `*.aem.page` | `/*` |
 
 

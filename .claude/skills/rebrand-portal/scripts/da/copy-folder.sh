@@ -22,8 +22,8 @@
 #   --token-file   path to the env file holding DA_TOKEN (default: ./token.env
 #                  resolved from the repo root).
 #
-# Reads DA_TOKEN (never printed). Copies ONLY the en/config/public top-level
-# trees under /{org}/{repo} (allowlist; override via DA_COPY_ALLOW) into
+# Reads DA_TOKEN (never printed). Copies ONLY the en/config top-level trees and the
+# login document under /{org}/{repo} (allowlist; override via DA_COPY_ALLOW) into
 # /{org}/{repo}/companies/<companyKey>/..., then verifies by a recursive re-list. Sibling
 # company demo folders and stray root entries are intentionally NOT copied.
 #
@@ -46,14 +46,14 @@ case "$COMPANY" in
     ;;
 esac
 
-RESERVED_COMPANY_KEYS="api auth blocks companies config en fonts icons ja media public scripts styles tools"
+RESERVED_COMPANY_KEYS="api auth blocks companies config en fonts icons ja login media public scripts styles tools"
 for key in $RESERVED_COMPANY_KEYS; do
   [ "$COMPANY" = "$key" ] && die "companyKey '$COMPANY' is reserved; use a specific company slug like ${COMPANY}-demo"
 done
 
 # Foldered demos live under one container folder so the DA root stays uncluttered:
 # /companies/<companyKey>/... rather than N sibling /<companyKey> folders next to the real
-# content trees (en, config, public). DEST_ROOT is the single place the container prefix is
+# content trees (en, config, login). DEST_ROOT is the single place the container prefix is
 # built; everything downstream (copy destination, verify/repair list) derives from it.
 CONTAINER="companies"
 DEST_ROOT="$CONTAINER/$COMPANY"
@@ -94,14 +94,14 @@ DA_TOKEN="$(grep -E '^DA_TOKEN=' "$TOKEN_FILE" | head -1 | cut -d= -f2- | tr -d 
 
 AUTH=(-H "Authorization: Bearer $DA_TOKEN")
 
-# The demo copies ONLY the three top-level content trees that make up the portal:
-#   en      -> the authored pages (incl. nav/footer and reports/my-dam subtrees)
-#   config  -> site config, incl. config/access (the access-control .json sheet)
-#   public  -> the login/welcome page
+# The demo copies ONLY the three top-level content entries that make up the portal:
+#   en          -> the authored pages (incl. nav/footer and reports/my-dam subtrees)
+#   config      -> site config, incl. config/access (the access-control .json sheet)
+#   login.html  -> the login page document (a file, so it is matched WITH its extension)
 # Everything else at the root — sibling company demo folders (e.g. /disney, /urbn),
 # stray files, dotfolders — is intentionally NOT copied, so /<company> is a clean,
 # faithful mirror of just the portal content. Override with DA_COPY_ALLOW if ever needed.
-ALLOW_TOP="${DA_COPY_ALLOW:-en config public}"
+ALLOW_TOP="${DA_COPY_ALLOW:-en config login.html}"
 is_allowed_top() {
   local name="$1" a
   for a in $ALLOW_TOP; do [ "$name" = "$a" ] && return 0; done
@@ -225,20 +225,20 @@ echo ">> Copying top-level entries into /$DEST_ROOT ..."
 COPIED=0; ELIGIBLE=0
 while IFS=$'\t' read -r typ rel; do
   [ -z "${typ:-}" ] && continue
-  if ! is_allowed_top "$rel"; then echo "   - skip $rel (only en/config/public are copied)"; continue; fi
+  if ! is_allowed_top "$rel"; then echo "   - skip $rel (only en/config/login are copied)"; continue; fi
   echo "   - copy $rel -> /$DEST_ROOT/$rel"
   copy_entry "$rel"
   COPIED=$((COPIED+1))
   if [ "$typ" = "F" ]; then ELIGIBLE=$((ELIGIBLE+1)); else ELIGIBLE=$((ELIGIBLE + $(recursive_count "$rel") )); fi
 done <<< "$TOP"
 
-[ "$COPIED" -gt 0 ] || die "none of the expected top-level trees (en/config/public) were found under /$ORG/$REPO — check the org/repo and DA_TOKEN"
+[ "$COPIED" -gt 0 ] || die "none of the expected top-level entries (en/config/login) were found under /$ORG/$REPO — check the org/repo and DA_TOKEN"
 
 echo ">> Verifying copy under /$DEST_ROOT (path-by-path — every source doc must have a copy) ..."
 # Enumerate every eligible SOURCE file relpath (skipping the company folder + dotfolders),
 # then assert each one exists under /$DEST_ROOT/<relpath>. A count check is NOT enough: a
-# single over-counted subtree (e.g. /en) can mask a whole missing one (e.g. /public or the
-# /config folder that carries the access-control sheet) — exactly how the login/welcome
+# single over-counted subtree (e.g. /en) can mask a whole missing one (e.g. the /login page
+# or the /config folder that carries the access-control sheet) — exactly how the login
 # page and config/access silently went missing before.
 SRC_FILES="$(mktemp)"; DST_SET="$(mktemp)"
 while IFS=$'\t' read -r typ rel; do

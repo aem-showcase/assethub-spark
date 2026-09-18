@@ -83,7 +83,6 @@ together) — because these are mechanical substitutions, not judgment calls.
 | `cloudflare/src/api/analytics.js` | fallback analytics account id (two occurrences) — wrong/inaccessible account if env var also unset |
 | `blocks/search-results/components/adobe-pdf-viewer.js` | already has an explicit unfilled placeholder (`REPLACE_WITH_SPARK_PDF_EMBED_CLIENT_ID`) — PDF preview silently won't work for the fork's real domain until filled with the customer's own Adobe PDF Embed API client id, a separate credential to register, not derivable |
 | `tests/shared/env.js` | `production`/`preview` base URLs, branch-URL template literal — fork's own integration/authz test suite silently tests the template owner's environments unless changed |
-| `tests/integration/test-public-urls.sh` | default `HOST` — wrong default target unless overridden per-invocation |
 
 ### C. Documentation/cosmetic — wrong but not behavior-breaking; included in the same rename pass since it's the same mechanical substitution
 
