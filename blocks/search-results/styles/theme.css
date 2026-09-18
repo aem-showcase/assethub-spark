@@ -4,8 +4,8 @@
 
 :root {
   /* Primary colors — align with global :root */
-  --primary-color-hover: #C00;
-  --primary-color-active: #C00;
+  --primary-color-hover: #c00;
+  --primary-color-active: #c00;
   --primary-color-disabled: var(--color-neutral-300, #e8e8e8);
 
   /* Color scales (Light mode) */
@@ -19,8 +19,8 @@
   --purple-200: rgb(255 0 0 / 20%);
   --purple-300: rgb(255 0 0 / 30%);
   --purple-400: var(--primary-color);
-  --purple-500: #C00;
-  --purple-600: #C00;
+  --purple-500: #c00;
+  --purple-600: #c00;
   --red-100: rgb(163 53 50 / 12%);
   --red-200: rgb(163 53 50 / 25%);
   --red-300: var(--color-red);
@@ -48,7 +48,7 @@
   --button-background: var(--gray-50);
   --button-background-pressed: var(--light-color);
   --highlight-background: var(--primary-color);
-  --highlight-background-pressed: #C00;
+  --highlight-background-pressed: #c00;
   --highlight-background-invalid: var(--color-red);
   --highlight-foreground: white;
   --highlight-foreground-pressed: var(--light-color);
@@ -68,9 +68,9 @@
     --gray-400: #848484;
     --gray-500: #a7a7a7;
     --gray-600: #cfcfcf;
-    --purple-100: #C00;
-    --purple-200: #C00;
-    --purple-300: #F00;
+    --purple-100: #c00;
+    --purple-200: #c00;
+    --purple-300: #f00;
     --purple-400: #3d8fa3;
     --purple-500: #6ab4c4;
     --purple-600: #a8d4de;

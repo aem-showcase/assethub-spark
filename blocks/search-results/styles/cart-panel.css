@@ -902,7 +902,7 @@ html.base-panel-open {
 }
 
 .save-intended-use-btn:hover {
-  background-color: var(--primary-color-hover, #C00);
+  background-color: var(--primary-color-hover, #c00);
 }
 
 .save-intended-use-btn:disabled {

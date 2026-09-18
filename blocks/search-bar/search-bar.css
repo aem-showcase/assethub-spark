@@ -97,7 +97,7 @@
 }
 
 .query-input:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #F00);
+  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #f00);
 }
 
 .query-input.rounded-box {
