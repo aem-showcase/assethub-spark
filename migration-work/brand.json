@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.target.com/",
+    "finalUrl": "https://www.target.com/",
+    "pageTitle": "Target : Expect More. Pay Less.",
+    "extractedAt": "2026-09-18T04:44:55.503Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": [
+      "submit: clicked button[type=\"submit\"]"
+    ],
+    "gatePassed": true,
+    "warnings": []
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "Helvetica for Target",
+        "familySet": "\"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+      },
+      "heading": {
+        "family": "Helvetica for Target",
+        "familySet": "\"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": "29px"
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": "16px"
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": "21px"
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(51, 51, 51)",
+      "link": "rgb(51, 51, 51)",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "0px",
+      "contentMaxWidth": "1400px",
+      "navHeight": "19.9844px"
+    },
+    "favicons": [
+      {
+        "url": "https://assets.targetimg1.com/static/images/favicon.ico",
+        "rel": "icon",
+        "type": "image/png"
+      },
+      {
+        "url": "https://assets.targetimg1.com/static/images/apple-touch-icon-precomposed.png",
+        "rel": "apple-touch-icon"
+      },
+      {
+        "url": "https://assets.targetimg1.com/static/images/favicon-96x96.png",
+        "rel": "icon",
+        "sizes": "96x96",
+        "type": "image/png"
+      },
+      {
+        "url": "https://assets.targetimg1.com/static/images/favicon-32x32.png",
+        "rel": "icon",
+        "sizes": "32x32",
+        "type": "image/png"
+      },
+      {
+        "url": "https://assets.targetimg1.com/static/images/favicon-16x16.png",
+        "rel": "icon",
+        "sizes": "16x16",
+        "type": "image/png"
+      }
+    ],
+    "defaultContentCss": "h1 {\n  font-size: 29px;\n  font-weight: 700;\n  font-family: \"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 36.25px;\n  color: rgb(51, 51, 51);\n  margin: 0px 0px 8px;\n}\n\nh2 {\n  font-size: 36.6211px;\n  font-weight: 700;\n  font-family: \"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 36.6211px;\n  color: rgb(51, 51, 51);\n  margin: 0px 0px 10.9863px;\n}\n\nh3 {\n  font-size: 21px;\n  font-weight: 700;\n  font-family: \"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 25.2px;\n  color: rgb(51, 51, 51);\n}\n\np {\n  font-size: 16px;\n  font-family: \"Helvetica for Target\", HelveticaForTarget, Targetica, \"HelveticaNeue for Target\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  line-height: 20.8px;\n  color: rgb(51, 51, 51);\n  margin: 0px 0px 8px;\n}\n\na:any-link {\n  color: rgb(51, 51, 51);\n  text-decoration: underline;\n}\n",
+    "accents": [
+      {
+        "hex": "#f1e0cb",
+        "weight": 1017750,
+        "why": [
+          "background"
+        ]
+      },
+      {
+        "hex": "#ad1919",
+        "weight": 331776,
+        "why": [
+          "background"
+        ]
+      },
+      {
+        "hex": "#ede7cf",
+        "weight": 112117,
+        "why": [
+          "background"
+        ]
+      },
+      {
+        "hex": "#cc0000",
+        "weight": 98858,
+        "why": [
+          "background",
+          "svg-fill",
+          "border"
+        ]
+      }
+    ]
+  },
+  "tokenMap": [
+    {
+      "role": "light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFFFFF",
+      "cssVar": "--light-color",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "text-color / text-primary / link-color",
+      "oldHex": "#58181D",
+      "newHex": "#333333",
+      "cssVar": "--text-color",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#CC0000",
+      "cssVar": "--primary-color",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "primary-color-hover / link-hover-color / button-primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#A30000",
+      "cssVar": "--primary-color-hover",
+      "source": "derived",
+      "derivedFrom": "#CC0000"
+    },
+    {
+      "role": "secondary-color / color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#AD1919",
+      "cssVar": "--secondary-color",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#F1E0CB",
+      "cssVar": "--accent-secondary",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#EDE7CF",
+      "cssVar": "--accent-tertiary",
+      "source": "extracted",
+      "derivedFrom": null
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#AD1919",
+      "cssVar": "--welcome-panel-bg",
+      "source": "extracted",
+      "derivedFrom": null
+    }
+  ]
+}
