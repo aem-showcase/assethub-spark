@@ -143,6 +143,15 @@ export const ASSET_STATE_PROCESSED = 'processed';
 export const ASSET_PROCESSED_POLL_INTERVAL_MS = 2000;
 export const ASSET_PROCESSED_POLL_TIMEOUT_MS = 60 * 1000;
 
+// --- Post-enrichment delivery/search visibility polling ------------------------
+// AEM Author metadata writes and delivery/Content Hub search indexing are separate async
+// systems. After upload/enrichment, Step 5 may wait for the visible/searchable outcome
+// (company-scoped assets and populated category facets/cards), but never indefinitely.
+// This is an overall Step 5 visibility deadline, distinct from the per-asset Author
+// dam:assetState polling above.
+export const ASSET_VISIBILITY_POLL_INTERVAL_MS = 10 * 1000;
+export const ASSET_VISIBILITY_POLL_TIMEOUT_MS = 10 * 60 * 1000;
+
 export const STATUS_APPROVED = 'approved';
 
 // Minimum number of populated category cards for a credible landing page — a hard floor,

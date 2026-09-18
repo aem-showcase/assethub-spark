@@ -581,15 +581,17 @@ returned success:
    and confirm buckets exist for the written values with **non-zero
    counts** — e.g. `Movies & Shows (N)`, `N ≥ 1`, not `(0)`. A bucket
    stuck at `(0)` after labelling/approval is this step's known failure
-   (values not written, not indexed, or the asset is not visible) — confirm
+   (values not written, not indexed, or the asset is not visible). Confirm
    the assets carry `company`, `productCategory`, `dam:status=approved`, and
-   `allowedCountries=global`, then retry after indexing.
+   `allowedCountries=global`, then wait only within the bounded visibility
+   gate below — never keep retrying indefinitely.
 3. **Every category card is a live, non-zero bucket.** For each card in
    `report.cards`, click it on the preview and confirm it returns **> 0**
    assets (not the "coffee (0)" failure). The card gate already blocks a
    zero-asset contract category, so a `(0)` here means a coverage/indexing
-   drift — confirm the assets carry `company`, `productCategory`,
-   `dam:status=approved`, `allowedCountries=global`, then retry after indexing.
+   drift. Confirm the assets carry `company`, `productCategory`,
+   `dam:status=approved`, `allowedCountries=global`, then wait only within
+   the bounded visibility gate below — never keep retrying indefinitely.
 4. **Card visuals are real customer assets — verified in a browser, not
    inferred.** Every card (carousel and the secondary section) uses its
    `cardImageUrl` from `report.cards`; no base-brand placeholder icons, stale
@@ -628,6 +630,24 @@ returned success:
    (not just an admin) gets non-zero search results.
 7. Filtering by a bucket narrows results to matching assets, and only this
    company's assets appear.
+
+## Bounded visibility wait — maximum 10 minutes
+
+After upload/enrichment writes succeed, the author metadata write is not
+enough to mark `assets-enriched` or `search-scoped` done. The delivery/search
+index must show the visible outcome above: company-scoped assets, non-zero
+category facets, and category-card searches that return assets.
+
+Use the Step 6 controller's delivery-search gate (`create-collections.js`) as
+the bounded readiness check. It polls the company-scoped searchable assets and
+category facet values with `ASSET_VISIBILITY_POLL_TIMEOUT_MS` (10 minutes
+overall) and `ASSET_VISIBILITY_POLL_INTERVAL_MS`. If that deadline expires,
+**stop**: report exactly which visibility checks were still missing, leave
+`assets-enriched`, `search-scoped`, and `collections-created` pending or
+blocked, and do not call the demo complete. A later resume can continue after
+indexing catches up. The 10-minute cap is total for this post-enrichment
+visibility wait; it is separate from the per-asset
+`dam:assetState=processed` polling before metadata generation.
 
 Mark `assets-uploaded`, `assets-enriched`, `search-scoped` `done` once all
 pass.

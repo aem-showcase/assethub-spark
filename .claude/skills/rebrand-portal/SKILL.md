@@ -59,7 +59,10 @@ re-plan, or reorder it — run it and mark each step `done` as you go.
 6. **`assets-uploaded` → `assets-enriched` → `search-scoped`** — upload
    (if the assets aren't already in the company's folder) and, unless the
    customer chose to defer it (Entry flow Q2), enrich the company's assets
-   so they're searchable, scoped to the company (Step 5).
+   so they're searchable, scoped to the company (Step 5). After upload/
+   enrichment, wait at most 10 minutes total for delivery/search visibility;
+   if assets or category buckets are still missing, stop with a blocked/
+   timeout report instead of looping or calling the demo complete.
 7. **`collections-created`** — once the company's assets are searchable,
    group them into ready-made collections (one per category), each scoped
    to the company so it shows/hides with the demo company filter (Step 6).
@@ -483,10 +486,13 @@ report holds, and removes the secondary "Top Brands" block), preserving the
 block wrappers. Pull and publish that page with `publish-page.js`
 (`--pull` → edit → `--push --publish`) rather than hand-rolled DA/Helix calls.
 Scope the portal via config.js.
-Marks `assets-uploaded`, `assets-enriched`, `search-scoped`. Then continue
-to Step 6 automatically — unless `assetsEnrichNow` is `false`, in which
-case leave `assets-enriched`/`search-scoped`/`collections-created`
-`deferred` and stop here (I4).
+Marks `assets-uploaded`, `assets-enriched`, `search-scoped` only after the
+bounded visibility gate proves the assets are searchable in the portal. Then
+continue to Step 6 automatically — unless `assetsEnrichNow` is `false`, in
+which case leave `assets-enriched`/`search-scoped`/`collections-created`
+`deferred` and stop here (I4). If the 10-minute visibility gate times out,
+leave those steps pending/blocked and report the missing checks; do not use
+success-shaped completion language.
 
 ▶ **Read now, before acting** (lanes, controller flags, enrichment path,
 card visuals, verification): `.claude/skills/rebrand-portal/docs/step-5-assets.md`
@@ -498,7 +504,9 @@ card visuals, verification): `.claude/skills/rebrand-portal/docs/step-5-assets.m
 Runs **automatically after** `assets-enriched` + `search-scoped` complete
 — one collection per `productCategory`, company-scoped, via
 `scripts/assets/create-collections.js` (existing env, DM collections API,
-always `--dry-run` first). Leave `deferred` only while
+always `--dry-run` first). This controller is also the bounded visibility
+check: it may wait up to 10 minutes for searchable assets/category buckets,
+then stops with a timeout rather than retrying forever. Leave `deferred` only while
 `assets-enriched`/`search-scoped` are themselves `deferred`. Marks
 `collections-created`.
 

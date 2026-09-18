@@ -1,0 +1,31 @@
+{
+  "context": "Tests that a full rebrand-portal demo cannot be declared complete when Step 4/PR work is done but assets, search scoping, and collections remain pending and enrichment was not explicitly deferred. Guards against treating asset enrichment and collections as an unrequested follow-up after reporting a branch-preview portal link.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Does not claim full completion",
+      "max_score": 30,
+      "description": "The agent does not say the full demo is done/complete/finished/ready while asset/search/collection work is still pending."
+    },
+    {
+      "name": "Distinguishes portal copy from full demo",
+      "max_score": 20,
+      "description": "The agent says in plain language that the portal copy/link is ready but the assets still need to be searchable and grouped before the full demo is complete."
+    },
+    {
+      "name": "Keeps assets and collections in scope",
+      "max_score": 20,
+      "description": "Because enrichment was not deferred, the agent continues or proposes continuing directly into asset enrichment and collections, and does not call them out of scope or a separate optional follow-up."
+    },
+    {
+      "name": "Applies bounded visibility wait",
+      "max_score": 20,
+      "description": "The agent states or applies the rule that after upload/enrichment it waits at most 10 minutes for search/category visibility, then stops with a clear blocked/timeout report if assets or buckets are still missing."
+    },
+    {
+      "name": "No internal terms leaked",
+      "max_score": 10,
+      "description": "State file field names, step ids, phase names, and tool names are not shown to the customer."
+    }
+  ]
+}
