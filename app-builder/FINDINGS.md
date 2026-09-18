@@ -18,7 +18,7 @@ Verdict key (most → least severe): 🔴 blocks a core function · 🟡 minor �
 | **Analytics Engine** | CF Analytics Engine | Reproducible on `aio-lib-db` (event capture + aggregation) | 🟡 — capability present, minor degrade in high-volume ingestion |
 | **Secrets** | Secret Store (RBAC + audit) | Action inputs / `.env` | 🟡 — weaker isolation |
 | **Local dev** | Miniflare local KV/D1 | No local storage emulation; local dev hits cloud DB | 🟡 |
-| **Relational data** (4 tables) | **D1** — SQL, JOINs, transactions, native binding | **`aio-lib-db`** — NoSQL document; aggregation incl. `$lookup`; **no** multi-doc txn / FK | 🟢 — all 4 tables rewritten + **live**; txn/FK handled by modeling (embedded arrays) |
+| **Relational data** (4 tables) | **D1** — SQL, JOINs, transactions, native binding | **App Builder Data Services** via **`aio-lib-db`** — NoSQL document; aggregation incl. `$lookup` | 🟢 — all 4 tables rewritten + **live**; txn/FK handled by modeling (embedded arrays) |
 | **KV cache** (`AUTH_TOKENS`) | CF KV | **`aio-lib-state`** — KV, ~1 MB/item, TTL ≤ 365 d | 🟢 — ported |
 | **Routing / entry** | All traffic through one Worker at site root | Action URL `/api/v1/web/<pkg>/<action>`, not a root | 🟢 — dispatcher + **Path A** self-host under prefix (live); true domain root needs CDN |
 | **Reserved extensions** | None | `.svg/.json/.html/.text` paths intercepted → **400** (confirmed) | 🟢 — `/x-asset` proxy dodges it (live) |

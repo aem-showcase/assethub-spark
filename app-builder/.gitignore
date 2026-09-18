@@ -6,3 +6,5 @@ dist/
 
 # Local env (also covered by root .gitignore)
 .env
+.env.*
+!.env.example
