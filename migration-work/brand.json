@@ -1,22 +1,19 @@
 {
   "schemaVersion": 1,
   "provenance": {
-    "sourceUrl": "https://www.heineken.com/in/en/",
-    "finalUrl": "https://www.heineken.com/in/en/home/",
-    "pageTitle": "Welcome to the world of Heineken® | Heineken.com",
-    "extractedAt": "2026-09-17T13:03:35.090Z",
+    "sourceUrl": "https://www.zappos.com/",
+    "finalUrl": "https://www.zappos.com/",
+    "pageTitle": "Shoes, Sneakers, Boots, & Clothing + FREE SHIPPING | Zappos.com",
+    "extractedAt": "2026-09-18T19:48:51.920Z",
     "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
-    "excatRoot": "/Users/mohitar/Documents/code/aem-experience-catalyst/resources/plugins/aem-excat-plugin/excat-marketplace/excat",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
     "excatVersion": {
-      "dir": "excat",
+      "dir": "2.1.6",
       "file": "2.1.1"
     },
     "defaultContentSelectors": [],
     "gateInteraction": [
-      "consent: clicked #onetrust-accept-btn-handler",
-      "country: selected India (IN)",
-      "dob: filled 3 field(s) with 1980-01-01",
-      "submit: clicked text:enter"
+      "submit: clicked button[type=\"submit\"]"
     ],
     "gatePassed": true,
     "warnings": []
@@ -24,29 +21,29 @@
   "tokens": {
     "fonts": {
       "body": {
-        "family": "PT Sans",
-        "familySet": "\"PT Sans\", sans-serif"
+        "family": "modern-gothic-web",
+        "familySet": "modern-gothic-web, modern-gothic-fallback, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\""
       },
       "heading": {
-        "family": "HeinekenSerif18",
-        "familySet": "HeinekenSerif18, \"PT Sans\", serif"
+        "family": "modern-gothic-bold",
+        "familySet": "modern-gothic-bold"
       },
       "headingSizes": {
         "xxl": {
           "mobile": "36px",
-          "desktop": "36px"
+          "desktop": "16px"
         },
         "xl": {
           "mobile": "28px",
-          "desktop": "60px"
+          "desktop": "18px"
         },
         "l": {
           "mobile": "24px",
-          "desktop": "11px"
+          "desktop": "18px"
         },
         "m": {
           "mobile": "20px",
-          "desktop": "14px"
+          "desktop": ""
         },
         "s": {
           "mobile": "18px",
@@ -64,105 +61,158 @@
     },
     "colors": {
       "background": "rgb(255, 255, 255)",
-      "text": "rgb(153, 153, 153)",
-      "link": "rgb(100, 100, 100)",
+      "text": "rgb(0, 0, 0)",
+      "link": "rgb(0, 0, 0)",
       "linkHover": null,
       "light": "",
       "dark": ""
     },
     "spacing": {
       "sectionPadding": "0px",
-      "contentMaxWidth": "1920px",
-      "navHeight": "90px"
+      "contentMaxWidth": "",
+      "navHeight": "40px"
     },
     "favicons": [
       {
-        "url": "https://www.heineken.com/media/bekjkjk0/hnk-favicon.ico",
-        "rel": "shortcut icon",
+        "url": "https://m.media-amazon.com/images/G/01/zappos/ui/favicon._CB1752870887_.png",
+        "rel": "icon",
+        "sizes": "32x32"
+      },
+      {
+        "url": "https://m.media-amazon.com/images/G/01/zappos/ui/icon._CB1752871431_.svg",
+        "rel": "icon",
+        "type": "image/svg+xml"
+      },
+      {
+        "url": "https://m.media-amazon.com/images/G/01/zappos/ui/apple-touch-icon._CB1752870887_.png",
+        "rel": "apple-touch-icon"
+      },
+      {
+        "url": "https://www.zappos.com/favicon.ico",
+        "rel": "icon",
+        "sizes": "16x16",
         "type": "image/x-icon"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=152&height=152&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "152x152"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=144&height=144&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "144x144"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=120&height=120&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "120x120"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=114&height=114&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "114x114"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=76&height=76&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "76x76"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=72&height=72&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "72x72"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=57&height=57&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed"
       }
     ],
-    "defaultContentCss": "h1 {\n  font-size: 36px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 41.4px;\n  color: rgb(19, 103, 11);\n  margin: 0px 0px 20px;\n}\n\nh2 {\n  font-size: 60px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 69px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 20px;\n}\n\nh3 {\n  font-size: 11px;\n  font-weight: 700;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 13px;\n  letter-spacing: 1px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 5px;\n}\n\np {\n  font-size: 14px;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 30px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 10px;\n}\n",
+    "defaultContentCss": "h1 {\n  font-size: 16px;\n  font-weight: 400;\n  font-family: modern-gothic-web, modern-gothic-fallback, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n  line-height: 21.6px;\n  letter-spacing: -0.16px;\n  color: rgb(0, 0, 0);\n  margin: -1px;\n}\n\nh2 {\n  font-size: 24px;\n  font-weight: 500;\n  font-family: caslon-ionic-web, caslon-ionic-fallback, ui-serif, serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n  line-height: 28.8px;\n  letter-spacing: -0.36px;\n  color: rgb(0, 0, 0);\n}\n\nh3 {\n  font-size: 18px;\n  font-weight: 500;\n  font-family: modern-gothic-web, modern-gothic-fallback, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n  line-height: 21.6px;\n  letter-spacing: -0.18px;\n  color: rgb(0, 0, 0);\n}\n\np {\n  font-size: 16px;\n  font-family: modern-gothic-web, modern-gothic-fallback, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n  line-height: 19.2px;\n  color: rgb(0, 0, 0);\n}\n",
     "accents": [
       {
-        "hex": "#13670b",
-        "weight": 658328,
-        "why": [
-          "background",
-          "border"
-        ]
-      },
-      {
-        "hex": "#1b4677",
-        "weight": 9444,
+        "hex": "#ffecd4",
+        "weight": 853448,
         "why": [
           "background"
         ]
       },
       {
-        "hex": "#346e4a",
-        "weight": 2500,
-        "why": [
-          "border"
-        ]
-      },
-      {
-        "hex": "#6aaae4",
-        "weight": 2500,
+        "hex": "#ffe336",
+        "weight": 384755,
         "why": [
           "background"
         ]
       },
       {
-        "hex": "#32ae88",
-        "weight": 1300,
+        "hex": "#ffe300",
+        "weight": 18432,
         "why": [
-          "border",
-          "svg-fill"
+          "background"
         ]
       },
       {
         "hex": "#ff0000",
-        "weight": 535,
+        "weight": 5000,
+        "why": [
+          "interactive-text"
+        ]
+      },
+      {
+        "hex": "#fcc719",
+        "weight": 2257,
         "why": [
           "background"
         ]
       }
     ]
   },
-  "tokenMap": []
+  "tokenMap": [
+    {
+      "role": "surface/light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFECD4",
+      "cssVar": "--light-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#FF0000",
+      "cssVar": "--primary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#FF0000",
+      "cssVar": "--link-hover-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color-hover",
+      "oldHex": "#004D61",
+      "newHex": "#CC0000",
+      "cssVar": "--primary-color-hover",
+      "source": "derived",
+      "derivedFrom": "#FF0000"
+    },
+    {
+      "role": "secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#1A1A1A",
+      "cssVar": "--secondary-color",
+      "source": "derived",
+      "derivedFrom": "#000000"
+    },
+    {
+      "role": "color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#1A1A1A",
+      "cssVar": "--color-dark-red",
+      "source": "derived",
+      "derivedFrom": "#000000"
+    },
+    {
+      "role": "text-color",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--text-primary",
+      "source": "extracted"
+    },
+    {
+      "role": "link-color",
+      "oldHex": "#58181D",
+      "newHex": "#000000",
+      "cssVar": "--link-color",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#FFE300",
+      "cssVar": "--accent-secondary",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#FFE336",
+      "cssVar": "--accent-tertiary",
+      "source": "extracted"
+    }
+  ]
 }
