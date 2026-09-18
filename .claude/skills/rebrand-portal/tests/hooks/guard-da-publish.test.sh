@@ -21,14 +21,28 @@ trap 'rm -rf "$SB"' EXIT
 # Two independent worktrees, each with its own state file, plus a main
 # checkout whose state is a *different* company (simulating a concurrent
 # session having written it).
+#
+# daFolder is `/companies/<companyKey>` (I6) — foldered demos live under one
+# `companies` container. The fixture used the older flat `/<companyKey>` form
+# and drifted out of sync with the guard, which was invisible for as long as
+# this suite was never executed by anything (it was not in vitest.config.js).
 for co in apple xiaomi; do
   mkdir -p "$SB/wt-$co/.internal"
   ( cd "$SB/wt-$co" && git init -q && git config user.email t@t && git config user.name t )
-  printf '{"customer":{"daFolder":"/%s"}}' "$co" > "$SB/wt-$co/.internal/onboarding-state.json"
+  printf '{"customer":{"daFolder":"/companies/%s"}}' "$co" > "$SB/wt-$co/.internal/onboarding-state.json"
 done
 mkdir -p "$SB/main/.internal"
 ( cd "$SB/main" && git init -q && git config user.email t@t && git config user.name t )
-printf '{"customer":{"daFolder":"/xiaomi"}}' > "$SB/main/.internal/onboarding-state.json"
+printf '{"customer":{"daFolder":"/companies/xiaomi"}}' > "$SB/main/.internal/onboarding-state.json"
+
+# A demo worktree with NO state of its own. `.internal/` is gitignored, so a fresh
+# `git worktree add` starts without it. Falling back to main here would authorise the
+# demo against whatever company ran last (observed: a Disney copy judged against
+# /companies/woolworths, then denied as "outside the company folder" — a true statement
+# that names the wrong problem and sent a run chasing credentials for hours).
+mkdir -p "$SB/wt-nostate"
+( cd "$SB/wt-nostate" && git init -q && git config user.email t@t && git config user.name t )
+NOSTATE="$SB/wt-nostate"
 
 export CLAUDE_PROJECT_DIR="$SB/main"   # harness always points this at main
 APPLE="$SB/wt-apple"
@@ -45,13 +59,13 @@ run() { # $1 label  $2 expected(allow|block)  $3 event-json
 }
 
 # Core collision fix: env points at main (xiaomi) but the command targets
-# the apple worktree; the guard must read apple's state and allow /apple.
-run "publish /apple in apple worktree (env=xiaomi) allowed" allow \
-  "$(ev Bash "{\"command\":\"cd $APPLE && curl -X POST $DA/copy/o/r/f -F destination=/apple/en\"}")"
+# the apple worktree; the guard must read apple's state and allow /companies/apple.
+run "publish /companies/apple in apple worktree (env=xiaomi) allowed" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && curl -X POST $DA/copy/o/r/f -F destination=/companies/apple/en\"}")"
 
 # Real out-of-scope publish inside the apple worktree is still blocked.
-run "publish /disney in apple worktree blocked" block \
-  "$(ev Bash "{\"command\":\"cd $APPLE && curl -X POST $DA/copy/o/r/f -F destination=/disney/en\"}")"
+run "publish /companies/disney in apple worktree blocked" block \
+  "$(ev Bash "{\"command\":\"cd $APPLE && curl -X POST $DA/copy/o/r/f -F destination=/companies/disney/en\"}")"
 
 # False positive #1: grep whose argument is the copy-folder.sh path.
 run "grep over copy-folder.sh path allowed" allow \
@@ -71,13 +85,47 @@ run "copy-folder.sh org repo apple (in apple wt) allowed" allow \
 run "cat copy-folder.sh with trailing args allowed" allow \
   "$(ev Bash "{\"command\":\"cat scripts/da/copy-folder.sh org repo samsung\"}")"
 
-# No worktree parseable -> falls back to main state (/xiaomi); a /apple
-# publish is then correctly blocked (fail-safe, not silently allowed).
-run "no-cd publish /apple falls back to main state, blocked" block \
-  "$(ev Bash "{\"command\":\"curl -X POST $DA/copy/o/r/f -F destination=/apple/en\"}")"
+# No worktree parseable -> falls back to main state (/companies/xiaomi); a
+# /companies/apple publish is then correctly blocked (fail-safe, not silently allowed).
+run "no-cd publish /companies/apple falls back to main state, blocked" block \
+  "$(ev Bash "{\"command\":\"curl -X POST $DA/copy/o/r/f -F destination=/companies/apple/en\"}")"
 
 # Edit-family tools short-circuit to allow.
 run "Edit tool allowed" allow "$(ev Edit "{\"file_path\":\"/x\"}")"
+
+# Packaged publish CLI: the URLs live inside the script, so only --path is visible.
+# Without the rule for it, the supported route would be the one route that escapes scope.
+PPCLI=".claude/skills/rebrand-portal/scripts/assets/publish-page.js"
+run "publish-page.js --push outside the company folder blocked" block \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --push /tmp/i.html\"}")"
+run "publish-page.js --publish outside the company folder blocked" block \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path=companies/samsung/en/index --publish\"}")"
+run "publish-page.js --push inside the company folder allowed" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/apple/en/index --push /tmp/i.html\"}")"
+run "publish-page.js --pull outside the folder allowed (a read is not a publish)" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --pull /tmp/i.html\"}")"
+run "publish-page.js --dry-run outside the folder allowed" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && node $PPCLI --path companies/samsung/en/index --publish --dry-run\"}")"
+run "grep for the publish CLI path allowed (mention, not invocation)" allow \
+  "$(ev Bash "{\"command\":\"cd $APPLE && grep -rn '$PPCLI --path companies/samsung/en/index --push' docs/\"}")"
+
+# A worktree without its own state must be blocked, and the message must name the
+# missing state file -- NOT report the target as "outside" some unrelated company's
+# folder, which is what sent a live run chasing credentials and guards for hours.
+run "worktree with no state file is blocked" block \
+  "$(ev Bash "{\"command\":\"cd $NOSTATE && curl -X POST $DA/copy/o/r/f -F destination=/companies/disney-in/en\"}")"
+
+nostate_msg="$(ev Bash "{\"command\":\"cd $NOSTATE && curl -X POST $DA/copy/o/r/f -F destination=/companies/disney-in/en\"}" | bash "$HOOK" 2>&1 || true)"
+if printf '%s' "$nostate_msg" | grep -q 'onboarding-state.json'; then
+  pass=$((pass+1)); echo "ok   missing-state message names the state file"
+else
+  fail=$((fail+1)); echo "FAIL missing-state message does not name the state file: $nostate_msg"
+fi
+if printf '%s' "$nostate_msg" | grep -q '/companies/xiaomi'; then
+  fail=$((fail+1)); echo "FAIL missing-state message leaked the fallback company folder"
+else
+  pass=$((pass+1)); echo "ok   missing-state message does not name an unrelated company"
+fi
 
 echo "----"; echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Zappos mark">
+  <ellipse cx="60" cy="60" rx="34" ry="22" fill="#FF0000" transform="rotate(-25 60 60)"/>
+  <ellipse cx="140" cy="55" rx="30" ry="20" fill="#CC0000" transform="rotate(20 140 55)"/>
+  <ellipse cx="100" cy="130" rx="38" ry="24" fill="#FF0000" transform="rotate(5 100 130)"/>
+  <ellipse cx="45" cy="150" rx="26" ry="17" fill="#CC0000" transform="rotate(-15 45 150)"/>
+  <ellipse cx="160" cy="145" rx="26" ry="17" fill="#FFECD4" transform="rotate(30 160 145)"/>
+</svg>

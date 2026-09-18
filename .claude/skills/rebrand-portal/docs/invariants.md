@@ -50,7 +50,8 @@
   open PR is the deliverable (I3). If the customer wants to start over,
   **ask first**, then create a **new** branch and a **new** PR, leaving
   the existing one untouched.
-- **I6 — Company key must not collide with site/runtime paths.**
+- **I6 — Company key must not collide with site/runtime paths, and must be
+  shortcode-safe.**
   `customer.companyKey` becomes the DA content folder and portal base path
   **`/companies/<companyKey>`** (foldered demos live under one `companies`
   container so the DA root stays uncluttered — `customer.daFolder =
@@ -60,6 +61,18 @@
   names such as `companies`, `en`, `ja`, `config`, `login`, `public`, `api`, `auth`,
   `tools`, `scripts`, `styles`, `blocks`, `icons`, `media`, and `fonts`.
   Use a specific slug instead, e.g. `acme-demo`.
+  **Reject a trailing `-<digit>` segment** (`heineken-3`, `acme-2`). The key
+  also becomes the icon shortcode `:<companyKey>-icon:`, and AEM's shortcode →
+  `<span class="icon">` converter does not handle a `-<digit>-` segment: the
+  shortcode ships to the page as literal text. This happened — a header
+  rendered the words `:heineken-3-icon:`. Note that `icon-render` will NOT
+  catch it, because the SVG file exists and is perfectly valid; the failure is
+  in the conversion, not the asset.
+  **A `-2`/`-3` suffix belongs on the BRANCH, never on the companyKey.**
+  `step-1-2-branch.md` disambiguates repeat demos by branch name
+  (`demo/heineken-3`); that suffix must not propagate into `companyKey`, which
+  stays `heineken` for every repeat. Conflating the two is what produced the
+  broken key.
 - **I7 — Publish every copied path, not a hand-picked subset.** Step 3 copies
   the whole site; Step 4's publish must cover **all** of it. After publishing,
   reconcile the published set against everything Step 3 copied (enumerate the
@@ -89,3 +102,42 @@
   (copy) and flag the conflict in one line; never silently symlink, and never
   defend a symlink setup as correct when asked where to edit — the answer is
   always this worktree's own file.
+- **I10 — No brand colour without provenance.** Every colour that lands in the
+  theme must trace to something measured from the customer's real source site.
+  `migration-work/brand.json` is that measurement, written by
+  `scripts/rebrand/extract-brand.mjs`; each `tokenMap` entry declares
+  `source: "extracted"` (the value is one of the measured `tokens.colors`) or
+  `source: "derived"` **with** `derivedFrom` naming the measured colour it came
+  from. A colour that is neither is a fabrication, and `validateBrand()`
+  rejects it.
+  This exists because recalling a brand's palette is easy, confident, and
+  frequently wrong — and because nothing downstream could previously tell a
+  measured colour from a remembered one. Do not hand-write or hand-edit
+  `brand.json`; do not clear `gatePassed` to get past a halt. If the source
+  cannot be measured (age gate, bot wall, no usable URL), that is a reportable
+  outcome to raise with the customer, not a licence to proceed from memory.
+  Note that an age gate is usually a *form*, not a wall: `extract-brand.mjs`
+  dismisses consent banners and fills country/date-of-birth by itself, and takes
+  `--country XX` / `--dob YYYY-MM-DD` when a gate needs a hint. Whatever it did
+  is recorded in `provenance.gateInteraction`, and gate detection runs again
+  afterwards — so passing a gate can only ever turn a halt into a real
+  measurement, never into a false pass. Exhaust that before escalating.
+  Measured colour also includes `tokens.accents[]`, not just `tokens.colors`:
+  excat samples background/text/link only, which on Heineken is white, grey and
+  grey, while the signature green lives on buttons and SVG fills. The accents
+  are measured from the same rendered page and are therefore legitimate here.
+- **I11 — Copied content is rewritten or deleted — never left as-is.** I7
+  guarantees everything copied gets *published*; this guarantees it gets
+  *rebranded*. A page copied from the base template and published untouched is
+  worse than a missing page, because it looks finished and carries another
+  company's content under this customer's name.
+  Concretely: no link under `/companies/<companyKey>/` may resolve to a page
+  still carrying base-template titles, bodies, or images; and a card retitled
+  for the new company must have its **destination** rewritten too, not just its
+  label. Retitling a card while leaving it pointing at
+  `/companies/<key>/en/brands/north-roast-coffee` is the exact defect that has
+  now shipped **twice** — once on a Workday demo and again on a Heineken demo
+  nine days later, with the same orphan pages both times. Reconcile the copied
+  set against the rewritten set the same way I7 reconciles it against the
+  published set, and delete what the demo does not need rather than leaving it
+  to be found.

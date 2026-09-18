@@ -13,18 +13,24 @@
 # args (SKILL.md Step 4) to keep them visible here.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
-# Claude Code and Copilot CLI PreToolUse hooks.
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for Claude Code and Copilot CLI
+# PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
 
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
+
 # Fallback state file only — the real resolution happens in Python below,
 # scoped to the worktree the command actually targets. This env value is
 # the last resort when no worktree can be parsed from the command.
 FALLBACK_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
+export FALLBACK_PROJECT_DIR
 export FALLBACK_STATE_FILE="${FALLBACK_PROJECT_DIR}/.internal/onboarding-state.json"
 
 python3 <<'PY'
@@ -34,8 +40,17 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
+
 blob = os.environ.get("HOOK_INPUT", "") or ""
 fallback_state_file = os.environ.get("FALLBACK_STATE_FILE", "")
+FALLBACK_PROJECT_DIR = os.environ.get("FALLBACK_PROJECT_DIR", "")
+
+# Sentinel: a demo worktree was identified from the command, but it has no
+# onboarding state of its own. Distinct from "no worktree named at all",
+# which legitimately falls back to the main checkout.
+MISSING_WORKTREE_STATE = "\0missing-worktree-state"
 
 try:
     event = json.loads(blob) if blob.strip().startswith("{") else {}
@@ -50,11 +65,19 @@ tool_name = (
 if tool_name in {"Write", "Edit", "MultiEdit", "NotebookEdit", "str_replace_editor"}:
     sys.exit(0)
 
-tool_input = (
-    event.get("tool_input")
-    or (event.get("tool") or {}).get("input")
-    or {}
-)
+
+# Host CLIs disagree on the argument key: Claude Code sends tool_input, Copilot CLI sends
+# toolArgs. Reading only one dialect makes the guard silently inert on the other host.
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+tool_input = tool_input_of(event)
 command = tool_input.get("command", "") if isinstance(tool_input, dict) else ""
 
 
@@ -79,10 +102,11 @@ def resolve_state_file():
         candidate_dirs.append(m.group(1).strip().strip("'\""))
 
     # An absolute path to a repo file/script also identifies the worktree
-    # (e.g. /…/assethub-spark.worktrees/demo-acme/.claude/skills/…/copy-folder.sh).
+    # (e.g. /…/<mainRoot>/.worktrees/demo-acme/.claude/skills/…/copy-folder.sh).
     for pm in re.finditer(r"(/[^\s;&|'\"]+/\.claude/skills/rebrand-portal/[^\s;&|'\"]+)", command):
         candidate_dirs.append(os.path.dirname(pm.group(1)))
 
+    resolved_worktree = None
     for d in candidate_dirs:
         try:
             root = subprocess.run(
@@ -95,6 +119,18 @@ def resolve_state_file():
             sf = os.path.join(root, ".internal", "onboarding-state.json")
             if os.path.isfile(sf):
                 return sf
+            # A real worktree was identified but carries no state file
+            # (.internal/ is gitignored, so `git worktree add` starts without
+            # it). Falling back to the main checkout here would silently
+            # authorise this demo against WHATEVER company ran last — e.g.
+            # approving a Disney copy against /companies/woolworths, then
+            # denying it as "outside the company folder". Remember it so we
+            # can say what is actually wrong instead of guessing.
+            if resolved_worktree is None:
+                resolved_worktree = root
+
+    if resolved_worktree and resolved_worktree != FALLBACK_PROJECT_DIR:
+        return MISSING_WORKTREE_STATE
 
     return fallback_state_file
 
@@ -103,12 +139,14 @@ state_file = resolve_state_file()
 
 # Resolve the allowed company folder from the onboarding state file.
 da_folder = None
-try:
-    with open(state_file, "r", encoding="utf-8") as fh:
-        state = json.load(fh)
-    da_folder = (state.get("customer") or {}).get("daFolder")
-except (OSError, ValueError):
-    da_folder = None
+missing_worktree_state = state_file == MISSING_WORKTREE_STATE
+if not missing_worktree_state:
+    try:
+        with open(state_file, "r", encoding="utf-8") as fh:
+            state = json.load(fh)
+        da_folder = (state.get("customer") or {}).get("daFolder")
+    except (OSError, ValueError):
+        da_folder = None
 
 if isinstance(da_folder, str):
     da_folder = da_folder.strip().rstrip("/")
@@ -128,13 +166,12 @@ def under_folder(path):
 
 
 def deny(reason):
-    sys.stderr.write(
-        "Blocked by rebrand-portal publish guard: " + reason + "\n"
-        "Demo publishes are scoped to the company folder "
-        f"({da_folder or '<unset>'}). "
-        "Only publish paths under that folder.\n"
+    guardlib.deny(
+        "publish",
+        reason,
+        route="demo publishes are scoped to the company folder "
+              f"({da_folder or '<unset>'}). Only publish paths under that folder.",
     )
-    sys.exit(2)
 
 
 # Only an executed shell command can publish/copy. Scan the Bash command
@@ -210,7 +247,33 @@ if scan:
         if not under_folder(company):
             violations.append("DA copy script destination -> " + company)
 
+    # 5) Packaged publish CLI. It builds both the DA source URL and the Helix admin
+    #    URL internally, so neither literal appears in the command and rules 1-2 see
+    #    nothing. Its --path is the target; enforce it directly, or the supported
+    #    route would be the one route that escapes folder scope.
+    if re.search(
+        r"(?:^|[;&|]|\bnode\s+|(?<=\s)\./)\s*"
+        r"(?:[^\s\"';&|]*/)?scripts/assets/publish-page\.js\b",
+        scan,
+    ):
+        writes = re.search(r"--(?:push|publish|preview-only)(?:\s|=|$)", scan)
+        if writes and not re.search(r"--dry-run(?:\s|=|$)", scan):
+            pm = re.search(r"--path[=\s]+([^\s\"';&|]+)", scan)
+            path = pm.group(1) if pm else ""
+            if not under_folder(path):
+                violations.append("publish-page.js --path -> " + (path or "(missing)"))
+
 if violations:
+    if missing_worktree_state:
+        guardlib.deny(
+            "publish",
+            "this command targets a demo worktree that has no "
+            ".internal/onboarding-state.json of its own, so the company folder cannot "
+            "be resolved. `.internal/` is gitignored, so a fresh `git worktree add` "
+            "starts without it. This is NOT a problem with the command, the "
+            "credentials, or the target path. Violations: " + "; ".join(violations),
+            route="recreate the worktree's state file (Step 2) and re-run.",
+        )
     if not da_folder:
         deny(
             "no company folder resolved yet (customer.daFolder unset) — "

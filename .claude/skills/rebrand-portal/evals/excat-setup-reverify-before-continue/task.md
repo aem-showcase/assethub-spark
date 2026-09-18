@@ -26,8 +26,9 @@ install instructions again as if the operator hadn't done anything.
 ## Output Specification
 
 The agent must:
-- Re-check plugin/skill availability (run `claude plugin list` and/or
-  `claude skill list` via Bash, or invoke the skill to confirm it's
+- Re-check readiness by running `scripts/rebrand/extract-brand.mjs --check`
+  via Bash (exit 0 means ready). Do not substitute `claude plugin list` or a
+  file-existence check; those pass on a machine with no browser. Confirm it's
   reachable) before proceeding.
 - Confirm `excat-complete-design-expert` is now invokable.
 - Unblock `rebranded` in state (set back to `pending` or proceed into

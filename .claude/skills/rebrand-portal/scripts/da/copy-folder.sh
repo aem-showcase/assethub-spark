@@ -138,8 +138,12 @@ PY
 }
 
 # entries: read a list JSON on stdin, emit "TYPE<TAB>relpath" per entry, where
-# TYPE is F(ile) or D(irectory) and relpath is under /{org}/{repo}. For files
-# the extension is appended so the value is the real document path.
+# TYPE is F(ile) or D(irectory) and relpath is under /{org}/{repo}. DA's
+# "path" field already carries the extension for files (e.g. "login.html",
+# "en/about.html"), so it is used as-is — appending "ext" again duplicated it
+# ("login.html.html"), which silently failed the "login.html" allowlist match
+# and excluded the login page from every company copy. "ext" is only used to
+# distinguish a file from a folder (folders have no ext field).
 entries() {
   # NOTE: uses python3 -c (not a heredoc) so stdin stays the piped list JSON.
   python3 -c '
@@ -155,7 +159,7 @@ for it in data:
     rel=p[len(pref):] if p.startswith(pref) else p.lstrip("/")
     if not rel: continue
     ext=it.get("ext")
-    print(("F\t%s.%s"%(rel,ext)) if ext else ("D\t%s"%rel))
+    print(("F\t%s"%rel) if ext else ("D\t%s"%rel))
 ' "$ORG" "$REPO"
 }
 

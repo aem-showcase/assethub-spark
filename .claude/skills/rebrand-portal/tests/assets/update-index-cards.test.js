@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   cardRowHtml,
+  cardsBlockInnerHtml,
   replaceBlockRows,
+  splitTopLevelRows,
+  removeBlock,
   updateIndexCards,
 } from '../../scripts/assets/update-index-cards.js';
+import { MAX_CARDS } from '../../scripts/assets/constants.js';
 
 const cardA = {
   slug: 'dermatology',
@@ -58,6 +62,67 @@ describe('replaceBlockRows', () => {
   });
 });
 
+// The route that actually happened. A live run's `apply-index-cards.mjs` imported
+// `replaceBlockRows` directly rather than calling updateIndexCards, so a ceiling that
+// lived only in the orchestrator would have been bypassed by the one deviation observed
+// in practice. These tests pin the cap to the primitives themselves.
+describe('ceiling holds when the primitives are imported directly (ad-hoc script route)', () => {
+  const manyCards = Array.from({ length: 9 }, (_, i) => ({
+    ...cardA, slug: `c${i}`, label: `Cat ${i}`,
+  }));
+
+  it('cardsBlockInnerHtml emits at most MAX_CARDS rows', () => {
+    const inner = cardsBlockInnerHtml(manyCards, { withBrowseLink: true });
+    expect(splitTopLevelRows(inner)).toHaveLength(MAX_CARDS);
+  });
+
+  it('replaceBlockRows trims caller-built HTML to MAX_CARDS rows', () => {
+    // Bypasses cardsBlockInnerHtml entirely — hand-rolled row HTML, as a script that
+    // reimplements the markup would produce.
+    const handRolled = Array.from(
+      { length: 12 },
+      (_, i) => `<div><div>img${i}</div><div><h3>Cat ${i}</h3></div></div>`,
+    ).join('\n');
+    const out = replaceBlockRows(
+      '<div class="carousel tiles"><div>OLD</div></div>',
+      ['carousel', 'tiles'],
+      handRolled,
+    );
+    expect(out).toContain('Cat 0');
+    expect(out).not.toContain('Cat 5');
+    expect(out).not.toContain('Cat 11');
+  });
+
+  it('does not trim a block that carries fewer rows than the ceiling', () => {
+    const three = Array.from({ length: 3 }, (_, i) => `<div><h3>Cat ${i}</h3></div>`).join('\n');
+    const out = replaceBlockRows('<div class="cards"><div>OLD</div></div>', ['cards'], three);
+    expect(out).toContain('Cat 0');
+    expect(out).toContain('Cat 2');
+  });
+
+  it('leaves non-card blocks untouched, however many rows they carry', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => `<div>row${i}</div>`).join('\n');
+    const out = replaceBlockRows('<div class="columns"><div>OLD</div></div>', ['columns'], rows);
+    expect(out).toContain('row11');
+  });
+
+  it('splitTopLevelRows counts nested rows as one', () => {
+    expect(splitTopLevelRows('<div><div>a</div><div>b</div></div><div>c</div>')).toHaveLength(2);
+  });
+});
+
+describe('removeBlock', () => {
+  it('removes the whole block including its wrapper', () => {
+    const html = '<p>a</p><div class="cards"><div><span>x</span></div></div><p>b</p>';
+    expect(removeBlock(html, ['cards'])).toBe('<p>a</p><p>b</p>');
+  });
+
+  it('returns the HTML unchanged when the block is absent', () => {
+    const html = '<p>a</p><div class="other"></div>';
+    expect(removeBlock(html, ['cards'])).toBe(html);
+  });
+});
+
 describe('updateIndexCards', () => {
   const indexHtml = [
     '<div class="search-hero category-tiles">',
@@ -68,22 +133,37 @@ describe('updateIndexCards', () => {
     '</div>',
   ].join('\n');
 
-  it('rewrites the carousel from report.cards (all in carousel by default)', () => {
+  it('rewrites the carousel from report.cards and removes the Top Brands block', () => {
     const out = updateIndexCards(indexHtml, { cards: [cardA, cardB] });
     expect(out).toContain('<h3>Dermatology</h3>');
     expect(out).toContain('<h3>Cancer</h3>');
     expect(out).toContain('Browse →');
     expect(out).not.toContain('<h3>Old</h3>');
-    // The cards block is left as-is when topAreasCount is 0.
-    expect(out).toContain('<h3>OldBrand</h3>');
+    // The secondary "Top Brands" block is removed outright, so its copied placeholder
+    // content cannot ship stale.
+    expect(out).not.toContain('<h3>OldBrand</h3>');
+    expect(out).not.toContain('class="cards"');
   });
 
-  it('splits the last N cards into the secondary cards block', () => {
-    const out = updateIndexCards(indexHtml, { cards: [cardA, cardB] }, { topAreasCount: 1 });
-    // cardA -> carousel (with Browse link), cardB -> cards block (linked heading, no Browse).
+  it('is a no-op on the Top Brands block when it has already been removed', () => {
+    const withoutTop = [
+      '<div class="search-hero category-tiles">',
+      '<div class="carousel tiles"><div><div><picture></picture></div><div><h3>Old</h3></div></div></div>',
+      '</div>',
+    ].join('\n');
+    const out = updateIndexCards(withoutTop, { cards: [cardA] });
     expect(out).toContain('<h3>Dermatology</h3>');
-    expect(out).toContain('<h3><a href="/en/search?facetFilters=cancer">Cancer</a></h3>');
-    expect(out).not.toContain('<h3>OldBrand</h3>');
+  });
+
+  it('caps the carousel at MAX_CARDS however many cards the report holds', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({
+      ...cardA, label: `Cat${i}`, slug: `cat${i}`, href: `/en/search?facetFilters=cat${i}`,
+    }));
+    const out = updateIndexCards(indexHtml, { cards: many });
+    const rendered = many.filter((c) => out.includes(`<h3>${c.label}</h3>`));
+    expect(rendered).toHaveLength(MAX_CARDS);
+    expect(out).toContain('<h3>Cat0</h3>');
+    expect(out).not.toContain('<h3>Cat8</h3>');
   });
 
   it('throws on an empty report', () => {

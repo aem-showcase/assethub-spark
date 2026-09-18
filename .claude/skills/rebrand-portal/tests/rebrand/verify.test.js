@@ -1,11 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   checkHeaderLogo, checkResidue, checkStaleCardImages,
   checkStructuralResidue, checkIconReferenceResolution, checkWelcomeHeaderHomeLink,
+  checkCardCeiling, checkCardCount, checkAccessJson,
 } from '../../scripts/rebrand/verify.mjs';
+import { MAX_CARDS } from '../../scripts/assets/constants.js';
 
 function makeRepo() {
   const root = mkdtempSync(join(tmpdir(), 'verify-'));
@@ -351,5 +353,187 @@ export default async function decorate(block) {
       expect(r.pass).toBe(false);
       expect(r.reason).toMatch(/no longer has/);
     } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+/**
+ * B4 — the ceiling asserted against the DELIVERED ARTIFACT.
+ *
+ * Every earlier card check read report.json: the file the run writes about itself. A page
+ * authored by some other route (hand-edited HTML, ad-hoc script, raw curl) produces a
+ * report that says nothing about what shipped — which is exactly how `stale-card-images`
+ * passed its check and shipped the defect twice.
+ */
+describe('checkCardCeiling (published HTML)', () => {
+  const row = (i) => `<div><div><picture><img src="/i${i}.jpg"></picture></div><div><h3>Cat${i}</h3></div></div>`;
+  const page = (n, { withTopBrands = false } = {}) => [
+    '<body><main>',
+    `<div class="carousel tiles">${Array.from({ length: n }, (_, i) => row(i)).join('')}</div>`,
+    withTopBrands ? `<div class="cards">${row(99)}</div>` : '',
+    '</main></body>',
+  ].join('');
+
+  const withFetch = async (html, fn) => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, status: 200, text: async () => html,
+    });
+    try { return await fn(); } finally { spy.mockRestore(); }
+  };
+
+  it('FAILS when more than MAX_CARDS categories are published', async () => {
+    const r = await withFetch(page(9), () => checkCardCeiling('preview.test', 'acme'));
+    expect(r.pass).toBe(false);
+    expect(r.reason).toMatch(/9 category cards/);
+  });
+
+  it('PASSES at exactly MAX_CARDS with no secondary cards block', async () => {
+    const r = await withFetch(page(MAX_CARDS), () => checkCardCeiling('preview.test', 'acme'));
+    expect(r.pass).toBe(true);
+  });
+
+  it('FAILS when a Top Brands block is still published', async () => {
+    const r = await withFetch(
+      page(MAX_CARDS, { withTopBrands: true }),
+      () => checkCardCeiling('preview.test', 'acme'),
+    );
+    expect(r.pass).toBe(false);
+    expect(r.reason).toMatch(/Top Brands/);
+  });
+
+  it('needs --preview and --company', async () => {
+    expect((await checkCardCeiling(null, 'acme')).pass).toBe(false);
+    expect((await checkCardCeiling('preview.test', null)).pass).toBe(false);
+  });
+});
+
+describe('checkCardCount ceiling', () => {
+  const writeReport = (cards) => {
+    const dir = mkdtempSync(join(tmpdir(), 'verify-report-'));
+    const p = join(dir, 'report.json');
+    writeFileSync(p, JSON.stringify({ cards }));
+    return { p, dir };
+  };
+  const card = (i) => ({ slug: `c${i}`, label: `C${i}`, href: `/h${i}`, cardImageUrl: `/i${i}.jpg` });
+
+  it('FAILS a report that exceeds the ceiling', () => {
+    const { p, dir } = writeReport(Array.from({ length: MAX_CARDS + 1 }, (_, i) => card(i)));
+    try {
+      expect(checkCardCount(p).pass).toBe(false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('PASSES at exactly MAX_CARDS', () => {
+    const { p, dir } = writeReport(Array.from({ length: MAX_CARDS }, (_, i) => card(i)));
+    try {
+      expect(checkCardCount(p).pass).toBe(true);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+describe('checkAccessJson', () => {
+  const sheet = (data) => ({
+    total: data.length,
+    limit: data.length,
+    offset: 0,
+    data,
+    ':type': 'sheet',
+  });
+  const res = ({ status = 200, body = {} } = {}) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  });
+
+  it('PASSES when company-scoped access sheets are published and grant preview', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'preview,sudo' }]),
+      }))
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'mohitar@adobe.com', roles: 'admin' }]),
+      }));
+
+    const result = await checkAccessJson('preview.test', 'disney-in', fetchFn);
+
+    expect(result.pass).toBe(true);
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://preview.test/companies/disney-in/config/access/application.json',
+      { redirect: 'manual' },
+    );
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      2,
+      'https://preview.test/companies/disney-in/config/access/users.json',
+      { redirect: 'manual' },
+    );
+  });
+
+  it('reads the branch AEM origin when given a dev worker preview host', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'preview' }]),
+      }))
+      .mockResolvedValueOnce(res({ body: sheet([]) }));
+
+    await checkAccessJson('demo-disney-in-6.dev.frescopamedia.com', 'disney-in', fetchFn);
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://demo-disney-in-6--assethub-spark--aem-showcase.aem.page/companies/disney-in/config/access/application.json',
+      { redirect: 'manual' },
+    );
+  });
+
+  it('FAILS when application.json is not published under the company folder', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({ status: 404 })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/application\.json.*404/);
+  });
+
+  it('FAILS when users.json is not published under the company folder', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: ['preview'] }]),
+      }))
+      .mockResolvedValueOnce(res({ status: 404 }));
+
+    const result = await checkAccessJson('preview.test', 'disney-in', fetchFn);
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/users\.json.*404/);
+  });
+
+  it('FAILS when application.json has no preview permission grant', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({
+        body: sheet([{ email: 'adobe.com', permissions: 'sudo' }]),
+      })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/no row granting preview/);
+  });
+
+  it('FAILS when a path serves media or HTML instead of EDS sheet JSON', async () => {
+    const result = await checkAccessJson(
+      'preview.test',
+      'disney-in',
+      vi.fn().mockResolvedValueOnce(res({ body: { html: '<p>not a sheet</p>' } })),
+    );
+
+    expect(result.pass).toBe(false);
+    expect(result.reason).toMatch(/not an EDS sheet JSON/);
+  });
+
+  it('needs --preview and --company', async () => {
+    expect((await checkAccessJson(null, 'acme')).pass).toBe(false);
+    expect((await checkAccessJson('preview.test', null)).pass).toBe(false);
   });
 });
