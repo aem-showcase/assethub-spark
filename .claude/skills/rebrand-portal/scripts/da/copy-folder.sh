@@ -155,7 +155,11 @@ for it in data:
     rel=p[len(pref):] if p.startswith(pref) else p.lstrip("/")
     if not rel: continue
     ext=it.get("ext")
-    print(("F\t%s.%s"%(rel,ext)) if ext else ("D\t%s"%rel))
+    # NOTE: the DA list API'"'"'s "path" already carries the real extension
+    # (e.g. "login.html"), so it must NOT be appended again here — doing so
+    # produced "login.html.html", which never matched the "login.html"
+    # allowlist entry and silently skipped copying the login page.
+    print(("F\t%s"%rel) if ext else ("D\t%s"%rel))
 ' "$ORG" "$REPO"
 }
 
