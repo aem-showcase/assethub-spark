@@ -35,6 +35,12 @@ if [ ! -d node_modules ] || [ ! -d cloudflare/node_modules ]; then
   SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install
 fi
 
+if [ ! -f cloudflare/.secrets ]; then
+  echo "${RED}Warning: cloudflare/.secrets not found. The cloudflare worker will fail to start.${NC}" >&2
+  echo "${RED}         See README.md 'Local development' for the required secrets. In a git worktree,${NC}" >&2
+  echo "${RED}         the file is linked from the main checkout on creation (see .worktreeinclude).${NC}" >&2
+fi
+
 # aem up requires a git repo with a main branch and an origin remote
 function ensure_git_for_aem() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -113,17 +119,6 @@ function filter_cf_logs() {
 }
 
 function run_cloudflare() {
-  # Fallback: symlink .secrets from the main checkout if running in a git worktree
-  # and no hook (.claude/hooks/worktree-create.js, .husky/post-checkout) did it yet.
-  if [ ! -e cloudflare/.secrets ] && [ ! -L cloudflare/.secrets ]; then
-    GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
-    MAIN_ROOT="$(dirname "${GIT_COMMON_DIR%/}")"
-    if [ -n "$GIT_COMMON_DIR" ] && [ "$MAIN_ROOT" != "$(pwd)" ] && [ -f "$MAIN_ROOT/cloudflare/.secrets" ]; then
-      ln -s "$MAIN_ROOT/cloudflare/.secrets" cloudflare/.secrets
-      echo "${BG_YELLOW}[cfl]${NC} Linked cloudflare/.secrets from main checkout ${MAIN_ROOT}"
-    fi
-  fi
-
   cd cloudflare
 
   # add "--live-reload" if auto-reload on cloudflare changes is needed
