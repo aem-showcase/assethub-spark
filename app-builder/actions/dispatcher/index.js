@@ -34,11 +34,10 @@ import { originHelix } from '../origin/helix.js';
 import { stub } from '../api/stubs.js';
 // REAL Worker handler, reused unchanged — only the binding access path differs.
 import { originDynamicMedia } from '../../../cloudflare/src/origin/dm.js';
-// REAL Worker session builder + per-request user resolver, reused unchanged so
-// the App Builder identity (roles, userType, countries, permissions) is byte-for
-// -byte identical to Cloudflare: same Entra token + same Helix /config/access/*
-// sheets => same dm.js asset-auth filters => same search results.
-import { createSession, getUser } from '../../../cloudflare/src/user.js';
+// REAL Worker session builder, per-request user resolver, and /api/user shaper,
+// reused unchanged so App Builder identity + user payload match Cloudflare byte
+// for byte (same Entra token + same Helix /config/access/* sheets).
+import { createSession, getUser, apiUser } from '../../../cloudflare/src/user.js';
 // Native @adobe/aio-lib-db handlers — the document-DB port replacing the four
 // D1-backed feature APIs (see docs/D1-TO-AIOLIBDB-PLAN.md).
 import { smartCollectionsDbApi } from '../api/smart-collections-db.js';
@@ -367,9 +366,9 @@ async function route(request, env) {
     request.user = user;
 
     if (pathname === '/api/user') {
-      const u = { ...user };
-      delete u.sid; delete u.iss; delete u.aud; delete u.exp; delete u.nbf; delete u.sub;
-      return ow(200, u);
+      // Worker parity: reuse apiUser so the payload (roles, permissions, countries,
+      // sessionExpiresInSec, aemLoginUrl, field deletions) is identical to CF.
+      return toOwResponse(await apiUser(request, env));
     }
 
     if (pathname === '/api/kv-demo') {
