@@ -99,7 +99,7 @@ You can run multiple `npm start` instances simultaneously (e.g. from different g
 | Wrangler | 8787 | 9001, 9002, 9003, ... |
 | Inspector | 9229 | 9301, 9302, 9303, ... |
 
-The resolved ports are printed at startup. When running from a worktree, the `.secrets` file is automatically symlinked from the main checkout.
+The resolved ports are printed at startup. When a worktree is created, the `.secrets` file is symlinked from the main checkout (see below).
 
 #### Git worktrees
 
