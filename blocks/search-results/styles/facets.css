@@ -30,36 +30,15 @@
 
 .facet-filter-section {
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
-  border: 1px solid #eee;
+  border: 1px solid var(--color-light-gray);
   overflow: hidden;
-  transition: box-shadow 0.2s;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   max-height: 350px;
   position: relative;
-}
-
-/* Gradient fade at the bottom of a scrollable facet section */
-.facet-filter-section::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 32px;
-  background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 90%));
-  pointer-events: none;
-  z-index: 2;
-  transition: opacity 0.2s;
-}
-
-/* Hide the fade when section is fully collapsed (not scrollable) */
-.facet-filter-section[aria-expanded='false']::after {
-  opacity: 0;
 }
 
 .facet-filter-button {
@@ -92,7 +71,7 @@
 }
 
 .facet-filter-button:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--focus-ring-color, #00647D);
+  box-shadow: inset 0 0 0 2px var(--focus-ring-color);
 }
 
 .facet-filter-button-search {
@@ -214,7 +193,7 @@
 /* Facet filter values (generic list styles from React) */
 .facet-filter-values {
   padding: 0 20px 16px;
-  background: #fafbfc;
+  background: var(--color-neutral-100);
   overflow-y: auto;
   max-height: calc(350px - 60px);
   flex: 1;
@@ -233,7 +212,7 @@
 }
 
 .facet-filter-value-count {
-  color: #888;
+  color: var(--color-neutral-600);
   font-size: var(--font-size-02);
 }
 
@@ -294,7 +273,7 @@
   font-size: var(--font-size-02);
   font-weight: 400;
   line-height: var(--line-height-01);
-  color: #404040;
+  color: var(--color-neutral-800);
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -356,8 +335,8 @@
 .search-results .facet-filter-panel {
   flex: 0 0 330px;
   min-width: 22%;
-  border-right: 1px solid #e0e0e0;
-  background: #fafbfc;
+  border-right: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-100);
   padding: 30px;
   overflow-y: auto;
   width: 330px;
@@ -427,7 +406,7 @@
   font-style: normal;
   font-family: inherit;
   font-weight: 400;
-  color: #666;
+  color: var(--color-neutral-700);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -465,7 +444,7 @@
 }
 
 .facet-filter-tab-group.active .facet-filter-tab.clear {
-  color: #888;
+  color: var(--color-neutral-600);
 }
 
 .facet-filter-tab-group:hover:not(.active),
@@ -540,12 +519,11 @@
   align-items: center;
   flex: 1;
   min-width: 0;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-neutral-400);
   border-radius: 40px;
   background: white;
   height: 30px;
-  border-color: #85b7d9;
-  box-shadow: inset 0 0 0 0 rgb(34 36 38 / 35%);
+  border-color: var(--primary-color);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -615,7 +593,7 @@
   text-align: center;
   background: none;
   border: none;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-neutral-300);
   padding: 10px 16px;
   font-size: var(--font-size-02);
   color: var(--primary-color, var(--button-primary));
@@ -626,13 +604,13 @@
 }
 
 .facet-show-all-btn:hover:not(:disabled) {
-  background: #f8f8f8;
+  background: var(--color-neutral-200);
   text-decoration: underline;
 }
 
 .search-results .facet-show-all-btn:disabled,
 .search-results .facet-show-all-btn:disabled:hover {
-  color: #bbb;
+  color: var(--color-neutral-400);
   background: none;
   cursor: default;
 }
@@ -641,7 +619,7 @@
 .facet-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgb(0 0 0 / 50%);
+  background-color: rgb(8 18 53 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -649,9 +627,9 @@
 }
 
 .facet-modal {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgb(0 0 0 / 20%);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
   width: 600px;
   max-width: 90vw;
   max-height: 80vh;
@@ -672,7 +650,7 @@
   margin: 0;
   font-size: var(--font-size-04);
   font-weight: 700;
-  color: #333;
+  color: var(--color-neutral-800);
   font-family: inherit;
 }
 
@@ -688,7 +666,7 @@
   border: none;
   font-size: var(--font-size-06);
   line-height: 1;
-  color: #666;
+  color: var(--color-neutral-700);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -701,8 +679,8 @@
 }
 
 .facet-modal-close:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-800);
 }
 
 .facet-modal-body {
@@ -725,11 +703,11 @@
 .facet-modal-search .facet-search-input-wrapper {
   display: flex;
   align-items: center;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-neutral-400);
   border-radius: 40px;
   background: white;
   height: 36px;
-  border-color: #85b7d9;
+  border-color: var(--primary-color);
   box-sizing: border-box;
   overflow: hidden;
   flex: 1;
@@ -805,7 +783,7 @@
   font-size: var(--font-size-02);
   line-height: var(--line-height-01);
   cursor: pointer;
-  color: #404040;
+  color: var(--color-neutral-800);
   font-weight: 400;
 }
 
@@ -818,7 +796,7 @@
 
 .facet-modal-sort-label {
   font-size: var(--font-size-02);
-  color: #333;
+  color: var(--color-neutral-800);
   white-space: nowrap;
 }
 
@@ -831,13 +809,13 @@
 .facet-modal-sort-dropdown-container .ui.simple.dropdown.item {
   text-size-adjust: 100%;
   line-height: var(--line-height-03);
-  color: #333;
+  color: var(--color-neutral-800);
   cursor: pointer;
   outline: none;
   position: relative;
   text-align: left;
   user-select: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-neutral-400);
   border-radius: 4px;
   font-size: var(--font-size-02);
   padding: 6px 12px;
@@ -878,10 +856,9 @@
   top: 100%;
   right: 0;
   left: auto;
-  background: white;
-  border: 1px solid #d4d4d5;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
   z-index: 1002;
   min-width: max-content;
   margin-top: 2px;
@@ -892,7 +869,7 @@
   padding: 8px 12px;
   cursor: pointer;
   font-size: var(--font-size-02);
-  color: #333;
+  color: var(--color-neutral-800);
   border-bottom: 1px solid var(--light-color);
 }
 
@@ -923,7 +900,7 @@
   gap: 8px;
   cursor: pointer;
   font-size: var(--font-size-02);
-  color: #404040;
+  color: var(--color-neutral-800);
   font-weight: 400;
   line-height: var(--line-height-01);
   padding: 2px 0;
@@ -933,7 +910,7 @@
 }
 
 .facet-modal-value-item:hover {
-  background: #f8f8f8;
+  background: var(--color-neutral-200);
 }
 
 .facet-modal-value-item input[type="checkbox"] {
@@ -995,7 +972,7 @@
 
 .facet-modal-empty {
   font-size: var(--font-size-02);
-  color: #666;
+  color: var(--color-neutral-700);
   text-align: center;
   padding: 16px;
   margin: 0;
@@ -1033,7 +1010,7 @@
 .date-range-filter .custom-date-picker .date-picker-label {
   font-size: var(--font-size-02);
   font-style: italic;
-  font-family: var(--body-font-family, sans-serif);
+  font-family: var(--body-font-family);
   color: var(--secondary-color);
 }
 
@@ -1050,14 +1027,14 @@
 
 /* Horizontal separator after "All" option */
 .horizontal-separator {
-  border: 1px solid #e4e4e4;
+  border: 1px solid var(--color-neutral-300);
   margin: 0;
 }
 
 
 /* Disabled items styling */
 .facet-checkbox-label.disabled {
-  color: #999;
+  color: var(--color-neutral-600);
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -1072,7 +1049,7 @@
 
 .error-message {
   font-size: var(--font-size-01);
-  color: #d32f2f;
+  color: var(--color-red);
   padding: 8px;
 }
 
@@ -1099,6 +1076,6 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: var(--color-neutral-700);
   font-size: var(--font-size-01);
 }

@@ -2477,7 +2477,7 @@ function renderFacetValues(key, facetValues, checkedValues, excFacets, maxItems 
 
   if (sortedEntries.length === 0) {
     const noMatchingFiltersLabel = ph(placeholders, 'noMatchingFilters', 'No matching filters');
-    return `<p style="font-size: 12px; color: #666;">${noMatchingFiltersLabel}</p>`;
+    return `<p style="font-size: 12px; color: var(--color-neutral-700);">${noMatchingFiltersLabel}</p>`;
   }
 
   // Truncate: show all active items + up to remaining slots for unchecked (only when not searching)

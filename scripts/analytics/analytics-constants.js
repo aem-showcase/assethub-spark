@@ -101,19 +101,37 @@ export const ROLE_ALIASES = {
 export const KNOWN_ROLES = ['Associate', 'Agency', 'Partner'];
 
 /**
+ * Chart palette — mirrors the adapt.to design tokens in styles/styles.css
+ * (--color-highlight-2 #1b31ff, --color-dark #081235, greys #666/#999/#ccc). Chart.js
+ * needs literal colors (no CSS var() support on canvas), so the token values are
+ * repeated here as the single JS source of truth for every report palette.
+ */
+export const CHART_PALETTE = Object.freeze({
+  blue: '#1b31ff', // --color-highlight-2 (primary)
+  navy: '#081235', // --color-dark
+  midBlue: '#5a6bff',
+  paleBlue: '#a3adff',
+  steel: '#3b4a7a',
+  darkGrey: '#666666', // --color-medium-gray
+  grey: '#999999', // --color-medium-dark-gray
+  lightGrey: '#cccccc', // --color-light-gray
+  paleGrey: '#e6e6e6', // --color-neutral-300
+});
+
+/**
  * Color scheme for roles in charts
  */
 export const ROLE_COLORS = {
-  Associate: '#00647D',
-  Agency: '#EBA439',
-  Partner: '#58181D',
-  Other: '#b8b8b8',
+  Associate: CHART_PALETTE.blue,
+  Agency: CHART_PALETTE.navy,
+  Partner: CHART_PALETTE.grey,
+  Other: CHART_PALETTE.lightGrey,
 };
 
 /**
  * Fallback color for unknown role types
  */
-export const FALLBACK_ROLE_COLOR = '#cccccc';
+export const FALLBACK_ROLE_COLOR = CHART_PALETTE.lightGrey;
 
 /**
  * Resolve a raw role string to a known display name
@@ -230,15 +248,15 @@ export const CHART_INIT_DELAY = 100;
  * Geography colors for charts (used across all reports)
  */
 export const GEO_COLORS = [
-  '#00647D',
-  '#004d61',
-  '#EBA439',
-  '#DC6E52',
-  '#58181D',
-  '#666',
-  '#8f8f8f',
-  '#b8b8b8',
-  '#d6d6d6',
+  CHART_PALETTE.blue,
+  CHART_PALETTE.navy,
+  CHART_PALETTE.midBlue,
+  CHART_PALETTE.steel,
+  CHART_PALETTE.paleBlue,
+  CHART_PALETTE.darkGrey,
+  CHART_PALETTE.grey,
+  CHART_PALETTE.lightGrey,
+  CHART_PALETTE.paleGrey,
 ];
 
 /**
@@ -269,26 +287,26 @@ export const ANALYTICS_MAX_YEAR = 2030; // Max year for validation (prevent inva
  * Search type colors for stacked charts
  */
 export const SEARCH_TYPE_COLORS = {
-  all: '#00647D',
-  assets: '#EBA439',
-  products: '#58181D',
-  templates: '#b8b8b8',
+  all: CHART_PALETTE.blue,
+  assets: CHART_PALETTE.navy,
+  products: CHART_PALETTE.grey,
+  templates: CHART_PALETTE.lightGrey,
 };
 
 /**
  * Resource type colors (for downloads)
  */
 export const RESOURCE_TYPE_COLORS = {
-  Asset: '#00647D',
-  Template: '#EBA439',
+  Asset: CHART_PALETTE.blue,
+  Template: CHART_PALETTE.navy,
 };
 
 /**
  * User type colors (matches role colors for consistency)
  */
 export const USER_TYPE_COLORS = {
-  Associate: '#00647D',
-  Agency: '#EBA439',
-  Partner: '#58181D',
-  Other: '#b8b8b8',
+  Associate: CHART_PALETTE.blue,
+  Agency: CHART_PALETTE.navy,
+  Partner: CHART_PALETTE.grey,
+  Other: CHART_PALETTE.lightGrey,
 };

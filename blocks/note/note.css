@@ -1,6 +1,6 @@
 main .note {
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   display: flex;
   background-color: var(--color-secondary-light-sky-blue);
   color: var(--color-secondary);

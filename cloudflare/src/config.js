@@ -31,6 +31,15 @@ const config = {
   // from the URL (scripts/locale-utils.js).
   DEMO_BASE_PATH: '',
 
+  // Country-based brand restrictions (demo rule). Keys are lowercase ISO-3166-1 alpha-2
+  // country codes, values are the ONLY assetMetadata.brand values users from that country may
+  // see. buildAssetAuthClauses (origin/dm.js) resolves the user's country (ISO code or full
+  // name, any case — see constants/countries.js) and, when it matches, adds a brand term clause
+  // plus an exists clause so unbranded assets are hidden too. Admins bypass. Brand values are
+  // matched case-insensitively (expanded to common casings). Countries not listed are
+  // unrestricted.
+  COUNTRY_BRAND_RESTRICTIONS: { de: ['Frescopa'] },
+
   // Content Optimization Agent environment. COA is called with the same DM
   // S2S technical account/token as Dynamic Media, so this must match whatever
   // IMS environment that account's credentials were issued against — not an

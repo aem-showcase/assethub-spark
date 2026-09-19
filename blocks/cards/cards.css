@@ -9,11 +9,11 @@
 
 .cards > ul > li {
   background-color: var(--background-color);
-  border-radius: 12px;
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
   overflow: hidden;
   display: flex;
   align-items: stretch;
-  box-shadow: var(--shape-shadow-card);
   height: 120px;
 }
 
@@ -219,7 +219,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  box-shadow: none;
+  border: none;
   height: auto;
 }
 
@@ -256,8 +256,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font: normal normal normal 300px/300px Baskerville, serif;
-  color: rgb(0 0 0 / 10%);
+  font: normal normal normal 300px/300px var(--heading-font-family);
+  color: rgb(8 18 53 / 10%);
 }
 
 .home .cards ul {
@@ -276,14 +276,14 @@
   min-height: 0;
   flex-direction: column;
   background: var(--background-color);
-  border-radius: 12px;
-  box-shadow: var(--shape-shadow-card);
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
   overflow: hidden;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .home .cards ul li:hover {
-  box-shadow: 0 12px 28px rgb(0 0 0 / 14%);
+  border-color: var(--color-highlight-2);
   transform: translateY(-2px);
 }
 
@@ -337,8 +337,8 @@
   margin: 16px 0;
   height: auto;
   flex-direction: column;
-  border-radius: 12px;
-  box-shadow: var(--shape-shadow-card);
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--shape-border-radius-2);
 }
 
 .card-tiles .cards ul li h5 {

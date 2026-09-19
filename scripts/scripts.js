@@ -77,7 +77,7 @@ function showSudoBanner() {
   if (!su) return;
 
   const bannerHeight = 36;
-  const color = '#e8740c';
+  const color = '#1b31ff';
   const simUser = window.user;
   const extras = [
     simUser.country && `country: ${simUser.country}`,
@@ -90,7 +90,7 @@ function showSudoBanner() {
     .sudo-banner {
       position: fixed; top: 0; left: 0; right: 0; height: ${bannerHeight}px;
       background: ${color}; color: #fff; display: flex; align-items: center;
-      justify-content: center; gap: 16px; font-family: system-ui, sans-serif;
+      justify-content: center; gap: 16px; font-family: arial, sans-serif;
       font-size: 13px; font-weight: 600; z-index: 99999; letter-spacing: 0.3px;
     }
     .sudo-banner button {

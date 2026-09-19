@@ -862,6 +862,141 @@ describe('dm.js - ContentAI Authorization', () => {
     });
   });
 
+  describe('buildAssetAuthClauses — country brand restriction (COUNTRY_BRAND_RESTRICTIONS)', () => {
+    const brandExistsClause = { exists: { field: 'assetMetadata.brand' } };
+    const brandTermClause = { term: { 'assetMetadata.brand': ['Frescopa', 'frescopa', 'FRESCOPA'] } };
+    let savedRestrictions;
+    let savedDemoCompany;
+
+    beforeEach(() => {
+      savedRestrictions = config.COUNTRY_BRAND_RESTRICTIONS;
+      savedDemoCompany = config.DEMO_COMPANY;
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: ['Frescopa'] };
+      config.DEMO_COMPANY = null;
+    });
+    afterEach(() => {
+      config.COUNTRY_BRAND_RESTRICTIONS = savedRestrictions;
+      config.DEMO_COMPANY = savedDemoCompany;
+    });
+
+    it('ships with DE restricted to the Frescopa brand by default', () => {
+      expect(savedRestrictions).toEqual({ de: ['Frescopa'] });
+    });
+
+    it('adds the brand term and exists clauses for a DE user (ISO code, upper case)', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandExistsClause);
+      expect(clauses).toContainEqual(brandTermClause);
+    });
+
+    it('matches the country code case-insensitively', async () => {
+      const request = { user: { email: 'user@example.com', country: 'de' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandTermClause);
+    });
+
+    it('resolves a full country name (as set by the simulation picker) to its ISO code', async () => {
+      for (const country of ['germany', 'Germany', ' GERMANY ']) {
+        const request = { user: { email: 'user@example.com', country } };
+        // eslint-disable-next-line no-await-in-loop
+        const clauses = await buildAssetAuthClauses(request, {});
+        expect(clauses).toContainEqual(brandExistsClause);
+        expect(clauses).toContainEqual(brandTermClause);
+      }
+    });
+
+    it('places the brand clauses after the country filter', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      const countryIdx = clauses.findIndex((c) => c.term?.['assetMetadata.allowedCountries']);
+      const existsIdx = clauses.findIndex((c) => c.exists?.field === 'assetMetadata.brand');
+      const brandIdx = clauses.findIndex((c) => c.term?.['assetMetadata.brand']);
+      expect(countryIdx).toBeGreaterThanOrEqual(0);
+      expect(existsIdx).toBeGreaterThan(countryIdx);
+      expect(brandIdx).toBeGreaterThan(existsIdx);
+    });
+
+    it('does not restrict brands for users from unlisted countries', async () => {
+      for (const country of ['US', 'fr', 'india', undefined]) {
+        const request = { user: { email: 'user@example.com', country } };
+        // eslint-disable-next-line no-await-in-loop
+        const clauses = await buildAssetAuthClauses(request, {});
+        expect(clauses.find((c) => c.exists?.field === 'assetMetadata.brand')).toBeUndefined();
+        expect(clauses.find((c) => c.term?.['assetMetadata.brand'])).toBeUndefined();
+      }
+    });
+
+    it('does not use sheet-granted extra countries for the brand rule', async () => {
+      const request = { user: { email: 'user@example.com', country: 'US', countries: ['DE'] } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.find((c) => c.term?.['assetMetadata.brand'])).toBeUndefined();
+    });
+
+    it('lets admins bypass the brand restriction', async () => {
+      const request = { user: { email: 'admin@example.com', roles: ['admin'], country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('is a no-op when the restriction map is empty or missing', async () => {
+      config.COUNTRY_BRAND_RESTRICTIONS = {};
+      let clauses = await buildAssetAuthClauses({ user: { email: 'u@example.com', country: 'DE' } }, {});
+      expect(clauses.find((c) => c.term?.['assetMetadata.brand'])).toBeUndefined();
+      config.COUNTRY_BRAND_RESTRICTIONS = undefined;
+      clauses = await buildAssetAuthClauses({ user: { email: 'u@example.com', country: 'DE' } }, {});
+      expect(clauses.find((c) => c.term?.['assetMetadata.brand'])).toBeUndefined();
+    });
+
+    it('expands multi-word / mixed-case brands to common casings', async () => {
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: ['Frescopa', 'frescopa Coffee'] };
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      const brandClause = clauses.find((c) => c.term?.['assetMetadata.brand']);
+      expect(brandClause.term['assetMetadata.brand']).toEqual([
+        'Frescopa', 'frescopa', 'FRESCOPA',
+        'frescopa Coffee', 'frescopa coffee', 'FRESCOPA COFFEE', 'Frescopa coffee',
+      ]);
+    });
+
+    it('applies the same brand clauses to the search filter for a DE user', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+      const search = { query: [{ and: [] }] };
+      await searchContentAIAuthorization(request, {}, search);
+      const authBlock = search.query[0].and.find((c) => c.and);
+      expect(authBlock.and).toContainEqual(brandExistsClause);
+      expect(authBlock.and).toContainEqual(brandTermClause);
+    });
+
+    describe('checkAssetMetadataAuthorization with the brand clauses', () => {
+      const authClauses = [brandExistsClause, brandTermClause];
+
+      it('passes an asset branded Frescopa (any of the expanded casings)', () => {
+        expect(checkAssetMetadataAuthorization(authClauses, { brand: 'Frescopa' }).violated).toBe(false);
+        expect(checkAssetMetadataAuthorization(authClauses, { brand: ['frescopa'] }).violated).toBe(false);
+        expect(checkAssetMetadataAuthorization(authClauses, { brand: 'FRESCOPA' }).violated).toBe(false);
+      });
+
+      it('violates for an asset of another brand', () => {
+        const result = checkAssetMetadataAuthorization(authClauses, { brand: 'Acme' });
+        expect(result.violated).toBe(true);
+        expect(result.reason).toMatch(/brand/);
+      });
+
+      it('violates for an unbranded asset (top-level exists clause)', () => {
+        const result = checkAssetMetadataAuthorization(authClauses, { company: 'frescopa' });
+        expect(result.violated).toBe(true);
+        expect(result.reason).toMatch(/Missing brand/);
+        expect(checkAssetMetadataAuthorization(authClauses, { brand: [] }).violated).toBe(true);
+        expect(checkAssetMetadataAuthorization(authClauses, { brand: '' }).violated).toBe(true);
+      });
+
+      it('passes an unbranded asset when only the term clause is present (exists is what hides them)', () => {
+        expect(checkAssetMetadataAuthorization([brandTermClause], { company: 'frescopa' }).violated).toBe(false);
+      });
+    });
+  });
+
   describe('buildAssetAuthClauses — demo customer scope (DEMO_COMPANY)', () => {
     const companyClause = { term: { 'assetMetadata.company': ['santander'] } };
 

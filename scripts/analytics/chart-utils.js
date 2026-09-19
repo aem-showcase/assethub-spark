@@ -14,6 +14,7 @@
 import {
   CHART_JS_CDN,
   CHART_DATALABELS_CDN,
+  CHART_PALETTE,
   getRoleColor,
   GEO_COLORS,
 } from './analytics-constants.js';
@@ -202,8 +203,8 @@ export function createBarChart(canvas, data, label = 'Count', options = {}) {
       datasets: [{
         label,
         data: data.map((d) => d.count || d.value),
-        backgroundColor: '#00647D',
-        borderColor: '#004d61',
+        backgroundColor: CHART_PALETTE.blue,
+        borderColor: CHART_PALETTE.navy,
         borderWidth: 1,
       }],
     },
@@ -336,8 +337,8 @@ export function createHorizontalBarChart(canvas, data, label = 'Count', options 
       datasets: [{
         label,
         data: data.map((d) => d.count || d.value),
-        backgroundColor: '#EBA439',
-        borderColor: '#DC6E52',
+        backgroundColor: CHART_PALETTE.grey,
+        borderColor: CHART_PALETTE.darkGrey,
         borderWidth: 1,
       }],
     },

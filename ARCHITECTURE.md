@@ -412,6 +412,12 @@ Permissions are matched by:
 
 Brands can be restricted to specific email domains. Non-permitted users get `NOT` clauses injected into DM search queries.
 
+### Layer 3b: Country-Based Brand Restrictions
+
+**Source:** `COUNTRY_BRAND_RESTRICTIONS` in `cloudflare/src/config.js` (static demo rule, e.g. `{ de: ['Frescopa'] }`)
+
+Users whose country matches a configured key only see assets of the listed brands. `buildAssetAuthClauses` (`cloudflare/src/origin/dm.js`) resolves the user's own country — the Entra `ctry` claim or the simulated country from My Profile — to a lowercase ISO code case-insensitively, mapping full names like `germany` via `constants/countries.js`. When a rule matches, it appends (after the country filter) a `term` clause on `assetMetadata.brand` expanded to common casings (`Frescopa`, `frescopa`, `FRESCOPA`) **plus** an `exists` clause on the same field, so unbranded assets are hidden as well. Admins bypass this like every other per-user filter. The same clauses are enforced on individual asset GETs by `checkAssetMetadataAuthorization` (`asset-access.js`), which supports top-level `exists` clauses for this purpose. Countries not listed are unrestricted.
+
 ### Layer 4: Dynamic Media Query Filters
 
 Applied server-side in the Cloudflare worker before proxying to ContentAI:
@@ -420,6 +426,7 @@ Applied server-side in the Cloudflare worker before proxying to ContentAI:
 Admin → No filters
 Employee/Agency → Brand restrictions only
 Partner → Brand restrictions + Country filter (custom:country)
+DE users (any role except admin) → + brand term/exists clauses (COUNTRY_BRAND_RESTRICTIONS)
 No role → Block all results
 ```
 
@@ -458,6 +465,7 @@ Request arrives (authenticated)
     ├── DM Search: inject auth clauses into query body
     │   ├── Brand restrictions (NOT clause)
     │   ├── Country filter (partners)
+    │   ├── Country brand restriction (DE → Frescopa; term + exists)
     │   └── Customer filter
     │
     ├── Asset GET: enforce metadata authorization
