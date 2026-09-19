@@ -262,7 +262,7 @@
     {
       "role": "welcome-panel-accent-rgb",
       "oldHex": "rgb(234 163 58)",
-      "newHex": "rgb(45 150 40)",
+      "newHex": "#13670B",
       "cssVar": "--welcome-panel-accent-rgb",
       "source": "derived",
       "derivedFrom": "#13670b"
