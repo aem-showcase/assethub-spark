@@ -15,10 +15,10 @@
   padding: 6px 14px;
   font-size: var(--font-size-01);
   font-weight: 700;
-  color: var(--highlight-foreground, #fff);
+  color: var(--highlight-foreground, var(--color-neutral-50));
   background: var(--primary-color);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.2s;
@@ -51,7 +51,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 8px;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   cursor: pointer;
 }
 
@@ -81,7 +81,7 @@
   font-size: var(--font-size-01);
   color: var(--gray-500);
   background: var(--gray-100);
-  border-radius: 3px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-rename-input {
@@ -89,7 +89,7 @@
   padding: 2px 6px;
   font: inherit;
   border: 1px solid var(--border-color);
-  border-radius: 3px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-actions {
@@ -105,7 +105,7 @@
   cursor: pointer;
   background: none;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-action-btn:hover {
@@ -122,8 +122,7 @@
   min-width: 120px;
   background: var(--gray-50);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-action-menu[hidden] {
@@ -166,7 +165,7 @@
   padding: 8px 10px;
   font: inherit;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-modal-badges {
@@ -180,7 +179,7 @@
   font-size: var(--font-size-01);
   color: var(--primary-color);
   background: var(--purple-100);
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-modal-empty {
@@ -200,9 +199,9 @@
 .smart-collection-modal-error {
   padding: 8px;
   font-size: var(--font-size-01);
-  color: var(--invalid-color, #a33532);
+  color: var(--invalid-color);
   background: var(--red-100);
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 /* Mutation-detection banner (rendered above search results) */
@@ -215,7 +214,7 @@
   font-size: var(--font-size-01);
   background: var(--purple-100);
   border: 1px solid var(--purple-300);
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-banner-message {
@@ -235,10 +234,10 @@
   cursor: pointer;
   background: none;
   border: 1px solid var(--primary-color);
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .smart-collection-banner-actions button:hover {
-  color: var(--highlight-foreground, #fff);
+  color: var(--highlight-foreground, var(--color-neutral-50));
   background: var(--primary-color);
 }

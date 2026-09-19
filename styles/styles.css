@@ -11,20 +11,21 @@
  */
 
 :root {
-  /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #F4E9DC;
-  --dark-color: #2C2C2C;
-  --text-color: #58181D;
-  --text-primary: #58181D;
-  --link-color: #58181D;
-  --link-hover-color: #00647D;
-  --primary-color: #00647D;
-  --primary-color-hover: #004d61;
-  --color-red: #A33532;
-  --color-dark-red: #95351D;
-  --accent-secondary: #DC6E52;
-  --accent-tertiary: #EBA439;
-  --secondary-color: #95351D;
+  /* Brand palette (semantic tokens — single source of truth)
+     adaptTo() design: flat navy / light blue-grey with an electric-blue accent. */
+  --light-color: #dfe3f7;
+  --dark-color: #081235;
+  --text-color: #081235;
+  --text-primary: #081235;
+  --link-color: #081235;
+  --link-hover-color: #1b31ff;
+  --primary-color: #1b31ff;
+  --primary-color-hover: #081235;
+  --color-red: #d0342c;
+  --color-dark-red: #a8281f;
+  --accent-secondary: #56f;
+  --accent-tertiary: #dfe3f7;
+  --secondary-color: #081235;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;
@@ -37,37 +38,51 @@
   --color-neutral-700: #666;
   --color-neutral-800: #3d3d3d;
   --color-neutral-900: #292929;
-  --shape-border-radius-1: 3px;
-  --shape-border-radius-2: 8px;
-  --shape-border-radius-3: 24px;
+  --border-color: #ccc;
+  --border-color-strong: #999;
+  --table-row-alt: #dfe3f7;
+  --shape-border-radius-1: 2px;
+  --shape-border-radius-2: 4px;
+  --shape-border-radius-3: 20px;
   --shape-border-width-3: 2px;
-  --shape-shadow-card: 0 10px 20px rgb(0 0 0 / 12%);
+  --shape-shadow-card: none;
   --spacing-small: 16px;
   --spacing-medium: 24px;
   --spacing-big: 32px;
   --spacing-xbig: 40px;
   --site-width: 1360px;
-  --type-base-font-family: roboto, roboto-fallback, sans-serif;
-  --type-condensed-font-family: roboto-condensed, roboto-condensed-fallback, sans-serif;
-  --type-body-1-strong-letter-spacing: 0.04em;
+  --type-base-font-family: arial, helvetica, sans-serif;
+  --type-condensed-font-family: arial, helvetica, sans-serif;
+  --type-body-1-strong-letter-spacing: 0;
   --type-button-2-font: normal normal 400 1.6rem/2.4rem var(--type-base-font-family);
-  --type-button-2-letter-spacing: 0.08em;
-  --type-display-1-letter-spacing: 0.04em;
-  --type-display-2-letter-spacing: 0.04em;
-  --type-display-3-letter-spacing: 0.04em;
-  --type-headline-2-default-font: normal normal 300 2.0rem/2.4rem var(--type-condensed-font-family);
-  --type-headline-2-default-letter-spacing: 0.04em;
+  --type-button-2-letter-spacing: 0;
+  --type-display-1-letter-spacing: 0;
+  --type-display-2-letter-spacing: 0;
+  --type-display-3-letter-spacing: 0;
+  --type-headline-2-default-font: normal normal 400 2.0rem/2.4rem var(--type-base-font-family);
+  --type-headline-2-default-letter-spacing: 0;
 
   /* Semantic aliases */
-  --background-color: var(--color-neutral-50);
-  --color-secondary-light-sky-blue: rgb(0 100 125 / 12%);
+  --background-color: #edf0fb;
+  --color-secondary-light-sky-blue: rgb(27 49 255 / 12%);
   --color-secondary: var(--text-color);
   --color-medium-grey: var(--color-neutral-400);
   --color-dark-blue: var(--primary-color);
+  --color-text: var(--text-color);
+  --color-text-light: var(--color-neutral-700);
+  --color-border: var(--border-color);
+  --color-light: var(--light-color);
+
+  /* semantic feedback colors */
+  --color-success: #2e8b57;
+  --color-success-bg: rgb(46 139 87 / 12%);
+  --color-warning: #e08a2e;
+  --color-warning-bg: rgb(224 138 46 / 12%);
+  --color-warning-strong: #b8741f;
 
   /* fonts */
   --body-font-family: var(--type-base-font-family);
-  --heading-font-family: baskerville, serif;
+  --heading-font-family: var(--type-base-font-family);
 
   /* font sizes */
   --body-font-size-m: 18px;
@@ -82,24 +97,25 @@
   --heading-font-size-s: 24px;
   --heading-font-size-xs: 20px;
 
-  /* nav height (single-row header: brand, nav sections, icons, my account) */
+  /* nav height: single navy band with a blue rule at its bottom edge */
   --nav-height: 72px;
+  --nav-brand-row-height: var(--nav-height);
 
   /* button colors */
   --primary-color-disabled: var(--color-neutral-300);
   --button-disabled-bg: var(--color-neutral-300);
   --button-disabled-text: var(--color-neutral-700);
-  --button-secondary-color: #fff;
+  --button-secondary-color: var(--color-neutral-50);
 
   /* status badge colors */
   --status-not-started: var(--primary-color);
-  --status-not-started-bg: rgb(0 100 125 / 12%);
-  --status-in-progress: var(--accent-tertiary);
-  --status-in-progress-bg: rgb(235 164 57 / 12%);
-  --status-completed: #7fb078;
-  --status-completed-bg: rgb(127 176 120 / 12%);
+  --status-not-started-bg: rgb(27 49 255 / 12%);
+  --status-in-progress: var(--color-warning);
+  --status-in-progress-bg: var(--color-warning-bg);
+  --status-completed: var(--color-success);
+  --status-completed-bg: var(--color-success-bg);
   --status-cancelled: var(--color-red);
-  --status-cancelled-bg: rgb(163 53 50 / 12%);
+  --status-cancelled-bg: rgb(208 52 44 / 12%);
 
   /* focus ring */
   --focus-ring-color: var(--primary-color);
@@ -113,14 +129,14 @@
   --icon-color-active: var(--primary-color);
 
   /* clearance colors */
-  --clearance-available: #7fb078;
+  --clearance-available: var(--color-success);
   --clearance-not-available: var(--color-red);
-  --clearance-exceptions: var(--accent-tertiary);
-  --clearance-partial: var(--accent-secondary);
+  --clearance-exceptions: var(--color-warning);
+  --clearance-partial: var(--color-warning-strong);
 
   /* action button colors */
   --button-primary: var(--primary-color);
-  --button-primary-hover: #004d61;
+  --button-primary-hover: var(--primary-color-hover);
 
   /* label colors */
   --label-color: var(--text-color);
@@ -143,18 +159,6 @@
   --line-height-07: 1.1;
 }
 
-/* fallback fonts */
-@font-face {
-  font-family: roboto-condensed-fallback;
-  size-adjust: 88.82%;
-  src: local('Arial');
-}
-
-@font-face {
-  font-family: roboto-fallback;
-  size-adjust: 99.529%;
-  src: local('Arial');
-}
 
 html {
   font-size: 62.5%;
@@ -210,7 +214,7 @@ body.appear {
 body:has(.section.welcome) {
   /* Welcome/login split-screen brand panel is themeable via these tokens (frescopa defaults);
      a company demo overrides --welcome-panel-* + --welcome-tagline to rebrand the login. */
-  background-color: var(--welcome-panel-bg, #2f2318);
+  background-color: var(--welcome-panel-bg, #081235);
   overflow: hidden;
 }
 
@@ -236,17 +240,14 @@ body:has(.section.welcome) > main {
 
 /* ── Left: Brand Panel ────────────────────────────────────────── */
 
-/* Dark coffee background with the gold beans icon as a large decorative mark */
+/* Flat navy panel with the brand mark as a large decorative element */
 body:has(.section.welcome) > main::before {
   content: '';
-  background-color: var(--welcome-panel-bg, #2f2318);
-  background-image:
-    radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%),
-    radial-gradient(ellipse 60% 45% at 90% -5%,  rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 10%) 0%, transparent 100%),
-    var(--welcome-panel-mark-image, url('/icons/frescopa-beans.svg'));
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  background-size: cover, cover, 42%;
-  background-position: bottom left, top right, center 40%;
+  background-color: var(--welcome-panel-bg, #081235);
+  background-image: var(--welcome-panel-mark-image, url('/icons/adaptto-logo.svg'));
+  background-repeat: no-repeat;
+  background-size: 42%;
+  background-position: center 40%;
 }
 
 /* Tagline + brand label stacked at the bottom of the brand panel.
@@ -260,12 +261,12 @@ body:has(.section.welcome) > main::before {
 body:has(.section.welcome) > main::after {
   content: var(--welcome-tagline-line1, '"The world\'s finest coffee,') "\A" var(--welcome-tagline-line2, 'at your fingertips."');
   white-space: pre;
-  font-family: baskerville, serif;
+  font-family: var(--body-font-family);
   font-size: 1rem;
-  font-style: italic;
+  font-style: normal;
   line-height: 1.6;
-  letter-spacing: 0.01em;
-  color: rgb(244 233 220 / 55%);
+  letter-spacing: 0;
+  color: rgb(237 240 251 / 60%);
   position: absolute;
   bottom: 48px;
   left: 0;
@@ -276,7 +277,7 @@ body:has(.section.welcome) > main::after {
 
 /* ── Right: Auth Panel ───────────────────────────────────────── */
 .section.welcome {
-  background-color: var(--light-color);
+  background-color: var(--background-color);
   border-radius: 0;
   box-shadow: none;
   margin: 0;
@@ -370,8 +371,8 @@ body:has(.section.welcome) > main::after {
   }
 
   body:has(.section.welcome) > main::before {
-    background-size: cover, cover, 38%;
-    background-position: bottom left, top right, center center;
+    background-size: 38%;
+    background-position: center center;
   }
 
   body:has(.section.welcome) > main::after {
@@ -384,8 +385,7 @@ body:has(.section.welcome) > main::after {
   .section.welcome {
     min-height: auto;
     padding: 40px 24px 56px;
-    border-radius: 20px 20px 0 0;
-    margin-top: -20px;
+    border-top: 1px solid var(--primary-color);
     position: relative;
     z-index: 1;
   }
@@ -673,7 +673,7 @@ pre {
 
 pre {
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   background-color: var(--light-color);
   overflow-x: auto;
   white-space: pre;
@@ -693,17 +693,13 @@ button {
 /* links */
 a:any-link {
   color: var(--link-color);
-  letter-spacing: var(--type-body-1-strong-letter-spacing);
-  text-decoration: underline solid transparent;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 8px;
-  transition: text-decoration 0.5s ease;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   overflow-wrap: break-word;
 }
 
 a:any-link:hover {
   color: var(--link-hover-color);
-  text-decoration: underline solid currentcolor;
 }
 
 /* buttons */
@@ -713,12 +709,12 @@ button.button {
   display: inline-block;
   max-width: 100%;
   margin: var(--spacing-small) 0;
-  border: var(--shape-border-width-3) solid transparent;
+  border: 0;
   border-radius: var(--shape-border-radius-3);
-  padding: 0.5em 1.2em;
+  padding: 10px 20px;
   font: var(--type-button-2-font);
   letter-spacing: var(--type-button-2-letter-spacing);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.25;
   text-align: center;
   text-decoration: none;
@@ -753,15 +749,15 @@ button.button.secondary,
 button.secondary {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
-  color: #fff;
+  color: var(--color-neutral-50);
 }
 
 a.button.secondary:hover,
 button.button.secondary:hover,
 button.secondary:hover {
-  background-color: var(--color-dark-red);
-  border-color: var(--color-dark-red);
-  color: #fff;
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--color-neutral-50);
 }
 
 main img {
@@ -819,7 +815,7 @@ main>.section:first-of-type {
 /* section metadata */
 main .section.light,
 main .section.highlight {
-  background-color: var(--color-neutral-200);
+  background-color: var(--light-color);
   margin: 0;
   padding: var(--spacing-xbig) 0;
 }
@@ -831,7 +827,7 @@ main .section.light-blue {
 }
 
 main .section.white {
-  background-color: white;
+  background-color: var(--color-neutral-50);
   margin-top: 5px;
   padding: 40px 0 50px;
 }
@@ -846,11 +842,11 @@ main .section.dark-red {
   overflow: hidden;
 }
 
-main .section.hero-white { background-color: white; }
-main .section.hero-black { background-color: #000; }
+main .section.hero-white { background-color: var(--color-neutral-50); }
+main .section.hero-black { background-color: var(--dark-color); }
 main .section.dark-blue { background-color: var(--color-dark-blue); }
-main .section.red { background-color: var(--color-red); }
-main .section.dark-red { background-color: var(--color-dark-red); }
+main .section.red { background-color: var(--dark-color); }
+main .section.dark-red { background-color: var(--dark-color); }
 
 main .section.dark {
   background-color: var(--color-secondary);
@@ -941,16 +937,18 @@ main .section.full-width > div {
 
 
 .homepage-bg {
-  background: var(--light-color) url('backgrounds/big.svg') no-repeat center center/cover;
+  background: var(--light-color);
   color: var(--text-color);
   padding: 16px;
   margin: 8px 0;
-  border-radius: 12px;
+  border-radius: var(--shape-border-radius-2);
 }
 
-/* Frescopa landing hero: compact, elegant, beige; the search pill is the focal point */
+/* Landing hero: flat light band below the navy header; the search pill is the focal point.
+   NOTE: "search-hero" and "category-tiles" are usually two styles on ONE section, so this
+   background must stay compatible with the category-tiles rule below (same specificity). */
 main .section.search-hero {
-  background: var(--light-color) url('backgrounds/big.svg') no-repeat center top / cover;
+  background: var(--background-color);
   color: var(--text-color);
   margin: 0;
   padding: 56px 0 48px;
@@ -974,7 +972,7 @@ main .section.search-hero .default-content-wrapper > h1 {
   color: var(--text-color);
   font-size: clamp(2.2rem, 3.6vw, 3rem);
   line-height: 1.12;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 main .section.search-hero .default-content-wrapper > p {
@@ -998,7 +996,7 @@ main .section.search-hero .default-content-wrapper p:has(.icon) {
   line-height: 0;
 }
 
-/* Search bar sits transparently on the beige hero */
+/* Search bar sits transparently on the hero */
 main .section.search-hero .search-bar-wrapper {
   width: 100%;
   margin-top: 20px;
@@ -1011,14 +1009,15 @@ main .section.search-hero .query-input-container {
 }
 
 main .section.search-hero .query-input-bar {
-  background: #fff;
-  box-shadow: 0 12px 30px rgb(88 24 29 / 14%);
+  background: var(--color-neutral-50);
+  box-shadow: none;
+  border: 1px solid var(--border-color);
 }
 
 /* Landing: Browse-by-category tiles */
 main .section.category-tiles {
   padding: 56px 72px 40px;
-  background: rgb(235 164 57 / 8%); /* --accent-tertiary tint, for section-to-section color rhythm */
+  background: var(--background-color);
   text-align: center;
 }
 
@@ -1054,15 +1053,14 @@ main .section.category-tiles .cards > ul > li {
   flex-direction: column;
   text-align: left;
   background: var(--color-neutral-50);
-  border: 1px solid rgb(88 24 29 / 8%);
-  border-radius: 12px;
-  box-shadow: 0 8px 22px rgb(88 24 29 / 8%);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
+  box-shadow: none;
+  transition: border-color 0.2s ease;
 }
 
 main .section.category-tiles .cards > ul > li:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgb(88 24 29 / 12%);
+  border-color: var(--primary-color);
 }
 
 /* Text-only tile (no image cell) collapses to its body — never reserve a blank
@@ -1294,7 +1292,7 @@ button.primary-button.primary-is-loading::before {
 /* Secondary Button - White with border */
 button.secondary-button {
   background-color: var(--button-secondary-color);
-  border: 1.5px solid #9a9a9a;
+  border: 1px solid var(--border-color-strong);
   color: var(--text-color);
   font-family: var(--type-condensed-font-family);
   font-size: .875rem;
@@ -1322,7 +1320,7 @@ button.secondary-button:focus {
 button.secondary-button:disabled {
   background-color: var(--button-secondary-color);
   color: var(--secondary-color);
-  border-color: #ccc;
+  border-color: var(--border-color);
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
@@ -1334,7 +1332,7 @@ button.secondary-button:disabled {
 button.pill-button,
 button.primary-button.pill-button,
 button.secondary-button.pill-button {
-  border-radius: 25px;
+  border-radius: var(--shape-border-radius-3);
 }
 
 /* Square Button - Sharp corners */
@@ -1354,8 +1352,8 @@ input[type="checkbox"] {
   flex: 0 0 16px;
   cursor: pointer;
   appearance: none;
-  background-color: white;
-  border: 2px solid #828181;
+  background-color: var(--color-neutral-50);
+  border: 2px solid var(--border-color-strong);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1414,7 +1412,7 @@ input[type="checkbox"]:checked::after {
 picture.missing {
   width: 100%;
   height: 100%;
-  background-color: #ffccc7;
+  background-color: var(--status-cancelled-bg);
   position: relative;
   display: block;
 }
@@ -1455,11 +1453,11 @@ picture.missing img {
   left: 50%;
   bottom: calc(100% + 10px);
   transform: translateX(-50%);
-  background-color: #fff;
-  color: #000;
+  background-color: var(--color-neutral-50);
+  color: var(--text-color);
   text-align: center;
-  border-radius: 4px;
-  border: 1px solid #d4d4d5;
+  border-radius: var(--shape-border-radius-2);
+  border: 1px solid var(--border-color);
   padding: 8px 12px;
   width: max-content;
   max-width: 300px;
@@ -1479,7 +1477,7 @@ picture.missing img {
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #fff transparent transparent;
+  border-color: var(--color-neutral-50) transparent transparent;
   filter: drop-shadow(0 0 1px rgb(122 122 122 / 100%));
 }
 
@@ -1503,7 +1501,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="bottom"]::before {
   top: 100%;
   bottom: auto;
-  border-color: transparent transparent #fff;
+  border-color: transparent transparent var(--color-neutral-50);
 }
 
 [data-tooltip][data-tooltip-position="left"]::after {
@@ -1514,7 +1512,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="left"]::before {
   inset: 50% 100% auto auto;
   transform: translateY(-50%);
-  border-color: transparent transparent transparent #fff;
+  border-color: transparent transparent transparent var(--color-neutral-50);
 }
 
 [data-tooltip][data-tooltip-position="right"]::after {
@@ -1525,7 +1523,7 @@ picture.missing img {
 [data-tooltip][data-tooltip-position="right"]::before {
   inset: 50% auto auto 100%;
   transform: translateY(-50%);
-  border-color: transparent #fff transparent transparent;
+  border-color: transparent var(--color-neutral-50) transparent transparent;
 }
 
 .inline-loading-spinner {
@@ -1533,14 +1531,14 @@ picture.missing img {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: var(--color-neutral-700);
   font-size: 12px;
 }
 
 .inline-loading-spinner .spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid #e0e0e0;
+  border: 3px solid var(--color-neutral-300);
   border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: facet-spin 0.8s linear infinite;
@@ -1572,7 +1570,7 @@ picture.missing img {
   }
 
   &::-webkit-scrollbar-track {
-    background-color: #f1f1f1;
+    background-color: var(--color-neutral-200);
     border-radius: 10px;
   }
 
@@ -1594,7 +1592,7 @@ picture.missing img {
 
 /* Section surface utilities */
 .surface-brand {
-  background-color: var(--color-red);
+  background-color: var(--dark-color);
 }
 
 .surface-accent {
@@ -1615,7 +1613,7 @@ picture.missing img {
 
 
 .frescopa-background-red {
-  background-color: var(--color-red);
+  background-color: var(--dark-color);
 }
 
 .frescopa-background-yellow {
@@ -1643,7 +1641,7 @@ main > .section + .background {
   padding: 10px 0;
   margin-left: auto;
   margin-right: auto;
-  background: var(--light-color) url('backgrounds/big.svg') no-repeat center center/cover;
+  background: var(--light-color);
 }
 
 main > .section + .background > div {
@@ -1653,7 +1651,7 @@ main > .section + .background > div {
 
 @media (width >= 900px) {
 .frescopa-background-red {
-  background-color: var(--color-red);
+  background-color: var(--dark-color);
 }
 
 .frescopa-background-yellow {

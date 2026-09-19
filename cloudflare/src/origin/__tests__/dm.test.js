@@ -1134,6 +1134,171 @@ describe('dm.js - ContentAI Authorization', () => {
     });
   });
 
+  describe('buildAssetAuthClauses — country → brand restriction (COUNTRY_BRAND_RESTRICTIONS)', () => {
+    let savedDemoCompany;
+    let savedRestrictions;
+    const brandExistsClause = { exists: { field: 'assetMetadata.brand' } };
+
+    function getBrandClause(clauses) {
+      return clauses.find((c) => c.term?.['assetMetadata.brand']);
+    }
+
+    beforeEach(() => {
+      savedDemoCompany = config.DEMO_COMPANY;
+      savedRestrictions = config.COUNTRY_BRAND_RESTRICTIONS;
+      config.DEMO_COMPANY = null;
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: ['Frescopa'] };
+    });
+    afterEach(() => {
+      config.DEMO_COMPANY = savedDemoCompany;
+      config.COUNTRY_BRAND_RESTRICTIONS = savedRestrictions;
+    });
+
+    it('restricts DE users to the configured brand and requires the brand field to exist', async () => {
+      const request = { user: { email: 'user@example.com', country: 'DE', userType: 'internal' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses).term['assetMetadata.brand']).toEqual(
+        expect.arrayContaining(['Frescopa', 'frescopa', 'FRESCOPA']),
+      );
+      expect(clauses).toContainEqual(brandExistsClause);
+      // country filter still applies alongside the brand restriction
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['DE', 'germany', 'global'] } });
+    });
+
+    it('matches the country key case-insensitively (sudo stores the simulated country lowercase)', async () => {
+      const request = { user: { email: 'user@example.com', country: 'de' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeDefined();
+      expect(clauses).toContainEqual(brandExistsClause);
+    });
+
+    it('resolves a full country name (simulation picker / users sheet) to its ISO code', async () => {
+      const request = { user: { email: 'user@example.com', country: 'germany' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeDefined();
+      expect(clauses).toContainEqual(brandExistsClause);
+    });
+
+    it('does not restrict users from other countries', async () => {
+      const request = { user: { email: 'user@example.com', country: 'US' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeUndefined();
+      expect(clauses).not.toContainEqual(brandExistsClause);
+    });
+
+    it('does not restrict users without a resolvable country', async () => {
+      const request = { user: { email: 'user@example.com' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeUndefined();
+      expect(clauses).not.toContainEqual(brandExistsClause);
+    });
+
+    it('does not restrict DE users granted extra countries via sheet when their own country is not DE', async () => {
+      // `countries` are additional access grants, not the user's identity country
+      const request = { user: { email: 'user@example.com', country: 'US', countries: ['DE'] } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeUndefined();
+    });
+
+    it('is bypassed for admins', async () => {
+      const request = { user: { email: 'admin@example.com', roles: ['admin'], country: 'DE' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(clauses).toEqual([]);
+    });
+
+    it('applies the rule to the real pre-simulation country when useRealPermissions is set', async () => {
+      const request = {
+        user: {
+          email: 'user@example.com',
+          country: 'US',
+          su: { email: 'user@example.com', country: 'DE' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {}, { useRealPermissions: true });
+
+      expect(getBrandClause(clauses)).toBeDefined();
+      expect(clauses).toContainEqual(brandExistsClause);
+    });
+
+    it('applies the rule to the simulated country while sudo-simulating', async () => {
+      const request = {
+        user: {
+          email: 'admin@example.com',
+          roles: [],
+          country: 'de',
+          su: { email: 'admin@example.com', roles: ['admin'], country: 'US' },
+        },
+      };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeDefined();
+    });
+
+    it('adds no brand clause when the restriction map is empty or unset', async () => {
+      config.COUNTRY_BRAND_RESTRICTIONS = undefined;
+      const request = { user: { email: 'user@example.com', country: 'DE' } };
+
+      const clauses = await buildAssetAuthClauses(request, {});
+
+      expect(getBrandClause(clauses)).toBeUndefined();
+      expect(clauses).not.toContainEqual(brandExistsClause);
+    });
+
+    describe('single-asset metadata check with the DE clauses', () => {
+      let deClauses;
+      beforeEach(async () => {
+        const request = { user: { email: 'user@example.com', country: 'DE', userType: 'internal' } };
+        deClauses = await buildAssetAuthClauses(request, {});
+      });
+
+      it('accepts a Frescopa-branded asset', () => {
+        const result = checkAssetMetadataAuthorization(deClauses, { brand: 'Frescopa', allowedCountries: ['global'] });
+        expect(result.violated).toBe(false);
+      });
+
+      it('accepts a lowercase frescopa-branded asset', () => {
+        const result = checkAssetMetadataAuthorization(deClauses, { brand: 'frescopa', allowedCountries: ['global'] });
+        expect(result.violated).toBe(false);
+      });
+
+      it('rejects an asset of another brand', () => {
+        const result = checkAssetMetadataAuthorization(deClauses, {
+          brand: 'OtherBrand',
+          allowedCountries: ['global'],
+        });
+        expect(result.violated).toBe(true);
+        expect(result.reason).toContain('brand');
+      });
+
+      it('rejects an asset without any brand value (strict rule)', () => {
+        const result = checkAssetMetadataAuthorization(deClauses, { allowedCountries: ['global'] });
+        expect(result.violated).toBe(true);
+        expect(result.reason).toContain('Missing brand');
+      });
+
+      it('rejects an asset with an empty brand array', () => {
+        const result = checkAssetMetadataAuthorization(deClauses, { brand: [], allowedCountries: ['global'] });
+        expect(result.violated).toBe(true);
+      });
+    });
+  });
+
   describe('collectionsSearchContentAIAuthorization', () => {
     let savedDemoCompany;
     beforeEach(() => {

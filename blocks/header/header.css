@@ -4,6 +4,8 @@
 
 :root {
   --nav-bar-height: var(--nav-height);
+  --nav-fg: var(--background-color);
+  --nav-divider: rgb(237 240 251 / 15%);
 }
 
 header {
@@ -16,9 +18,10 @@ header .dropdown-menu {
 }
 
 header .dropdown-menu > ul {
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 0 14px 0 rgb(0 0 0 / 12%);
+  background-color: var(--dark-color);
+  color: var(--nav-fg);
+  border: 1px solid var(--primary-color);
+  border-radius: 0;
   font-size: 14px;
   list-style-type: none;
   margin: 0;
@@ -33,12 +36,13 @@ header .dropdown-menu > ul {
 }
 
 .header-dropdown-portal > ul {
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 0 14px 0 rgb(0 0 0 / 12%);
+  background-color: var(--dark-color);
+  color: var(--nav-fg);
+  border: 1px solid var(--primary-color);
+  border-radius: 0;
   font-size: 14px;
   font-family: var(--body-font-family);
-  font-weight: 500;
+  font-weight: 400;
   list-style-type: none;
   margin: 0;
   min-width: 180px;
@@ -47,7 +51,7 @@ header .dropdown-menu > ul {
 
 header nav .dropdown-menu > ul > li,
 .header-dropdown-portal > ul > li {
-  border-bottom: 1px solid var(--light-color);
+  border-bottom: 1px solid var(--nav-divider);
   padding: 8px 4px;
   width: 100%;
 }
@@ -59,7 +63,7 @@ header nav .dropdown-menu > ul > li:last-child,
 
 header nav .dropdown-menu > ul > li a,
 .header-dropdown-portal > ul > li a {
-  color: var(--text-color);
+  color: var(--nav-fg);
   text-decoration: none;
   display: block;
   width: 100%;
@@ -67,7 +71,8 @@ header nav .dropdown-menu > ul > li a,
 
 header nav .dropdown-menu > ul > li a:hover,
 .header-dropdown-portal > ul > li a:hover {
-  color: var(--primary-color);
+  color: var(--nav-fg);
+  text-decoration: underline;
 }
 
 /* My Account Dropdown Menu - Specific Styles */
@@ -80,27 +85,29 @@ header nav .my-account .my-account-menu > ul,
 header nav .my-account {
   flex-shrink: 0;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   position: relative;
 }
 
 header nav .my-account .my-account-button {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--primary-color);
-  border-radius: 60px;
+  background: var(--primary-color);
+  color: var(--nav-fg);
+  border: 0;
+  border-radius: var(--shape-border-radius-3);
   cursor: pointer;
   display: flex;
   font-family: var(--body-font-family);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 140%;
   max-height: 40px;
-  padding: 6px 16px 6px 6px;
+  padding: 6px 15px 6px 6px;
 }
 
 header nav .my-account .avatar {
-  background-color: var(--primary-color);
+  background-color: var(--nav-fg);
+  color: var(--dark-color);
   border-radius: 50%;
   font-family: var(--body-font-family);
   font-weight: 700;
@@ -117,26 +124,21 @@ header nav .my-account .avatar .impersonation-indicator {
   right: -2px;
   width: 10px;
   height: 10px;
-  background-color: var(--primary-color);
-  border: 2px solid #fff;
+  background-color: var(--color-warning);
+  border: 2px solid var(--dark-color);
   border-radius: 50%;
-  box-shadow: 0 0 4px rgb(0 0 0 / 20%);
 }
 
-header nav .my-account-button:hover {
-  background: var(--primary-color);
-}
-
-header nav .my-account-button:hover .avatar {
-  background-color: #fff;
-}
-
+header nav .my-account-button:hover,
 header nav .my-account-button.active {
-  background: var(--primary-color);
+  background: var(--nav-fg);
+  color: var(--dark-color);
 }
 
+header nav .my-account-button:hover .avatar,
 header nav .my-account-button.active .avatar {
-  background-color: #fff;
+  background-color: var(--primary-color);
+  color: var(--nav-fg);
 }
 
 /* Arrow Icons */
@@ -151,21 +153,26 @@ header nav .down-arrow-icon::before {
   height: 20px;
   margin-left: 4px;
   width: 20px;
+  filter: brightness(0) invert(1);
 }
 
-header nav .down-arrow-icon:hover::before {
-  background: url("/icons/down-arrow-icon-red.svg") no-repeat 50%;
+header nav .my-account-button:hover .down-arrow-icon::before,
+header nav .my-account-button.active .down-arrow-icon::before {
+  filter: none;
 }
 
 header .nav-wrapper {
-  background-color: #fff;
-  color: var(--text-color);
-  color-scheme: light;
+  background-color: var(--dark-color);
+  color: var(--nav-fg);
+  color-scheme: dark;
   width: 100%;
   z-index: 2;
-  box-shadow: 0 3px 5px #0000000D;
   position: fixed;
   top: 0;
+
+  /* adaptTo()-style thin electric-blue rule at the bottom edge of the navy band
+     (inset shadow, so it does not add to the fixed header's height) */
+  box-shadow: inset 0 -1px 0 var(--primary-color);
 }
 
 /* When hamburger menu is open, ensure nav overlay sits above page content (e.g. Training Resources card icons) */
@@ -207,20 +214,30 @@ header nav:not(:has(.nav-sections)) {
     height: calc(100dvh - var(--nav-bar-height));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    background-color: #fff;
-    box-shadow: 8px 0 24px -12px rgb(0 0 0 / 30%);
-    border-top: 1px solid #ededed;
+    background-color: var(--dark-color);
+    border-top: 1px solid var(--primary-color);
   }
 }
 
+/* Desktop: single navy band — brand left, portal title centered, tools right.
+   When DA authors nav link sections, they take the middle and the title is hidden. */
 @media (width >=900px) {
-  header nav {
-    display: flex;
-    justify-content: space-between;
-    gap: 0 48px;
+  header nav,
+  header nav:not(:has(.nav-sections)) {
+    display: grid;
+    grid-template: 'brand title tools' var(--nav-bar-height) / 1fr auto 1fr;
+    align-items: center;
+    gap: 0 32px;
     padding: 0 32px;
-    height: auto;
-    min-height: var(--nav-bar-height);
+    height: var(--nav-bar-height);
+  }
+
+  header nav:has(.nav-sections) {
+    grid-template: 'brand sections tools' var(--nav-bar-height) / auto 1fr auto;
+  }
+
+  header nav:has(.nav-sections) .nav-title {
+    display: none;
   }
 
   header nav[aria-expanded='true'] {
@@ -237,7 +254,8 @@ header nav p {
   line-height: 1;
 }
 
-header nav a:any-link {
+header nav a:any-link,
+header nav a:any-link:hover {
   color: currentcolor;
 }
 
@@ -253,7 +271,7 @@ header nav .nav-sections a.active::after {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--primary-color);
+  background: var(--nav-fg);
   bottom: -8px;
 }
 
@@ -299,28 +317,50 @@ header nav[aria-expanded='false'] .nav-hamburger-icon::after {
   height: 36px !important;
   border-radius: 0;
   background: url("/icons/ham-menu.svg") no-repeat center / contain !important;
+  filter: brightness(0) invert(1);
 }
 
 header nav[aria-expanded='true'] .nav-hamburger-icon {
   height: 36px !important;
   background: url("/icons/close-menu.svg") no-repeat center / contain !important;
+  filter: brightness(0) invert(1);
+}
+
+/* portal title (see header.js) */
+header nav .nav-title {
+  grid-area: title;
+  display: none;
+  font-family: var(--body-font-family);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--nav-fg);
+  text-align: center;
+}
+
+@media (width >=900px) {
+  header nav .nav-title {
+    display: block;
+  }
 }
 
 /* brand */
 header .nav-brand {
   grid-area: brand;
   flex-basis: 128px;
-  font-family: var(--heading-font-family);
+  font-family: var(--body-font-family);
   font-size: var(--heading-font-size-s);
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1;
 }
 
 header nav .nav-brand img {
   width: auto;
   max-width: 180px;
-  height: calc(var(--nav-bar-height) - 24px);
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-brand-row-height) - 24px);
+  max-height: calc(var(--nav-brand-row-height) - 24px);
   object-fit: contain;
 }
 
@@ -332,7 +372,7 @@ header .nav-brand p {
 header .nav-brand a {
   display: inline-flex;
   align-items: center;
-  height: var(--nav-bar-height);
+  height: var(--nav-brand-row-height);
   text-decoration: none;
 }
 
@@ -355,8 +395,8 @@ header .nav-brand .icon img,
 header .nav-brand .icon svg {
   width: auto;
   max-width: 150px;
-  height: calc(var(--nav-bar-height) - 24px);
-  max-height: calc(var(--nav-bar-height) - 24px);
+  height: calc(var(--nav-brand-row-height) - 24px);
+  max-height: calc(var(--nav-brand-row-height) - 24px);
   object-fit: contain;
 }
 
@@ -378,15 +418,17 @@ header nav .nav-sections ul {
   list-style: none;
   padding-left: 0;
   font-family: var(--body-font-family);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
   margin: 0;
 }
 
 header nav .nav-sections ul>li {
   font-weight: 400;
-  border-bottom: 1px solid #ededed;
+  border-bottom: 1px solid var(--nav-divider);
 }
+
 
 @media (width < 900px) {
   header nav .nav-sections ul>li > p {
@@ -416,9 +458,9 @@ header nav .nav-sections ul>li {
   }
 
   header nav .nav-sections ul>li:hover > p > a,
-  header nav .nav-sections ul>li:hover > a,
-  header nav .nav-sections ul>li:hover > p {
-    color: var(--primary-color);
+  header nav .nav-sections ul>li:hover > a {
+    color: var(--nav-fg);
+    text-decoration: underline;
   }
 
   header nav .nav-sections {
@@ -426,7 +468,7 @@ header nav .nav-sections ul>li {
   }
 
   header nav .nav-sections .nav-drop[aria-expanded='true'] {
-    background-color: #f8f8f8;
+    background-color: rgb(237 240 251 / 8%);
   }
 
   header nav .nav-sections .nav-drop ul {
@@ -467,18 +509,12 @@ header nav .nav-sections ul>li {
   header nav .nav-sections .nav-drop[aria-expanded='true'] > .button-container::after,
   header nav .nav-sections .nav-drop[aria-expanded='true'] > a::after {
     transform: rotate(180deg);
-    color: var(--primary-color);
-  }
-
-  header nav .nav-sections .nav-drop[aria-expanded='true'] > p,
-  header nav .nav-sections .nav-drop[aria-expanded='true'] > a {
-    color: var(--primary-color);
   }
 
   header nav .nav-sections .nav-drop.active > p {
     position: relative;
     padding-bottom: 8px;
-    border-bottom: 2px solid var(--primary-color);
+    border-bottom: 2px solid var(--nav-fg);
   }
 }
 
@@ -505,6 +541,7 @@ header nav .nav-sections ul>li>ul {
   padding: 0;
   background: transparent;
   border-radius: 0;
+  text-transform: none; /* sub-menu entries keep natural casing */
 }
 
 header nav .nav-sections ul>li[aria-expanded='true']>ul {
@@ -520,7 +557,7 @@ header nav .nav-sections ul>li>ul>li:last-child {
 }
 
 header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a {
-  color: var(--primary-color);
+  text-decoration: underline;
 }
 
 @media (width >=900px) {
@@ -560,29 +597,25 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
     transform: rotate(180deg);
   }
 
-  header nav .nav-sections .nav-drop:hover::after {
-    color: var(--primary-color);
-  }
-
   header nav .nav-sections .nav-drop:hover p {
-    color: var(--primary-color);
+    text-decoration: underline;
   }
 
   header nav .nav-sections .nav-drop.active > p,
   header nav .nav-sections .nav-drop.active > a {
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--nav-fg);
   }
 
   header nav .nav-sections ul {
     display: flex;
-    gap: 12px;
+    gap: 24px;
     margin: 0;
     flex-wrap: nowrap;
     row-gap: 0;
-    align-items: flex-start;
+    align-items: center;
     align-content: flex-start;
-    font-size: 14px;
+    font-size: 13px;
   }
 
   header nav .nav-sections .default-content-wrapper>ul>li {
@@ -590,15 +623,15 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
     min-width: 0;
     position: relative;
     line-height: 1.2;
-    white-space: normal;
-    padding: 8px;
+    white-space: nowrap;
+    padding: 8px 0;
     align-items: baseline;
   }
 
   header nav .nav-sections .default-content-wrapper>ul>li>a {
     display: block;
-    white-space: normal;
-    max-width: clamp(120px, 12vw, 180px);
+    white-space: nowrap;
+    max-width: 220px;
   }
 
   header nav .nav-sections .default-content-wrapper>ul>li>ul {
@@ -615,11 +648,10 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
     max-width: 320px;
     top: 100%;
     padding: 16px 20px;
-    background-color: white;
+    background-color: var(--dark-color);
     white-space: initial;
-    border: 1px solid #e6e6e6;
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+    border: 1px solid var(--primary-color);
+    border-radius: 0;
   }
 
   header nav .nav-sections .default-content-wrapper>ul>li>ul::before {
@@ -628,7 +660,7 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
 
   header nav .nav-sections .default-content-wrapper>ul>li>ul>li {
     padding: 8px 4px;
-    border-bottom: 1px solid #ededed;
+    border-bottom: 1px solid var(--nav-divider);
     line-height: 20px;
   }
 
@@ -637,14 +669,10 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
   }
 
   header nav .nav-sections .default-content-wrapper>ul>li>a:hover,
-  header nav .nav-sections .default-content-wrapper>ul>li>ul>li>a:hover {
-    color: var(--primary-color);
-  }
-
-  header nav .nav-sections .default-content-wrapper>ul>li>p>a:hover,
-  header nav .nav-sections .default-content-wrapper>ul>li>p:hover
-   {
-    color: var(--primary-color);
+  header nav .nav-sections .default-content-wrapper>ul>li>ul>li>a:hover,
+  header nav .nav-sections .default-content-wrapper>ul>li>p>a:hover {
+    color: var(--nav-fg);
+    text-decoration: underline;
   }
 }
 
@@ -714,6 +742,7 @@ header nav .nav-tools .nav-reports-icon {
     transform: none;
     margin-left: auto;
     flex: 0 0 auto;
+    justify-self: end;
   }
 }
 
@@ -744,8 +773,8 @@ header nav .nav-tools .nav-cart-icon button:focus-visible,
 header nav .nav-tools .nav-download-icon button:focus-visible,
 header nav .nav-tools .nav-message-icon button:focus-visible,
 header nav .nav-tools .nav-reports-icon button:focus-visible {
-  box-shadow: var(--focus-ring, 0 0 0 3px #00647D);
-  border-radius: 6px;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--shape-border-radius-2);
 }
 
 header nav .nav-tools .nav-cart-icon button img,
@@ -756,6 +785,14 @@ header nav .nav-tools .nav-reports-icon button img {
   height: 36px;
   width: 36px;
   transition: opacity 0.2s ease;
+  filter: brightness(0) invert(1);
+}
+
+header nav .nav-tools .nav-cart-icon button:hover img,
+header nav .nav-tools .nav-download-icon button:hover img,
+header nav .nav-tools .nav-reports-icon button:hover img,
+header nav .nav-tools .nav-message-icon button:hover img {
+  opacity: 0.7;
 }
 
 /* Reports and download SVGs have thinner inner artwork than bell/cart */
@@ -765,27 +802,11 @@ header nav .nav-tools .nav-reports-icon button img {
   width: 38px;
 }
 
-header nav .nav-tools .nav-cart-icon button:hover img {
-  content: url("/icons/shopping_cart_icon_red.svg");
-}
-
-header nav .nav-tools .nav-download-icon button:hover img {
-  content: url("/icons/download_icon_red.svg");
-}
-
-header nav .nav-tools .nav-reports-icon button:hover img {
-  content: url("/icons/chart-circle-red.svg");
-}
-
-header nav .nav-tools .nav-message-icon button:hover img {
-  content: url("/icons/bell-circle-red.svg");
-}
-
 header nav .nav-tools .nav-cart-icon .cart-badge,
 header nav .nav-tools .nav-download-icon .download-badge,
 header nav .nav-tools .nav-message-icon .message-badge {
   position: absolute;
-  color: white;
+  color: var(--color-neutral-50);
   font-family: var(--body-font-family);
   font-size: 10px;
   font-style: normal;
@@ -812,7 +833,7 @@ header nav .nav-tools .nav-cart-icon .cart-badge {
 }
 
 header nav .nav-tools .nav-download-icon .download-badge {
-  color: var(--text-color) !important;
+  color: var(--color-neutral-50) !important;
   background: var(--primary-color) !important;
   border-color: var(--primary-color) !important;
 }
@@ -845,8 +866,8 @@ header .search-hidden .main-content {
 header .header-welcome-bar {
   display: flex;
   align-items: center;
-  background-color: var(--light-color);
-  height: var(--nav-height);
+  background-color: var(--dark-color);
+  height: var(--nav-brand-row-height);
   padding: 0 24px;
   position: fixed;
   top: 0;

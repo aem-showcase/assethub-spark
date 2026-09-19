@@ -19,7 +19,7 @@ main > .section:has(.collection-details-inner) {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: white;
+  background: var(--color-neutral-50);
   padding: 1rem 1.5rem;
   box-sizing: border-box;
 }
@@ -46,25 +46,25 @@ main > .section:has(.collection-details-inner) {
   align-items: center;
   gap: 0.5rem;
   font-size: var(--font-size-02);
-  color: #888;
+  color: var(--color-neutral-600);
 }
 
 .cd-breadcrumb a {
-  color: #888;
+  color: var(--color-neutral-600);
   text-decoration: none;
 }
 
 .cd-breadcrumb a:hover {
-  color: #1e1e1e;
+  color: var(--text-color);
   text-decoration: underline;
 }
 
 .cd-breadcrumb-sep {
-  color: #bbb;
+  color: var(--color-neutral-500);
 }
 
 .cd-breadcrumb-name {
-  color: #1e1e1e;
+  color: var(--text-color);
   font-weight: 600;
 }
 
@@ -76,11 +76,11 @@ main > .section:has(.collection-details-inner) {
   justify-content: center;
   padding: 24px;
   margin-top: 24px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  background: var(--color-neutral-50);
+  box-shadow: none;
   border-radius: 8px;
   font-size: var(--font-size-02);
-  color: var(--text-color, #333);
+  color: var(--text-color);
 }
 
 .cd-error p {

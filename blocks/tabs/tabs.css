@@ -5,8 +5,8 @@
     font-size: var(--body-font-size-xs);
     overflow-x: auto;
     scrollbar-width: none; /* Firefox — hide scrollbar track */
-    border-bottom: 2px solid var(--primary-color);
-    background-color: var(--background-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: transparent;
     margin: 16px 0;
 }
 
@@ -30,12 +30,12 @@
 .tabs .tabs-list button {
     flex: 0 0 max-content;
     margin: 0;
-    border: 1px solid var(--border-color, #e4e4e4);
+    border: 1px solid var(--border-color);
     border-bottom: none;
     border-radius: 8px 8px 0 0;
     padding: 12px 20px;
-    background-color: var(--background-color, #efefef);
-    color: var(--text-color, #333);
+    background-color: var(--light-color);
+    color: var(--text-color);
     font-weight: normal;
     line-height: 1.2;
     text-align: center;
@@ -49,21 +49,27 @@
 
 .tabs .tabs-list button p {
     margin: 0;
-    font-family: var(--heading-font-family);
-    font-weight: 600;
+    font-family: var(--body-font-family);
+    font-weight: 400;
     font-size: 14px;
 }
 
 .tabs .tabs-list button[aria-selected='true'] {
-    border: 1px solid var(--primary-color);
-    background-color: var(--primary-color);
-    color: white;
+    border: 1px solid var(--border-color);
+    border-bottom-color: var(--color-neutral-50);
+    background-color: var(--color-neutral-50);
+    color: var(--text-color);
     font-weight: bold;
-    margin-bottom: -2px;
+    margin-bottom: -1px;
+}
+
+.tabs .tabs-list button[aria-selected='true'] p {
+    font-weight: 700;
 }
 
 .tabs .tabs-list button:hover:not([aria-selected='true']) {
-    background-color: var(--border-color, #e4e4e4);
+    background-color: var(--accent-tertiary);
+    text-decoration: underline;
 }
 
 .tabs .tabs-panel {

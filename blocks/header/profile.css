@@ -13,16 +13,16 @@
 }
 
 .profile-modal .profile-modal-content {
-  background-color: white;
+  background-color: var(--color-neutral-50);
   margin: auto;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
+  border: 1px solid var(--border-color);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 4px 20px rgb(0 0 0 / 15%);
 }
 
 .profile-modal .profile-modal-close {
@@ -33,17 +33,17 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: var(--color-neutral-700);
   z-index: 1001;
 }
 
 .profile-modal .profile-modal-close:hover {
-  color: #000;
+  color: var(--text-color);
 }
 
 .profile-modal .profile-header {
   padding: 24px 24px 0;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
 }
 
@@ -56,14 +56,14 @@
 }
 
 .profile-modal .sudo-edit-note {
-  background-color: #e8f4fd;
-  border: 1px solid #b3d9f2;
-  border-radius: 6px;
+  background-color: var(--status-not-started-bg);
+  border: 1px solid rgb(27 49 255 / 30%);
+  border-radius: var(--shape-border-radius-2);
   padding: 10px 12px;
   margin-top: 16px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: #1a5490;
+  color: var(--primary-color);
   text-align: center;
   line-height: 1.5;
 }
@@ -79,13 +79,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--shape-border-radius-3);
   padding: 8px 12px;
   font-size: 14px;
-  font-weight: 500;
-  color: #495057;
+  font-weight: 400;
+  color: var(--text-color);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -93,13 +93,13 @@
 .profile-modal .profile-save-button {
   display: flex;
   align-items: center;
-  background: #007bff;
-  border: 1px solid #007bff;
-  border-radius: 6px;
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--shape-border-radius-3);
   padding: 8px 12px;
   font-size: 14px;
-  font-weight: 500;
-  color: white;
+  font-weight: 400;
+  color: var(--color-neutral-50);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -109,18 +109,18 @@
   align-items: center;
   background: var(--text-color);
   border: 1px solid var(--text-color);
-  border-radius: 6px;
+  border-radius: var(--shape-border-radius-3);
   padding: 8px 12px;
   font-size: 14px;
-  font-weight: 500;
-  color: white;
+  font-weight: 400;
+  color: var(--color-neutral-50);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .profile-modal .edit-button:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background: var(--light-color);
+  border-color: var(--primary-color);
 }
 
 .profile-modal .profile-save-button:hover {
@@ -129,8 +129,8 @@
 }
 
 .profile-modal .reset-button:hover {
-  background: var(--color-dark-red);
-  border-color: var(--color-dark-red);
+  background: var(--color-destructive-hover);
+  border-color: var(--color-destructive-hover);
 }
 
 .profile-modal .edit-button .edit-icon {
@@ -140,13 +140,14 @@
 }
 
 .profile-modal.editing-mode .edit-button {
-  background: #ffeaa7;
-  border-color: #fdcb6e;
-  color: #e17055;
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  color: var(--color-warning-strong);
 }
 
 .profile-modal.editing-mode .edit-button:hover {
-  background: #fdcb6e;
+  background: var(--color-warning);
+  color: var(--color-neutral-50);
 }
 
 .profile-modal .profile-info {
@@ -155,13 +156,13 @@
 }
 
 .profile-modal .user-fields-group {
-  border-radius: 8px;
+  border-radius: var(--shape-border-radius-2);
   transition: background-color 0.3s ease;
 }
 
 .profile-modal .user-fields-group.impersonating {
-  background-color: #fefdf5;
-  border: 1px solid #f9e79f;
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
   padding: 16px;
   margin: 8px 0;
 }
@@ -177,7 +178,7 @@
 .profile-modal .simulating-title {
   font-size: 11px;
   font-weight: 700;
-  color: #8b6914;
+  color: var(--color-warning-strong);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -188,7 +189,7 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--color-neutral-700);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -206,18 +207,18 @@
   color: var(--text-color);
   font-weight: 400;
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   width: 100%;
   box-sizing: border-box;
-  background-color: #fff;
+  background-color: var(--color-neutral-50);
   transition: border-color 0.3s ease;
 }
 
 .profile-modal .profile-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgb(0 123 255 / 25%);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgb(27 49 255 / 25%);
 }
 
 .profile-modal .profile-usertype-dropdown {
@@ -230,7 +231,7 @@
 }
 
 .profile-modal .save-button:hover {
-  background-color: #bbb;
+  background-color: var(--color-neutral-500);
 }
 
 

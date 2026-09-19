@@ -27,14 +27,14 @@ body.download-renditions-modal-open {
 
 .download-renditions-modal {
   position: relative;
-  background: white;
-  box-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color);
   max-width: 1000px;
   width: 90%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: var(--shape-border-radius-2);
   overflow: hidden;
 }
 
@@ -46,7 +46,7 @@ body.download-renditions-modal-open {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   margin: 24px 32px 0;
   padding: 0 0 5px;
   position: relative;
@@ -55,7 +55,7 @@ body.download-renditions-modal-open {
 
 .download-renditions-header .download-renditions-header-title {
   color: var(--secondary-color);
-  font-family: var(--heading-font-family, sans-serif);
+  font-family: var(--heading-font-family);
   font-size: var(--font-size-05);
   font-style: normal;
   font-weight: 700;
@@ -67,7 +67,7 @@ body.download-renditions-modal-open {
   background: none;
   border: none;
   font-size: var(--font-size-07);
-  color: #666;
+  color: var(--color-neutral-700);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -75,12 +75,12 @@ body.download-renditions-modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .download-renditions-close:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--color-neutral-200);
+  color: var(--text-color);
 }
 
 /* ==========================================================================
@@ -99,7 +99,7 @@ body.download-renditions-modal-open {
 
 .download-renditions-table-header {
   color: var(--secondary-color);
-  font-family: var(--heading-font-family, sans-serif);
+  font-family: var(--heading-font-family);
   font-size: var(--font-size-02);
   font-weight: 400;
   letter-spacing: 0.56px;
@@ -108,7 +108,7 @@ body.download-renditions-modal-open {
   display: grid;
   grid-template-columns: 120px 340px 1fr;
   padding: 16px 0;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
   gap: 14px;
 }
 
@@ -119,14 +119,14 @@ body.download-renditions-modal-open {
   align-items: flex-start;
   position: relative;
   gap: 14px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .download-renditions-row .item-thumbnail {
   width: 100px;
   height: 60px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
 }
 
 .download-renditions-row .item-thumbnail img {
@@ -138,9 +138,9 @@ body.download-renditions-modal-open {
 .download-renditions-title {
   font-size: var(--font-size-02);
   font-weight: 700;
-  color: #333;
+  color: var(--text-color);
   line-height: var(--line-height-02);
-  font-family: var(--body-font-family, sans-serif);
+  font-family: var(--body-font-family);
   word-wrap: break-word;
 }
 
@@ -153,24 +153,24 @@ body.download-renditions-modal-open {
   align-items: center;
   gap: 8px;
   padding: 16px;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   font-size: var(--font-size-02);
 }
 
 .download-renditions-content .renditions-status.loading {
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .download-renditions-content .renditions-status.empty {
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .download-renditions-content .renditions-status.loading .loading-spinner {
   margin: 0;
   width: 16px;
   height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #666;
+  border: 2px solid var(--color-neutral-200);
+  border-top: 2px solid var(--color-neutral-700);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   flex-shrink: 0;
@@ -218,7 +218,7 @@ body.download-renditions-modal-open {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #333;
+  color: var(--text-color);
   line-height: var(--line-height-02);
   font-size: var(--font-size-02);
   font-weight: 400;
@@ -228,12 +228,12 @@ body.download-renditions-modal-open {
   position: relative;
   padding: 6px 4px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--shape-border-radius-2);
   transition: background-color 0.15s;
 }
 
 .rendition-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-neutral-200);
 }
 
 .rendition-checkbox {
@@ -258,25 +258,25 @@ body.download-renditions-modal-open {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .rendition-dims {
   flex-shrink: 0;
   white-space: nowrap;
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .rendition-size {
   flex-shrink: 0;
   white-space: nowrap;
-  color: #666;
+  color: var(--color-neutral-700);
 }
 
 .rendition-separator {
   flex-shrink: 0;
   white-space: nowrap;
-  color: #ccc;
+  color: var(--border-color);
 }
 
 /* ==========================================================================
@@ -290,7 +290,7 @@ body.download-renditions-modal-open {
 }
 
 .download-renditions-button {
-  border-radius: 50px;
+  border-radius: var(--shape-border-radius-3);
   padding: 12px 24px;
   font-size: var(--font-size-02);
   font-weight: 400;

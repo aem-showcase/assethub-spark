@@ -22,13 +22,13 @@
 .reports-hub-denied h2 {
   font-size: 32px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-color);
   margin: 0 0 16px;
 }
 
 .reports-hub-denied p {
   font-size: 16px;
-  color: #666;
+  color: var(--color-neutral-700);
   line-height: 1.6;
   margin: 8px 0;
 }
@@ -49,7 +49,7 @@
   font-family: var(--body-font-family);
   font-size: 40px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-color);
   margin: 0 0 8px;
 }
 
@@ -59,7 +59,7 @@
 
 .reports-hub-subtitle {
   font-size: 18px;
-  color: #666;
+  color: var(--color-neutral-700);
   margin: 0;
 }
 
@@ -80,7 +80,7 @@
   font-family: var(--body-font-family);
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-color);
   margin: 0 0 8px;
 }
 
@@ -90,7 +90,7 @@
 
 .reports-section-description {
   font-size: 16px;
-  color: #666;
+  color: var(--color-neutral-700);
   margin: 0;
 }
 
@@ -107,9 +107,9 @@
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  background: white;
-  border: 2px solid #e5e5e5;
-  border-radius: 10px;
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   text-decoration: none;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -117,8 +117,7 @@
 
 .report-card:hover {
   border-color: var(--report-primary-color, var(--primary-color));
-  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-  transform: translateY(-2px);
+  box-shadow: none;
 }
 
 .report-card.coming-soon {
@@ -127,7 +126,7 @@
 }
 
 .report-card.coming-soon:hover {
-  border-color: #e5e5e5;
+  border-color: var(--border-color);
   box-shadow: none;
   transform: none;
 }
@@ -167,13 +166,13 @@
 }
 
 .report-card.coming-soon:hover .report-card-icon {
-  background: #f5f5f5;
+  background: var(--color-neutral-200);
 }
 
 .report-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   margin: 0;
   flex: 1;
   word-wrap: break-word;
@@ -181,7 +180,7 @@
 
 .report-card-description {
   font-size: 12px;
-  color: #666;
+  color: var(--color-neutral-700);
   line-height: 1.5;
   margin: 0;
   word-wrap: break-word;
@@ -192,8 +191,8 @@
   display: inline-block;
   margin-top: 6px;
   padding: 3px 10px;
-  background: #e5e5e5;
-  color: #666;
+  background: var(--border-color);
+  color: var(--color-neutral-700);
   font-size: 10px;
   font-weight: 600;
   border-radius: 10px;
@@ -205,7 +204,7 @@
 .report-card-arrow {
   flex-shrink: 0;
   font-size: 18px;
-  color: #999;
+  color: var(--color-neutral-600);
   transition: transform 0.2s ease;
   align-self: center;
 }
@@ -220,7 +219,7 @@
 }
 
 .report-card.coming-soon:hover .report-card-arrow {
-  color: #999;
+  color: var(--color-neutral-600);
   transform: none;
 }
 

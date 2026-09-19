@@ -7,8 +7,8 @@
 
 /* Search Primary Panel */
 .search-results .search-primary-panel {
-  background-color: #fff;
-  border-bottom: 1px solid #e1e5e9;
+  background-color: var(--color-neutral-50);
+  border-bottom: 1px solid var(--border-color);
   padding: 15px 0;
   margin: 0 20px 0 16px;
 }
@@ -27,18 +27,18 @@
   gap: 8px;
   padding: 12px 16px !important;
   cursor: pointer;
-  background: #fff;
+  background: var(--color-neutral-50);
   color: var(--text-primary);
-  font-family: var(--body-font-family, sans-serif);
+  font-family: var(--body-font-family);
   font-size: var(--font-size-02);
-  border: 1px solid #9a9a9a;
-  border-radius: 40px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--shape-border-radius-3);
   margin: 0;
   position: relative;
 }
 
 .search-results .filter-button:hover {
-  background: #fff;
+  background: var(--color-neutral-50);
   color: var(--primary-color);
   border-color: var(--primary-color);
 }
@@ -59,8 +59,8 @@
 
 /* Search Secondary Panel */
 .search-results .search-secondary-panel {
-  background-color: #fff;
-  border-bottom: 1px solid #e1e5e9;
+  background-color: var(--color-neutral-50);
+  border-bottom: 1px solid var(--border-color);
   padding: 15px 20px 15px 0;
   margin: 0 20px 0 16px;
 }
@@ -123,9 +123,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  border-radius: 6px;
+  border-radius: var(--shape-border-radius-2);
   padding: 2px;
-  background: #fff;
+  background: var(--color-neutral-50);
 }
 
 /* Total Statistics */
@@ -148,7 +148,7 @@
 
 .search-results .total-label {
   font-size: var(--font-size-02);
-  color: #333;
+  color: var(--text-color);
   font-weight: 400;
 }
 
@@ -170,14 +170,14 @@
   align-items: center;
   gap: 8px;
   font-size: var(--font-size-01);
-  color: #333;
+  color: var(--text-color);
   cursor: pointer;
   user-select: none;
   font-weight: 400;
 }
 
 .search-results .dropdown-count {
-  color: #333;
+  color: var(--text-color);
   font-weight: 400;
 }
 
@@ -203,16 +203,16 @@
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgb(0 0 0 / 0%);
   line-height: var(--line-height-03);
-  color: #202020;
+  color: var(--text-color);
   box-sizing: inherit;
   cursor: pointer;
   outline: none;
   position: relative;
   text-align: left;
-  transition: box-shadow 0.1s ease, width 0.1s ease;
+  transition: border-color 0.1s ease, width 0.1s ease;
   user-select: none;
-  border: 1px solid #9a9a9a;
-  border-radius: 8px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--shape-border-radius-2);
   font-size: var(--font-size-01);
   padding: 8px 12px;
   display: inline-block;
@@ -250,10 +250,9 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background: white;
-  border: 1px solid #d4d4d5;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--border-color);
+  border-radius: var(--shape-border-radius-2);
   z-index: 1000;
   min-width: 160px;
   margin-top: 2px;
@@ -264,7 +263,7 @@
   padding: 8px 12px;
   cursor: pointer;
   font-size: var(--font-size-02);
-  color: #333;
+  color: var(--text-color);
   border-bottom: 1px solid var(--light-color);
 }
 
@@ -286,7 +285,7 @@
 
 /* Disabled menu item (greyed out, not clickable) */
 .search-results .ui.simple.dropdown .menu .item.disabled {
-  color: #bbb;
+  color: var(--color-neutral-500);
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -307,7 +306,7 @@
 .search-results .cmp-title h1 {
   font-size: var(--font-size-01);
   font-weight: 400;
-  color: #333;
+  color: var(--text-color);
   margin: 0;
   padding-top: 0;
   display: flex;

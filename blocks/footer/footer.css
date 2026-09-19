@@ -1,7 +1,8 @@
 footer {
-  background-color: var(--light-color);
+  background-color: var(--dark-color);
   font-family: var(--body-font-family);
-  color: var(--text-color);
+  color: var(--light-color);
+  min-height: 150px;
   width: 100%;
   padding: 0;
   margin: 0;
@@ -41,7 +42,7 @@ footer .footer p {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--text-color);
+  color: var(--light-color);
 }
 
 /* Link columns */
@@ -68,20 +69,21 @@ footer .footer .columns p {
 
 footer .footer .columns p strong {
   font-family: var(--heading-font-family);
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 footer .footer a {
-  color: var(--text-color);
+  color: var(--light-color);
   text-decoration: none;
-  font-weight: 300;
-  font-size: 14px;
-  transition: color 0.2s ease;
+  font-weight: 400;
+  font-size: 13px;
 }
 
 footer .footer a:hover {
-  color: var(--primary-color);
+  color: var(--light-color);
   text-decoration: underline;
 }
 
@@ -90,10 +92,10 @@ footer .footer > div > .section:last-child {
   flex-basis: 100%;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid rgb(88 24 29 / 12%);
+  border-top: 1px solid rgb(237 240 251 / 20%);
 }
 
-footer .footer > div > .section:last-child p {
+footer .footer > div > .section:last-child p:last-child {
   font-size: 13px;
   opacity: 0.8;
 }
