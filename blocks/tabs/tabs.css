@@ -30,12 +30,12 @@
 .tabs .tabs-list button {
     flex: 0 0 max-content;
     margin: 0;
-    border: 1px solid var(--border-color, #e4e4e4);
+    border: 1px solid var(--border-color, #DCE8E0);
     border-bottom: none;
     border-radius: 8px 8px 0 0;
     padding: 12px 20px;
     background-color: var(--background-color, #efefef);
-    color: var(--text-color, #333);
+    color: var(--text-color, #2E4338);
     font-weight: normal;
     line-height: 1.2;
     text-align: center;
@@ -63,7 +63,7 @@
 }
 
 .tabs .tabs-list button:hover:not([aria-selected='true']) {
-    background-color: var(--border-color, #e4e4e4);
+    background-color: var(--border-color, #DCE8E0);
 }
 
 .tabs .tabs-panel {

@@ -1,7 +1,7 @@
 @import url('../../scripts/analytics/report-styles.css');
 
 .report-asset-activity {
-  /* Map this block's local tokens onto the global Fréscopa theme so it stays
+  /* Map this block's local tokens onto the global Heineken theme so it stays
      on-brand. These were previously undefined and fell back to a hardcoded red. */
   --color-brand: var(--primary-color);
   --color-brand-hover: var(--primary-color-hover);
@@ -20,7 +20,7 @@
 .aar-denied {
   padding: 2rem;
   text-align: center;
-  color: var(--color-text, #333);
+  color: var(--color-text, #2E4338);
 }
 
 /* Title row */
@@ -40,8 +40,8 @@
 
 /* Filters */
 .aar-filters {
-  background: #fff;
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: #FCFFFD;
+  border: 1px solid var(--color-border, #DCE8E0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
@@ -68,9 +68,9 @@
 .aar-select {
   font-size: var(--report-font-size-md);
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border, #ccc);
+  border: 1px solid var(--color-border, #C4D5CA);
   border-radius: 4px;
-  background: #fff;
+  background: #FCFFFD;
   color: var(--color-text, #222);
 }
 
@@ -114,8 +114,8 @@
 }
 
 .aar-filter-group {
-  background: var(--color-light, #f8f8f8);
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-light, #F7FBF8);
+  border: 1px solid var(--color-border, #DCE8E0);
   border-radius: 6px;
   padding: 0.75rem 1rem;
 }
@@ -147,7 +147,7 @@
   font-size: var(--report-font-size-md);
   font-weight: 600;
   white-space: nowrap;
-  color: var(--color-text, #333);
+  color: var(--color-text, #2E4338);
 }
 
 .aar-filter-extra-footer {
@@ -158,17 +158,17 @@
 .aar-btn {
   padding: 0.55rem 1.4rem;
   font-size: var(--report-font-size-md);
-  border: 1px solid var(--color-border, #ccc);
+  border: 1px solid var(--color-border, #C4D5CA);
   border-radius: 50px;
   cursor: pointer;
-  background: #fff;
-  color: var(--color-text, #333);
+  background: #FCFFFD;
+  color: var(--color-text, #2E4338);
   transition: all 0.2s ease;
 }
 
 .aar-btn-primary {
   background: var(--color-brand);
-  color: #fff;
+  color: #FCFFFD;
   border-color: var(--color-brand);
 }
 
@@ -180,7 +180,7 @@
 .aar-btn-primary:hover {
   background: var(--color-brand-hover);
   border-color: var(--color-brand-hover);
-  color: #fff;
+  color: #FCFFFD;
 }
 
 /* Stats row */
@@ -192,8 +192,8 @@
 }
 
 .aar-stat-card {
-  background: #fff;
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: #FCFFFD;
+  border: 1px solid var(--color-border, #DCE8E0);
   border-radius: 6px;
   padding: 1rem 1.5rem;
   display: flex;
@@ -223,7 +223,7 @@
 .report-asset-activity .aar-export-btn:visited {
   font-size: var(--report-font-size-md);
   font-weight: 700;
-  color: #fff;
+  color: #FCFFFD;
   text-decoration: none;
   background: var(--color-brand);
   border: none;
@@ -236,7 +236,7 @@
 
 .report-asset-activity .aar-export-btn:hover {
   background: var(--color-brand-hover);
-  color: #fff;
+  color: #FCFFFD;
 }
 
 /* Loading state */
@@ -256,8 +256,8 @@
 }
 
 .aar-chart-cell {
-  background: #fff;
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: #FCFFFD;
+  border: 1px solid var(--color-border, #DCE8E0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
 }
@@ -270,14 +270,14 @@
   font-size: var(--report-font-size-md);
   font-weight: 600;
   margin: 0 0 0.75rem;
-  color: var(--color-text, #333);
+  color: var(--color-text, #2E4338);
 }
 
 .aar-table-title {
   font-size: var(--report-font-size-xl);
   font-weight: 700;
   margin: 0 0 0.75rem;
-  color: var(--color-text, #333);
+  color: var(--color-text, #2E4338);
 }
 
 .aar-canvas {
@@ -286,8 +286,8 @@
 
 /* Top used assets table */
 .aar-table-section {
-  background: #fff;
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: #FCFFFD;
+  border: 1px solid var(--color-border, #DCE8E0);
   border-radius: 6px;
   padding: 1rem 1.25rem;
   margin-top: 1rem;
@@ -305,7 +305,7 @@
 
 .aar-table thead th {
   background: var(--color-brand);
-  color: #fff;
+  color: #FCFFFD;
   font-size: var(--report-font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -343,12 +343,12 @@
 
 .aar-table tbody td {
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--color-border, #eee);
-  color: var(--color-text, #333);
+  border-bottom: 1px solid var(--color-border, #EEF5F0);
+  color: var(--color-text, #2E4338);
 }
 
 .aar-table tbody tr:nth-child(even) {
-  background: var(--color-light, #fafafa);
+  background: var(--color-light, #F7FBF8);
 }
 
 .aar-td-thumb {
@@ -360,7 +360,7 @@
   height: 40px;
   object-fit: cover;
   border-radius: 3px;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border, #DCE8E0);
   background: var(--color-light, #f4f4f4);
 }
 

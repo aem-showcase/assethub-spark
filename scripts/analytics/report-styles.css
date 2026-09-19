@@ -23,13 +23,13 @@
   --report-background-white: #fff;
   --report-background-light: #fafafa;
   --report-background-lighter: #f9f9f9;
-  --report-error-color: #f44336;
+  --report-error-color: #FF0000;
   --report-error-bg: #ffebee;
   
   /* Shadows */
   --report-shadow-sm: 0 2px 8px rgb(0 0 0 / 10%);
   --report-shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
-  --report-shadow-focus: 0 0 0 3px rgb(0 100 125 / 15%);
+  --report-shadow-focus: 0 0 0 3px rgb(19 103 11 / 15%);
   
   /* Border Radius */
   --report-radius-sm: 6px;
@@ -163,7 +163,7 @@
 .analytics-metric-value {
   font-size: var(--report-font-size-2xl);
   font-weight: 700;
-  color: #000;
+  color: #103A22;
   line-height: 1.2;
   margin-bottom: 4px;
 }
@@ -273,7 +273,7 @@
 
 /* Table Body */
 .analytics-table tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #EEF5F0;
   transition: background-color var(--report-transition-fast);
 }
 

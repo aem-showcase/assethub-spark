@@ -33,12 +33,12 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: #4F6558;
   z-index: 1001;
 }
 
 .profile-modal .profile-modal-close:hover {
-  color: #000;
+  color: #103A22;
 }
 
 .profile-modal .profile-header {
@@ -188,7 +188,7 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: #4F6558;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -210,7 +210,7 @@
   border-radius: 4px;
   width: 100%;
   box-sizing: border-box;
-  background-color: #fff;
+  background-color: #FCFFFD;
   transition: border-color 0.3s ease;
 }
 
