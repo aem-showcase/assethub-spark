@@ -155,7 +155,10 @@ for it in data:
     rel=p[len(pref):] if p.startswith(pref) else p.lstrip("/")
     if not rel: continue
     ext=it.get("ext")
-    print(("F\t%s.%s"%(rel,ext)) if ext else ("D\t%s"%rel))
+    if ext and rel.endswith("."+ext):
+        print("F\t%s"%rel)
+    else:
+        print(("F\t%s.%s"%(rel,ext)) if ext else ("D\t%s"%rel))
 ' "$ORG" "$REPO"
 }
 
