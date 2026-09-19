@@ -12,7 +12,7 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #FFFFFF;
+  --light-color: #FFF;
   --dark-color: #103A22;
   --text-color: #646464;
   --text-primary: #13670B;
@@ -20,14 +20,14 @@
   --link-hover-color: #13670B;
   --primary-color: #13670B;
   --primary-color-hover: #0F5209;
-  --color-red: #FF0000;
+  --color-red: #F00;
   --color-dark-red: #1B4677;
   --accent-secondary: #32AE88;
   --accent-tertiary: #6AAAE4;
   --secondary-color: #1B4677;
 
   /* Neutral & shape tokens */
-  --color-neutral-50: #FFFFFF;
+  --color-neutral-50: #FCFFFD;
   --color-neutral-100: #F7FBF8;
   --color-neutral-200: #EEF5F0;
   --color-neutral-300: #DCE8E0;
@@ -67,7 +67,7 @@
 
   /* fonts */
   --body-font-family: 'PT Sans', sans-serif;
-  --heading-font-family: HeinekenSerif18, 'PT Sans', serif;
+  --heading-font-family: 'HeinekenSerif18', 'PT Sans', serif;
   --welcome-panel-bg: #13670B;
   --welcome-panel-accent-rgb: 50 174 136;
   --welcome-panel-mark-image: url('/icons/heineken-uk-beans.svg');
@@ -954,7 +954,7 @@ main .section.full-width > div {
 }
 
 main .section.search-hero {
-  background-color: #FFFFFF;
+  background-color: #FFF;
   background-image: url('backgrounds/big.svg');
   background-repeat: no-repeat;
   background-position: center top;

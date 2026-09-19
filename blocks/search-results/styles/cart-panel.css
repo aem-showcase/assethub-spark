@@ -234,7 +234,7 @@ html.base-panel-open {
 }
 
 .base-panel .workflow-step.failed {
-  color: #FF0000;
+  color: #F00;
 }
 
 .base-panel .step-icon {

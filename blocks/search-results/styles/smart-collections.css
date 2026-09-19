@@ -200,7 +200,7 @@
 .smart-collection-modal-error {
   padding: 8px;
   font-size: var(--font-size-01);
-  color: var(--invalid-color, #FF0000);
+  color: var(--invalid-color, #F00);
   background: var(--red-100);
   border-radius: 4px;
 }
