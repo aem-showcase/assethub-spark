@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceUrl": "https://www.calm.com/",
+    "finalUrl": "https://www.calm.com/",
+    "pageTitle": "Access to this page has been denied",
+    "extractedAt": "2026-09-19T06:35:48.711Z",
+    "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
+    "excatVersion": {
+      "dir": "2.1.6",
+      "file": "2.1.1"
+    },
+    "defaultContentSelectors": [],
+    "gateInteraction": null,
+    "gatePassed": false,
+    "warnings": [],
+    "gateSignals": [
+      "degenerate yield: navHeight=\"\" and contentMaxWidth=\"\" — no nav and no content column is not a real content page"
+    ]
+  },
+  "tokens": {
+    "fonts": {
+      "body": {
+        "family": "Times",
+        "familySet": "Times"
+      },
+      "heading": {
+        "family": "",
+        "familySet": ""
+      },
+      "headingSizes": {
+        "xxl": {
+          "mobile": "36px",
+          "desktop": ""
+        },
+        "xl": {
+          "mobile": "28px",
+          "desktop": ""
+        },
+        "l": {
+          "mobile": "24px",
+          "desktop": ""
+        },
+        "m": {
+          "mobile": "20px",
+          "desktop": ""
+        },
+        "s": {
+          "mobile": "18px",
+          "desktop": ""
+        },
+        "xs": {
+          "mobile": "16px",
+          "desktop": ""
+        }
+      },
+      "sources": {
+        "typekit": null,
+        "googleFonts": []
+      }
+    },
+    "colors": {
+      "background": "rgb(255, 255, 255)",
+      "text": "rgb(0, 0, 0)",
+      "link": "",
+      "linkHover": null,
+      "light": "",
+      "dark": ""
+    },
+    "spacing": {
+      "sectionPadding": "",
+      "contentMaxWidth": "",
+      "navHeight": ""
+    },
+    "favicons": [
+      {
+        "url": "https://www.calm.com/favicon.ico",
+        "rel": "icon"
+      }
+    ],
+    "defaultContentCss": ""
+  }
+}
