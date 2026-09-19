@@ -1,6 +1,10 @@
 # Assets Hub Spark
 
-Assets Hub Spark is a demo asset-sharing portal built on AEM Edge Delivery Services (Helix) & Content Hub (Dynamic Media) APIs.
+> [!WARNING]
+> This is currently a demo and not an officially supported Adobe solution.
+
+
+Assets Hub Spark is an experimental demo asset-sharing portal built on AEM Edge Delivery Services (Helix) & Content Hub (Dynamic Media) APIs.
 
 ## Environments
 
