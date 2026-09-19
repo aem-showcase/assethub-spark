@@ -402,6 +402,149 @@ const ACCENT_FN = `() => {
   }).sort(function (x, y) { return y.weight - x.weight; }).slice(0, 10);
 }`;
 
+// ---- source asset + surface measurement -----------------------------------
+// Favicons and visible logo-ish assets must be captured from the loaded source
+// URL now, while the browser is on the real page. Step 4 may decide which one
+// to use, but a later generated SVG is only acceptable when this list is empty.
+const SOURCE_ASSETS_FN = `() => {
+  const out = [];
+  const abs = (u) => {
+    try { return new URL(u, location.href).href; } catch { return null; }
+  };
+  const add = (kind, sourceUrl, extra) => {
+    const url = abs(sourceUrl);
+    if (!url) return;
+    out.push(Object.assign({ kind, sourceUrl: url }, extra || {}));
+  };
+  document.querySelectorAll('link[rel][href]').forEach((el) => {
+    const rel = (el.getAttribute('rel') || '').toLowerCase();
+    if (!/(icon|shortcut icon|apple-touch-icon|mask-icon)/.test(rel)) return;
+    add(rel.includes('apple') ? 'apple-touch-icon' : 'favicon', el.getAttribute('href'), {
+      rel,
+      sizes: el.getAttribute('sizes') || null,
+      type: el.getAttribute('type') || null,
+    });
+  });
+  document.querySelectorAll('img[src], svg image[href], svg image[xlink\\\\:href]').forEach((el) => {
+    const hay = [
+      el.getAttribute('alt'),
+      el.getAttribute('aria-label'),
+      el.getAttribute('class'),
+      el.getAttribute('id'),
+      el.getAttribute('src'),
+      el.getAttribute('href'),
+      el.getAttribute('xlink:href'),
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (!/(logo|brand|wordmark|favicon|nav[_-]?logo)/.test(hay)) return;
+    const r = el.getBoundingClientRect ? el.getBoundingClientRect() : { width: 0, height: 0 };
+    add('visible-logo', el.getAttribute('src') || el.getAttribute('href') || el.getAttribute('xlink:href'), {
+      alt: el.getAttribute('alt') || el.getAttribute('aria-label') || null,
+      width: Math.round(r.width || 0),
+      height: Math.round(r.height || 0),
+    });
+  });
+  const seen = new Set();
+  return out.filter((a) => {
+    const key = a.kind + '|' + a.sourceUrl;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 20);
+}`;
+
+const SURFACE_PROFILE_FN = `() => {
+  const parseRgb = (value) => {
+    const m = String(value || '').match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?/i);
+    if (!m) return null;
+    const a = m[4] === undefined ? 1 : parseFloat(m[4]);
+    if (a < 0.2) return null;
+    return { r: +m[1], g: +m[2], b: +m[3] };
+  };
+  const hex = (c) => c ? '#' + [c.r, c.g, c.b].map((n) => n.toString(16).padStart(2, '0')).join('') : null;
+  const luminance = (c) => {
+    if (!c) return null;
+    const f = (v) => {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  };
+  const tone = (c) => {
+    const l = luminance(c);
+    if (l === null) return 'unknown';
+    if (l >= 0.62) return 'light';
+    if (l <= 0.28) return 'dark';
+    return 'mixed';
+  };
+  const paintedBg = (el) => {
+    for (let n = el; n; n = n.parentElement) {
+      const c = parseRgb(getComputedStyle(n).backgroundColor);
+      if (c) return c;
+    }
+    return parseRgb(getComputedStyle(document.body).backgroundColor);
+  };
+  const heroEl = document.querySelector('main section, main [class*="hero"], main, body') || document.body;
+  const pointEl = document.elementFromPoint(Math.floor(innerWidth / 2), Math.floor(Math.min(innerHeight * 0.28, 320))) || heroEl;
+  const heroBg = paintedBg(pointEl);
+  const els = Array.from(document.querySelectorAll('body, main, section, header, footer, [class*="hero"]'));
+  let darkArea = 0; let lightArea = 0; let totalArea = 0;
+  els.forEach((el) => {
+    const r = el.getBoundingClientRect();
+    const area = Math.max(0, Math.min(r.width, innerWidth) * Math.min(r.height, innerHeight));
+    if (area < 1000) return;
+    const c = paintedBg(el);
+    const t = tone(c);
+    totalArea += area;
+    if (t === 'dark') darkArea += area;
+    if (t === 'light') lightArea += area;
+  });
+  return {
+    hero: {
+      tone: tone(heroBg),
+      background: hex(heroBg),
+      evidence: 'top viewport painted background from the loaded source URL',
+    },
+    page: {
+      dominantTone: lightArea >= darkArea ? 'light' : 'dark',
+      lightSurfaceRatio: totalArea ? +(lightArea / totalArea).toFixed(2) : 0,
+      darkSurfaceRatio: totalArea ? +(darkArea / totalArea).toFixed(2) : 0,
+    },
+  };
+}`;
+
+function buildAssetSources(result, browserAssets, sourceUrl, finalUrl) {
+  const entries = [];
+  const add = (raw) => {
+    if (!raw?.sourceUrl) return;
+    entries.push({
+      kind: raw.kind || 'source-asset',
+      sourceUrl: raw.sourceUrl,
+      discoveredFrom: sourceUrl,
+      pageFinalUrl: finalUrl,
+      rel: raw.rel || null,
+      sizes: raw.sizes || null,
+      type: raw.type || null,
+      alt: raw.alt || null,
+      usedFor: [],
+    });
+  };
+  (browserAssets || []).forEach(add);
+  (result?.favicons || []).forEach((f) => add({
+    kind: String(f.rel || '').includes('apple') ? 'apple-touch-icon' : 'favicon',
+    sourceUrl: f.url,
+    rel: f.rel || null,
+    sizes: f.sizes || null,
+    type: f.type || null,
+  }));
+  const seen = new Set();
+  return entries.filter((e) => {
+    const key = `${e.kind}|${e.sourceUrl}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 // ---- gate detection -------------------------------------------------------
 const GATE_TITLE_RE = /age\s*gate|agegateway|verify\s+your\s+age|are\s+you\s+(?:of\s+legal|over|21|18)|drinkaware|cookie\s+(?:policy|consent|preferences)|consent\s+manager|access\s+denied|forbidden|just\s+a\s+moment|attention\s+required|captcha|are\s+you\s+a\s+human|enable\s+javascript|unsupported\s+browser/i;
 const GATE_PATH_RE = /agegate|age-gate|agegateway|age_check|gate|consent|cookie-?(?:policy|consent)|captcha|challenge|blocked|denied|unsupported/i;
@@ -556,6 +699,8 @@ async function main() {
   let result; let finalUrl; let title;
   let gateActions = [];
   let accents = [];
+  let sourceAssets = [];
+  let surfaceProfile = null;
   try {
     const ctx = await browser.newContext({
       // Match excat's own MCP config: a desktop UA, because many sources serve a
@@ -594,6 +739,8 @@ async function main() {
     result = await page.evaluate(`(${src})()`);
     // Same trap, same fix — ACCENT_FN is an expression too.
     accents = await page.evaluate(`(${ACCENT_FN})()`);
+    sourceAssets = await page.evaluate(`(${SOURCE_ASSETS_FN})()`);
+    surfaceProfile = await page.evaluate(`(${SURFACE_PROFILE_FN})()`);
   } catch (e) {
     fail(4, `extraction failed against ${opt.url}: ${e.message}`);
   } finally {
@@ -657,6 +804,12 @@ async function main() {
     schemaVersion: SCHEMA_VERSION,
     provenance,
     tokens: { ...result, accents: Array.isArray(accents) ? accents : [] },
+    assetSources: buildAssetSources(result, sourceAssets, opt.url, finalUrl),
+    surfaceProfile: {
+      sourceUrl: opt.url,
+      finalUrl,
+      ...(surfaceProfile || {}),
+    },
     // Filled in during Step 4b once the role mapping is decided. Left empty here
     // on purpose: this script measures, it does not choose. Verification fails
     // on an empty tokenMap, so the mapping cannot be skipped.

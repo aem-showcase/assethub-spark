@@ -47,6 +47,16 @@ what the site *serves*, not by looking at a picture of it:
      in the tree and as served. This is the only check that proves the NEW
      colors are *right*; all the residue checks prove only that the OLD ones
      are gone, which a stylesheet with nothing correct in it also satisfies.
+   - `brand-assets-source` (tree) — every produced portal brand asset
+     (`icons/<companyKey>-icon.svg`, `icons/<companyKey>-beans.svg`,
+     `favicon.svg`, `favicon.ico`) traces to a URL-derived candidate in
+     `brand.json assetSources[].usedFor`, or to an explicit generated fallback
+     only when no source candidates exist. This catches "icon exists but was
+     hand-drawn differently from the source URL."
+   - `background-tone` (tree) — the portal hero/search surface tone matches
+     `brand.json surfaceProfile.hero.tone` from the loaded source URL. A
+     mostly light source page cannot ship as a dark full-canvas portal unless
+     `surfaceOverrides[]` records source-backed evidence.
    - `background-shorthand` (tree) — a `background:` shorthand on a
      `.section.*` rule resetting a layered background set at equal
      specificity. This is the mechanism that left a surface cream.
@@ -101,7 +111,7 @@ what the site *serves*, not by looking at a picture of it:
    output and refuses to run `enrich-assets.js` unless `residue`,
    `structural-residue`, `icon-reference-resolution`,
    `welcome-header-home-link`, `header-logo`, `icon-render`,
-   **`brand-fidelity`, `background-shorthand`,
+   **`brand-fidelity`, `brand-assets-source`, `background-tone`, `background-shorthand`,
    `background-asset-fidelity`**, **`stale-card-images`**, **`access-json`**,
    and **`copied-html-live`** all passed against the current commit. Every other check is listed in
    that hook's `WAIVED_CHECKS` with the reason it is not gated — a check

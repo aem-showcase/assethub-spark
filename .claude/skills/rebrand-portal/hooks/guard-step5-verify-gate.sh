@@ -146,6 +146,8 @@ MANDATORY_CHECKS = {
     # set does not exist; tests/rebrand/enforced-checks.test.js now asserts that
     # every check verify.mjs exports is either listed here or explicitly waived.
     "brand-fidelity",
+    "brand-assets-source",
+    "background-tone",
     "background-shorthand",
     "background-asset-fidelity",
     "stale-card-images",

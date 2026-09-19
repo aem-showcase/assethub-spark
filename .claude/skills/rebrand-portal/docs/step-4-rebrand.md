@@ -109,6 +109,14 @@ capability:
    are white/grey/grey with the signature colour nowhere in sight; the accents
    are how that colour becomes available lawfully under I10.
 
+   It also records **source brand assets and source surface tone**. The
+   user-provided URL remains the source of truth; ordinary browser redirects
+   from that URL are fine and are recorded as `provenance.finalUrl`, but do not
+   substitute a different regional URL or a prior demo branch. `brand.json
+   assetSources[]` lists favicon/logo candidates discovered from the loaded
+   source/final URL, and `surfaceProfile` records whether the source hero/page
+   is light or dark.
+
    **Selectors default to `[]` and that is correct.** A missing
    `page-templates.json` is not a blocker — do not treat it as one.
 
@@ -326,6 +334,13 @@ split it across turns:
    those backgrounds survive off-brand. Name `baseBrand.baseSlug` (from the
    capture step) so the agent knows exactly what to replace.
 
+   **Respect the source surface tone.** If `brand.json surfaceProfile.hero.tone`
+   is `light`, keep the portal hero/search canvas light and use brand colour as
+   accents; do not flood the whole canvas with the strongest accent. A dark
+   full-canvas treatment is allowed only when the loaded source URL measured a
+   dark hero/page, or when `surfaceOverrides[]` records source-backed evidence
+   for that selector. `verify.mjs --only background-tone` enforces this.
+
    **Use `background-color`, not the `background` shorthand, on
    `.section.*` rules.** `search-hero` and `category-tiles` are two classes
    on a single element; a shorthand on one resets every layer the other set
@@ -377,10 +392,13 @@ split it across turns:
      circle** (the shortcode points at an icon that no longer exists) and
      the login page keep the base brand's mark. Do all of the following and
      do not mark `rebranded` done until the residue check (Step 4g) is clean:
-     1. **Produce a real brand mark for the company.** Prefer the source
-        site's own logo/favicon (fetch it from the `--source-url` given for
-        the look); if none is available, generate a minimal wordmark SVG
-        from the brand name. Register it in the repo as
+     1. **Produce a real brand mark for the company.** Use the source
+        logo/favicon candidates in `migration-work/brand.json assetSources[]`
+        (discovered from the user-provided URL and any redirect it actually
+        loaded). If candidates exist, use them; do not hand-draw a different
+        mark. Generate a minimal wordmark SVG only when no URL-derived candidate
+        exists, and record `kind: "generated-fallback"`, a `reason`, and
+        `usedFor` in `assetSources[]`. Register it in the repo as
         `/icons/<companyKey>-icon.svg`. **The base uses TWO marks —
         `<baseSlug>-icon` (nav/wordmark) AND `<baseSlug>-beans` (the large
         login-panel mark) — so you MUST create BOTH `/icons/<companyKey>-icon.svg`
@@ -407,7 +425,7 @@ split it across turns:
         `<baseSlug>-beans.svg`, CSS `url('/icons/<baseSlug>…')`,
         `.icon-<baseSlug>…`.
      4. **Rebrand the browser-tab favicon.** Replace the repo `favicon.svg`
-        AND `favicon.ico` (repo root) with the brand mark — these are
+        AND `favicon.ico` (repo root) with the source-derived brand mark — these are
         branch-global and `head.html` references them by fixed root path
         (`/favicon.svg`, `/favicon.ico`), so replacing the files rebrands
         the tab icon without touching `head.html`. The base `favicon.svg`
@@ -415,7 +433,9 @@ split it across turns:
         at the time of writing, along with its `fill` hex) — check the
         current `aria-label`/`fill` on the unedited `favicon.svg` before
         Step 4b; either still present afterward is a giveaway it wasn't
-        replaced.
+        replaced. Record every produced brand asset in `brand.json
+        assetSources[].usedFor`: `icons/<companyKey>-icon.svg`,
+        `icons/<companyKey>-beans.svg`, `favicon.svg`, and `favicon.ico`.
    - **Hardcoded fills / embedded raster — replace them as part of THIS
      edit, not as a later 4g discovery.** SVG icons with a literal
      `fill="#hex"` or background SVGs with embedded raster, and CSS/JS

@@ -79,6 +79,8 @@ describe('every verify.mjs check is consciously gated or consciously waived', ()
     // demote them to waived.
     const { mandatory } = hookSets();
     expect(mandatory).toContain('brand-fidelity');
+    expect(mandatory).toContain('brand-assets-source');
+    expect(mandatory).toContain('background-tone');
     expect(mandatory).toContain('background-shorthand');
     expect(mandatory).toContain('background-asset-fidelity');
     expect(mandatory).toContain('stale-card-images');

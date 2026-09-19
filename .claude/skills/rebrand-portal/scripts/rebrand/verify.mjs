@@ -16,7 +16,8 @@
  *
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
  *   icon-reference-resolution, welcome-header-home-link, icon-render,
- *   background-shorthand, background-asset-fidelity, brand-fidelity
+ *   brand-assets-source, background-tone, background-shorthand,
+ *   background-asset-fidelity, brand-fidelity
  *   (brand-fidelity also uses --preview when given).
  * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling,
  *   access-json, copied-html-live.
@@ -747,6 +748,174 @@ export async function checkBrandFidelity(repoRoot, previewHost) {
   };
 }
 
+function normalizedUsedFor(value) {
+  return String(value || '').replace(/^\/+/, '');
+}
+
+function sourceAssetCandidates(brand) {
+  const declared = Array.isArray(brand?.assetSources) ? brand.assetSources : [];
+  const candidates = declared.filter((a) => a?.sourceUrl && a.kind !== 'generated-fallback' && a.source !== 'generated-fallback');
+  if (candidates.length) return candidates;
+  return (brand?.tokens?.favicons || [])
+    .filter((f) => f?.url)
+    .map((f) => ({ kind: f.rel || 'favicon', sourceUrl: f.url, usedFor: [] }));
+}
+
+function sourceEntryForAsset(brand, relPath) {
+  const target = normalizedUsedFor(relPath);
+  const declared = Array.isArray(brand?.assetSources) ? brand.assetSources : [];
+  return declared.find((a) => (a.usedFor || []).map(normalizedUsedFor).includes(target));
+}
+
+// ---- CHECK: brand-assets-source (tree) ------------------------------------------
+// Existence/rendering is not provenance. The Heineken run had URL-derived favicon/logo
+// candidates in brand.json, then hand-drew portal icons anyway. icon-render passed because
+// the SVG existed and had paths; it could not know the icon came from the agent, not the
+// supplied URL. This check makes the existing brand.json record carry that decision.
+export function checkBrandAssetsSource(repoRoot, company) {
+  const name = 'brand-assets-source';
+  if (!company) return { name, pass: false, reason: 'needs --company' };
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+  const brand = loaded.data;
+  const targets = [
+    `icons/${company}-icon.svg`,
+    `icons/${company}-beans.svg`,
+    'favicon.svg',
+    'favicon.ico',
+  ];
+  const candidates = sourceAssetCandidates(brand);
+  const problems = [];
+  for (const rel of targets) {
+    if (!existsSync(join(repoRoot, rel))) {
+      problems.push(`${rel} is missing`);
+      continue;
+    }
+    const entry = sourceEntryForAsset(brand, rel);
+    if (!entry) {
+      problems.push(`${rel} has no brand.json assetSources[].usedFor trace`);
+      continue;
+    }
+    const isFallback = entry.kind === 'generated-fallback' || entry.source === 'generated-fallback';
+    if (isFallback) {
+      if (candidates.length) {
+        problems.push(`${rel} uses generated-fallback even though URL-derived candidate(s) exist: ${candidates.map((c) => c.sourceUrl).slice(0, 3).join(', ')}`);
+      }
+      if (!entry.reason) problems.push(`${rel} generated-fallback is missing a reason`);
+    } else if (!entry.sourceUrl) {
+      problems.push(`${rel} is mapped to an assetSources[] entry with no sourceUrl`);
+    }
+  }
+  if (problems.length) {
+    return {
+      name,
+      pass: false,
+      reason: `${problems.length} brand asset source problem(s):\n  ${problems.join('\n  ')}\n`
+        + 'Map each asset to URL-derived brand.json assetSources[].usedFor, or record generated-fallback only when no source candidates exist.',
+    };
+  }
+  return { name, pass: true, reason: `${targets.length} brand asset(s) trace to source URL assets or documented fallback` };
+}
+
+function cssRules(css) {
+  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: m[1].trim().replace(/\s+/g, ' '),
+    body: m[2],
+  }));
+}
+
+function cssDeclarations(body) {
+  const out = {};
+  for (const m of body.matchAll(/([-\w]+)\s*:\s*([^;]+);/g)) out[m[1].trim()] = m[2].trim();
+  return out;
+}
+
+function rootVars(css) {
+  const root = cssRules(css).find((r) => r.selector === ':root');
+  return root ? cssDeclarations(root.body) : {};
+}
+
+function resolveCssColor(value, vars, depth = 0) {
+  if (!value || depth > 4) return null;
+  const raw = String(value).trim();
+  const varMatch = raw.match(/^var\(\s*(--[\w-]+)(?:\s*,\s*([^)]+))?\)$/i);
+  if (varMatch) return resolveCssColor(vars[varMatch[1]] || varMatch[2], vars, depth + 1);
+  const firstColor = raw.match(/#[0-9a-f]{3,6}\b|rgba?\([^)]+\)/i);
+  return normalizeHex(firstColor ? firstColor[0] : raw);
+}
+
+function toneForHex(hex) {
+  const norm = normalizeHex(hex);
+  if (!norm) return 'unknown';
+  const rgb = [1, 3, 5].map((i) => parseInt(norm.slice(i, i + 2), 16) / 255);
+  const linear = rgb.map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  const lum = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  if (lum >= 0.62) return 'light';
+  if (lum <= 0.28) return 'dark';
+  return 'mixed';
+}
+
+function sourceBackedSurfaceOverride(brand, selector, tone) {
+  return (brand.surfaceOverrides || []).find((o) => (
+    o?.selector === selector
+    && o.tone === tone
+    && o.reason
+    && o.evidence
+  ));
+}
+
+// ---- CHECK: background-tone (tree) ----------------------------------------------
+// Brand colours being measured does not mean the most saturated accent belongs across
+// the whole hero canvas. This check compares the source page's measured surface tone
+// with the portal hero/search surface tone, so a mostly white source page cannot ship
+// as a dark full-canvas portal unless a source-backed override is recorded.
+export function checkBackgroundTone(repoRoot) {
+  const name = 'background-tone';
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+  const brand = loaded.data;
+  const expected = brand.surfaceProfile?.hero?.tone || brand.surfaceProfile?.page?.dominantTone;
+  if (!['light', 'dark'].includes(expected)) {
+    return {
+      name,
+      pass: false,
+      reason: 'brand.json has no measurable surfaceProfile.hero.tone/page.dominantTone — re-run extract-brand.mjs from the user-provided URL',
+    };
+  }
+
+  const cssPath = join(repoRoot, 'styles', 'styles.css');
+  if (!existsSync(cssPath)) return { name, pass: false, reason: 'styles/styles.css not found' };
+  const css = readFileSync(cssPath, 'utf8');
+  const vars = rootVars(css);
+  const selector = 'main .section.search-hero';
+  const rule = cssRules(css).find((r) => r.selector === selector);
+  if (!rule) return { name, pass: false, reason: `${selector} rule not found` };
+  const decls = cssDeclarations(rule.body);
+  const color = resolveCssColor(decls['background-color'] || decls.background || vars['--light-color'], vars);
+  if (!color) return { name, pass: false, reason: `${selector} has no resolvable background color` };
+  const actual = toneForHex(color);
+  if (!['light', 'dark'].includes(actual)) {
+    return { name, pass: true, reason: `${selector} background ${color} is ${actual}; source hero tone is ${expected}` };
+  }
+  if (actual !== expected) {
+    const override = sourceBackedSurfaceOverride(brand, selector, actual);
+    if (override) {
+      return { name, pass: true, reason: `${selector} tone ${actual} differs from source ${expected}, but surfaceOverrides records source-backed evidence: ${override.evidence}` };
+    }
+    return {
+      name,
+      pass: false,
+      reason: `${selector} background tone is ${actual} (${color}) but the loaded source URL measured ${expected}. `
+        + 'Use a light surface with brand accents, or record a source-backed surfaceOverrides[] entry if a dark hero is intentional.',
+    };
+  }
+  return { name, pass: true, reason: `${selector} background tone ${actual} matches source hero tone ${expected}` };
+}
+
 // ---- CHECK: background-shorthand (tree) -----------------------------------------
 // The exact mechanism behind the background that stayed cream, caught statically.
 //
@@ -1216,6 +1385,8 @@ async function main() {
   if (want('icon-reference-resolution')) results.push(checkIconReferenceResolution(repoRoot));
   if (want('welcome-header-home-link')) results.push(checkWelcomeHeaderHomeLink(repoRoot));
   if (want('icon-render')) results.push(checkIconRender(repoRoot, opt.company));
+  if (want('brand-assets-source')) results.push(checkBrandAssetsSource(repoRoot, opt.company));
+  if (want('background-tone')) results.push(checkBackgroundTone(repoRoot));
   if (want('background-shorthand')) results.push(checkBackgroundShorthand(repoRoot));
   if (want('background-asset-fidelity')) results.push(checkBackgroundAssetFidelity(repoRoot, baseBrand));
   if (want('brand-fidelity')) results.push(await checkBrandFidelity(repoRoot, opt.preview));

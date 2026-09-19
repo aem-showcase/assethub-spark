@@ -6,7 +6,7 @@ import {
   checkHeaderLogo, checkResidue, checkStaleCardImages,
   checkStructuralResidue, checkIconReferenceResolution, checkWelcomeHeaderHomeLink,
   checkCardCeiling, checkCardCount, checkAccessJson,
-  checkCopiedHtmlLive,
+  checkCopiedHtmlLive, checkBrandAssetsSource, checkBackgroundTone,
 } from '../../scripts/rebrand/verify.mjs';
 import { MAX_CARDS } from '../../scripts/assets/constants.js';
 
@@ -15,7 +15,39 @@ function makeRepo() {
   mkdirSync(join(root, 'blocks', 'header'), { recursive: true });
   mkdirSync(join(root, 'styles'), { recursive: true });
   mkdirSync(join(root, 'icons'), { recursive: true });
+  mkdirSync(join(root, 'migration-work'), { recursive: true });
   return root;
+}
+
+function writeBrand(root, overrides = {}) {
+  const brand = {
+    schemaVersion: 1,
+    provenance: {
+      sourceUrl: 'https://www.example.com/us/en/home/',
+      finalUrl: 'https://www.example.com/us/en/home/',
+      extractedAt: '2026-09-19T00:00:00.000Z',
+      extractor: 'test',
+      gatePassed: true,
+    },
+    tokens: {
+      colors: {
+        background: 'rgb(255, 255, 255)',
+        text: 'rgb(70, 70, 70)',
+        link: 'rgb(19, 103, 11)',
+      },
+      accents: [{ hex: '#13670b', weight: 100, why: ['background'] }],
+    },
+    tokenMap: [{
+      role: 'primary-color',
+      oldHex: '#00647D',
+      newHex: '#13670B',
+      cssVar: '--primary-color',
+      source: 'extracted',
+    }],
+    ...overrides,
+  };
+  writeFileSync(join(root, 'migration-work', 'brand.json'), JSON.stringify(brand, null, 2));
+  return brand;
 }
 
 const GOOD_HEADER = `
@@ -135,6 +167,132 @@ describe('verify: residue', () => {
     const root = makeRepo();
     try {
       expect(checkResidue(root, null).pass).toBe(false);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('verify: brand-assets-source', () => {
+  function writeBrandAssets(root, company = 'heineken-usa') {
+    writeFileSync(join(root, 'icons', `${company}-icon.svg`), '<svg><path d="M0 0h1v1z"/></svg>');
+    writeFileSync(join(root, 'icons', `${company}-beans.svg`), '<svg><path d="M0 0h1v1z"/></svg>');
+    writeFileSync(join(root, 'favicon.svg'), '<svg><path d="M0 0h1v1z"/></svg>');
+    writeFileSync(join(root, 'favicon.ico'), 'ico');
+  }
+
+  it('FAILS when URL-derived logo/favicon candidates exist but produced assets are untraced', () => {
+    const root = makeRepo();
+    try {
+      writeBrandAssets(root);
+      writeBrand(root, {
+        assetSources: [{
+          kind: 'apple-touch-icon',
+          sourceUrl: 'https://www.heineken.com/media/nav_logo_heineken.png',
+          discoveredFrom: 'https://www.heineken.com/us/en/home/',
+          pageFinalUrl: 'https://www.heineken.com/us/en/home/',
+          usedFor: [],
+        }],
+      });
+      const r = checkBrandAssetsSource(root, 'heineken-usa');
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/no brand\.json assetSources\[\]\.usedFor trace/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when every portal brand asset maps to a source URL candidate', () => {
+    const root = makeRepo();
+    try {
+      writeBrandAssets(root);
+      writeBrand(root, {
+        assetSources: [{
+          kind: 'apple-touch-icon',
+          sourceUrl: 'https://www.heineken.com/media/nav_logo_heineken.png',
+          discoveredFrom: 'https://www.heineken.com/us/en/home/',
+          pageFinalUrl: 'https://www.heineken.com/us/en/home/',
+          usedFor: [
+            'icons/heineken-usa-icon.svg',
+            'icons/heineken-usa-beans.svg',
+            'favicon.svg',
+            'favicon.ico',
+          ],
+        }],
+      });
+      expect(checkBrandAssetsSource(root, 'heineken-usa').pass).toBe(true);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('FAILS generated fallback when source URL candidates exist', () => {
+    const root = makeRepo();
+    try {
+      writeBrandAssets(root);
+      writeBrand(root, {
+        assetSources: [
+          {
+            kind: 'favicon',
+            sourceUrl: 'https://www.heineken.com/favicon.ico',
+            discoveredFrom: 'https://www.heineken.com/us/en/home/',
+            pageFinalUrl: 'https://www.heineken.com/us/en/home/',
+            usedFor: [],
+          },
+          {
+            kind: 'generated-fallback',
+            reason: 'hand-drawn',
+            usedFor: [
+              'icons/heineken-usa-icon.svg',
+              'icons/heineken-usa-beans.svg',
+              'favicon.svg',
+              'favicon.ico',
+            ],
+          },
+        ],
+      });
+      const r = checkBrandAssetsSource(root, 'heineken-usa');
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/generated-fallback even though URL-derived candidate/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('verify: background-tone', () => {
+  const css = (bg) => `
+:root {
+  --light-color: ${bg};
+}
+main .section.search-hero {
+  background-color: var(--light-color);
+}
+`;
+
+  it('FAILS when a light source hero is applied as a dark portal hero', () => {
+    const root = makeRepo();
+    try {
+      writeBrand(root, {
+        surfaceProfile: {
+          sourceUrl: 'https://www.heineken.com/us/en/home/',
+          finalUrl: 'https://www.heineken.com/us/en/home/',
+          hero: { tone: 'light', background: '#ffffff', evidence: 'top viewport' },
+          page: { dominantTone: 'light', lightSurfaceRatio: 0.8, darkSurfaceRatio: 0.1 },
+        },
+      });
+      writeFileSync(join(root, 'styles', 'styles.css'), css('#0B2E07'));
+      const r = checkBackgroundTone(root);
+      expect(r.pass).toBe(false);
+      expect(r.reason).toMatch(/measured light/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('PASSES when the portal hero tone matches the measured source tone', () => {
+    const root = makeRepo();
+    try {
+      writeBrand(root, {
+        surfaceProfile: {
+          sourceUrl: 'https://www.heineken.com/us/en/home/',
+          finalUrl: 'https://www.heineken.com/us/en/home/',
+          hero: { tone: 'light', background: '#ffffff', evidence: 'top viewport' },
+          page: { dominantTone: 'light', lightSurfaceRatio: 0.8, darkSurfaceRatio: 0.1 },
+        },
+      });
+      writeFileSync(join(root, 'styles', 'styles.css'), css('#FFFFFF'));
+      expect(checkBackgroundTone(root).pass).toBe(true);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });
