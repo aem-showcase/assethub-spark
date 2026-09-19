@@ -1,20 +1,19 @@
 {
   "schemaVersion": 1,
   "provenance": {
-    "sourceUrl": "https://www.heineken.com/in/en/",
+    "sourceUrl": "https://www.heineken.com",
     "finalUrl": "https://www.heineken.com/in/en/home/",
-    "pageTitle": "Welcome to the world of Heineken® | Heineken.com",
-    "extractedAt": "2026-09-17T13:03:35.090Z",
+    "pageTitle": "Welcome to the world of Heineken\u00ae | Heineken.com",
+    "extractedAt": "2026-09-19T12:07:38.636Z",
     "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
-    "excatRoot": "/Users/mohitar/Documents/code/aem-experience-catalyst/resources/plugins/aem-excat-plugin/excat-marketplace/excat",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
     "excatVersion": {
-      "dir": "excat",
+      "dir": "2.1.6",
       "file": "2.1.1"
     },
     "defaultContentSelectors": [],
     "gateInteraction": [
       "consent: clicked #onetrust-accept-btn-handler",
-      "country: selected India (IN)",
       "dob: filled 3 field(s) with 1980-01-01",
       "submit: clicked text:enter"
     ],
@@ -164,5 +163,123 @@
       }
     ]
   },
-  "tokenMap": []
+  "tokenMap": [
+    {
+      "role": "light-color",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFFFFF",
+      "cssVar": "--light-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#13670B",
+      "cssVar": "--primary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color-hover",
+      "oldHex": "#004D61",
+      "newHex": "#346E4A",
+      "cssVar": "--primary-color-hover",
+      "source": "extracted"
+    },
+    {
+      "role": "button-primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#346E4A",
+      "cssVar": "--button-primary-hover",
+      "source": "extracted"
+    },
+    {
+      "role": "secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#1B4677",
+      "cssVar": "--secondary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#1B4677",
+      "cssVar": "--color-dark-red",
+      "source": "extracted"
+    },
+    {
+      "role": "text-color",
+      "oldHex": "#58181D",
+      "newHex": "#4D4D4D",
+      "cssVar": "--text-color",
+      "source": "derived",
+      "derivedFrom": "#999999"
+    },
+    {
+      "role": "text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#4D4D4D",
+      "cssVar": "--text-primary",
+      "source": "derived",
+      "derivedFrom": "#999999"
+    },
+    {
+      "role": "link-color",
+      "oldHex": "#58181D",
+      "newHex": "#646464",
+      "cssVar": "--link-color",
+      "source": "extracted"
+    },
+    {
+      "role": "link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#13670B",
+      "cssVar": "--link-hover-color",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#6AAAE4",
+      "cssVar": "--accent-secondary",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#5FA85B",
+      "cssVar": "--accent-tertiary",
+      "source": "derived",
+      "derivedFrom": "#13670b"
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2F2318",
+      "newHex": "#0B2E07",
+      "cssVar": "--welcome-panel-bg",
+      "source": "derived",
+      "derivedFrom": "#13670b"
+    },
+    {
+      "role": "welcome-panel-accent-rgb",
+      "oldHex": "rgb(234 163 58)",
+      "newHex": "#13670B",
+      "cssVar": "--welcome-panel-accent-rgb",
+      "source": "derived",
+      "derivedFrom": "#13670b"
+    }
+  ],
+  "assetMap": [
+    {
+      "path": "styles/backgrounds/big.svg",
+      "oldHash": "sha256:1ebeb9e11ed7c63b165e18e606fc092015f09cf6c8c61499ce5e341363887c2b",
+      "newHash": "sha256:eeb45a3580e09a3ff254d8b1cfd2bfa24d8751f18f9d46ae9bdef58aa58f5c55",
+      "derivedFrom": [
+        "#13670b",
+        "#346e4a",
+        "#1b4677"
+      ],
+      "description": "Replaced 154KB embedded-raster decorative background with a vector-only green/star pattern generated from the measured primary and border accent colours.",
+      "source": "derived"
+    }
+  ]
 }
