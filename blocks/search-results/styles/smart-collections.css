@@ -15,7 +15,7 @@
   padding: 6px 14px;
   font-size: var(--font-size-01);
   font-weight: 700;
-  color: var(--highlight-foreground, #fff);
+  color: var(--highlight-foreground, #FCFFFD);
   background: var(--primary-color);
   border: none;
   border-radius: 4px;
@@ -200,7 +200,7 @@
 .smart-collection-modal-error {
   padding: 8px;
   font-size: var(--font-size-01);
-  color: var(--invalid-color, #a33532);
+  color: var(--invalid-color, #F00);
   background: var(--red-100);
   border-radius: 4px;
 }
@@ -239,6 +239,6 @@
 }
 
 .smart-collection-banner-actions button:hover {
-  color: var(--highlight-foreground, #fff);
+  color: var(--highlight-foreground, #FCFFFD);
   background: var(--primary-color);
 }

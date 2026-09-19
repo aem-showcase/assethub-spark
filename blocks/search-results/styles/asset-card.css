@@ -72,7 +72,7 @@
   background-color: rgb(74 74 74 / 90%);
   border: 1px solid rgb(0 0 0 / 10%);
   border-radius: 6px;
-  color: #fff;
+  color: #FCFFFD;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@
   pointer-events: none;
   width: 16px;
   height: 16px;
-  fill: #fff;
+  fill: #FCFFFD;
   display: block;
   flex-shrink: 0;
 }
@@ -209,7 +209,7 @@
 /* Meta labels */
 .asset-card-view-grid .product-meta-label,
 .asset-card-view-list .product-meta-label {
-  color: #9a9a9a;
+  color: #97AEA0;
   font-size: var(--font-size-01);
   font-weight: 400;
   line-height: var(--line-height-01);
@@ -333,7 +333,7 @@
 .asset-card-view-grid .product-description {
   margin: 0;
   font-size: var(--font-size-01);
-  color: #666;
+  color: #4F6558;
   line-height: var(--line-height-02);
   -webkit-line-clamp: 3;
 }
@@ -478,7 +478,7 @@
 /* Share button overrides to fix global button styles conflict */
 .search-results .share-asset-button {
   border-radius: 50%;
-  border: 1px solid #9a9a9a;
+  border: 1px solid #97AEA0;
 }
 
 .search-results button.primary-button {
@@ -574,7 +574,7 @@
 .asset-card-view-list .action-button {
   background: transparent;
   background-color: transparent;
-  border: 1px solid #9a9a9a;
+  border: 1px solid #97AEA0;
   border-radius: 50%;
   width: 34px;
   height: 34px;

@@ -30,13 +30,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem 2rem 1rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #EEF5F0;
 }
 
 .add-to-collection-modal-title {
   font-size: 1.5rem;
   font-weight: 500;
-  color: #333;
+  color: #2E4338;
   margin: 0;
 }
 
@@ -44,7 +44,7 @@
   background: none;
   border: none;
   font-size: 2rem;
-  color: #999;
+  color: #6E8A79;
   cursor: pointer;
   padding: 0;
   width: 30px;
@@ -55,7 +55,7 @@
 }
 
 .add-to-collection-modal-close:hover {
-  color: #333;
+  color: #2E4338;
 }
 
 .add-to-collection-modal-body {
@@ -67,7 +67,7 @@
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid #eee;
+  border: 1px solid #EEF5F0;
   border-radius: 8px;
   margin-bottom: 2rem;
   background-color: #f9f9f9;
@@ -93,7 +93,7 @@
 
 .asset-placeholder {
   font-size: 2rem;
-  color: #999;
+  color: #6E8A79;
 }
 
 .asset-preview-info {
@@ -107,7 +107,7 @@
 .asset-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #333;
+  color: #2E4338;
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -116,7 +116,7 @@
 
 .asset-path {
   font-size: 0.85rem;
-  color: #666;
+  color: #4F6558;
   font-family: 'Courier New', monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -128,13 +128,13 @@
   margin: 0 0 1rem;
   font-size: 1.1rem;
   font-weight: 500;
-  color: #333;
+  color: #2E4338;
 }
 
 .add-to-collection-modal .collections-list {
   max-height: 300px;
   overflow-y: scroll;
-  border: 1px solid #eee;
+  border: 1px solid #EEF5F0;
   border-radius: 8px;
   padding: 0.5rem;
 }
@@ -149,7 +149,7 @@
 }
 
 .collection-item:hover {
-  background-color: #f8f8f8;
+  background-color: #F7FBF8;
 }
 
 .collection-checkbox {
@@ -183,7 +183,7 @@
 .collection-name {
   font-size: 1rem;
   font-weight: 400;
-  color: #333;
+  color: #2E4338;
   line-height: 1.3;
   flex: 1;
   min-width: 0;
@@ -191,14 +191,14 @@
 
 .collection-count {
   font-size: 0.85rem;
-  color: #666;
+  color: #4F6558;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .collection-description {
   font-size: 0.85rem;
-  color: #888;
+  color: #6E8A79;
   line-height: 1.3;
   font-style: italic;
   overflow: hidden;
@@ -210,7 +210,7 @@
 .no-collections-message {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: #4F6558;
 }
 
 .no-collections-message a {
@@ -289,7 +289,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding: 1rem 2rem 2rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #EEF5F0;
 }
 
 /* Modal buttons use global primary-button and secondary-button classes from styles.css */
@@ -307,7 +307,7 @@
 }
 
 .btn-add:disabled {
-  background-color: #ccc;
+  background-color: #C4D5CA;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -387,9 +387,9 @@
 }
 
 .add-to-collection-modal .load-more-button:disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  border-color: #ccc;
+  background-color: #EEF5F0;
+  color: #6E8A79;
+  border-color: #C4D5CA;
   cursor: not-allowed;
 }
 

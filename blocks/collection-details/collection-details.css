@@ -46,16 +46,16 @@ main > .section:has(.collection-details-inner) {
   align-items: center;
   gap: 0.5rem;
   font-size: var(--font-size-02);
-  color: #888;
+  color: #6E8A79;
 }
 
 .cd-breadcrumb a {
-  color: #888;
+  color: #6E8A79;
   text-decoration: none;
 }
 
 .cd-breadcrumb a:hover {
-  color: #1e1e1e;
+  color: #18241E;
   text-decoration: underline;
 }
 
@@ -64,7 +64,7 @@ main > .section:has(.collection-details-inner) {
 }
 
 .cd-breadcrumb-name {
-  color: #1e1e1e;
+  color: #18241E;
   font-weight: 600;
 }
 
@@ -76,11 +76,11 @@ main > .section:has(.collection-details-inner) {
   justify-content: center;
   padding: 24px;
   margin-top: 24px;
-  background: #fff;
+  background: #FCFFFD;
   box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
   border-radius: 8px;
   font-size: var(--font-size-02);
-  color: var(--text-color, #333);
+  color: var(--text-color, #2E4338);
 }
 
 .cd-error p {
