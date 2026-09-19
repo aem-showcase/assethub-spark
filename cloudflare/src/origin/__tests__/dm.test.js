@@ -862,6 +862,108 @@ describe('dm.js - ContentAI Authorization', () => {
     });
   });
 
+  describe('buildAssetAuthClauses — country → brand restriction (COUNTRY_BRAND_RESTRICTIONS)', () => {
+    const brandClause = { term: { 'assetMetadata.brand': ['Frescopa', 'frescopa'] } };
+    let savedDemoCompany;
+    let savedRestrictions;
+
+    beforeEach(() => {
+      savedDemoCompany = config.DEMO_COMPANY;
+      savedRestrictions = config.COUNTRY_BRAND_RESTRICTIONS;
+      config.DEMO_COMPANY = null;
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: ['Frescopa'] };
+    });
+    afterEach(() => {
+      config.DEMO_COMPANY = savedDemoCompany;
+      config.COUNTRY_BRAND_RESTRICTIONS = savedRestrictions;
+    });
+
+    it('is enabled by default for Germany → Frescopa in the shipped config', () => {
+      expect(savedRestrictions).toEqual({ de: ['Frescopa'] });
+    });
+
+    it('restricts DE users to the Frescopa brand (uppercase ISO code from the Entra ctry claim)', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('restricts de users to the Frescopa brand (lowercase code from the SUDO_COUNTRY cookie)', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'internal', country: 'de' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('resolves a full country name from the simulation picker to its ISO code', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'germany' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('keeps the country filter alongside the brand restriction', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['DE', 'germany', 'global'] } });
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('does not restrict brands for users from other countries', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('does not restrict brands for users without a profile country', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('ignores extra sheet countries — only the profile country drives the brand rule', async () => {
+      const request = {
+        user: { email: 'user@example.com', userType: 'external', country: 'us', countries: ['de'] },
+      };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('lets admins bypass the brand restriction like every other per-user filter', async () => {
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('applies no brand restriction when the config map is empty', async () => {
+      config.COUNTRY_BRAND_RESTRICTIONS = {};
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('injects the brand term into a ContentAI search query for DE users', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'DE' } };
+      const search = { query: [{ and: [{ match: { query: 'coffee' } }] }] };
+      await searchContentAIAuthorization(request, {}, search);
+      expect(JSON.stringify(search)).toContain('"assetMetadata.brand":["Frescopa","frescopa"]');
+    });
+
+    it('per-asset check: allows a Frescopa-tagged asset for a DE user', () => {
+      const result = checkAssetMetadataAuthorization([brandClause], { brand: 'Frescopa' });
+      expect(result.violated).toBe(false);
+    });
+
+    it('per-asset check: allows a lowercase frescopa-tagged asset for a DE user', () => {
+      const result = checkAssetMetadataAuthorization([brandClause], { brand: ['frescopa'] });
+      expect(result.violated).toBe(false);
+    });
+
+    it('per-asset check: denies an asset tagged with another brand for a DE user', () => {
+      const result = checkAssetMetadataAuthorization([brandClause], { brand: 'Other Brand' });
+      expect(result.violated).toBe(true);
+      expect(result.reason).toContain('brand');
+    });
+  });
+
   describe('buildAssetAuthClauses — demo customer scope (DEMO_COMPANY)', () => {
     const companyClause = { term: { 'assetMetadata.company': ['santander'] } };
 

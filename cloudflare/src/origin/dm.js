@@ -33,7 +33,7 @@ import {
   isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
-import { resolveCountryMatchValues } from '../constants/countries.js';
+import { COUNTRY_NAME_TO_CODE, resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -539,6 +539,34 @@ function forceContentAISearchFilter(search, authClauses) {
 }
 
 /**
+ * Resolve the brands a user may see based on their profile country
+ * (config.COUNTRY_BRAND_RESTRICTIONS). Accepts an ISO code in any case (Entra `ctry`
+ * claim, e.g. 'DE') or a full country name (simulation country picker, e.g. 'germany').
+ * Each configured brand is expanded to its raw, lowercase and capitalized spelling so the
+ * exact-match ContentAI term filter tolerates how the asset was tagged.
+ * @param {string|undefined} country - The user's profile country
+ * @returns {string[]|null} Allowed `assetMetadata.brand` values, or null when unrestricted
+ */
+function resolveCountryBrandRestriction(country) {
+  if (!country) return null;
+  const normalized = String(country).trim().toLowerCase();
+  if (!normalized) return null;
+  const code = COUNTRY_NAME_TO_CODE[normalized] || normalized;
+  const brands = config.COUNTRY_BRAND_RESTRICTIONS?.[code];
+  if (!Array.isArray(brands) || brands.length === 0) return null;
+  const values = [];
+  brands.forEach((brand) => {
+    const raw = String(brand).trim();
+    if (!raw) return;
+    const lower = raw.toLowerCase();
+    [raw, lower, lower.charAt(0).toUpperCase() + lower.slice(1)].forEach((v) => {
+      if (!values.includes(v)) values.push(v);
+    });
+  });
+  return values.length ? values : null;
+}
+
+/**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
  * Asset visibility is controlled by metadata fields tagged on Content Hub assets:
@@ -550,6 +578,9 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `brand`              — users whose profile country is listed in
+ *                          config.COUNTRY_BRAND_RESTRICTIONS only see the brands configured
+ *                          for that country (e.g. Germany → Frescopa only)
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -624,6 +655,16 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country → brand restriction ---
+  // Users from a country listed in config.COUNTRY_BRAND_RESTRICTIONS only see assets tagged
+  // with one of that country's allowed brands (assetMetadata.brand). Driven by the profile
+  // country only (Entra `ctry` claim or simulated SUDO_COUNTRY), not by extra sheet countries.
+  const allowedBrands = resolveCountryBrandRestriction(user.country);
+  if (allowedBrands) {
+    console.warn(`[${user.email}] asset auth clauses: country=${user.country} brands=[${allowedBrands.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.brand': allowedBrands } });
   }
 
   // --- Internal status filter ---

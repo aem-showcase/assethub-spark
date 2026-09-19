@@ -31,6 +31,16 @@ const config = {
   // from the URL (scripts/locale-utils.js).
   DEMO_BASE_PATH: '',
 
+  // Country-scoped brand visibility. Keys are lowercase ISO-3166-1 alpha-2 country codes;
+  // values are the brands (assetMetadata.brand) a user whose profile country matches may
+  // see in search results and asset details. Users from countries not listed here see all
+  // brands; admins always bypass this rule. Common case variants of each brand value are
+  // matched automatically (ContentAI term filters are exact-match). Demo rule: users in
+  // Germany only see the Frescopa brand.
+  COUNTRY_BRAND_RESTRICTIONS: {
+    de: ['Frescopa'],
+  },
+
   // Content Optimization Agent environment. COA is called with the same DM
   // S2S technical account/token as Dynamic Media, so this must match whatever
   // IMS environment that account's credentials were issued against — not an
