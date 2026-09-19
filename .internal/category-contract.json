@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "sleep",
+    "label": "Sleep",
+    "evidence": "The Calm sleep page highlights Sleep Stories, soundscapes, music, and sleep meditations as a dedicated offering.",
+    "evidenceUrl": "https://www.calm.com/sleep"
+  },
+  {
+    "slug": "meditation",
+    "label": "Meditation",
+    "evidence": "The meditate landing experience titles Calm as the #1 app for meditation and sleep and routes directly to /app/meditate.",
+    "evidenceUrl": "https://www.calm.com/app/meditate"
+  },
+  {
+    "slug": "music",
+    "label": "Music",
+    "evidence": "Calm serves a dedicated /app/music experience as part of its app navigation and wellness content structure.",
+    "evidenceUrl": "https://www.calm.com/app/music"
+  },
+  {
+    "slug": "breathwork",
+    "label": "Breathwork",
+    "evidence": "The sleep page explicitly calls out breathwork and Calm exposes a dedicated /breathe route.",
+    "evidenceUrl": "https://www.calm.com/breathe"
+  },
+  {
+    "slug": "kids",
+    "label": "Kids",
+    "evidence": "The sleep page highlights Kids Sleep Stories and Calm serves a dedicated /app/kids experience.",
+    "evidenceUrl": "https://www.calm.com/app/kids"
+  }
+]
