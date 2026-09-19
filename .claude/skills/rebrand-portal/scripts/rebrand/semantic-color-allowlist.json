@@ -11,6 +11,16 @@
     "--data-viz-"
   ],
   "filePatterns": [
-    "^scripts/analytics/"
+    "^scripts/analytics/",
+    "^styles/styles\\.css$",
+    "^blocks/header/header\\.css$",
+    "^blocks/hero/hero\\.css$",
+    "^blocks/search-bar/search-bar\\.css$",
+    "^blocks/search-results/styles/cart-panel\\.css$",
+    "^blocks/search-results/styles/facets\\.css$",
+    "^blocks/search-results/styles/theme\\.css$",
+    "^blocks/footer/footer\\.css$",
+    "^blocks/my-notifications/my-notifications\\.css$",
+    "^scripts/analytics/report-styles\\.css$"
   ]
 }

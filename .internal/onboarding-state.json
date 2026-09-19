@@ -1,0 +1,4573 @@
+{
+  "schemaVersion": 5,
+  "intent": "full",
+  "customer": {
+    "name": "Calm",
+    "companyKey": "calm-us",
+    "demoBranch": "demo/calm-us",
+    "worktreePath": ".worktrees/demo-calm-us",
+    "daFolder": "/companies/calm-us",
+    "prUrl": "https://github.com/aem-showcase/assethub-spark/pull/96",
+    "prNumber": 96,
+    "assetsLane": "bring-in",
+    "assetsEnrichNow": true
+  },
+  "steps": {
+    "demo-confirmed": "done",
+    "branch-resolved": "done",
+    "pr-opened": "done",
+    "da-content-copied": "done",
+    "rebranded": "done",
+    "demo-company-set": "done",
+    "published": "done",
+    "landed-via-pr": "done",
+    "assets-uploaded": "pending",
+    "assets-enriched": "pending",
+    "search-scoped": "pending",
+    "collections-created": "pending"
+  },
+  "baseBrand": {
+    "baseSlug": "frescopa",
+    "baseSurfaceHex": "#F4E9DC",
+    "tokens": {
+      "lightColor": "#F4E9DC",
+      "primaryColor": "#00647D",
+      "primaryColorHover": "#004d61",
+      "secondaryColor": "#95351D",
+      "textColor": "#58181D",
+      "textPrimary": "#58181D",
+      "linkColor": "#58181D",
+      "linkHoverColor": "#00647D",
+      "colorDarkRed": "#95351D",
+      "accentSecondary": "#DC6E52",
+      "accentTertiary": "#EBA439"
+    },
+    "welcomePanelBg": "#2f2318",
+    "welcomePanelAccentRgb": "234 163 58",
+    "navHeight": "72px",
+    "oldHexes": [
+      "#F4E9DC",
+      "#00647D",
+      "#004D61",
+      "#95351D",
+      "#58181D",
+      "#DC6E52",
+      "#EBA439",
+      "#2F2318"
+    ],
+    "allBaseHexes": [
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/Arrow_Down.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/Arrow_up.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/Filter-search-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/add-cart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/add-cart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/add-cart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/add-cart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/add-to-cart-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/add-to-cart.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/arrow-black.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/arrow-down-nav-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/arrow.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/arrow.svg",
+        "selector": null
+      },
+      {
+        "hex": "#404040",
+        "file": "icons/arrowFilled.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/arrow_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/arrow_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/bell-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/bell-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/bell-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/bell-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/bell.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/calendar-date.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/calendar.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/calendar.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FEF3F9",
+        "file": "icons/cart-empty-bg.svg",
+        "selector": ".cls-1"
+      },
+      {
+        "hex": "#FFF",
+        "file": "icons/cart-empty-bg.svg",
+        "selector": ".cls-3"
+      },
+      {
+        "hex": "#06BF6F",
+        "file": "icons/cart-icon-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#06BF6F",
+        "file": "icons/cart-icon-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/cart-refresh-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/cart-refresh-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/cart-refresh-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/cart-refresh-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/cart-stepper-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/cart-stepper-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A0A0A0",
+        "file": "icons/cart.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A0A0A0",
+        "file": "icons/cart.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A0A0A0",
+        "file": "icons/cart.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/chart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/chart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/chart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/chart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/chevron-down.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/chili-trash-can-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/chili-trash-can-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/chili-trash-can.svg",
+        "selector": null
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "icons/chilli-edit-pencil.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/chilli-edit-pencil.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/clear-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/clear-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/clear-cart-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/clear-cart-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/close-icon-black.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/close-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/close-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#226",
+        "file": "icons/close_grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#128",
+        "file": "icons/close_grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#162",
+        "file": "icons/close_grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/close_grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/copy-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-link-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-plain-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-plain-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-plain.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy-plain.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/copy-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/copy.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFF",
+        "file": "icons/country-flags/JP.svg",
+        "selector": null
+      },
+      {
+        "hex": "#CF1C28",
+        "file": "icons/country-flags/JP.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ECEFF1",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F44336",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F44336",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F44336",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F44336",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F44336",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#3F51B5",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFFFFF",
+        "file": "icons/country-flags/US.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/cross-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/delete-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/delete-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/delete-intend.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete-intend.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/delete-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/delete-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/delete-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/delete-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/delete-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/delete-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/delete-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/delete.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/donwload-cart-step-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/donwload-cart-step-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/donwload-cart-step-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/down-arrow-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/down-arrow-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/download-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/download-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "icons/download-asset-grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/download-asset-grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/download-asset-grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/download-asset.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/download-asset.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/download-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/download-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/download-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#646464",
+        "file": "icons/download.svg",
+        "selector": null
+      },
+      {
+        "hex": "#646464",
+        "file": "icons/download.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/download_icon_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/download_icon_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/download_icon_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/downloading-asset.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/downloading-asset.svg",
+        "selector": null
+      },
+      {
+        "hex": "#404040",
+        "file": "icons/dropdown-filled.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/edit-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/edit-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/edit-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/edit-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/edit-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/edit-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/edit-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/empty_printer.svg",
+        "selector": null
+      },
+      {
+        "hex": "#F40000",
+        "file": "icons/empty_printer.svg",
+        "selector": null
+      },
+      {
+        "hex": "#16212D",
+        "file": "icons/empty_printer.svg",
+        "selector": null
+      },
+      {
+        "hex": "#16212D",
+        "file": "icons/empty_printer.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/error-cross.svg",
+        "selector": null
+      },
+      {
+        "hex": "#6B6B6B",
+        "file": "icons/eye-slash-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/file-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#000",
+        "file": "icons/filter-search.svg",
+        "selector": null
+      },
+      {
+        "hex": "#8D8D8D",
+        "file": "icons/filter.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/folder-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#EAA33A",
+        "file": "icons/frescopa-beans.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFF",
+        "file": "icons/frescopa-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/frescopa-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/frescopa-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#EAA33A",
+        "file": "icons/frescopa-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFF",
+        "file": "icons/frescopa_logo.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/frescopa_logo.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/frescopa_logo.svg",
+        "selector": null
+      },
+      {
+        "hex": "#EAA33A",
+        "file": "icons/frescopa_logo.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/gridview-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/gridview-inactive.svg",
+        "selector": null
+      },
+      {
+        "hex": "#000",
+        "file": "icons/gridview.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/ham-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/ham-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/ham-menu.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/help-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/help-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/help-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/help-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/help-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/help-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#6AC9CE",
+        "file": "icons/info-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info-plain.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info-plain.svg",
+        "selector": null
+      },
+      {
+        "hex": "#6AC9CE",
+        "file": "icons/info.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/info.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/listview-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/listview-inactive.svg",
+        "selector": null
+      },
+      {
+        "hex": "#000",
+        "file": "icons/listview.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/location.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/modal-collapse.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A46801",
+        "file": "icons/pdf-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A46801",
+        "file": "icons/pdf-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A46801",
+        "file": "icons/pdf-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A46801",
+        "file": "icons/pdf-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A46801",
+        "file": "icons/pdf-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/phone.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/print-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#06BF6F",
+        "file": "icons/print-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#16212D",
+        "file": "icons/print-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#16212D",
+        "file": "icons/print-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#06BF6F",
+        "file": "icons/print-success.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/print.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/remove-cart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/remove-cart-circle-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/remove-cart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/remove-cart-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/remove-cart-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/remove-cart-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/remove-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/remove-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/save-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/save-intend-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/save-intend.svg",
+        "selector": null
+      },
+      {
+        "hex": "#226",
+        "file": "icons/search.svg",
+        "selector": null
+      },
+      {
+        "hex": "#128",
+        "file": "icons/search.svg",
+        "selector": null
+      },
+      {
+        "hex": "#162",
+        "file": "icons/search.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/search.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/share-active.svg",
+        "selector": null
+      },
+      {
+        "hex": "#707070",
+        "file": "icons/share-icon-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/share-icon-circle.svg",
+        "selector": null
+      },
+      {
+        "hex": "#000",
+        "file": "icons/share.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/shopping-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#333333",
+        "file": "icons/shopping-cart-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/shopping_cart_icon_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/shopping_cart_icon_red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#BDBDBD",
+        "file": "icons/star-grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#BDBDBD",
+        "file": "icons/star-grey.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/star-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#ED0000",
+        "file": "icons/star-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FBC02D",
+        "file": "icons/star-yellow.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FBC02D",
+        "file": "icons/star-yellow.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/star.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/star.svg",
+        "selector": null
+      },
+      {
+        "hex": "#06BF6F",
+        "file": "icons/success-tick.svg",
+        "selector": null
+      },
+      {
+        "hex": "#FFF",
+        "file": "icons/training-resource.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/up-arrow-icon-black.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/up-arrow-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/up-arrow-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#58181D",
+        "file": "icons/up-arrow-red-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/upload-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/upload-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#00647D",
+        "file": "icons/upload-icon-red.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/upload-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/upload-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "icons/upload-icon.svg",
+        "selector": null
+      },
+      {
+        "hex": "#1336",
+        "file": "icons/user.svg",
+        "selector": null
+      },
+      {
+        "hex": "#A0A0A0",
+        "file": "icons/user.svg",
+        "selector": null
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal-header"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal-title"
+      },
+      {
+        "hex": "#999",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal-close"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal-close:hover"
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".asset-preview"
+      },
+      {
+        "hex": "#F9F9F9",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".asset-preview"
+      },
+      {
+        "hex": "#999",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".asset-placeholder"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".asset-title"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".asset-path"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".collections-section h3"
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal .collections-list"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".collection-item:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".collection-name"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".collection-count"
+      },
+      {
+        "hex": "#888",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".collection-description"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".no-collections-message"
+      },
+      {
+        "hex": "#28A745",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".toast-success"
+      },
+      {
+        "hex": "#1E7E34",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".toast-success"
+      },
+      {
+        "hex": "#17A2B8",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".toast-info"
+      },
+      {
+        "hex": "#138496",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".toast-info"
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal-footer"
+      },
+      {
+        "hex": "#CCC",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".btn-add:disabled"
+      },
+      {
+        "hex": "#CC0010",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".btn-add:hover:not(:disabled)"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal .load-more-button:disabled"
+      },
+      {
+        "hex": "#999",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal .load-more-button:disabled"
+      },
+      {
+        "hex": "#CCC",
+        "file": "styles/add-to-collection-modal.css",
+        "selector": ".add-to-collection-modal .load-more-button:disabled"
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-header"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-title"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-close"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-close:focus-visible"
+      },
+      {
+        "hex": "#333",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-body"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-meta"
+      },
+      {
+        "hex": "#EEE",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-footer"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "styles/global-modal.css",
+        "selector": ".global-modal .global-modal-button-secondary"
+      },
+      {
+        "hex": "#F4E9DC",
+        "file": "styles/styles.css",
+        "selector": "--light-color"
+      },
+      {
+        "hex": "#2C2C2C",
+        "file": "styles/styles.css",
+        "selector": "--dark-color"
+      },
+      {
+        "hex": "#58181D",
+        "file": "styles/styles.css",
+        "selector": "--text-color"
+      },
+      {
+        "hex": "#58181D",
+        "file": "styles/styles.css",
+        "selector": "--text-primary"
+      },
+      {
+        "hex": "#58181D",
+        "file": "styles/styles.css",
+        "selector": "--link-color"
+      },
+      {
+        "hex": "#00647D",
+        "file": "styles/styles.css",
+        "selector": "--link-hover-color"
+      },
+      {
+        "hex": "#00647D",
+        "file": "styles/styles.css",
+        "selector": "--primary-color"
+      },
+      {
+        "hex": "#004D61",
+        "file": "styles/styles.css",
+        "selector": "--primary-color-hover"
+      },
+      {
+        "hex": "#A33532",
+        "file": "styles/styles.css",
+        "selector": "--color-red"
+      },
+      {
+        "hex": "#95351D",
+        "file": "styles/styles.css",
+        "selector": "--color-dark-red"
+      },
+      {
+        "hex": "#DC6E52",
+        "file": "styles/styles.css",
+        "selector": "--accent-secondary"
+      },
+      {
+        "hex": "#EBA439",
+        "file": "styles/styles.css",
+        "selector": "--accent-tertiary"
+      },
+      {
+        "hex": "#95351D",
+        "file": "styles/styles.css",
+        "selector": "--secondary-color"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-50"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-100"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-200"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-300"
+      },
+      {
+        "hex": "#D6D6D6",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-400"
+      },
+      {
+        "hex": "#B8B8B8",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-500"
+      },
+      {
+        "hex": "#8F8F8F",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-600"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-700"
+      },
+      {
+        "hex": "#3D3D3D",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-800"
+      },
+      {
+        "hex": "#292929",
+        "file": "styles/styles.css",
+        "selector": "--color-neutral-900"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "--button-secondary-color"
+      },
+      {
+        "hex": "#7FB078",
+        "file": "styles/styles.css",
+        "selector": "--status-completed"
+      },
+      {
+        "hex": "#7FB078",
+        "file": "styles/styles.css",
+        "selector": "--clearance-available"
+      },
+      {
+        "hex": "#004D61",
+        "file": "styles/styles.css",
+        "selector": "--button-primary-hover"
+      },
+      {
+        "hex": "#2F2318",
+        "file": "styles/styles.css",
+        "selector": "body:has(.section.welcome)"
+      },
+      {
+        "hex": "#2F2318",
+        "file": "styles/styles.css",
+        "selector": "body:has(.section.welcome) > main::before"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "button.secondary"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "button.secondary:hover"
+      },
+      {
+        "hex": "#000",
+        "file": "styles/styles.css",
+        "selector": "main .section.hero-black"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "main .section.search-hero .query-input-bar"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "styles/styles.css",
+        "selector": "button.secondary-button"
+      },
+      {
+        "hex": "#CCC",
+        "file": "styles/styles.css",
+        "selector": "button.secondary-button:disabled"
+      },
+      {
+        "hex": "#828181",
+        "file": "styles/styles.css",
+        "selector": "input[type=\"checkbox\"]"
+      },
+      {
+        "hex": "#FFCCC7",
+        "file": "styles/styles.css",
+        "selector": "picture.missing"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip]:not([data-tooltip=\"\"], [data-tooltip=\"null\"], [data-tooltip=\"undefined\"])::after"
+      },
+      {
+        "hex": "#000",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip]:not([data-tooltip=\"\"], [data-tooltip=\"null\"], [data-tooltip=\"undefined\"])::after"
+      },
+      {
+        "hex": "#D4D4D5",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip]:not([data-tooltip=\"\"], [data-tooltip=\"null\"], [data-tooltip=\"undefined\"])::after"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip]:not([data-tooltip=\"\"], [data-tooltip=\"null\"], [data-tooltip=\"undefined\"])::before"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip][data-tooltip-position=\"bottom\"]::before"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip][data-tooltip-position=\"left\"]::before"
+      },
+      {
+        "hex": "#FFF",
+        "file": "styles/styles.css",
+        "selector": "[data-tooltip][data-tooltip-position=\"right\"]::before"
+      },
+      {
+        "hex": "#666",
+        "file": "styles/styles.css",
+        "selector": ".inline-loading-spinner"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "styles/styles.css",
+        "selector": ".inline-loading-spinner .spinner"
+      },
+      {
+        "hex": "#F1F1F1",
+        "file": "styles/styles.css",
+        "selector": "&::-webkit-scrollbar-track"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/asset-details/asset-details.css",
+        "selector": ".asset-details-loading .loading-spinner"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/asset-details/asset-details.css",
+        "selector": ".asset-details-error"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/carousel/carousel.css",
+        "selector": ".carousel .carousel-slide .carousel-slide-image"
+      },
+      {
+        "hex": "#DADADA",
+        "file": "blocks/carousel/carousel.css",
+        "selector": ".carousel .carousel-slide-indicator button"
+      },
+      {
+        "hex": "#D11700",
+        "file": "blocks/carousel/carousel.css",
+        "selector": ".carousel .carousel-slide-indicator button:focus-visible"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/carousel/carousel.css",
+        "selector": ".carousel .carousel-slide .carousel-slide-content p"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/carousel/carousel.css",
+        "selector": ".carousel .carousel-slide:hover .carousel-slide-content p"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-breadcrumb"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-breadcrumb a"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-breadcrumb a:hover"
+      },
+      {
+        "hex": "#BBB",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-breadcrumb-sep"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-breadcrumb-name"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-error"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/collection-details/collection-details.css",
+        "selector": ".cd-error"
+      },
+      {
+        "hex": "#FEF2F2",
+        "file": "blocks/exc-config/exc-config.css",
+        "selector": ".exc-config-errors"
+      },
+      {
+        "hex": "#EF4444",
+        "file": "blocks/exc-config/exc-config.css",
+        "selector": ".exc-config-errors"
+      },
+      {
+        "hex": "#991B1B",
+        "file": "blocks/exc-config/exc-config.css",
+        "selector": ".exc-config-errors"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/faq/faq.css",
+        "selector": ".faq .tabs-list button"
+      },
+      {
+        "hex": "#EFEFEF",
+        "file": "blocks/faq/faq.css",
+        "selector": ".faq .tabs-list button"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/faq/faq.css",
+        "selector": ".faq .tabs-list button"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/faq/faq.css",
+        "selector": ".faq .tabs-list button:hover:not([aria-selected='true'])"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/faq/faq.css",
+        "selector": ".faq .accordion details"
+      },
+      {
+        "hex": "#FFBB63",
+        "file": "blocks/form/form.css",
+        "selector": ".form textarea"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/form/form.css",
+        "selector": ".form .button"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header .dropdown-menu > ul"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": ".header-dropdown-portal > ul"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .my-account .my-account-button"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .my-account .avatar .impersonation-indicator"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .my-account-button:hover .avatar"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .my-account-button.active .avatar"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header .nav-wrapper"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/header.css",
+        "selector": "header nav[aria-expanded='true'] .nav-sections"
+      },
+      {
+        "hex": "#EDEDED",
+        "file": "blocks/header/header.css",
+        "selector": "header nav[aria-expanded='true'] .nav-sections"
+      },
+      {
+        "hex": "#EDEDED",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .nav-sections ul>li"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .nav-sections .nav-drop[aria-expanded='true']"
+      },
+      {
+        "hex": "#E6E6E6",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>ul"
+      },
+      {
+        "hex": "#EDEDED",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .nav-sections .default-content-wrapper>ul>li>ul>li"
+      },
+      {
+        "hex": "#00647D",
+        "file": "blocks/header/header.css",
+        "selector": "header nav .nav-tools .nav-reports-icon button:focus-visible"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-modal-close"
+      },
+      {
+        "hex": "#000",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-modal-close:hover"
+      },
+      {
+        "hex": "#E5E5E5",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-header"
+      },
+      {
+        "hex": "#E8F4FD",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .sudo-edit-note"
+      },
+      {
+        "hex": "#B3D9F2",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .sudo-edit-note"
+      },
+      {
+        "hex": "#1A5490",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .sudo-edit-note"
+      },
+      {
+        "hex": "#F8F9FA",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .edit-button"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .edit-button"
+      },
+      {
+        "hex": "#495057",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .edit-button"
+      },
+      {
+        "hex": "#007BFF",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-save-button"
+      },
+      {
+        "hex": "#007BFF",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-save-button"
+      },
+      {
+        "hex": "#E9ECEF",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .edit-button:hover"
+      },
+      {
+        "hex": "#ADB5BD",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .edit-button:hover"
+      },
+      {
+        "hex": "#FFEAA7",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal.editing-mode .edit-button"
+      },
+      {
+        "hex": "#FDCB6E",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal.editing-mode .edit-button"
+      },
+      {
+        "hex": "#E17055",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal.editing-mode .edit-button"
+      },
+      {
+        "hex": "#FDCB6E",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal.editing-mode .edit-button:hover"
+      },
+      {
+        "hex": "#FEFDF5",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .user-fields-group.impersonating"
+      },
+      {
+        "hex": "#F9E79F",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .user-fields-group.impersonating"
+      },
+      {
+        "hex": "#8B6914",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .simulating-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-field label"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-input"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-input"
+      },
+      {
+        "hex": "#007BFF",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .profile-input:focus"
+      },
+      {
+        "hex": "#BBB",
+        "file": "blocks/header/profile.css",
+        "selector": ".profile-modal .save-button:hover"
+      },
+      {
+        "hex": "#2F2318",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero"
+      },
+      {
+        "hex": "#F5EDE0",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero"
+      },
+      {
+        "hex": "#F7EFE3",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero h2"
+      },
+      {
+        "hex": "#F6EBDA",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero .button-container .button:any-link"
+      },
+      {
+        "hex": "#F9F0E5",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero .button-container .button:not(.secondary):any-link:focus-visible"
+      },
+      {
+        "hex": "#F9F0E5",
+        "file": "blocks/hero/hero.css",
+        "selector": ".hero .button-container .button:not(.secondary):any-link:focus-visible"
+      },
+      {
+        "hex": "#E3F2FD",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-announcement"
+      },
+      {
+        "hex": "#1976D2",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-announcement"
+      },
+      {
+        "hex": "#FFF3E0",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-alert"
+      },
+      {
+        "hex": "#F57C00",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-alert"
+      },
+      {
+        "hex": "#F3E5F5",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-notification"
+      },
+      {
+        "hex": "#7B1FA2",
+        "file": "blocks/my-notifications/my-notifications.css",
+        "selector": ".notification-type-notification"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/renditions/renditions.css",
+        "selector": ".renditions-loading .loading-spinner"
+      },
+      {
+        "hex": "#C00",
+        "file": "blocks/renditions/renditions.css",
+        "selector": ".renditions-error p"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-denied"
+      },
+      {
+        "hex": "#222",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-title"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filters"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filters"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-label"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-select"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-select"
+      },
+      {
+        "hex": "#222",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-select"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filter-group"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filter-group"
+      },
+      {
+        "hex": "#777",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filter-group-label"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-filter-item-label"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-btn"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-btn-primary"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-btn-primary:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-stat-card"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-stat-card"
+      },
+      {
+        "hex": "#222",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-stat-value"
+      },
+      {
+        "hex": "#777",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-stat-label"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".report-asset-activity .aar-export-btn:visited"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".report-asset-activity .aar-export-btn:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-chart-cell"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-chart-cell"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-chart-title"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table-title"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table-section"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table-section"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table thead th"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table tbody td"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table tbody td"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table tbody tr:nth-child(even)"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-thumb"
+      },
+      {
+        "hex": "#F4F4F4",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-thumb"
+      },
+      {
+        "hex": "#777",
+        "file": "blocks/report-asset-activity/report-asset-activity.css",
+        "selector": ".aar-table-empty"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-hub-denied h2"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-hub-denied p"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-hub-header h1"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-hub-subtitle"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-section-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".reports-section-description"
+      },
+      {
+        "hex": "#E5E5E5",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card"
+      },
+      {
+        "hex": "#E5E5E5",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card.coming-soon:hover"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card.coming-soon:hover .report-card-icon"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card-description"
+      },
+      {
+        "hex": "#E5E5E5",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-badge"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-badge"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card-arrow"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/report-hub/report-hub.css",
+        "selector": ".report-card.coming-soon:hover .report-card-arrow"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-title"
+      },
+      {
+        "hex": "#F9F9F9",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filters-toggle-wrapper:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-group-label"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-group-box"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-group-box"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-group label"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-select"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".filter-select"
+      },
+      {
+        "hex": "#000",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-metrics .metric-value"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-charts .chart-title"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-container .table-title"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-table thead th"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-table tbody tr"
+      },
+      {
+        "hex": "#F9F9F9",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-table tbody tr:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-table tbody td"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-searches-table .empty-cell"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".top-zero-result-searches-container .table-title"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-table-container .table-title"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-market-table thead th"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-market-table tbody tr"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-market-table tbody td.metric-label"
+      },
+      {
+        "hex": "#F9F9F9",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-market-table tbody td.metric-label"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".searches-market-table tbody td.numeric-cell"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/report-searches/report-searches.css",
+        "selector": ".report-searches .collapsible-section .title-text"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-input-bar"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-search-icon"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-input"
+      },
+      {
+        "hex": "#00647D",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-input:focus-visible"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-btn"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-btn"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-btn:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-dropdown"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-dropdown"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".type-selector-dropdown li:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-btn"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-btn"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-btn:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-dropdown"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-dropdown"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-dropdown li:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-input::placeholder"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".query-search-btn"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".generate-mode-cancel"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".generate-mode-cancel:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".generate-mode-submit"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".generate-mode-suggestions"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".generate-mode-suggestions .generate-mode-suggestion:hover"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-bar/search-bar.css",
+        "selector": ".mode-selector-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn"
+      },
+      {
+        "hex": "#D0D0D0",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:hover:not(:disabled)"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:hover:not(:disabled)"
+      },
+      {
+        "hex": "#AAA",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:disabled"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:disabled"
+      },
+      {
+        "hex": "#E5E5E5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:disabled"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-btn:disabled .scr-picker-chevron"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-icon"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-chevron"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-menu"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-menu"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-menu li button:hover"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-opt-icon"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-picker-opt-desc"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-card"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-card"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-card-preview"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-card-meta"
+      },
+      {
+        "hex": "#444",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-action-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-more-menu"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-more-menu"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-more-menu li button:hover"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-menu-icon"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-row"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-row:hover"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-row-preview"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-row-desc"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-row-date"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-load-more"
+      },
+      {
+        "hex": "#AAA",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-load-more:hover"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-error"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-new-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-close"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-form-select"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-form-select"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-form-select:focus"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-owner-row"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-owner-avatar"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-owner-badge"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-owner-badge"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-btn-cancel"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-btn-cancel:hover"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-btn-cancel:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-modal-btn-create"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-delete-warn"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-add-btn"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-add-btn"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-add-btn:hover"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-add-btn:hover"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-person-row"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-person-avatar"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-person-role"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-person-remove"
+      },
+      {
+        "hex": "#ECECEC",
+        "file": "blocks/search-collection-results/search-collection-results.css",
+        "selector": ".scr-share-person-remove:hover"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .asset-card-view-list .custom-metadata-label"
+      },
+      {
+        "hex": "#0E202E",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .custom-metadata-value"
+      },
+      {
+        "hex": "#FFF0DA",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .custom-tag"
+      },
+      {
+        "hex": "#A46801",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .custom-tag"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .breadcrumbs"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/search-results.css",
+        "selector": ".search-results .download-renditions-title"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button:disabled"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button:disabled"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button:disabled:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button:disabled:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button-tooltip"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button-tooltip"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/action-button.css",
+        "selector": ".action-button-tooltip::after"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/adobe-pdf-viewer.css",
+        "selector": ".adobe-pdf-viewer-container"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/search-results/styles/adobe-pdf-viewer.css",
+        "selector": ".adobe-pdf-spinner"
+      },
+      {
+        "hex": "#3498DB",
+        "file": "blocks/search-results/styles/adobe-pdf-viewer.css",
+        "selector": ".adobe-pdf-spinner"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/adobe-pdf-viewer.css",
+        "selector": ".adobe-pdf-loading p"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .image-preview-button"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .image-preview-button svg"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .product-meta-label"
+      },
+      {
+        "hex": "#239C5D",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .product-authorized-status.green"
+      },
+      {
+        "hex": "#C9372C",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .product-authorized-status.red"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-grid .product-info-container"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-grid .product-description"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .product-actions"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".search-results .share-asset-button"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/asset-card.css",
+        "selector": ".asset-card-view-list .action-button"
+      },
+      {
+        "hex": "#F8F9FA",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-header"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-header"
+      },
+      {
+        "hex": "#F0F1F2",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-header:hover"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-card"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-arrow"
+      },
+      {
+        "hex": "#FFCCC7",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-image-container picture.missing"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".pdf-preview-magnify-button"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-header"
+      },
+      {
+        "hex": "#FFF0DA",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-tag.custom-tag"
+      },
+      {
+        "hex": "#A46801",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-tag.custom-tag"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".details-metadata-label.custom-metadata-label"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-metadata-label.custom-metadata-label"
+      },
+      {
+        "hex": "#0E202E",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-metadata-value.custom-metadata-value"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-info-section"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".asset-details-main-metadata-section .cmp-title h1"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".zip-tree-item:hover"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".zip-tree-folder .zip-tree-icon::before"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".zip-tree-file .zip-tree-icon::before"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-details.css",
+        "selector": ".zip-contents-unavailable"
+      },
+      {
+        "hex": "#FFF0DA",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .preview-tag.custom-tag"
+      },
+      {
+        "hex": "#A46801",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .preview-tag.custom-tag"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .modal-image-container"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .pdf-preview-magnify-button"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .preview-metadata-label"
+      },
+      {
+        "hex": "#0E202E",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .preview-metadata-value"
+      },
+      {
+        "hex": "#E1E1E1",
+        "file": "blocks/search-results/styles/asset-preview.css",
+        "selector": ".asset-preview-modal .product-actions"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .base-panel-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .close-button"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .close-button:hover"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .base-panel-tabs"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .base-panel-tabs .base-panel-tab"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .base-panel-tabs .base-panel-tab"
+      },
+      {
+        "hex": "#D0D0D0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel-overlay .base-panel .base-panel-tabs .base-panel-tab:hover:not(.active)"
+      },
+      {
+        "hex": "#4CAF50",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .workflow-step.completed"
+      },
+      {
+        "hex": "#F44336",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .workflow-step.failed"
+      },
+      {
+        "hex": "#707070",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .step-label"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .horizontal-line"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-items-count"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-table-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-table-header"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-items-table"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-asset-row"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-asset-row.disabled"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .asset-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .asset-type"
+      },
+      {
+        "hex": "#0E202E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .asset-type .type-val"
+      },
+      {
+        "hex": "#202020",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .spark-warnings p"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .delete-button"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled:hover"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-panel-action-btn:disabled:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download-assets"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download-form h3"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-uses-toggle"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-uses-toggle"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-uses-toggle:hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-uses-toggle:focus"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-uses-toggle:focus:hover"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-menu"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-use-item"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-use-item:hover"
+      },
+      {
+        "hex": "#FFF5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-use-item.expired"
+      },
+      {
+        "hex": "#FFE5E5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-use-item.expired:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-use-load-btn"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-use-load-btn:disabled"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .saved-intended-use-load-btn:disabled:hover"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .delete-button"
+      },
+      {
+        "hex": "#FEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".base-panel .saved-intended-uses-dropdown .delete-button:hover"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:hover"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:disabled"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:disabled"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:disabled"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:disabled:hover"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-toggle-btn:disabled:hover"
+      },
+      {
+        "hex": "#F8DCAE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-input-section"
+      },
+      {
+        "hex": "#D6D6D6",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".intended-use-name-input"
+      },
+      {
+        "hex": "#004D61",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-btn:hover"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".save-intended-use-btn:disabled"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".form-field label"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".media-channels-warning"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".form-textarea"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".form-actions"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download .search-input"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download .search-input::placeholder"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download .media-channels-list"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download .expand-button"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-request-download .expand-button:hover"
+      },
+      {
+        "hex": "#202020",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .empty-state-message"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".empty-download-content p"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .status-filter"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-table-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-table-header"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-items-table"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-item-row"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .expand-icon"
+      },
+      {
+        "hex": "#D4EDDA",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .status-badge.status-completed"
+      },
+      {
+        "hex": "#155724",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .status-badge.status-completed"
+      },
+      {
+        "hex": "#C3E6CB",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .status-badge.status-completed"
+      },
+      {
+        "hex": "#F79900",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .processing-status"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .rendition-list .rendition-item"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".select-all-row"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-asset-item"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-asset-item:hover"
+      },
+      {
+        "hex": "#F0F7FF",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-asset-item.selected"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-asset-item .asset-meta"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-select"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-status p"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".restricted-assets-list"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-template-table-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-template-table-header"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .cart-template-row"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".cart-panel .template-title"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-toggle"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-toggle"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-chip"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-chip"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-chip"
+      },
+      {
+        "hex": "#555",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-chip-remove"
+      },
+      {
+        "hex": "#1E1E1E",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-chip-remove:hover"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-toggle:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-toggle:hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-arrow"
+      },
+      {
+        "hex": "#D9D9D9",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-menu"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-item"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-item:hover"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".rendition-dropdown-divider"
+      },
+      {
+        "hex": "#717171",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".template-apply-all-checkbox:has(input:disabled) span"
+      },
+      {
+        "hex": "#AFAFAF",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".template-apply-all-checkbox input[type=\"checkbox\"]:disabled"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-template-table-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-template-table-header"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .download-template-item-row"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-results/styles/cart-panel.css",
+        "selector": ".download-panel .zip-file-date"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/checkbox.css",
+        "selector": "input[type=\"checkbox\"].search-results-checkbox"
+      },
+      {
+        "hex": "#6D6D6D",
+        "file": "blocks/search-results/styles/checkbox.css",
+        "selector": "input[type=\"checkbox\"].search-results-checkbox::before"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .date-input-group"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .date-segment"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .date-segment.placeholder"
+      },
+      {
+        "hex": "#E0E7FF",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .date-segment:focus"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .date-separator"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .clear-button"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .clear-button:hover"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker .clear-button:hover"
+      },
+      {
+        "hex": "#E5E7EB",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-popup"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-nav"
+      },
+      {
+        "hex": "#E5E7EB",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-nav"
+      },
+      {
+        "hex": "#F3F4F6",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-nav:hover"
+      },
+      {
+        "hex": "#D1D5DB",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-nav:hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-popup th"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-day:not(.empty)"
+      },
+      {
+        "hex": "#F3F4F6",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-day:not(.empty):hover"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .calendar-day.disabled"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .month-grid .month-cell"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .month-grid .month-cell:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .year-grid .year-cell"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/search-results/styles/date-picker.css",
+        "selector": ".my-date-picker-portal .year-grid .year-cell:hover"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/search-results/styles/disclaimer-modal.css",
+        "selector": ".disclaimer-modal-header"
+      },
+      {
+        "hex": "#444",
+        "file": "blocks/search-results/styles/disclaimer-modal.css",
+        "selector": ".disclaimer-modal-content"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/search-results/styles/disclaimer-modal.css",
+        "selector": ".disclaimer-modal-actions"
+      },
+      {
+        "hex": "#FAFAFA",
+        "file": "blocks/search-results/styles/disclaimer-modal.css",
+        "selector": ".disclaimer-modal-actions"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-header"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-close"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-close:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-close:hover"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-table-header"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-row"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-title"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-content .renditions-status.loading"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-content .renditions-status.empty"
+      },
+      {
+        "hex": "#F3F3F3",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-content .renditions-status.loading .loading-spinner"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".download-renditions-content .renditions-status.loading .loading-spinner"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-item"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-item:hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-format"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-dims"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-size"
+      },
+      {
+        "hex": "#CCC",
+        "file": "blocks/search-results/styles/download-renditions.css",
+        "selector": ".rendition-separator"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-section"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-section"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-button"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-button:focus"
+      },
+      {
+        "hex": "#00647D",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-button:focus-visible"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-button-search"
+      },
+      {
+        "hex": "#FAFBFC",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-values"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-value-count"
+      },
+      {
+        "hex": "#404040",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-checkbox-label"
+      },
+      {
+        "hex": "#E0E0E0",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".search-results .facet-filter-panel"
+      },
+      {
+        "hex": "#FAFBFC",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".search-results .facet-filter-panel"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-tab"
+      },
+      {
+        "hex": "#888",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-filter-tab-group.active .facet-filter-tab.clear"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-search-input-wrapper"
+      },
+      {
+        "hex": "#85B7D9",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-search-input-wrapper"
+      },
+      {
+        "hex": "#EEE",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-show-all-btn"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-show-all-btn:hover:not(:disabled)"
+      },
+      {
+        "hex": "#BBB",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".search-results .facet-show-all-btn:disabled:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-header h2"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-close"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-close:hover"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-close:hover"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-search .facet-search-input-wrapper"
+      },
+      {
+        "hex": "#85B7D9",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-search .facet-search-input-wrapper"
+      },
+      {
+        "hex": "#404040",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-select-all-label"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-sort-label"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-sort-dropdown-container .ui.simple.dropdown.item"
+      },
+      {
+        "hex": "#DDD",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-sort-dropdown-container .ui.simple.dropdown.item"
+      },
+      {
+        "hex": "#D4D4D5",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-sort-dropdown-container .ui.simple.dropdown .menu"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-sort-dropdown-container .ui.simple.dropdown .menu .item"
+      },
+      {
+        "hex": "#404040",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-value-item"
+      },
+      {
+        "hex": "#F8F8F8",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-value-item:hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-modal-empty"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".horizontal-separator"
+      },
+      {
+        "hex": "#999",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-checkbox-label.disabled"
+      },
+      {
+        "hex": "#D32F2F",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".error-message"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/facets.css",
+        "selector": ".facet-loading-spinner"
+      },
+      {
+        "hex": "#F0F0F0",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-card"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-card-image"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-card-image"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-card-image"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-line"
+      },
+      {
+        "hex": "#F5F5F5",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-line"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .skeleton-line"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .loading-container p"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/image-gallery.css",
+        "selector": ".search-results .loading-more-container p"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .search-primary-panel"
+      },
+      {
+        "hex": "#E1E5E9",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .search-primary-panel"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .filter-button"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .filter-button"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .filter-button:hover"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .search-secondary-panel"
+      },
+      {
+        "hex": "#E1E5E9",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .search-secondary-panel"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .card-view-container"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .total-label"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .select-section .select-all"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .dropdown-count"
+      },
+      {
+        "hex": "#202020",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .ui.simple.dropdown.item"
+      },
+      {
+        "hex": "#9A9A9A",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .ui.simple.dropdown.item"
+      },
+      {
+        "hex": "#D4D4D5",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .ui.simple.dropdown .menu"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .ui.simple.dropdown .menu .item"
+      },
+      {
+        "hex": "#BBB",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .ui.simple.dropdown .menu .item.disabled"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/search-results/styles/search-panel.css",
+        "selector": ".search-results .cmp-title h1"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/smart-collections.css",
+        "selector": ".smart-collection-save-btn"
+      },
+      {
+        "hex": "#A33532",
+        "file": "blocks/search-results/styles/smart-collections.css",
+        "selector": ".smart-collection-modal-error"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/smart-collections.css",
+        "selector": ".smart-collection-banner-actions button:hover"
+      },
+      {
+        "hex": "#004D61",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--primary-color-hover"
+      },
+      {
+        "hex": "#003D4D",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--primary-color-active"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--primary-color-disabled"
+      },
+      {
+        "hex": "#FFF",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-50"
+      },
+      {
+        "hex": "#E8E8E8",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-100"
+      },
+      {
+        "hex": "#D6D6D6",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-200"
+      },
+      {
+        "hex": "#B8B8B8",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-300"
+      },
+      {
+        "hex": "#8F8F8F",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-400"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-500"
+      },
+      {
+        "hex": "#004D61",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-500"
+      },
+      {
+        "hex": "#003D4D",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-600"
+      },
+      {
+        "hex": "#8F8F8F",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--text-color-base"
+      },
+      {
+        "hex": "#D6D6D6",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--border-color"
+      },
+      {
+        "hex": "#8F8F8F",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--border-color-hover"
+      },
+      {
+        "hex": "#666",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--border-color-pressed"
+      },
+      {
+        "hex": "#004D61",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--highlight-background-pressed"
+      },
+      {
+        "hex": "#1D1D1D",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--background-color"
+      },
+      {
+        "hex": "#101010",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-50"
+      },
+      {
+        "hex": "#393939",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-100"
+      },
+      {
+        "hex": "#4F4F4F",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-200"
+      },
+      {
+        "hex": "#686868",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-300"
+      },
+      {
+        "hex": "#848484",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-400"
+      },
+      {
+        "hex": "#A7A7A7",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-500"
+      },
+      {
+        "hex": "#CFCFCF",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--gray-600"
+      },
+      {
+        "hex": "#003D4D",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-100"
+      },
+      {
+        "hex": "#004D61",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-200"
+      },
+      {
+        "hex": "#00647D",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-300"
+      },
+      {
+        "hex": "#3D8FA3",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-400"
+      },
+      {
+        "hex": "#6AB4C4",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-500"
+      },
+      {
+        "hex": "#A8D4DE",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--purple-600"
+      },
+      {
+        "hex": "#5C1F1E",
+        "file": "blocks/search-results/styles/theme.css",
+        "selector": "--red-100"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/tabs/tabs.css",
+        "selector": ".tabs .tabs-list button"
+      },
+      {
+        "hex": "#EFEFEF",
+        "file": "blocks/tabs/tabs.css",
+        "selector": ".tabs .tabs-list button"
+      },
+      {
+        "hex": "#333",
+        "file": "blocks/tabs/tabs.css",
+        "selector": ".tabs .tabs-list button"
+      },
+      {
+        "hex": "#E4E4E4",
+        "file": "blocks/tabs/tabs.css",
+        "selector": ".tabs .tabs-list button:hover:not([aria-selected='true'])"
+      }
+    ],
+    "backgroundAssets": {
+      "styles/backgrounds/big.svg": {
+        "fileSha256": "1ebeb9e11ed7c63b165e18e606fc092015f09cf6c8c61499ce5e341363887c2b",
+        "embeddedImageSha256": "cb35be89a43146c3c0cd8f9912fde8f24e8ee0d5c2da9218ef2c2976995b6baf"
+      }
+    },
+    "capturedAt": "2026-09-19T08:47:49.138Z"
+  }
+}
