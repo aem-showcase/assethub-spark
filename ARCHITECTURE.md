@@ -718,7 +718,7 @@ Jobs:
 
 - CI (`release.yaml`/`build.yaml`) runs `wrangler deploy` directly; `deploy.sh` is for manual/local deploys only
 - Creates GitHub Deployment with environment URL
-- Routes: `frescopamedia.com/*` (production), `preview.frescopamedia.com/*` (Workers Custom Domain), `*.dev.frescopamedia.com/*` (branch previews)
+- Routes: `frescopamedia.com/*` (production), `preview.frescopamedia.com/*` (production preview, same worker), `*.dev.frescopamedia.com/*` (branch previews)
 - `workers_dev = false` — no `*.workers.dev` URLs in production
 
 ### Environments

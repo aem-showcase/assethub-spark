@@ -88,7 +88,7 @@ npm run lint:fix
 
 ### CI branch
 
-On each branch/PR push, the Github Actions CI will automatically deploy a dedicated branch worker with its own custom-domain route:
+On each branch/PR push, the Github Actions CI will automatically deploy a dedicated branch worker with its own route:
 
 | URL | Helix origin |
 |-----|--------------|
