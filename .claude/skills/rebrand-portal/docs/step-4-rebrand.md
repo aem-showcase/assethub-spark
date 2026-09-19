@@ -309,6 +309,15 @@ split it across turns:
    An empty `tokenMap` also fails — measuring without mapping leaves the
    theme unverifiable.
 
+   **Record decorative background provenance in `brand.json`'s `assetMap` as
+   you apply it.** `migration-work/brand.json` is also the source of truth for
+   `styles/backgrounds/big.svg`: retint or replace that background from the
+   measured colours, then add an `assetMap[]` entry for
+   `styles/backgrounds/big.svg` with the old/new embedded image hashes and
+   `derivedFrom` colour(s) from `tokens.colors` or `tokens.accents[]`. Changing
+   only the SVG wrapper fill is not enough — the embedded raster must change, or
+   the visible landing background stays the base demo pattern.
+
    **Rebrand the FULL palette, not just the accent** — primary,
    secondary, **background/surface tokens, and every decorative brand
    background** (e.g. a coffee-bean hero/section background, a tinted
@@ -333,7 +342,8 @@ split it across turns:
      background is off-brand"; if it is not rebranded the whole portal stays
      the base surface color.
    - the `.<baseSlug>-background-*` section-style classes and
-     `styles/backgrounds/big.svg` (the decorative brand mark).
+     `styles/backgrounds/big.svg` (the decorative brand mark, with its
+     derivation recorded in `brand.json.assetMap[]`).
    - **Login/welcome split-screen tokens.** The left brand panel is themed
      by CSS variables with the base brand's defaults — set them in the brand
      theme so the login rebrands: `--welcome-panel-bg` (panel colour, base =

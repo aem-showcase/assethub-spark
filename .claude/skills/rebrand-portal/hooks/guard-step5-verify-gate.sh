@@ -147,6 +147,7 @@ MANDATORY_CHECKS = {
     # every check verify.mjs exports is either listed here or explicitly waived.
     "brand-fidelity",
     "background-shorthand",
+    "background-asset-fidelity",
     "stale-card-images",
     "access-json",
 }

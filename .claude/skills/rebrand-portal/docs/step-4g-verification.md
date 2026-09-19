@@ -50,6 +50,12 @@ what the site *serves*, not by looking at a picture of it:
    - `background-shorthand` (tree) — a `background:` shorthand on a
      `.section.*` rule resetting a layered background set at equal
      specificity. This is the mechanism that left a surface cream.
+   - `background-asset-fidelity` (tree) — the decorative landing background
+     asset `styles/backgrounds/big.svg` changed from the captured base embedded
+     image and the change is recorded in `migration-work/brand.json` `assetMap[]`
+     with measured/derived colour provenance. This catches the repeated
+     beige/pink abstract background even when CSS tokens and wrapper fills were
+     changed correctly.
    - `cascade` (needs `--cascade-report` from `check-cascade.mjs`) — the
      **computed** background on the rendered page, home canvas included. No
      static check can see a correct declaration that loses the cascade.
@@ -92,7 +98,8 @@ what the site *serves*, not by looking at a picture of it:
    output and refuses to run `enrich-assets.js` unless `residue`,
    `structural-residue`, `icon-reference-resolution`,
    `welcome-header-home-link`, `header-logo`, `icon-render`,
-   **`brand-fidelity`, `background-shorthand`**, **`stale-card-images`**, and
+   **`brand-fidelity`, `background-shorthand`,
+   `background-asset-fidelity`**, **`stale-card-images`**, and
    **`access-json`** all passed against the current commit. Every other check is listed in
    that hook's `WAIVED_CHECKS` with the reason it is not gated — a check
    belongs to exactly one of the two sets, and

@@ -15,7 +15,8 @@
  *
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
  *   icon-reference-resolution, welcome-header-home-link, icon-render,
- *   background-shorthand, brand-fidelity (brand-fidelity also uses --preview when given).
+ *   background-shorthand, background-asset-fidelity, brand-fidelity
+ *   (brand-fidelity also uses --preview when given).
  * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling,
  *   access-json.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
@@ -33,8 +34,11 @@ import {
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { walk, captureAllBaseHexes } from './fs-walk.mjs';
-import { loadBrand, normalizeHex, hexVariants } from './brand-contract.mjs';
+import {
+  loadBrand, measuredColors, normalizeHex, hexVariants,
+} from './brand-contract.mjs';
 import { MAX_CARDS } from '../assets/constants.js';
 
 function resolveRepoRoot(arg) {
@@ -646,6 +650,118 @@ export function checkBackgroundShorthand(repoRoot) {
   return { name, pass: true, reason: `${layered.size} layered .section background(s), none clobbered by a shorthand` };
 }
 
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function embeddedImageSha(svg) {
+  const m = svg.match(/\b(?:xlink:href|href)=["']data:image\/[^;,]+;base64,([^"']+)["']/i);
+  return m ? sha256(m[1]) : null;
+}
+
+function effectiveAssetHash(asset) {
+  return asset?.embeddedImageSha256 || asset?.fileSha256 || null;
+}
+
+function currentBackgroundAsset(repoRoot, relPath) {
+  const abs = join(repoRoot, relPath);
+  if (!existsSync(abs)) return null;
+  const raw = readFileSync(abs, 'utf8');
+  return {
+    fileSha256: sha256(raw),
+    embeddedImageSha256: embeddedImageSha(raw),
+  };
+}
+
+function assetMapEntryMatches(entry, relPath) {
+  return entry && typeof entry === 'object' && entry.path === relPath;
+}
+
+function derivedFromMeasured(entry, brand) {
+  const measured = measuredColors(brand);
+  const from = Array.isArray(entry.derivedFrom) ? entry.derivedFrom : [entry.derivedFrom];
+  const normalized = from.map((v) => normalizeHex(v)).filter(Boolean);
+  return normalized.length > 0 && normalized.every((hex) => measured.includes(hex));
+}
+
+export function checkBackgroundAssetFidelity(repoRoot, baseBrand) {
+  const name = 'background-asset-fidelity';
+  const relPath = 'styles/backgrounds/big.svg';
+  const captured = baseBrand?.backgroundAssets?.[relPath];
+  if (!captured || !effectiveAssetHash(captured)) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} was not captured in baseBrand.backgroundAssets — rerun capture-base.mjs before Step 4 edits`,
+    };
+  }
+
+  const current = currentBackgroundAsset(repoRoot, relPath);
+  if (!current || !effectiveAssetHash(current)) {
+    return { name, pass: false, reason: `${relPath} is missing or unreadable` };
+  }
+
+  if (effectiveAssetHash(current) === effectiveAssetHash(captured)) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} still contains the captured base embedded image. Retint or replace the decorative background using measured colors from migration-work/brand.json, then record the mapping in brand.json assetMap[].`,
+    };
+  }
+
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+
+  const entry = (loaded.data.assetMap || []).find((e) => assetMapEntryMatches(e, relPath));
+  if (!entry) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} changed but migration-work/brand.json has no assetMap[] entry documenting the background derivation`,
+    };
+  }
+
+  if (entry.source !== 'derived' && entry.source !== 'extracted') {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap entry for ${relPath} must use source "derived" or "extracted", got ${JSON.stringify(entry.source)}`,
+    };
+  }
+
+  if (!derivedFromMeasured(entry, loaded.data)) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap entry for ${relPath} must list derivedFrom color(s) measured in migration-work/brand.json tokens.colors or tokens.accents[]`,
+    };
+  }
+
+  if (entry.oldEmbeddedImageSha256 && entry.oldEmbeddedImageSha256 !== captured.embeddedImageSha256) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap oldEmbeddedImageSha256 for ${relPath} does not match the captured base background hash`,
+    };
+  }
+
+  if (entry.newEmbeddedImageSha256 && entry.newEmbeddedImageSha256 !== current.embeddedImageSha256) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap newEmbeddedImageSha256 for ${relPath} does not match the current background hash`,
+    };
+  }
+
+  return {
+    name,
+    pass: true,
+    reason: `${relPath} changed from the captured base asset and is documented in brand.json assetMap[]`,
+  };
+}
+
 // ---- CHECK: cascade (reads cascade-report.json) ---------------------------------
 // 4g has always demanded "read the actual computed value on the deployed preview", which
 // verify.mjs could not do — it has no browser. That check was therefore never performed,
@@ -946,6 +1062,7 @@ async function main() {
   if (want('welcome-header-home-link')) results.push(checkWelcomeHeaderHomeLink(repoRoot));
   if (want('icon-render')) results.push(checkIconRender(repoRoot, opt.company));
   if (want('background-shorthand')) results.push(checkBackgroundShorthand(repoRoot));
+  if (want('background-asset-fidelity')) results.push(checkBackgroundAssetFidelity(repoRoot, baseBrand));
   if (want('brand-fidelity')) results.push(await checkBrandFidelity(repoRoot, opt.preview));
   if (want('cascade')) results.push(checkCascade(opt.cascadeReport));
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));

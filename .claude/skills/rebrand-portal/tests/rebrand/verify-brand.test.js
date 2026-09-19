@@ -4,8 +4,9 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import {
-  checkBrandFidelity, checkBackgroundShorthand, checkCascade,
+  checkBrandFidelity, checkBackgroundAssetFidelity, checkBackgroundShorthand, checkCascade,
 } from '../../scripts/rebrand/verify.mjs';
 import { SCHEMA_VERSION } from '../../scripts/rebrand/brand-contract.mjs';
 
@@ -32,6 +33,32 @@ const MEASURED = {
     role: 'primary', oldHex: '#EBA439', newHex: '#002C5F', cssVar: '--link-color', source: 'extracted',
   }],
 };
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function svgWithPayload(payload) {
+  return `<svg><image xlink:href="data:image/png;base64,${payload}"/></svg>`;
+}
+
+function repoWithBackground({ brand = MEASURED, payload = 'NEWIMAGE' } = {}) {
+  const root = makeRepo(brand, ':root { --link-color: #002C5F; }');
+  mkdirSync(join(root, 'styles', 'backgrounds'), { recursive: true });
+  writeFileSync(join(root, 'styles', 'backgrounds', 'big.svg'), svgWithPayload(payload));
+  return root;
+}
+
+function baseBrandWithBackground(payload = 'BASEIMAGE') {
+  return {
+    backgroundAssets: {
+      'styles/backgrounds/big.svg': {
+        fileSha256: sha256(svgWithPayload(payload)),
+        embeddedImageSha256: sha256(payload),
+      },
+    },
+  };
+}
 
 describe('brand-fidelity', () => {
   it('passes when the theme carries the value measured from the source', async () => {
@@ -137,6 +164,63 @@ describe('background-shorthand', () => {
       .cards-card-body { background: #fff; }
     `;
     expect(checkBackgroundShorthand(makeRepo(null, css)).pass).toBe(true);
+  });
+});
+
+describe('background-asset-fidelity', () => {
+  const bgPath = 'styles/backgrounds/big.svg';
+
+  it('FAILS when the embedded landing background payload is unchanged', () => {
+    const root = repoWithBackground({ payload: 'BASEIMAGE' });
+    const r = checkBackgroundAssetFidelity(root, baseBrandWithBackground('BASEIMAGE'));
+    expect(r.pass).toBe(false);
+    expect(r.reason).toMatch(/still contains the captured base embedded image/);
+  });
+
+  it('FAILS when the image changed but brand.json has no assetMap entry', () => {
+    const root = repoWithBackground({ payload: 'NEWIMAGE' });
+    const r = checkBackgroundAssetFidelity(root, baseBrandWithBackground('BASEIMAGE'));
+    expect(r.pass).toBe(false);
+    expect(r.reason).toMatch(/no assetMap\[\] entry/);
+  });
+
+  it('FAILS when assetMap provenance is not tied to measured colors', () => {
+    const brand = {
+      ...MEASURED,
+      assetMap: [{
+        path: bgPath,
+        role: 'landing decorative background',
+        source: 'derived',
+        derivedFrom: ['#D4AF37'],
+        oldEmbeddedImageSha256: sha256('BASEIMAGE'),
+        newEmbeddedImageSha256: sha256('NEWIMAGE'),
+      }],
+    };
+    const root = repoWithBackground({ brand, payload: 'NEWIMAGE' });
+    const r = checkBackgroundAssetFidelity(root, baseBrandWithBackground('BASEIMAGE'));
+    expect(r.pass).toBe(false);
+    expect(r.reason).toMatch(/derivedFrom color/);
+  });
+
+  it('PASSES when the image changed and assetMap points to measured colors', () => {
+    const brand = {
+      ...MEASURED,
+      tokens: {
+        ...MEASURED.tokens,
+        accents: [{ hex: '#002C5F', weight: 10, why: ['background'] }],
+      },
+      assetMap: [{
+        path: bgPath,
+        role: 'landing decorative background',
+        source: 'derived',
+        derivedFrom: ['#002C5F'],
+        oldEmbeddedImageSha256: sha256('BASEIMAGE'),
+        newEmbeddedImageSha256: sha256('NEWIMAGE'),
+      }],
+    };
+    const root = repoWithBackground({ brand, payload: 'NEWIMAGE' });
+    const r = checkBackgroundAssetFidelity(root, baseBrandWithBackground('BASEIMAGE'));
+    expect(r.pass).toBe(true);
   });
 });
 
