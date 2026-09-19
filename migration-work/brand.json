@@ -1,22 +1,19 @@
 {
   "schemaVersion": 1,
   "provenance": {
-    "sourceUrl": "https://www.heineken.com/in/en/",
-    "finalUrl": "https://www.heineken.com/in/en/home/",
-    "pageTitle": "Welcome to the world of Heineken® | Heineken.com",
-    "extractedAt": "2026-09-17T13:03:35.090Z",
+    "sourceUrl": "https://www.calm.com/blog",
+    "finalUrl": "https://www.calm.com/blog",
+    "pageTitle": "Calm Blog | Blog Home",
+    "extractedAt": "2026-09-19T06:36:16.856Z",
     "extractor": "excat/sub-agents/excat-block-design-expert/brand-extract.js",
-    "excatRoot": "/Users/mohitar/Documents/code/aem-experience-catalyst/resources/plugins/aem-excat-plugin/excat-marketplace/excat",
+    "excatRoot": "/Users/mohitar/.claude/plugins/cache/excat-marketplace/excat/2.1.6",
     "excatVersion": {
-      "dir": "excat",
+      "dir": "2.1.6",
       "file": "2.1.1"
     },
     "defaultContentSelectors": [],
     "gateInteraction": [
-      "consent: clicked #onetrust-accept-btn-handler",
-      "country: selected India (IN)",
-      "dob: filled 3 field(s) with 1980-01-01",
-      "submit: clicked text:enter"
+      "consent: clicked button[aria-label=\"Accept all\" i]"
     ],
     "gatePassed": true,
     "warnings": []
@@ -24,29 +21,29 @@
   "tokens": {
     "fonts": {
       "body": {
-        "family": "PT Sans",
-        "familySet": "\"PT Sans\", sans-serif"
+        "family": "Avenir",
+        "familySet": "Avenir, \"Helvetica Neue\", Helvetica, sans-serif"
       },
       "heading": {
-        "family": "HeinekenSerif18",
-        "familySet": "HeinekenSerif18, \"PT Sans\", serif"
+        "family": "Avenir",
+        "familySet": "Avenir, \"Helvetica Neue\", Helvetica, sans-serif"
       },
       "headingSizes": {
         "xxl": {
           "mobile": "36px",
-          "desktop": "36px"
+          "desktop": "56px"
         },
         "xl": {
           "mobile": "28px",
-          "desktop": "60px"
+          "desktop": "32px"
         },
         "l": {
           "mobile": "24px",
-          "desktop": "11px"
+          "desktop": "24px"
         },
         "m": {
           "mobile": "20px",
-          "desktop": "14px"
+          "desktop": ""
         },
         "s": {
           "mobile": "18px",
@@ -64,105 +61,190 @@
     },
     "colors": {
       "background": "rgb(255, 255, 255)",
-      "text": "rgb(153, 153, 153)",
-      "link": "rgb(100, 100, 100)",
+      "text": "rgba(100, 97, 224, 0.5)",
+      "link": "rgb(41, 26, 60)",
       "linkHover": null,
       "light": "",
       "dark": ""
     },
     "spacing": {
       "sectionPadding": "0px",
-      "contentMaxWidth": "1920px",
-      "navHeight": "90px"
+      "contentMaxWidth": "",
+      "navHeight": "28.5312px"
     },
     "favicons": [
       {
-        "url": "https://www.heineken.com/media/bekjkjk0/hnk-favicon.ico",
-        "rel": "shortcut icon",
+        "url": "https://images.squarespace-cdn.com/content/v1/656f4e4dababbd7c042c4946/18b1a307-784f-44c8-a7b4-fe1ad43945df/favicon.ico?format=100w",
+        "rel": "icon",
         "type": "image/x-icon"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=152&height=152&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "152x152"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=144&height=144&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "144x144"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=120&height=120&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "120x120"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=114&height=114&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "114x114"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=76&height=76&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "76x76"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=72&height=72&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed",
-        "sizes": "72x72"
-      },
-      {
-        "url": "https://www.heineken.com/media/cwznamdt/nav_logo_heineken.png?width=57&height=57&v=1dc556ed922c3d0",
-        "rel": "apple-touch-icon-precomposed"
       }
     ],
-    "defaultContentCss": "h1 {\n  font-size: 36px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 41.4px;\n  color: rgb(19, 103, 11);\n  margin: 0px 0px 20px;\n}\n\nh2 {\n  font-size: 60px;\n  font-weight: 700;\n  font-family: HeinekenSerif18, \"PT Sans\", serif;\n  line-height: 69px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 20px;\n}\n\nh3 {\n  font-size: 11px;\n  font-weight: 700;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 13px;\n  letter-spacing: 1px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 5px;\n}\n\np {\n  font-size: 14px;\n  font-family: \"PT Sans\", sans-serif;\n  line-height: 30px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 10px;\n}\n",
+    "defaultContentCss": "h1 {\n  font-size: 56px;\n  font-weight: 700;\n  font-family: Avenir, \"Helvetica Neue\", Helvetica, sans-serif;\n  line-height: 60.48px;\n  color: rgb(255, 255, 255);\n  margin: 0px 0px 32px;\n}\n\nh2 {\n  font-size: 32px;\n  font-weight: 700;\n  font-family: Avenir, \"Helvetica Neue\", Helvetica, sans-serif;\n  line-height: 36.864px;\n  color: rgb(41, 26, 60);\n}\n\nh3 {\n  font-size: 24px;\n  font-weight: 700;\n  font-family: Avenir, \"Helvetica Neue\", Helvetica, sans-serif;\n  line-height: 28.224px;\n  color: rgb(168, 168, 168);\n}\n\np {\n  font-size: 17.6px;\n  font-family: Avenir, \"Helvetica Neue\", Helvetica, sans-serif;\n  line-height: 31.68px;\n  color: rgb(255, 255, 255);\n  margin: 16px 0px 0px;\n}\n\na:any-link {\n  color: rgb(41, 26, 60);\n  text-decoration: none;\n}\n",
     "accents": [
       {
-        "hex": "#13670b",
-        "weight": 658328,
+        "hex": "#291a3c",
+        "weight": 2991080,
+        "why": [
+          "interactive-text",
+          "background"
+        ]
+      },
+      {
+        "hex": "#389fe6",
+        "weight": 81991,
+        "why": [
+          "interactive-text",
+          "border",
+          "background"
+        ]
+      },
+      {
+        "hex": "#555be4",
+        "weight": 25000,
+        "why": [
+          "interactive-text"
+        ]
+      },
+      {
+        "hex": "#6461e0",
+        "weight": 15500,
+        "why": [
+          "border",
+          "interactive-text"
+        ]
+      },
+      {
+        "hex": "#1863dc",
+        "weight": 9724,
+        "why": [
+          "background",
+          "interactive-text",
+          "border"
+        ]
+      },
+      {
+        "hex": "#2f80d0",
+        "weight": 8492,
         "why": [
           "background",
           "border"
         ]
       },
       {
-        "hex": "#1b4677",
-        "weight": 9444,
+        "hex": "#1a3e6f",
+        "weight": 5000,
         "why": [
-          "background"
+          "interactive-text"
         ]
       },
       {
-        "hex": "#346e4a",
-        "weight": 2500,
+        "hex": "#6c9ce6",
+        "weight": 500,
         "why": [
           "border"
-        ]
-      },
-      {
-        "hex": "#6aaae4",
-        "weight": 2500,
-        "why": [
-          "background"
-        ]
-      },
-      {
-        "hex": "#32ae88",
-        "weight": 1300,
-        "why": [
-          "border",
-          "svg-fill"
-        ]
-      },
-      {
-        "hex": "#ff0000",
-        "weight": 535,
-        "why": [
-          "background"
         ]
       }
     ]
   },
-  "tokenMap": []
+  "tokenMap": [
+    {
+      "role": "light-color/surface",
+      "oldHex": "#F4E9DC",
+      "newHex": "#FFFFFF",
+      "cssVar": "--light-color",
+      "source": "extracted"
+    },
+    {
+      "role": "dark-color",
+      "oldHex": "#2C2C2C",
+      "newHex": "#1A3E6F",
+      "cssVar": "--dark-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text-color",
+      "oldHex": "#58181D",
+      "newHex": "#291A3C",
+      "cssVar": "--text-color",
+      "source": "extracted"
+    },
+    {
+      "role": "text-primary",
+      "oldHex": "#58181D",
+      "newHex": "#291A3C",
+      "cssVar": "--text-primary",
+      "source": "extracted"
+    },
+    {
+      "role": "link-color",
+      "oldHex": "#58181D",
+      "newHex": "#291A3C",
+      "cssVar": "--link-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-color",
+      "oldHex": "#00647D",
+      "newHex": "#555BE4",
+      "cssVar": "--primary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "link-hover-color",
+      "oldHex": "#00647D",
+      "newHex": "#555BE4",
+      "cssVar": "--link-hover-color",
+      "source": "extracted"
+    },
+    {
+      "role": "primary-hover",
+      "oldHex": "#004D61",
+      "newHex": "#3F45C0",
+      "cssVar": "--primary-color-hover",
+      "source": "derived",
+      "derivedFrom": "#555BE4"
+    },
+    {
+      "role": "color-red (utility accent)",
+      "oldHex": "#A33532",
+      "newHex": "#389FE6",
+      "cssVar": "--color-red",
+      "source": "extracted"
+    },
+    {
+      "role": "color-dark-red",
+      "oldHex": "#95351D",
+      "newHex": "#1863DC",
+      "cssVar": "--color-dark-red",
+      "source": "extracted"
+    },
+    {
+      "role": "secondary-color",
+      "oldHex": "#95351D",
+      "newHex": "#1863DC",
+      "cssVar": "--secondary-color",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-secondary",
+      "oldHex": "#DC6E52",
+      "newHex": "#2F80D0",
+      "cssVar": "--accent-secondary",
+      "source": "extracted"
+    },
+    {
+      "role": "accent-tertiary",
+      "oldHex": "#EBA439",
+      "newHex": "#6C9CE6",
+      "cssVar": "--accent-tertiary",
+      "source": "extracted"
+    },
+    {
+      "role": "welcome-panel-bg",
+      "oldHex": "#2f2318",
+      "newHex": "#291A3C",
+      "cssVar": "--welcome-panel-bg",
+      "source": "extracted"
+    }
+  ]
 }
