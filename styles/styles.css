@@ -25,6 +25,8 @@
   --accent-secondary: #6AAAE4;
   --accent-tertiary: #5FA85B;
   --secondary-color: #1B4677;
+  --welcome-panel-bg: #0B2E07;
+  --welcome-panel-accent-rgb: 45 150 40;
 
   /* Neutral & shape tokens */
   --color-neutral-50: #fff;

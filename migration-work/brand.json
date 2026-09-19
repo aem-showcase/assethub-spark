@@ -212,7 +212,7 @@
       "newHex": "#4D4D4D",
       "cssVar": "--text-color",
       "source": "derived",
-      "derivedFrom": "#999999 (measured text grey, darkened for contrast)"
+      "derivedFrom": "#999999"
     },
     {
       "role": "text-primary",
@@ -220,7 +220,7 @@
       "newHex": "#4D4D4D",
       "cssVar": "--text-primary",
       "source": "derived",
-      "derivedFrom": "#999999 (measured text grey, darkened for contrast)"
+      "derivedFrom": "#999999"
     },
     {
       "role": "link-color",
@@ -249,7 +249,7 @@
       "newHex": "#5FA85B",
       "cssVar": "--accent-tertiary",
       "source": "derived",
-      "derivedFrom": "#13670B (lighter tint of primary accent)"
+      "derivedFrom": "#13670b"
     },
     {
       "role": "welcome-panel-bg",
@@ -257,7 +257,7 @@
       "newHex": "#0B2E07",
       "cssVar": "--welcome-panel-bg",
       "source": "derived",
-      "derivedFrom": "#13670B (darkened shade of primary accent)"
+      "derivedFrom": "#13670b"
     },
     {
       "role": "welcome-panel-accent-rgb",
@@ -265,7 +265,7 @@
       "newHex": "rgb(45 150 40)",
       "cssVar": "--welcome-panel-accent-rgb",
       "source": "derived",
-      "derivedFrom": "#13670B (rgb components of primary accent)"
+      "derivedFrom": "#13670b"
     }
   ],
   "assetMap": [
@@ -278,7 +278,8 @@
         "#346e4a",
         "#1b4677"
       ],
-      "description": "Replaced 154KB embedded-raster decorative background with a vector-only green/star pattern generated from the measured primary and border accent colours."
+      "description": "Replaced 154KB embedded-raster decorative background with a vector-only green/star pattern generated from the measured primary and border accent colours.",
+      "source": "derived"
     }
   ]
 }
