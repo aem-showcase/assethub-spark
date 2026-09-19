@@ -150,7 +150,7 @@
     {
       "role": "light-color/surface",
       "oldHex": "#F4E9DC",
-      "newHex": "#FFFFFF",
+      "newHex": "#FFF",
       "cssVar": "--light-color",
       "source": "extracted"
     },

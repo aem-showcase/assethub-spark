@@ -12,7 +12,7 @@
 
 :root {
   /* Brand palette (semantic tokens — single source of truth) */
-  --light-color: #FFFFFF;
+  --light-color: #FFF;
   --dark-color: #1A3E6F;
   --text-color: #291A3C;
   --text-primary: #291A3C;
