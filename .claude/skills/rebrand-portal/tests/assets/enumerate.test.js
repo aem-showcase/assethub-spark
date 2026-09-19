@@ -36,64 +36,66 @@ describe('enumerate', () => {
   });
 
   describe('enumerateFolder', () => {
-    it('scans all pages and returns only assets under the folder prefix', async () => {
-      const page1 = makeRes({
+    it('lists only the target DAM folder without tenant-wide search', async () => {
+      const page = makeRes({
         body: {
-          hits: {
-            results: [
-              hit('a1', '/content/dam/acme/a.jpg'),
-              hit('x1', '/content/dam/frescopa/other.jpg'),
-            ],
-          },
-          cursor: 'NEXT',
+          'a.jpg': { 'jcr:primaryType': 'dam:Asset', 'jcr:uuid': 'a1' },
+          'b.jpg': { 'jcr:primaryType': 'dam:Asset', 'jcr:uuid': 'a2' },
+          'jcr:content': {},
         },
       });
-      const page2 = makeRes({
-        body: {
-          hits: {
-            results: [
-              hit('a2', '/content/dam/acme/sub/b.jpg'),
-              hit('x2', '/content/dam/_CSS/icon.png'),
-            ],
-          },
-          cursor: null,
-        },
-      });
-      const client = makeClient([page1, page2]);
+      const client = makeClient([page]);
       const out = await enumerateFolder({ client, folderPath: '/content/dam/acme' });
-      expect(out.assets.map((a) => a.assetId)).toEqual(['a1', 'a2']);
-      expect(out.scanned).toBe(4);
+      expect(out.assets.map((a) => a.repoPath)).toEqual([
+        '/content/dam/acme/a.jpg',
+        '/content/dam/acme/b.jpg',
+      ]);
+      expect(out.scanned).toBe(2);
       expect(out.matched).toBe(2);
       expect(out.exceededWindow).toBe(false);
+      expect(client.calls).toHaveLength(1);
+      expect(client.calls[0]).toMatchObject({
+        op: 'sling',
+        opts: {
+          method: 'GET',
+          path: '/content/dam/acme.1.json',
+          includeApiKey: false,
+        },
+      });
     });
 
-    it('dedupes assets seen across pages', async () => {
-      const page1 = makeRes({
-        body: { hits: { results: [hit('a1', '/content/dam/acme/a.jpg')] }, cursor: 'NEXT' },
+    it('accepts repository-style item arrays while still using the folder endpoint', async () => {
+      const page = makeRes({
+        body: {
+          items: [
+            hit('a1', '/content/dam/acme/a.jpg'),
+            hit('a1', '/content/dam/acme/a.jpg'),
+            hit('x1', '/content/dam/other/x.jpg'),
+          ],
+        },
       });
-      const page2 = makeRes({
-        body: { hits: { results: [hit('a1', '/content/dam/acme/a.jpg')] }, cursor: null },
-      });
-      const client = makeClient([page1, page2]);
+      const client = makeClient([page]);
       const out = await enumerateFolder({ client, folderPath: '/content/dam/acme' });
       expect(out.assets).toHaveLength(1);
+      expect(out.assets[0].assetId).toBe('a1');
     });
 
-    it('stops and flags exceededWindow when the scan cap is reached', async () => {
-      const page = makeRes({
-        body: { hits: { results: [hit('x1', '/content/dam/other/1.jpg')] }, cursor: 'MORE' },
-      });
-      // Always return a page that has a cursor; only the cap can break the loop.
-      const client = { request: async () => page };
+    it('falls back from .1.json to .children.json on 404', async () => {
+      const client = makeClient([
+        makeRes({ status: 404, body: 'missing' }),
+        makeRes({ body: { 'a.jpg': { 'jcr:primaryType': 'dam:Asset', 'jcr:uuid': 'a1' } } }),
+      ]);
       const out = await enumerateFolder({
-        client, folderPath: '/content/dam/acme', limit: 1, scanCap: 3,
+        client, folderPath: '/content/dam/acme',
       });
-      expect(out.exceededWindow).toBe(true);
-      expect(out.matched).toBe(0);
-      expect(out.scanned).toBeGreaterThanOrEqual(3);
+      expect(out.assets).toHaveLength(1);
+      expect(client.calls.map((c) => c.opts.path)).toEqual([
+        '/content/dam/acme.1.json',
+        '/content/dam/acme.children.json',
+      ]);
     });
 
-    it('parses the real AEM search shape { hits: { results } } and repo:name', async () => {
+    it('parses the real AEM search shape { hits: { results } } and repo:name when returned by a folder endpoint', async () => {
       const page = makeRes({
         body: {
           hits: {

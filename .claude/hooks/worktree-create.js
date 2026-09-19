@@ -61,6 +61,19 @@ if (!pathExists(worktreeDir)) {
   }
 }
 
+// Copy secret/config files as REAL files, never symlink — each worktree must
+// own independent secrets so parallel demos never share or clobber a token
+// (rebrand-portal I9). Symlinking re-shares one token across worktrees.
+const SECRET_FILES = ['cloudflare/.secrets', 'token.env'];
+SECRET_FILES.forEach((rel) => {
+  const src = path.join(cwd, rel);
+  const dst = path.join(worktreeDir, rel);
+  if (fs.existsSync(src) && !pathExists(dst)) {
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+  }
+});
+
 // Symlink files listed in .worktreeinclude from the main checkout into the worktree
 // (a WorktreeCreate hook bypasses Claude Code's native .worktreeinclude copy).
 const includeFile = path.join(cwd, '.worktreeinclude');
@@ -69,6 +82,7 @@ if (fs.existsSync(includeFile)) {
     .split('\n')
     .map((line) => line.trim())
     .filter((rel) => rel && !rel.startsWith('#'))
+    .filter((rel) => !SECRET_FILES.includes(rel)) // copied above (I9); never symlink
     .forEach((rel) => {
       const src = path.join(cwd, rel);
       const dst = path.join(worktreeDir, rel);

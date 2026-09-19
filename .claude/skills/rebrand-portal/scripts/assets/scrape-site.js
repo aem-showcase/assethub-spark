@@ -17,6 +17,11 @@ import {
   BRING_IN_MAX_IMAGES, BRING_IN_MAX_BYTES, BRING_IN_MIN_BYTES,
   BRING_IN_IMAGE_EXTENSIONS, BRING_IN_DOCUMENT_EXTENSIONS,
 } from './constants.js';
+import { mapWithConcurrency } from './concurrency.js';
+
+// Parallel image downloads per page. Matches the upload/enrichment concurrency, which is
+// proven against live rate limits; higher values have not been validated against WAFs.
+const SCRAPE_CONCURRENCY = 4;
 
 const IMG_TAG_RE = /<img\b[^>]*>/gi;
 const SOURCE_TAG_RE = /<source\b[^>]*>/gi;
@@ -396,6 +401,11 @@ export function fileNameFromUrl(url, usedNames, contentType) {
  * @param {number} [params.maxBytes]            per-file byte cap (skips larger assets)
  * @param {number} [params.minBytes]            minimum file size; skips icons/tiny renditions
  * @param {Function} [params.fetchFn]           injectable fetch
+ * @param {Object} [params.sourceHeaders]       extra headers (Cookie, bot-manager tokens)
+ *                                              merged into every source request, from
+ *                                              --cookie / --header
+ * @param {string} [params.renderedHtml]        pre-rendered page HTML to parse instead of
+ *                                              fetching pageUrl (--rendered-html)
  * @param {Object} [params.log]                 console-like logger
  * @returns {Promise<{ images: Array<{fileName,bytes,contentType,sourceUrl}>, candidates: number }>}
  */
@@ -405,6 +415,8 @@ export async function scrapeSiteImages({
   maxBytes = BRING_IN_MAX_BYTES,
   minBytes = BRING_IN_MIN_BYTES,
   fetchFn = fetch,
+  sourceHeaders = {},
+  renderedHtml = null,
   log = console,
 }) {
   // Browser-like headers for the IMAGE downloads below (not the page fetch — adding a
@@ -415,11 +427,21 @@ export async function scrapeSiteImages({
   const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
     + '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-  const pageRes = await fetchFn(pageUrl, { headers: { Accept: 'text/html' } });
-  if (!pageRes.ok) {
-    throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
+  let html;
+  if (typeof renderedHtml === 'string' && renderedHtml) {
+    // Client-rendered source: the caller supplies the DOM a browser produced, so the page
+    // GET is skipped entirely. Image downloads below still go over the network.
+    log.info?.(`[agent] using supplied rendered HTML for ${pageUrl} (page fetch skipped)`);
+    html = renderedHtml;
+  } else {
+    const pageRes = await fetchFn(pageUrl, {
+      headers: { Accept: 'text/html', ...sourceHeaders },
+    });
+    if (!pageRes.ok) {
+      throw new Error(`scrape ${pageUrl} -> ${pageRes.status}`);
+    }
+    html = await pageRes.text();
   }
-  const html = await pageRes.text();
   const pageEvidence = extractPageEvidence(html);
   const imageEvidence = extractImageEvidence(html, pageUrl);
   const candidateUrls = extractAssetUrls(html, pageUrl);
@@ -428,8 +450,11 @@ export async function scrapeSiteImages({
   const images = [];
   const usedNames = new Set();
 
-  for (const candidateUrl of candidateUrls) {
-    if (images.length >= maxImages) break;
+  // Downloads run in parallel windows rather than one at a time. Upload and enrichment
+  // already use mapWithConcurrency at 4; the scrape was the last serial network stage.
+  // Results are consumed in candidate order so file naming (which dedupes through
+  // `usedNames`) stays deterministic regardless of which response lands first.
+  const download = async (candidateUrl) => {
     // Resolve to the original full-resolution URL before downloading.
     const url = resolveOriginalUrl(candidateUrl);
     if (url !== candidateUrl) {
@@ -437,44 +462,60 @@ export async function scrapeSiteImages({
     }
     try {
       const res = await fetchFn(url, {
-        headers: { Accept: '*/*', 'User-Agent': BROWSER_UA, Referer: pageUrl },
+        headers: {
+          Accept: '*/*', 'User-Agent': BROWSER_UA, Referer: pageUrl, ...sourceHeaders,
+        },
       });
       if (!res.ok) {
         log.warn?.(`[agent] skip ${url} -> ${res.status}`);
-        continue;
+        return null;
       }
       const contentType = res.headers?.get?.('content-type') || '';
       if (!looksLikeAssetContentType(contentType)) {
         log.warn?.(`[agent] skip ${url} -> unsupported asset type (${contentType})`);
-        continue;
+        return null;
       }
       const buf = new Uint8Array(await res.arrayBuffer());
       if (buf.byteLength === 0) {
         log.warn?.(`[agent] skip ${url} -> empty body`);
-        continue;
+        return null;
       }
       if (minBytes > 0 && buf.byteLength < minBytes) {
         log.warn?.(`[agent] skip ${url} -> ${buf.byteLength} bytes below minimum ${minBytes}`);
-        continue;
+        return null;
       }
       if (buf.byteLength > maxBytes) {
         log.warn?.(`[agent] skip ${url} -> ${buf.byteLength} bytes exceeds cap ${maxBytes}`);
-        continue;
+        return null;
       }
-      // Use the original candidate URL for the filename so we get the meaningful name.
-      const fileName = fileNameFromUrl(candidateUrl, usedNames, contentType);
-      images.push({
-        fileName,
-        bytes: buf,
-        contentType,
-        sourceUrl: url,
-        assetUrl: candidateUrl,
-        sourcePage: pageUrl,
-        ...pageEvidence,
-        ...(imageEvidence.get(candidateUrl) || {}),
-      });
+      return {
+        candidateUrl, url, bytes: buf, contentType,
+      };
     } catch (err) {
       log.warn?.(`[agent] skip ${url} -> ${String(err.message || err)}`);
+      return null;
+    }
+  };
+
+  for (let i = 0; i < candidateUrls.length && images.length < maxImages; i += SCRAPE_CONCURRENCY) {
+    const window = candidateUrls.slice(i, i + SCRAPE_CONCURRENCY);
+    // eslint-disable-next-line no-await-in-loop
+    const settled = await mapWithConcurrency(window, SCRAPE_CONCURRENCY, download);
+    for (const got of settled) {
+      if (images.length >= maxImages) break;
+      if (!got) continue;
+      // Use the original candidate URL for the filename so we get the meaningful name.
+      const fileName = fileNameFromUrl(got.candidateUrl, usedNames, got.contentType);
+      images.push({
+        fileName,
+        bytes: got.bytes,
+        contentType: got.contentType,
+        sourceUrl: got.url,
+        assetUrl: got.candidateUrl,
+        sourcePage: pageUrl,
+        ...pageEvidence,
+        ...(imageEvidence.get(got.candidateUrl) || {}),
+      });
     }
   }
 
