@@ -61,11 +61,14 @@ what the site *serves*, not by looking at a picture of it:
      static check can see a correct declaration that loses the cascade.
    - `residue`, `structural-residue`, `icon-reference-resolution`,
      `welcome-header-home-link`, `header-logo`, `applied-css`,
-     `nav-404-loop`, `access-json` — colors (including one-off literals in block-level CSS
+     `nav-404-loop`, `access-json`, `copied-html-live` — colors (including one-off literals in block-level CSS
      that were never a named `:root` token), CSS icon references that don't
      resolve to a file, the welcome-header home link resolving through
-     `localizePath()`, logo sizing, applied CSS, 404 loop, and the published
-     company-scoped access sheets the callback reads.
+     `localizePath()`, logo sizing, applied CSS, 404 loop, the published
+     company-scoped access sheets the callback reads, and every copied
+     non-draft HTML page under `/companies/<companyKey>` being live. The copied
+     HTML check intentionally excludes JSON sheets such as
+     `config/access/application.json` and `users.json`; `access-json` owns those.
    - `icon-render` (tree) — header wordmark is vector, not blank `<text>`.
    - `stale-card-images` (report) — no published card image points at a
      base-template asset. A card retitled for the new company but still
@@ -99,8 +102,8 @@ what the site *serves*, not by looking at a picture of it:
    `structural-residue`, `icon-reference-resolution`,
    `welcome-header-home-link`, `header-logo`, `icon-render`,
    **`brand-fidelity`, `background-shorthand`,
-   `background-asset-fidelity`**, **`stale-card-images`**, and
-   **`access-json`** all passed against the current commit. Every other check is listed in
+   `background-asset-fidelity`**, **`stale-card-images`**, **`access-json`**,
+   and **`copied-html-live`** all passed against the current commit. Every other check is listed in
    that hook's `WAIVED_CHECKS` with the reason it is not gated — a check
    belongs to exactly one of the two sets, and
    `tests/rebrand/enforced-checks.test.js` fails if a new one belongs to

@@ -11,14 +11,15 @@
  *   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
  *     [--repo-root <dir>] [--preview <host>] [--company <companyKey>] \
  *     [--report <report.json>] [--only <check,check>] [--write-report <path.json>] \
- *     [--cascade-report <cascade-report.json>]
+ *     [--cascade-report <cascade-report.json>] [--org <org>] [--repo <repo>] \
+ *     [--da-token-file <file>]
  *
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
  *   icon-reference-resolution, welcome-header-home-link, icon-render,
  *   background-shorthand, background-asset-fidelity, brand-fidelity
  *   (brand-fidelity also uses --preview when given).
  * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling,
- *   access-json.
+ *   access-json, copied-html-live.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
  * Cascade check (needs --cascade-report): cascade.
  *
@@ -40,6 +41,7 @@ import {
   loadBrand, measuredColors, normalizeHex, hexVariants,
 } from './brand-contract.mjs';
 import { MAX_CARDS } from '../assets/constants.js';
+import { resolveDaToken } from '../assets/config.js';
 
 function resolveRepoRoot(arg) {
   if (arg) return resolve(arg);
@@ -506,6 +508,156 @@ export async function checkAccessJson(previewHost, company, fetchFn = fetch) {
   } catch (e) {
     return { name: 'access-json', pass: false, reason: `fetch error: ${e.message}` };
   }
+}
+
+function daListUrl({ org, repo, path }) {
+  const root = `https://admin.da.live/list/${org}/${repo}`;
+  const suffix = String(path || '').replace(/^\/+/, '');
+  return suffix ? `${root}/${suffix}` : root;
+}
+
+function pathFromDaItem(item, org, repo) {
+  const raw = String(item?.path || '').replace(/^\/+/, '');
+  const prefix = `${org}/${repo}/`;
+  const rel = raw.startsWith(prefix) ? raw.slice(prefix.length) : raw;
+  if (!rel) return null;
+  const ext = item?.ext;
+  if (ext && !rel.endsWith(`.${ext}`)) return `${rel}.${ext}`;
+  return rel;
+}
+
+async function listDaFiles({
+  org, repo, rootPath, daToken, fetchFn = fetch,
+}) {
+  const files = [];
+  async function walkDa(path) {
+    const res = await fetchFn(daListUrl({ org, repo, path }), {
+      headers: { Authorization: `Bearer ${daToken}` },
+    });
+    if (!res.ok) {
+      throw new Error(`${daListUrl({ org, repo, path })} returned ${res.status}`);
+    }
+    const items = await res.json();
+    if (!Array.isArray(items)) {
+      throw new Error(`${daListUrl({ org, repo, path })} did not return a DA list array`);
+    }
+    for (const item of items) {
+      const rel = pathFromDaItem(item, org, repo);
+      if (!rel) continue;
+      if (item.ext) {
+        files.push(rel);
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await walkDa(rel);
+      }
+    }
+  }
+  await walkDa(rootPath);
+  return files;
+}
+
+function liveOriginBase(previewHost) {
+  const base = previewBase(previewHost);
+  const url = new URL(base);
+  const match = url.hostname.match(/^(.+)\.dev\.frescopamedia\.com$/);
+  if (match) {
+    return `https://${match[1]}--assethub-spark--aem-showcase.aem.live`;
+  }
+  if (url.hostname.endsWith('.aem.page')) {
+    url.hostname = url.hostname.replace(/\.aem\.page$/, '.aem.live');
+    return url.toString().replace(/\/$/, '');
+  }
+  return base;
+}
+
+function copiedHtmlPublishPath(path) {
+  const clean = String(path || '').replace(/^\/+/, '');
+  if (!clean.endsWith('.html')) return null;
+  if (/(^|\/)drafts\//.test(clean)) return null;
+  return clean.replace(/\.html$/i, '');
+}
+
+async function fetchStatus(url, fetchFn) {
+  const res = await fetchFn(url, { redirect: 'manual' });
+  return res.status;
+}
+
+async function liveStatusForPath({ base, path, fetchFn }) {
+  if (path.endsWith('/index')) {
+    const folderUrl = `${base}/${path.slice(0, -'index'.length)}`;
+    const status = await fetchStatus(folderUrl, fetchFn);
+    if (status >= 200 && status < 300) return { status, url: folderUrl };
+  }
+  const url = `${base}/${path}`;
+  return { status: await fetchStatus(url, fetchFn), url };
+}
+
+// ---- CHECK: copied-html-live (DA list + live origin) ----------------------------
+// Step 3 proves the DA copy exists. This proves every copied customer-visible HTML
+// page is also live, so unedited copied pages such as reports/* and my-dam/*
+// cannot stay unpublished while the demo is reported complete. JSON sheets such
+// as config/access/application.json and users.json are intentionally out of scope;
+// checkAccessJson owns those.
+export async function checkCopiedHtmlLive(previewHost, company, {
+  org = 'aem-showcase',
+  repo = 'assethub-spark',
+  repoRoot = process.cwd(),
+  daTokenFile = null,
+  daToken = null,
+  fetchFn = fetch,
+} = {}) {
+  const name = 'copied-html-live';
+  if (!previewHost || !company) return { name, pass: false, reason: 'needs --preview and --company' };
+  const token = daToken || resolveDaToken({ daTokenFile, repoRoot });
+  if (!token) {
+    return {
+      name,
+      pass: false,
+      reason: 'no DA token found (expected DA_TOKEN in token.env or --da-token-file) — cannot enumerate copied DA pages',
+    };
+  }
+
+  let files;
+  try {
+    files = await listDaFiles({
+      org,
+      repo,
+      rootPath: `companies/${company}`,
+      daToken: token,
+      fetchFn,
+    });
+  } catch (e) {
+    return { name, pass: false, reason: `DA list failed: ${e.message}` };
+  }
+
+  const paths = files
+    .map(copiedHtmlPublishPath)
+    .filter(Boolean)
+    .sort();
+  if (!paths.length) {
+    return { name, pass: false, reason: `no copied publishable HTML pages found under /companies/${company}` };
+  }
+
+  const base = liveOriginBase(previewHost);
+  const missing = [];
+  for (const path of paths) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const { status, url } = await liveStatusForPath({ base, path, fetchFn });
+      if (status < 200 || status >= 300) missing.push(`${path} -> ${status} (${url})`);
+    } catch (e) {
+      missing.push(`${path} -> fetch error: ${e.message}`);
+    }
+  }
+
+  if (missing.length) {
+    return {
+      name,
+      pass: false,
+      reason: `${missing.length} copied HTML page(s) are not live:\n  ${missing.join('\n  ')}`,
+    };
+  }
+  return { name, pass: true, reason: `${paths.length} copied HTML page(s) are live under /companies/${company}` };
 }
 
 // ---- CHECK: brand-fidelity (tree + optional preview) ----------------------------
@@ -1037,7 +1189,7 @@ async function main() {
   const args = process.argv.slice(2);
   const opt = {
     repoRoot: null, preview: null, company: null, report: null, only: null, writeReport: null,
-    cascadeReport: null,
+    cascadeReport: null, org: 'aem-showcase', repo: 'assethub-spark', daTokenFile: null,
   };
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
@@ -1046,6 +1198,9 @@ async function main() {
     else if (a === '--company') { opt.company = args[++i]; }
     else if (a === '--report') { opt.report = args[++i]; }
     else if (a === '--cascade-report') { opt.cascadeReport = args[++i]; }
+    else if (a === '--org') { opt.org = args[++i]; }
+    else if (a === '--repo') { opt.repo = args[++i]; }
+    else if (a === '--da-token-file') { opt.daTokenFile = args[++i]; }
     else if (a === '--only') { opt.only = args[++i].split(',').map((s) => s.trim()); }
     else if (a === '--write-report') { opt.writeReport = args[++i]; }
   }
@@ -1069,6 +1224,14 @@ async function main() {
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
   if (opt.preview && want('card-ceiling')) results.push(await checkCardCeiling(opt.preview, opt.company));
   if (opt.preview && want('access-json')) results.push(await checkAccessJson(opt.preview, opt.company));
+  if (opt.preview && want('copied-html-live')) {
+    results.push(await checkCopiedHtmlLive(opt.preview, opt.company, {
+      org: opt.org,
+      repo: opt.repo,
+      repoRoot,
+      daTokenFile: opt.daTokenFile,
+    }));
+  }
   if (opt.report && want('stale-card-images')) results.push(checkStaleCardImages(opt.report));
   if (opt.report && want('card-count')) results.push(checkCardCount(opt.report));
   if (opt.report && want('hero-quality')) results.push(checkHeroQuality(opt.report));

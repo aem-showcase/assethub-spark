@@ -84,6 +84,7 @@ describe('every verify.mjs check is consciously gated or consciously waived', ()
     expect(mandatory).toContain('stale-card-images');
     expect(mandatory).toContain('icon-render');
     expect(mandatory).toContain('access-json');
+    expect(mandatory).toContain('copied-html-live');
   });
 });
 

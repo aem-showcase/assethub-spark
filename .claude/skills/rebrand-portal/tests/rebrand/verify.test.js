@@ -6,6 +6,7 @@ import {
   checkHeaderLogo, checkResidue, checkStaleCardImages,
   checkStructuralResidue, checkIconReferenceResolution, checkWelcomeHeaderHomeLink,
   checkCardCeiling, checkCardCount, checkAccessJson,
+  checkCopiedHtmlLive,
 } from '../../scripts/rebrand/verify.mjs';
 import { MAX_CARDS } from '../../scripts/assets/constants.js';
 
@@ -437,6 +438,103 @@ describe('checkAccessJson', () => {
     offset: 0,
     data,
     ':type': 'sheet',
+  });
+
+  describe('checkCopiedHtmlLive', () => {
+    const daItem = (path, ext = 'html') => ({
+      path: `/aem-showcase/assethub-spark/${path}`,
+      name: path.split('/').pop().replace(`.${ext}`, ''),
+      ext,
+    });
+    const daDir = (path) => ({
+      path: `/aem-showcase/assethub-spark/${path}`,
+      name: path.split('/').pop(),
+    });
+    const jsonRes = (body) => ({ ok: true, status: 200, json: async () => body });
+    const statusRes = (status) => ({ ok: status >= 200 && status < 300, status });
+
+    function fetchFor({ reportStatus = 404, notificationsStatus = 404 } = {}) {
+      return vi.fn(async (url) => {
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme')) {
+          return jsonRes([
+            daDir('companies/acme/en'),
+            daDir('companies/acme/config'),
+            daItem('companies/acme/login.html'),
+          ]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/en')) {
+          return jsonRes([
+            daItem('companies/acme/en/index.html'),
+            daDir('companies/acme/en/reports'),
+            daDir('companies/acme/en/my-dam'),
+            daDir('companies/acme/en/drafts'),
+          ]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/en/reports')) {
+          return jsonRes([daItem('companies/acme/en/reports/report-hub.html')]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/en/my-dam')) {
+          return jsonRes([daItem('companies/acme/en/my-dam/my-notifications.html')]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/en/drafts')) {
+          return jsonRes([daItem('companies/acme/en/drafts/test-page.html')]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/config')) {
+          return jsonRes([daDir('companies/acme/config/access')]);
+        }
+        if (url.endsWith('/list/aem-showcase/assethub-spark/companies/acme/config/access')) {
+          return jsonRes([
+            daItem('companies/acme/config/access/application.json', 'json'),
+            daItem('companies/acme/config/access/users.json', 'json'),
+          ]);
+        }
+        if (url === 'https://demo-acme--assethub-spark--aem-showcase.aem.live/companies/acme/en/') {
+          return statusRes(200);
+        }
+        if (url === 'https://demo-acme--assethub-spark--aem-showcase.aem.live/companies/acme/login') {
+          return statusRes(200);
+        }
+        if (url === 'https://demo-acme--assethub-spark--aem-showcase.aem.live/companies/acme/en/reports/report-hub') {
+          return statusRes(reportStatus);
+        }
+        if (url === 'https://demo-acme--assethub-spark--aem-showcase.aem.live/companies/acme/en/my-dam/my-notifications') {
+          return statusRes(notificationsStatus);
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      });
+    }
+
+    it('FAILS when copied report and notification HTML pages exist in DA but are not live', async () => {
+      const fetchFn = fetchFor();
+      const result = await checkCopiedHtmlLive('demo-acme.dev.frescopamedia.com', 'acme', {
+        daToken: 'token',
+        fetchFn,
+      });
+
+      expect(result.pass).toBe(false);
+      expect(result.reason).toMatch(/reports\/report-hub/);
+      expect(result.reason).toMatch(/my-dam\/my-notifications/);
+    });
+
+    it('PASSES when all copied non-draft HTML pages are live and does not probe JSON sheets', async () => {
+      const fetchFn = fetchFor({ reportStatus: 200, notificationsStatus: 200 });
+      const result = await checkCopiedHtmlLive('demo-acme.dev.frescopamedia.com', 'acme', {
+        daToken: 'token',
+        fetchFn,
+      });
+
+      expect(result.pass).toBe(true);
+      const urls = fetchFn.mock.calls.map(([url]) => url);
+      expect(urls.some((url) => String(url).includes('/application'))).toBe(false);
+      expect(urls.some((url) => String(url).includes('/users'))).toBe(false);
+      expect(urls.some((url) => String(url).includes('/drafts/test-page'))).toBe(false);
+    });
+
+    it('needs --preview, --company, and a DA token', async () => {
+      expect((await checkCopiedHtmlLive(null, 'acme', { daToken: 'token' })).pass).toBe(false);
+      expect((await checkCopiedHtmlLive('preview.test', null, { daToken: 'token' })).pass).toBe(false);
+      expect((await checkCopiedHtmlLive('preview.test', 'acme', { repoRoot: '/nope' })).pass).toBe(false);
+    });
   });
   const res = ({ status = 200, body = {} } = {}) => ({
     ok: status >= 200 && status < 300,

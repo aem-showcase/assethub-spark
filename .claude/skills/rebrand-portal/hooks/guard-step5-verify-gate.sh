@@ -150,6 +150,7 @@ MANDATORY_CHECKS = {
     "background-asset-fidelity",
     "stale-card-images",
     "access-json",
+    "copied-html-live",
 }
 
 # Checks deliberately NOT gated here, each with the reason it is safe to omit.
