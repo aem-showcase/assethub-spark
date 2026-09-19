@@ -33,8 +33,12 @@ footer .footer .icon {
 
 footer .footer .icon img,
 footer .footer .icon svg {
-  width: 160px;
-  height: auto;
+  width: auto;
+  max-width: 160px;
+  height: 80px;
+  max-height: 80px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 footer .footer p {

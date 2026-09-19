@@ -420,6 +420,8 @@ Applied server-side in the Cloudflare worker before proxying to ContentAI:
 Admin → No filters
 Employee/Agency → Brand restrictions only
 Partner → Brand restrictions + Country filter (custom:country)
+Profile country listed in COUNTRY_BRAND_RESTRICTIONS (cloudflare/src/config.js)
+  → only the configured brands (assetMetadata.brand), e.g. DE → Frescopa
 No role → Block all results
 ```
 

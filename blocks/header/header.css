@@ -861,8 +861,14 @@ header .header-welcome-bar .welcome-logo {
   text-decoration: none;
 }
 
+/* Same guard as the nav-brand logo above: an explicit height tied to the bar keeps a
+   square or tall mark (e.g. the adaptTo() logo) inside the bar instead of overflowing it,
+   while max-width still caps a wide wordmark. */
 header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
-  width: 150px;
-  height: auto;
+  width: auto;
+  max-width: 150px;
+  height: calc(var(--nav-height) - 20px);
+  max-height: calc(var(--nav-height) - 20px);
+  object-fit: contain;
 }
