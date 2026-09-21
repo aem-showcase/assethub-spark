@@ -159,6 +159,30 @@ A user gains access to a restricted brand if they match **any** of the three tab
 Users with the `admin` role automatically have access to all brands, including restricted ones.
 
 
+## Country-Scoped Brands
+
+Some countries may only see a subset of brands. This is configured in code, not in a sheet, because it is a per-deploy demo setting: `COUNTRY_BRAND_RESTRICTIONS` in `cloudflare/src/config.js`.
+
+```js
+COUNTRY_BRAND_RESTRICTIONS: {
+  de: ['Frescopa', 'Fréscopa'],
+},
+```
+
+### How it works
+
+- The key is the user's profile country as a lowercase 2-letter ISO code. The profile country comes from the identity provider (Microsoft Entra `ctry` claim) or, when simulating a user, from the simulation country picker. Additional countries granted via the `companies` or `users` sheets do not count here.
+- The values are the exact `brand` values on the asset metadata (`assetMetadata.brand`). Matching is exact and case-sensitive, so list every spelling in use.
+- A user from a listed country only gets search results and asset details for assets tagged with one of the listed brands. Assets without a `brand` value are not returned in search for such users.
+- Countries that are not listed are unrestricted.
+- Users with the `admin` role bypass this filter, like all other per-user asset filters.
+
+### Change which brands a country sees
+
+1. Edit `COUNTRY_BRAND_RESTRICTIONS` in `cloudflare/src/config.js`.
+2. Deploy the worker.
+
+
 ## Common Tasks
 
 

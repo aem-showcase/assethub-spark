@@ -550,6 +550,9 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `brand`              — brand name of the asset; users whose profile country is listed in
+ *                          config.COUNTRY_BRAND_RESTRICTIONS only see the brands allowed for
+ *                          that country
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -570,6 +573,18 @@ function forceContentAISearchFilter(search, authClauses) {
  *   instead of whatever is currently simulated. No effect when not simulating.
  * @returns {Promise<Object[]>} ContentAI query clause array
  */
+/**
+ * Look up the brands a user from the given country is restricted to.
+ * @param {string|undefined} country - Profile country code (any case, e.g. 'DE' from Entra or 'de' from sudo)
+ * @returns {string[]|null} Allowed `assetMetadata.brand` values, or null when the country is unrestricted
+ */
+function resolveCountryBrandRestriction(country) {
+  if (!country) return null;
+  const restrictions = config.COUNTRY_BRAND_RESTRICTIONS || {};
+  const brands = restrictions[String(country).trim().toLowerCase()];
+  return Array.isArray(brands) && brands.length > 0 ? brands : null;
+}
+
 async function buildAssetAuthClauses(request, _env, { useRealPermissions = false } = {}) {
   // Callers that need to discover what's generally available (e.g. populating the
   // country picker used to change simulation) evaluate as the real, pre-simulation
@@ -624,6 +639,17 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country-scoped brand filter ---
+  // Users whose profile country is listed in config.COUNTRY_BRAND_RESTRICTIONS only see
+  // assets tagged with one of the brands allowed for that country (assetMetadata.brand).
+  // Only the user's own profile country counts here, not the additional sheet-granted
+  // countries: those widen which assets a user may see, they don't change where the user is.
+  const allowedBrands = resolveCountryBrandRestriction(user.country);
+  if (allowedBrands) {
+    console.warn(`[${user.email}] asset auth clauses: country=${user.country} brands=[${allowedBrands.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.brand': allowedBrands } });
   }
 
   // --- Internal status filter ---
@@ -1095,6 +1121,7 @@ export {
 export {
   // Asset metadata authorization
   buildAssetAuthClauses,
+  resolveCountryBrandRestriction,
   COLLECTION_ROLE_EDITOR,
   // Collection roles
   COLLECTION_ROLE_OWNER,

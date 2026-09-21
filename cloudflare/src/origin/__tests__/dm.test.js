@@ -6,6 +6,7 @@ import {
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
+  resolveCountryBrandRestriction,
   searchContentAIAuthorization,
   stampCollectionCompany,
 } from '../dm.js';
@@ -859,6 +860,120 @@ describe('dm.js - ContentAI Authorization', () => {
       const assetMetadata = { internalStatus: 'preview' };
       const result = checkAssetMetadataAuthorization(authClauses, assetMetadata);
       expect(result.violated).toBe(true);
+    });
+  });
+
+  describe('buildAssetAuthClauses — country-scoped brand restriction (COUNTRY_BRAND_RESTRICTIONS)', () => {
+    const brandClause = { term: { 'assetMetadata.brand': ['Frescopa', 'Fréscopa'] } };
+    let savedDemoCompany;
+    let savedRestrictions;
+
+    beforeEach(() => {
+      savedDemoCompany = config.DEMO_COMPANY;
+      savedRestrictions = config.COUNTRY_BRAND_RESTRICTIONS;
+      config.DEMO_COMPANY = null;
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: ['Frescopa', 'Fréscopa'] };
+    });
+    afterEach(() => {
+      config.DEMO_COMPANY = savedDemoCompany;
+      config.COUNTRY_BRAND_RESTRICTIONS = savedRestrictions;
+    });
+
+    it('ships with DE restricted to the Frescopa brand', () => {
+      expect(savedRestrictions.de).toEqual(['Frescopa', 'Fréscopa']);
+    });
+
+    it('resolveCountryBrandRestriction matches the country code case-insensitively', () => {
+      expect(resolveCountryBrandRestriction('DE')).toEqual(['Frescopa', 'Fréscopa']);
+      expect(resolveCountryBrandRestriction('de')).toEqual(['Frescopa', 'Fréscopa']);
+      expect(resolveCountryBrandRestriction(' De ')).toEqual(['Frescopa', 'Fréscopa']);
+    });
+
+    it('resolveCountryBrandRestriction returns null for unrestricted or missing countries', () => {
+      expect(resolveCountryBrandRestriction('us')).toBeNull();
+      expect(resolveCountryBrandRestriction(undefined)).toBeNull();
+      expect(resolveCountryBrandRestriction('')).toBeNull();
+    });
+
+    it('resolveCountryBrandRestriction ignores empty brand lists and a missing config map', () => {
+      config.COUNTRY_BRAND_RESTRICTIONS = { de: [] };
+      expect(resolveCountryBrandRestriction('de')).toBeNull();
+      config.COUNTRY_BRAND_RESTRICTIONS = undefined;
+      expect(resolveCountryBrandRestriction('de')).toBeNull();
+    });
+
+    it('adds the brand term for a DE user (uppercase Entra ctry claim)', async () => {
+      const request = { user: { email: 'user@example.de', userType: 'external', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('adds the brand term for a simulated DE user (lowercase sudo country)', async () => {
+      const request = { user: { email: 'user@example.de', userType: 'external', country: 'de' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('adds the brand term for internal DE users too', async () => {
+      const request = { user: { email: 'user@adobe.com', userType: 'internal', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(brandClause);
+    });
+
+    it('does not add a brand term for users from other countries', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('does not add a brand term when no country is resolved', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('only considers the profile country, not additional sheet-granted countries', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'external', country: 'us', countries: ['de'] } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses.some((c) => c.term?.['assetMetadata.brand'])).toBe(false);
+    });
+
+    it('is bypassed for admins like the other per-user filters', async () => {
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('coexists with the company, country and internalStatus clauses', async () => {
+      config.DEMO_COMPANY = 'frescopa';
+      const request = { user: { email: 'user@example.de', userType: 'external', country: 'DE' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.company': ['frescopa'] } });
+      expect(clauses).toContainEqual({ term: { 'assetMetadata.allowedCountries': ['DE', 'germany', 'global'] } });
+      expect(clauses).toContainEqual(brandClause);
+      expect(clauses).toContainEqual({
+        or: [
+          { term: { 'assetMetadata.internalStatus': ['approved'] } },
+          { not: [{ exists: { field: 'assetMetadata.internalStatus' } }] },
+        ],
+      });
+    });
+
+    it('is injected into the ContentAI search filter by forceContentAISearchFilter', async () => {
+      const request = { user: { email: 'user@example.de', userType: 'external', country: 'DE' } };
+      const authClauses = await buildAssetAuthClauses(request, {});
+      const search = { query: [{ and: [] }] };
+      forceContentAISearchFilter(search, authClauses);
+      expect(search.query[0].and).toContainEqual({ and: authClauses });
+      expect(authClauses).toContainEqual(brandClause);
+    });
+
+    it('checkAssetMetadataAuthorization passes a Frescopa asset and denies another brand', () => {
+      expect(checkAssetMetadataAuthorization([brandClause], { brand: 'Frescopa' }).violated).toBe(false);
+      expect(checkAssetMetadataAuthorization([brandClause], { brand: 'Fréscopa' }).violated).toBe(false);
+      const denied = checkAssetMetadataAuthorization([brandClause], { brand: 'Other Brand' });
+      expect(denied.violated).toBe(true);
+      expect(denied.reason).toContain('brand');
     });
   });
 

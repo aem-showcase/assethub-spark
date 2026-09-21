@@ -861,8 +861,13 @@ header .header-welcome-bar .welcome-logo {
   text-decoration: none;
 }
 
+/* Same height-driven sizing as the nav-bar brand logo above: a fixed width with
+   height:auto lets a square or portrait mark grow taller than the welcome bar. */
 header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
-  width: 150px;
-  height: auto;
+  width: auto;
+  max-width: 150px;
+  height: calc(var(--nav-height) - 24px);
+  max-height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
 }
