@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 const FLAG_WITH_VALUE = new Set([
   'customer-key', 'dam-path', 'source-url', 'source-urls', 'secrets-file', 'limit',
   'concurrency', 'report-file', 'fixture', 'aem-env-id', 'categories', 'category-map',
-  'org', 'repo', 'da-token-file',
+  'org', 'repo', 'da-token-file', 'cookie', 'header', 'hero-map', 'rendered-html',
 ]);
 
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force', 'bring-in']);
@@ -148,6 +148,20 @@ export function parseArgs(argv) {
     org: null,
     repo: null,
     daTokenFile: null,
+    // Source-fetch escapes. Some source sites sit behind a WAF/bot-manager (Akamai et al)
+    // or require a session, and return 403/404 to a plain scripted GET while serving a
+    // browser fine. --cookie sets the Cookie header and --header (repeatable,
+    // "Name: value") sets any other request header on the SCRAPE fetches only; neither
+    // touches AEM/DA calls. Without these the only way through is hand-rolled curl, which
+    // moves the work off the supported path where the gates cannot see it.
+    cookie: null,
+    headers: [],
+    // Per-category hero override: path to a JSON object of `slug -> fileName|assetId`,
+    // used to pin the card hero when automatic ranking picks a logo or chrome image.
+    heroMap: null,
+    // Path to a saved rendered-HTML file to scrape instead of re-fetching pageUrl. For
+    // client-rendered sources where the server HTML carries no <img> tags.
+    renderedHtml: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -179,6 +193,10 @@ export function parseArgs(argv) {
         case 'org': opts.org = value; break;
         case 'repo': opts.repo = value; break;
         case 'da-token-file': opts.daTokenFile = value; break;
+        case 'cookie': opts.cookie = value; break;
+        case 'header': if (value) opts.headers.push(value); break;
+        case 'hero-map': opts.heroMap = value; break;
+        case 'rendered-html': opts.renderedHtml = value; break;
         default: break;
       }
     }
@@ -204,6 +222,24 @@ export function resolveDaToken({ daTokenFile, repoRoot = process.cwd() } = {}) {
   return parsed.DA_TOKEN || null;
 }
 
+/**
+ * Turn `--cookie` / repeatable `--header "Name: value"` into a plain header object for
+ * the scrape fetches. Later values win. Invalid entries (no colon) are reported by
+ * validateOptions rather than silently dropped here.
+ */
+export function buildSourceHeaders({ cookie, headers } = {}) {
+  const out = {};
+  for (const raw of headers || []) {
+    const idx = String(raw).indexOf(':');
+    if (idx <= 0) continue;
+    const name = String(raw).slice(0, idx).trim();
+    const value = String(raw).slice(idx + 1).trim();
+    if (name) out[name] = value;
+  }
+  if (cookie) out.Cookie = cookie;
+  return out;
+}
+
 export function validateOptions(opts) {
   const errors = [];
   if (!opts.customerKey) errors.push('--customer-key is required');
@@ -215,6 +251,17 @@ export function validateOptions(opts) {
     if (opts.damPath !== expected && !opts.damPath.startsWith(`${expected}/`)) {
       errors.push(`--dam-path must stay under ${expected} (got ${opts.damPath})`);
     }
+  }
+  for (const raw of opts.headers || []) {
+    if (String(raw).indexOf(':') <= 0) {
+      errors.push(`--header "${raw}" must be "Name: value"`);
+    }
+  }
+  if (opts.renderedHtml && !existsSync(opts.renderedHtml)) {
+    errors.push(`--rendered-html file not found: ${opts.renderedHtml}`);
+  }
+  if (opts.heroMap && !existsSync(opts.heroMap)) {
+    errors.push(`--hero-map file not found: ${opts.heroMap}`);
   }
   return errors;
 }

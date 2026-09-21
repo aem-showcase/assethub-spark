@@ -11,11 +11,23 @@ the home cards and category coverage report use). Customer-facing wording stays
 outcomes-only (I1): "grouping <Brand>'s assets into collections so they're
 ready to browse by category." Runs **automatically after**
 `assets-enriched` and `search-scoped` are `done` — do not wait for a
-separate user request once assets are searchable. The assets must be
-approved and index-visible before they can be collected. Leave
+separate user request once assets are searchable. **If collections already
+exist with this same company filter/company stamp, do nothing: report the
+existing collection titles/count and mark this step done. Do not rebuild,
+update membership, rename, or delete them unless the operator explicitly
+asks for a repair.** The assets must be approved and index-visible before
+they can be collected. Leave
 `collections-created` `deferred` only while `assets-enriched`/
 `search-scoped` are themselves `deferred` (the customer chose to leave
 enrichment for a later step — Entry flow Q2).
+
+Step 6 is also the bounded post-enrichment visibility gate for Step 5. The
+controller polls delivery/search for the company-scoped assets and expected
+category facets for at most `ASSET_VISIBILITY_POLL_TIMEOUT_MS` (10 minutes
+overall). If assets or required category buckets still are not visible by
+then, stop and report a timeout; do **not** loop, do not create partial
+collections, and do not mark `assets-enriched`, `search-scoped`, or
+`collections-created` done. Resume later after indexing catches up.
 
 ## Existing environment — no provisioning
 
@@ -39,17 +51,22 @@ node .claude/skills/rebrand-portal/scripts/assets/create-collections.js \
   [--display-name "<Company Display Name>"] \
   [--group-by productCategory|campaign|channel] \
   [--limit 200] [--min-assets 1] [--access-level public] \
+  [--visibility-timeout-ms 600000] [--visibility-poll-interval-ms 10000] \
   [--dry-run] [--report-file <path>] \
   [--secrets-file cloudflare/.secrets] [--fixture <assets.json>]
 ```
 
 - `<companyKey>` is the same slug as Steps 2–5. The controller queries the
-  DM asset search **scoped to `assetMetadata.company = <companyKey>`**
-  (only this company's assets become members), groups the hits by
-  `--group-by` (default `productCategory`), and creates one collection per
-  distinct value titled `"<Company> — <Category>"`. **Always `--dry-run`
-  first** — it enumerates the assets and prints the intended collections
-  (title + asset count) without creating anything — then run live.
+  existing collections first, scoped to
+  `collectionMetadata.custom:metadata.company = <companyKey>`. If any exist,
+  it reports them and exits with no changes. If none exist, it queries the DM
+  asset search **scoped to `assetMetadata.company = <companyKey>`** (only this
+  company's assets become members), groups the hits by `--group-by` (default
+  `productCategory`), and creates one collection per distinct value titled
+  `"<Company> — <Category>"`. **Always `--dry-run` first** — it enumerates the
+  assets and prints the intended collections without creating anything, or
+  prints the same-company collections that already exist — then run live only
+  when creation is still needed.
 - `--display-name` sets the exact text used in place of `<Company>` in the
   title (e.g. `"URBN"`). Without it, the title falls back to title-casing
   `<companyKey>` (`urbn` → `"Urbn"`), which is usually wrong for

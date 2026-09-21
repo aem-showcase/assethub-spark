@@ -24,12 +24,14 @@
 import {
   HEADER_AUTHORIZATION,
   HEADER_API_KEY,
+  ADOBE_API_KEY_COLLECTIONS,
   getDynamicMediaApiKeyForPath,
   SEARCH_PAGE_LIMIT,
 } from './constants.js';
 
 const ASSET_SEARCH_PATH = '/adobe/assets/search';
 const COLLECTIONS_PATH = '/adobe/assets/collections';
+const COLLECTIONS_SEARCH_PATH = '/adobe/experimental/collectionsearch-expires-20260915/assets/collections/search';
 
 /** ContentAI asset-search body scoped to a single company. */
 export function buildCompanyAssetSearchBody({ company, limit = SEARCH_PAGE_LIMIT, cursor }) {
@@ -50,6 +52,24 @@ export function buildCompanyAssetSearchBody({ company, limit = SEARCH_PAGE_LIMIT
   return body;
 }
 
+/** ContentAI collection-search body scoped to a single demo company. */
+export function buildCompanyCollectionsSearchBody({ company, limit = SEARCH_PAGE_LIMIT, cursor }) {
+  const body = {
+    limit,
+    query: [
+      {
+        and: [
+          { match: { text: '', fields: ['collectionMetadata.title'] } },
+          { exists: { field: 'collectionMetadata.custom:metadata.company' } },
+          { term: { 'collectionMetadata.custom:metadata.company': [company] } },
+        ],
+      },
+    ],
+  };
+  if (cursor) body.cursor = cursor;
+  return body;
+}
+
 /** Normalize a ContentAI asset hit into the fields the plan needs. */
 export function assetHitToRecord(hit) {
   const assetMeta = hit.assetMetadata || {};
@@ -61,6 +81,18 @@ export function assetHitToRecord(hit) {
     campaign: assetMeta.campaign ?? null,
     channel: assetMeta.channel ?? null,
     company: assetMeta.company ?? null,
+  };
+}
+
+/** Normalize a ContentAI collection hit into the fields the controller needs. */
+export function collectionHitToRecord(hit) {
+  const meta = hit.collectionMetadata || hit.assetMetadata || hit.metadata || {};
+  const custom = meta['custom:metadata'] || meta.customMetadata || {};
+  return {
+    collectionId: hit.collectionId || hit.id || meta.id || null,
+    title: meta.title || hit.title || 'Untitled Collection',
+    company: custom.company || meta['custom:metadata.company'] || null,
+    itemCount: meta.itemCount ?? meta.itemsCount ?? hit.itemCount ?? null,
   };
 }
 
@@ -90,9 +122,11 @@ export class DmCollectionsClient {
       method,
       headers: {
         [HEADER_AUTHORIZATION]: `Bearer ${token}`,
-        [HEADER_API_KEY]: getDynamicMediaApiKeyForPath(path, this.clientId),
+        [HEADER_API_KEY]: path === COLLECTIONS_SEARCH_PATH
+          ? ADOBE_API_KEY_COLLECTIONS
+          : getDynamicMediaApiKeyForPath(path, this.clientId),
         'Content-Type': 'application/json',
-        ...(path === ASSET_SEARCH_PATH
+        ...((path === ASSET_SEARCH_PATH || path === COLLECTIONS_SEARCH_PATH)
           ? { 'x-ch-request': 'search', 'x-polaris-search-provider': '3' }
           : {}),
       },
@@ -130,6 +164,28 @@ export class DmCollectionsClient {
       const data = await res.json();
       const hits = data.hits?.results || data.results || data.hits || [];
       for (const hit of hits) out.push(assetHitToRecord(hit));
+      cursor = data.cursor || data.hits?.cursor || null;
+    } while (cursor && out.length < limit);
+    return out.slice(0, limit);
+  }
+
+  /**
+   * Search existing collections stamped for this company. Step 6 is intentionally
+   * idempotent: if any same-company collection already exists, the controller reports it
+   * and does not create/update/delete collections.
+   */
+  async searchCompanyCollections({ company, limit = 200, pageSize = SEARCH_PAGE_LIMIT }) {
+    if (!company) throw new Error('searchCompanyCollections: company is required');
+    const out = [];
+    let cursor;
+    do {
+      const size = Math.min(pageSize, limit - out.length);
+      const res = await this.#request(COLLECTIONS_SEARCH_PATH, {
+        body: buildCompanyCollectionsSearchBody({ company, limit: size, cursor }),
+      });
+      const data = await res.json();
+      const hits = data.hits?.results || data.results || data.hits || [];
+      for (const hit of hits) out.push(collectionHitToRecord(hit));
       cursor = data.cursor || data.hits?.cursor || null;
     } while (cursor && out.length < limit);
     return out.slice(0, limit);

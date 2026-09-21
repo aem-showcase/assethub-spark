@@ -1,0 +1,432 @@
+[
+  {
+    "description": "Seed secrets and create state file for disney-in-2 worktree",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark && \\\ncp token.env .worktrees/demo-disney-in-2/token.env && \\\nmkdir -p .worktrees/demo-disney-in-2/cloudflare && \\\ncp cloudflare/.secrets .worktrees/demo-disney-in-2/cloudflare/.secrets && \\\nmkdir -p .worktrees/demo-disney-in-2/.internal && \\\ncat > .worktrees/demo-disney-in-2/.internal/onboarding-state.json << 'EOF'\n{\n  \"schemaVersion\": 4,\n  \"intent\": \"full\",\n  \"customer\": {\n    \"name\": \"Disney\",\n    \"companyKey\": \"disney-in\",\n    \"demoBranch\": \"demo/disney-in-2\",\n    \"worktreePath\": \".worktrees/demo-disney-in-2\",\n    \"daFolder\": null,\n    \"prUrl\": null,\n    \"prNumber\": null,\n    \"assetsLane\": null,\n    \"assetsEnrichNow\": null\n  },\n  \"steps\": {\n    \"demo-confirmed\": \"done\",\n    \"branch-resolved\": \"done\",\n    \"pr-opened\": \"pending\",\n    \"da-content-copied\": \"pending\",\n    \"rebranded\": \"pending\",\n    \"demo-company-set\": \"pending\",\n    \"published\": \"pending\",\n    \"landed-via-pr\": \"pending\",\n    \"assets-uploaded\": \"pending\",\n    \"assets-enriched\": \"pending\",\n    \"search-scoped\": \"pending\",\n    \"collections-created\": \"pending\"\n  }\n}\nEOF\necho \"done\"",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Ensure Helix admin token is set up",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\ngrep -c '^HLX_ADMIN_TOKEN=' token.env; \\\nbash .claude/skills/rebrand-portal/scripts/da/ensure-eds-tokens.sh aem-showcase assethub-spark --token-file token.env 2>&1; echo \"EXIT:$?\"",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Check index.html for frescopa references",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nset -a; . ./token.env; set +a; \\\ncurl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/source/aem-showcase/assethub-spark/companies/disney-in/en/index.html\" > /tmp/disney_index.html\ngrep -io \"frescopa[a-z-]*\" /tmp/disney_index.html | sort -u\nwc -l /tmp/disney_index.html",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "List DA content under companies/disney-in via env var",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && set -a && source token.env && set +a && \\\ncurl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/list/aem-showcase/assethub-spark/companies/disney-in\" -o /tmp/da-list.json\npython3 -c \"import json; d=json.load(open('/tmp/da-list.json')); [print(x['path']) for x in d]\" | head -60",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Fetch footer, welcome, and index docs",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nbash -c 'set -a; source token.env; set +a\nfor p in \"companies/disney-in/en/footer.html\" \"companies/disney-in/public/welcome.html\" \"companies/disney-in/en/index.html\"; do\n  out=\"/tmp/da-$(echo $p | tr \"/\" \"_\")\"\n  curl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/source/aem-showcase/assethub-spark/$p\" -o \"$out\"\n  echo \"=== $p ($out) ===\"\ndone'\necho done",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Fetch footer.html individually",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nbash -c 'set -a; source token.env; set +a; curl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/source/aem-showcase/assethub-spark/companies/disney-in/en/footer.html\" -o /tmp/da-footer.html'\nwc -l /tmp/da-footer.html; cat /tmp/da-footer.html",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Test /list endpoint directly with raw curl",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nbash -c 'set -a; source token.env; set +a; curl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/list/aem-showcase/assethub-spark/companies/disney-in/en\" -o /tmp/da-list2.json'\ncat /tmp/da-list2.json 2>&1 | head -5",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Retry footer fetch once more",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nbash -c 'set -a; source token.env; set +a; curl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/source/aem-showcase/assethub-spark/companies/disney-in/en/footer.html\" -o /tmp/footer-try.html'\ncat /tmp/footer-try.html 2>&1",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Prepare hook test input",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in-2 && \\\nCMD='bash -c '\"'\"'set -a; source token.env; set +a; curl -s -H \"Authorization: Bearer $DA_TOKEN\" \"https://admin.da.live/source/aem-showcase/assethub-spark/companies/disney-in/en/footer.html\" -o /tmp/footer-try.html'\"'\"''\npython3 -c \"\nimport json\nprint(json.dumps({'tool_name':'bash','tool_input':{'command': '''$CMD'''}}))\n\" > /tmp/hook-test-input.json 2>/dev/null\ncat /tmp/hook-test-input.json 2>&1 | head -3",
+    "origin": "disney-run-2026-09-18"
+  },
+  {
+    "description": "Clean up temp secrets file",
+    "command": "rm -f /tmp/dm-only.secrets",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Push branch updates",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git push",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check for token.env",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark-standalone && ls -la token.env 2>&1",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Test basic network connectivity to admin.da.live without auth",
+    "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://admin.da.live/list/aem-showcase/assethub-spark/ 2>&1",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "View full favicon.svg",
+    "command": "cat /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us/favicon.svg",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Create .internal dir in new worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3/.internal",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run project lint",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && npm run lint",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Test plain bash command without secrets",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3 && echo hello",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Create .internal dir in new worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-us/.internal",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Mark PR 74 ready for review",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && gh pr ready 74",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Create .internal dir in worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-disney-in/.internal",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check published welcome page",
+    "command": "curl -s \"https://main--assethub-spark--aem-showcase.aem.page/companies/coca-cola/public/welcome.plain.html\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Ensure .internal dir exists in worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4/.internal",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Mark PR 68 ready for review",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && gh pr ready 68",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Push hook fix commit",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && git push",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run full test suite locally",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && npm test",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List current PR 68 checks",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && gh pr checks 68",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Mark existing Heineken draft PR ready for review",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4 && gh pr ready 72",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check final git status",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check secret files exist",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark && ls -la token.env cloudflare/.secrets 2>&1",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check gitignore for token.env",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark-standalone && grep -n \"token.env\" .gitignore",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Confirm secrets file still present",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark-standalone && ls -la cloudflare/.secrets 2>&1",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Confirm shared root content is unaffected",
+    "command": "curl -s \"https://demo-disney--assethub-spark-standalone--mohitar1.aem.page/en/\" | grep -o \"<h1[^>]*>[^<]*</h1>\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run project CSS lint after fixes",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4 && npm run lint:css",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check worktree git status",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && git status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Create .internal directory in worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business/.internal",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Confirm lint passes",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && npm run lint",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check token.env last modified time",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark-standalone && stat -f \"%Sm %N\" token.env; date",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List migration work artifacts",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && ls -1 migration-work",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List unstaged files",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git diff --name-only",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List .codex directory",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && ls -la .codex",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Inspect branch aem.page home HTML structure",
+    "command": "curl -sS https://demo-volkswagen-2--assethub-spark-standalone--mohitar1.aem.page/volkswagen/en/ | sed -n '1,120p'",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Raw fetch of live application.json",
+    "command": "curl -s \"https://demo--volkswagen-2--assethub-spark-standalone--mohitar1.aem.live/config/access/application.json\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Verify live preview URL responds",
+    "command": "curl -s -o /dev/null -w \"%{http_code}\\n\" \"https://demo-heineken-3.dev.frescopamedia.com/companies/heineken-3/en/\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check final working tree status",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4 && git status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Mark PR ready for review",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && gh pr ready 79",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Get org/repo from origin remote",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-aldi && git remote get-url origin",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check main aem.page volkswagen home",
+    "command": "curl -sS -o /dev/null -w '%{http_code}\\n' https://main--assethub-spark-standalone--mohitar1.aem.page/volkswagen/en/",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Fetch updated icon-test plain.html",
+    "command": "sleep 3; curl -s \"https://main--assethub-spark--aem-showcase.aem.live/companies/heineken-3/en/icon-test.plain.html\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Fetch published plain.html to verify content",
+    "command": "sleep 5; curl -s \"https://main--assethub-spark--aem-showcase.aem.page/companies/coca-cola/public/welcome.plain.html\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Get org/repo from origin remote",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-disney-in\ngit remote get-url origin",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List frescopa icons plain",
+    "command": "ls /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us/icons/ | grep -i frescopa",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Discover project skills",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && ./.agents/discover-skills",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Confirm clean tracked worktree",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && git status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Read current HEAD commit",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && git rev-parse HEAD",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check anonymous DA list access",
+    "command": "curl -sS -o /dev/null -w '%{http_code}\\n' \"https://admin.da.live/list/mohitar1/assethub-spark-standalone/volkswagen/en\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Verify branch preview URL responds",
+    "command": "curl -s -o /dev/null -w \"%{http_code}\\n\" \"https://demo-disney--assethub-spark-standalone--mohitar1.aem.page/disney/en/\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Verify cleaned big.svg content",
+    "command": "cat /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3/styles/backgrounds/big.svg",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check git log directly without any pipe wrapper",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-business && git log --oneline -5",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run repo-wide Frescopa residue sweep",
+    "command": "rg -n -i 'frescopa' . --glob '!node_modules/**' --glob '!.git/**' --glob '!.internal/**' --glob '!token.env' | head -200",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Push Apple rebrand branch",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git push origin demo/apple-3",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List heineken icon files",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3 && ls icons/ | grep heineken",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Test running a benign command in worktree",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-disney-in && cat package.json | head -5",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check git status of changes",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us\ngit status --short | head -60",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Test node execution in worktree",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us && node -e \"console.log(1+1)\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Discover project skills",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4 && ./.agents/discover-skills",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List staged files",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git diff --cached --name-only",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Final status check",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-apple-3 && git --no-pager status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check DA_TOKEN present (shape only, per I2)",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-disney-in\ngrep -c '^DA_TOKEN=' token.env",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run lint to verify no-duplicate-selectors fixed",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-coca-cola && npm run lint 2>&1 | tail -20",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Check chevron icon existence",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3 && ls icons/ | grep -i chevron",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List remaining frescopa-named icon files",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us && ls icons/ | grep -i frescopa",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Confirm final tracked status after state update",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && git --no-pager status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "View coca-cola beans icon svg",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-coca-cola && cat icons/coca-cola-beans.svg",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List frescopa icon assets",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3 && ls icons/ | grep -i frescopa",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Create .internal dir in disney worktree",
+    "command": "mkdir -p /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark/.worktrees/demo-disney-in/.internal && echo created",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "View current state file with baseBrand",
+    "command": "cat /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us/.internal/onboarding-state.json",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Push Kirklands rebrand commit to PR branch",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && git push origin demo/kirklands",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Clean temporary verification artifacts",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-kirklands && rm -rf .internal/step4g-checks",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "View current icon svg",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3 && cat icons/heineken-3-icon.svg",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "List all lines referencing big.svg",
+    "command": "grep -n \"big.svg\" /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-3/styles/styles.css",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Push new branch to origin without creating extra commit",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-disney-in\ngit push -u origin demo/disney-in",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Probe for DA credential injection at network layer",
+    "command": "curl -s -o /dev/null -w \"%{http_code}\\n\" -H \"Authorization: ******\" \"https://admin.da.live/list/aem-showcase/assethub-spark\"",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run full test suite plainly",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us && npx vitest run 2>&1 | tail -60",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Run full vitest suite",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-costco-us && npx vitest run 2>&1 | tail -30",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Review changed files before validation and commit",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-heineken-4 && git --no-pager status --short",
+    "origin": "executed-successfully"
+  },
+  {
+    "description": "Get org/repo from origin remote",
+    "command": "cd /Users/mohitar/Documents/code/eds/master_1/prod/assethub-spark.worktrees/demo-coles && { git remote get-url origin; } 2>&1",
+    "origin": "executed-successfully"
+  }
+]

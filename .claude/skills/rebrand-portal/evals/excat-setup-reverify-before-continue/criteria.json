@@ -1,11 +1,11 @@
 {
-  "context": "Guards that after the operator installs/enables the excat plugin and reports back, the agent re-checks invokability before proceeding — neither trusting the operator blindly nor repeating the install steps again.",
+  "context": "Guards that after the operator installs/enables the excat plugin and reports back, the agent re-checks invokability before proceeding \u2014 neither trusting the operator blindly nor repeating the install steps again.",
   "type": "weighted_checklist",
   "checklist": [
     {
       "name": "Re-checks plugin/skill availability",
       "max_score": 35,
-      "description": "The agent runs claude plugin list or claude skill list (via Bash tool) or otherwise actively confirms excat-complete-design-expert is invokable before proceeding. Does not skip this check and trust the operator's message alone."
+      "description": "The agent actively confirms readiness before proceeding by running scripts/rebrand/extract-brand.mjs --check (exit 0) via Bash. It does not trust the operator's message alone, and does not substitute claude plugin list / claude skill list or a file-existence check \u2014 those report only that a skill is loadable and pass on a machine with no browser at all."
     },
     {
       "name": "Confirms invokable and unblocks rebrand",

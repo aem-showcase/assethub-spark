@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 4,
+  "intent": "full",
+  "customer": {
+    "name": "Disney India",
+    "companyKey": "disney-in",
+    "demoBranch": "demo/disney-in-3",
+    "worktreePath": ".worktrees/demo-disney-in-3",
+    "daFolder": "/companies/disney-in",
+    "prUrl": "https://github.com/aem-showcase/assethub-spark/pull/86",
+    "prNumber": 86,
+    "assetsLane": "enrich-existing",
+    "assetsEnrichNow": true
+  },
+  "steps": {
+    "demo-confirmed": "done",
+    "branch-resolved": "done",
+    "pr-opened": "done",
+    "da-content-copied": "done",
+    "rebranded": "done",
+    "demo-company-set": "done",
+    "published": "done",
+    "landed-via-pr": "done",
+    "assets-uploaded": "pending",
+    "assets-enriched": "pending",
+    "search-scoped": "pending",
+    "collections-created": "pending"
+  }
+}

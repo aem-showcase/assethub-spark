@@ -24,6 +24,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { captureAllBaseHexes } from './fs-walk.mjs';
 
 function fail(msg) {
@@ -68,6 +69,31 @@ function readBaseSlug(iconsDir) {
   const logo = files.find((f) => /^([a-z0-9-]+)_logo\.svg$/.test(f));
   if (logo) return logo.replace(/_logo\.svg$/, '');
   return null;
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function embeddedImageSha(svg) {
+  const m = svg.match(/\b(?:xlink:href|href)=["']data:image\/[^;,]+;base64,([^"']+)["']/i);
+  return m ? sha256(m[1]) : null;
+}
+
+function captureBackgroundAssets(repoRoot, css) {
+  const assets = {};
+  if (!/url\(\s*['"]?backgrounds\/big\.svg['"]?\s*\)/.test(css)) return assets;
+
+  const rel = 'styles/backgrounds/big.svg';
+  const abs = join(repoRoot, rel);
+  if (!existsSync(abs)) return assets;
+
+  const raw = readFileSync(abs, 'utf8');
+  assets[rel] = {
+    fileSha256: sha256(raw),
+    embeddedImageSha256: embeddedImageSha(raw),
+  };
+  return assets;
 }
 
 function main() {
@@ -135,6 +161,7 @@ function main() {
     navHeight,
     oldHexes,
     allBaseHexes,
+    backgroundAssets: captureBackgroundAssets(repoRoot, css),
     capturedAt: new Date().toISOString(),
   };
 
@@ -165,3 +192,4 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 
 // Exported for tests (the reader helpers are the load-bearing logic).
 export { readToken, readVarFallback, readBaseSlug };
+export { captureBackgroundAssets, embeddedImageSha };

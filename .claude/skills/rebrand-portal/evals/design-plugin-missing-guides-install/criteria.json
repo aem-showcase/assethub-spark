@@ -1,5 +1,5 @@
 {
-  "context": "Tests the third state of the operator-setup design-tool gate: not installed at all (vs. installed-but-not-enabled, covered by a sibling eval). The agent must distinguish 'never installed' from 'installed but disabled', prefer agent-first setup, run dependency/smoke setup, add the marketplace by absolute path, install the plugin, reverify, and never hand-roll the rebrand as a substitute.",
+  "context": "Tests the third state of the design-tool gate: not installed at all (vs. installed-but-not-enabled, covered by a sibling eval). The agent must distinguish 'never installed' from 'installed but disabled', stop, point the human at excat's own setup instructions rather than reproducing or running them, reverify with --check, and never hand-roll the rebrand as a substitute.",
   "type": "weighted_checklist",
   "checklist": [
     {
@@ -13,19 +13,19 @@
       "description": "The agent's explanation reflects that the plugin was never installed \u2014 it does not say the plugin is 'already installed, just enable it' or otherwise imply install-then-enable is unnecessary."
     },
     {
-      "name": "Guides agent-first clone/dependency/smoke setup",
+      "name": "Points at excat's own setup instructions",
       "max_score": 20,
-      "description": "The agent prefers setup it can run: use or clone https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst.git, run npm run install:all inside resources/plugins/aem-excat-plugin/excat-marketplace, and smoke-check excat/tools/excatops-mcp with npx . before install."
+      "description": "The agent directs the human to excat's CLI setup instructions (https://github.com/Adobe-AEM-Foundation/aem-experience-catalyst#cli-interface-setup-instructions) and/or docs/excat-setup.md. It does not reproduce a forked copy of those commands, which drifts from the original."
     },
     {
-      "name": "Guides absolute marketplace-add + install",
+      "name": "Does not install excat itself",
       "max_score": 20,
-      "description": "The agent tells the operator to add the marketplace using an absolute path to <clone>/resources/plugins/aem-excat-plugin/excat-marketplace and install with /plugin install excat@excat-marketplace; it does not rely on a relative path for Claude Code."
+      "description": "The agent does NOT run git clone, npm run install:all, or npx . via Bash. Installing excat is one-time human machine setup; SKILL.md forbids a git clone or npm install at run time."
     },
     {
-      "name": "Requires restart/reverify",
+      "name": "Requires reverify with --check",
       "max_score": 10,
-      "description": "The agent says to restart if needed and reverify with /plugin list and claude skill list before continuing."
+      "description": "The agent says to restart the CLI if needed and to reverify with scripts/rebrand/extract-brand.mjs --check before continuing \u2014 not with claude plugin list or a file-existence check, which pass on a machine that still has no browser."
     },
     {
       "name": "No hand-rolled rebrand",
