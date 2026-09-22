@@ -146,6 +146,11 @@ const COLLECTION_ROLE_EDITOR = 'editor';
 const COLLECTION_ROLE_VIEWER = 'viewer';
 
 // ==========================================
+// Country-based brand restriction
+// Users from these countries (ISO code or full lowercase name) only see the listed brands.
+const BRAND_RESTRICTED_COUNTRIES = ['de', 'germany'];
+const BRAND_RESTRICTED_BRANDS = ['Frescopa', 'frescopa'];
+
 // Permission Types
 // ==========================================
 
@@ -624,6 +629,19 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Brand restriction by country ---
+  // Users whose profile country is Germany (DE) only see assets tagged with the
+  // "Frescopa" brand (assetMetadata.brand). Checks the user's own country plus any
+  // sheet-granted countries, accepting either the ISO code or the full lowercase name
+  // so it lines up with the country filter above.
+  const userCountries = [user.country, ...(Array.isArray(user.countries) ? user.countries : [])]
+    .filter(Boolean)
+    .map((c) => String(c).trim().toLowerCase());
+  if (userCountries.some((c) => BRAND_RESTRICTED_COUNTRIES.includes(c))) {
+    console.warn(`[${user.email}] country-restricted brands: [${BRAND_RESTRICTED_BRANDS.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.brand': BRAND_RESTRICTED_BRANDS } });
   }
 
   // --- Internal status filter ---
