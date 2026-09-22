@@ -103,14 +103,14 @@ You can run multiple `npm start` instances simultaneously (e.g. from different g
 | Wrangler | 8787 | 9001, 9002, 9003, ... |
 | Inspector | 9229 | 9301, 9302, 9303, ... |
 
-The resolved ports are printed at startup. When a worktree is created, the `.secrets` file is symlinked from the main checkout (see below).
+The resolved ports are printed at startup. When a worktree is created, the `.secrets` file is copied from the main checkout (see below).
 
 #### Git worktrees
 
-Files that are git-ignored but needed in every worktree (such as `cloudflare/.secrets`) are listed in [`.worktreeinclude`](.worktreeinclude) and symlinked from the main checkout when a worktree is created:
+Files that are git-ignored but needed in every worktree (`cloudflare/.secrets`, `token.env`) are copied as real files from the main checkout when a worktree is created, so each worktree owns independent secrets and parallel demos never share or clobber a token:
 
 - `claude -w <name>` (Claude Code) creates the worktree in `.claude/worktrees/<name>` on a branch named `<name>` (no `worktree-` prefix) via `.claude/hooks/worktree-create.js`, and removes both again on exit via `.claude/hooks/worktree-remove.js`.
-- Plain `git worktree add` (or other tools) is covered by the `.husky/post-checkout` hook, which does the same symlinking.
+- Plain `git worktree add` (or other tools) is covered by the `.husky/post-checkout` hook, which does the same copy.
 
 Dependencies are installed automatically by `npm start` when `node_modules` is missing.
 

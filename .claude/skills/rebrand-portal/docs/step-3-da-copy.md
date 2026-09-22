@@ -2,9 +2,9 @@
 
 > **Run from the worktree.** This and every later step run with cwd =
 > `customer.worktreePath` (the demo's git worktree from Step 2), not the
-> main checkout. `copy-folder.sh` reads `token.env` (symlinked into the
-> worktree in Step 2) and resolves the repo root from cwd — so running it
-> in the worktree targets the worktree's files.
+> main checkout. `copy-folder.sh` reads `token.env` (copied into the
+> worktree in Step 2, per I9) and resolves the repo root from cwd — so
+> running it in the worktree targets the worktree's files.
 
 **This step is MANDATORY. It must not be skipped, deferred, or assumed
 away.** The demo's whole point is rebranding a *copy of the real DA
