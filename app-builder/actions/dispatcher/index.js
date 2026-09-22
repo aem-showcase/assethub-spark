@@ -34,7 +34,7 @@ import { originHelix } from '../origin/helix.js';
 import { stub } from '../api/stubs.js';
 // REAL Worker handler, reused unchanged — only the binding access path differs.
 import { originDynamicMedia } from '../../../cloudflare/src/origin/dm.js';
-// REAL Worker session builder, per-request user resolver, and /api/user shaper,
+import makeSearchEventsD1Shim from '../storage/d1-search-shim.js';// REAL Worker session builder, per-request user resolver, and /api/user shaper,
 // reused unchanged so App Builder identity + user payload match Cloudflare byte
 // for byte (same Entra token + same Helix /config/access/* sheets).
 import { createSession, getUser, apiUser } from '../../../cloudflare/src/user.js';
@@ -249,8 +249,7 @@ function secretShim(value) {
   return { get: async () => value };
 }
 
-/** No-op execution-context shim (Runtime has no ctx.waitUntil). */
-const ctxShim = { waitUntil: (p) => Promise.resolve(p).catch(() => {}) };
+/** Verified-claims / secret shim helpers live below. */
 
 // Paths the Worker serves WITHOUT authentication (cloudflare/src/index.js — the
 // routes registered before `.all('*', withAuthentication)`). Everything else —
@@ -396,16 +395,24 @@ async function route(request, env) {
 
     // Dynamic Media / ContentAI proxy — the REAL Worker handler unchanged.
     // env shim: DM secrets as Secrets-Store-shaped `{get}`, AUTH_TOKENS as the
-    // aio-lib-state KV, Analytics Engine as a no-op (limit #9). Small JSON
-    // responses (search) fit; rendition/download binaries hit limit #1.
+    // aio-lib-state KV, SEARCH_EVENTS as a D1-shaped adapter over aio-lib-db
+    // (so search analytics record), Analytics Engine as a no-op (limit #9).
+    // Small JSON responses (search) fit; rendition/download binaries hit limit #1.
     if (pathname.startsWith('/api/adobe/assets/')) {
       const dmEnv = {
         AUTH_TOKENS: kvBinding(),
         DM_CLIENT_ID: secretShim(env.DM_CLIENT_ID),
         DM_CLIENT_SECRET: secretShim(env.DM_CLIENT_SECRET),
+        SEARCH_EVENTS: makeSearchEventsD1Shim(env),
         SPARK_ANALYTICS_ENGINE: { writeDataPoint: () => {} },
       };
-      const resp = await originDynamicMedia(request, dmEnv, ctxShim);
+      // Runtime has no persistent ctx.waitUntil: once the action returns, pending
+      // promises may never run. Collect the fire-and-forget analytics work and
+      // await it so the search-event write lands before we respond.
+      const pending = [];
+      const dmCtx = { waitUntil: (p) => { pending.push(Promise.resolve(p).catch(() => {})); } };
+      const resp = await originDynamicMedia(request, dmEnv, dmCtx);
+      await Promise.allSettled(pending);
       return toOwResponse(resp);
     }
 
