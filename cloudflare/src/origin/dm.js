@@ -159,6 +159,17 @@ const PERMISSION_READ = 'read';
  */
 const PERMISSION_WRITE = 'write';
 
+/**
+ * Country → brand restriction map for asset search.
+ * Users whose profile country (ISO-3166-1 alpha-2, lowercase) is listed here only see
+ * assets whose `assetMetadata.brand` matches one of the listed values. Both the
+ * capitalised and lowercase brand spellings are listed so either tagging form matches.
+ * @type {Object<string, string[]>}
+ */
+const COUNTRY_BRAND_RESTRICTIONS = Object.freeze({
+  de: ['Frescopa', 'frescopa'],
+});
+
 // ==========================================
 // Template Placeholder
 // ==========================================
@@ -624,6 +635,19 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country-based brand restriction ---
+  // Users whose profile country matches an entry in COUNTRY_BRAND_RESTRICTIONS only see
+  // assets tagged with the listed brand(s) (assetMetadata.brand). Uses the user's own
+  // profile country only (not sheet-granted extra countries), matched by ISO code or name.
+  const profileCountryValues = resolveCountryMatchValues(user.country)
+    .map((v) => String(v).toLowerCase());
+  const restrictedBrands = Object.entries(COUNTRY_BRAND_RESTRICTIONS)
+    .find(([code]) => profileCountryValues.includes(code))?.[1];
+  if (restrictedBrands?.length) {
+    console.warn(`[${user.email}] brand restriction for country=${user.country}: brands=[${restrictedBrands.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.brand': restrictedBrands } });
   }
 
   // --- Internal status filter ---
