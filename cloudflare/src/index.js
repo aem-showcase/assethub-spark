@@ -47,12 +47,34 @@ function withTlsCheck(request) {
   return undefined;
 }
 
-/** Switch to AEM preview content for preview hostnames. */
+/**
+ * Switch the Helix/EDS origin suffix (aem.live vs aem.page) based on the
+ * request hostname, and store it on request.helixOrigin (do not mutate env,
+ * which is shared across requests). A single branch worker serves both:
+ *   <branch>.dev.frescopamedia.com       → aem.page (preview)
+ *   <branch>-live.dev.frescopamedia.com  → aem.live
+ */
 function withPreviewOrigin(request, env) {
   const { hostname } = new URL(request.url);
+
+  // Local dev: use HELIX_ORIGIN as-is
+  if (hostname === 'localhost') return;
+
+  // Production preview: preview.frescopamedia.com → aem.page
   if (hostname === 'preview.frescopamedia.com') {
     request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
     console.info(`Preview hostname detected: ${hostname}, using Helix origin: ${request.helixOrigin}`);
+    return;
+  }
+
+  // Branch subdomains: <name>.dev.frescopamedia.com
+  const match = hostname.match(/^([^.]+)\.dev\.frescopamedia\.com$/);
+  if (!match) return;
+
+  if (match[1].endsWith('-live')) {
+    request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.page', '.aem.live');
+  } else {
+    request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
   }
 }
 

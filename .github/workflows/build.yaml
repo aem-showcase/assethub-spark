@@ -46,21 +46,12 @@ jobs:
         sha="${{ github.event.pull_request.head.sha }}"
         git fetch --depth=1 origin "$sha"
         tag="git:${sha::7}"
-        subject="$(git log -1 --pretty='%s' "$sha")"
+        # strip " and \ — they break wrangler-action's tokenization of --message
+        subject="$(git log -1 --pretty='%s' "$sha" | tr -d '"\\')"
         message="$(echo "${{ github.actor }}: $subject" | cut -c1-100)"
-        # Derive the Helix origin from the repo being built. Use the branch
-        # origin only when it can serve the login page; standalone sync
-        # branches often have Worker code but no matching AEM content branch.
-        helix_owner="${{ github.repository_owner }}"
-        helix_repo="${{ github.event.repository.name }}"
-        branch_origin="https://${ref}--${helix_repo}--${helix_owner}.aem.page"
-        main_origin="https://main--${helix_repo}--${helix_owner}.aem.page"
-        if curl -fsSI --max-time 10 "$branch_origin/login" >/dev/null; then
-          helix_origin="$branch_origin"
-        else
-          echo "::warning::AEM branch login page is unavailable: $branch_origin/login; using $main_origin"
-          helix_origin="$main_origin"
-        fi
+        # Helix origin of the matching AEM branch, derived from the repo being built.
+        # index.js swaps .aem.page <-> .aem.live at runtime based on the request host.
+        helix_origin="https://${ref}--${{ github.event.repository.name }}--${{ github.repository_owner }}.aem.page"
         echo "ref=$ref" >> "$GITHUB_OUTPUT"
         echo "url=https://${ref}.dev.frescopamedia.com" >> "$GITHUB_OUTPUT"
         echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -87,6 +78,7 @@ jobs:
           --var "HELIX_ORIGIN:${{ steps.setup.outputs.helix-origin }}"
           --x-route-zones
           --route "${{ steps.setup.outputs.ref }}.dev.frescopamedia.com/*"
+          --route "${{ steps.setup.outputs.ref }}-live.dev.frescopamedia.com/*"
           --zone frescopamedia.com
           --tag "${{ steps.setup.outputs.tag }}"
           --message "${{ steps.setup.outputs.message }}"
