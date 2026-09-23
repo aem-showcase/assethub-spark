@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 
 # Fallback for worktrees created outside Claude Code (plain `git worktree add`,
-# other tools): symlink the files listed in .worktreeinclude from the main
-# checkout into the new worktree. `claude -w` does the same via
-# .claude/hooks/worktree-create.js; both skip entries that already exist, so it
-# is safe for both to run on the same worktree.
+# other tools): copy the secret/config files each worktree needs its own
+# independent copy of (rebrand-portal I9). `claude -w` does the same via
+# .claude/hooks/worktree-create.js; both are idempotent, so it is safe for both
+# to run on the same worktree.
 #
 # Dependencies are not installed here; run.sh (npm start) does that lazily.
 
@@ -23,24 +23,3 @@ worktree_root="$(pwd)"
 # (rebrand-portal I9). Symlinking re-shares one token across worktrees.
 [ -f "$main_root/cloudflare/.secrets" ] && cp "$main_root/cloudflare/.secrets" "$worktree_root/cloudflare/.secrets"
 [ -f "$main_root/token.env" ] && cp "$main_root/token.env" "$worktree_root/token.env"
-
-include_file="$main_root/.worktreeinclude"
-[ -f "$include_file" ] || exit 0
-
-while IFS= read -r rel || [ -n "$rel" ]; do
-  case "$rel" in ''|'#'*) continue ;; esac
-  # Secrets are copied above (I9); never symlink them.
-  case "$rel" in cloudflare/.secrets|token.env) continue ;; esac
-  src="$main_root/$rel"
-  dst="$worktree_root/$rel"
-  # -L: treat an existing (even dangling) symlink as present
-  if [ -e "$src" ] && [ ! -e "$dst" ] && [ ! -L "$dst" ]; then
-    mkdir -p "$(dirname "$dst")"
-    # Relative target (like worktree-create.js) so the link survives the repo
-    # being moved elsewhere; falls back to an absolute path without python3.
-    rel_src="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' \
-      "$src" "$(dirname "$dst")" 2>/dev/null || echo "$src")"
-    ln -s "$rel_src" "$dst"
-    echo "post-checkout: linked $rel from main checkout"
-  fi
-done < "$include_file"
