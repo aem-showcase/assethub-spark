@@ -11,7 +11,8 @@ Assets Hub Spark is an experimental demo asset-sharing portal built on AEM Edge 
 ### Main site (cloudflare worker):
 - Live: https://frescopamedia.com
 - Preview: https://preview.frescopamedia.com
-- Branch: <https://{branch}.dev.frescopamedia.com>
+- Branch (preview): <https://{branch}.dev.frescopamedia.com>
+- Branch (live): <https://{branch}-live.dev.frescopamedia.com>
 
 Note: For branch URLs to work, the branch names must be short and only include lowercase letters, numbers, and dashes characters. Due to [cloudflare worker alias limitations](https://developers.cloudflare.com/workers/configuration/previews/#rules-and-limitations).
 

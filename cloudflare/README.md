@@ -6,7 +6,8 @@ A Cloudflare Worker that acts as outermost CDN for the Spark project with some a
 
 - Live: https://frescopamedia.com
 - Preview: https://preview.frescopamedia.com
-- Branch: <https://{branch}.dev.frescopamedia.com>
+- Branch (preview): <https://{branch}.dev.frescopamedia.com>
+- Branch (live): <https://{branch}-live.dev.frescopamedia.com>
 
 ## URL Paths
 
@@ -93,6 +94,7 @@ On each branch/PR push, the Github Actions CI will automatically deploy a dedica
 | URL | Helix origin |
 |-----|--------------|
 | `https://{branch}.dev.frescopamedia.com` | `https://{branch}--assethub-spark--aem-showcase.aem.page` |
+| `https://{branch}-live.dev.frescopamedia.com` | `https://{branch}--assethub-spark--aem-showcase.aem.live` |
 
 ### CI main
 
