@@ -33,7 +33,7 @@ import {
   isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
-import { resolveCountryMatchValues } from '../constants/countries.js';
+import { normalizeCountryCode, resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -550,6 +550,8 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `custom:brand`       — users whose profile country is listed in
+ *                          config.COUNTRY_BRAND_RESTRICTIONS only see the listed brands
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -624,6 +626,17 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country-based brand restriction ---
+  // Users whose profile country is listed in config.COUNTRY_BRAND_RESTRICTIONS only see
+  // assets tagged with one of the allowed brands (e.g. DE users → Frescopa only). The
+  // profile country may be an ISO code ("DE") or a name ("germany"), so normalize first.
+  const countryCode = normalizeCountryCode(user.country);
+  const allowedBrands = config.COUNTRY_BRAND_RESTRICTIONS?.[countryCode];
+  if (Array.isArray(allowedBrands) && allowedBrands.length > 0) {
+    console.warn(`[${user.email}] asset auth clauses: country=${countryCode} brands=[${allowedBrands.join(',')}]`);
+    clauses.push({ term: { 'assetMetadata.custom:brand': allowedBrands } });
   }
 
   // --- Internal status filter ---

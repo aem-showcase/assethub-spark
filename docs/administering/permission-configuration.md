@@ -159,6 +159,17 @@ A user gains access to a restricted brand if they match **any** of the three tab
 Users with the `admin` role automatically have access to all brands, including restricted ones.
 
 
+## Country-Based Brand Restrictions
+
+Some countries are limited to specific brands. This rule is configured in code (`COUNTRY_BRAND_RESTRICTIONS` in `cloudflare/src/config.js`) and enforced by the worker on every asset search and asset metadata request.
+
+| Country | Visible brands |
+|---------|----------------|
+| `de` (Germany) | Frescopa only (`custom:brand/frescopa`) |
+
+The rule uses the user's profile country (the `ctry` claim from Microsoft Entra, or the simulated country when impersonating). The country is normalized before matching, so `DE`, `de`, `Germany`, `DEU` and `Deutschland` are all treated as `de` (see `normalizeCountryCode` in `cloudflare/src/constants/countries.js`). Assets are matched on the `custom:brand` metadata field. Users with the `admin` role are exempt.
+
+
 ## Common Tasks
 
 

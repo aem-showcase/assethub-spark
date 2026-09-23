@@ -21,6 +21,16 @@ const config = {
   // after a successful run. Value is the customer key, NOT the logged-in viewer's company.
   DEMO_COMPANY: 'frescopa',
 
+  // Country-based brand restrictions. Users whose profile country (`user.country`, i.e.
+  // Entra ID `ctry` or the simulated country) matches a key only see assets tagged with
+  // one of the listed brands (assetMetadata['custom:brand'], taxonomy path format
+  // `custom:brand/<brand>`). Keys are lowercase ISO-3166-1 alpha-2 codes; the user's
+  // country is normalized first, so "DE", "de", "Germany", "DEU" all match `de`
+  // (see constants/countries.js normalizeCountryCode). Admins are exempt.
+  COUNTRY_BRAND_RESTRICTIONS: {
+    de: ['custom:brand/frescopa'],
+  },
+
   // Content base path for a foldered demo. DA content is shared across all branches of a
   // repo, so a per-company demo copies the site under one container folder,
   // /companies/<companyKey>, and serves it from there (keeps the DA root uncluttered).

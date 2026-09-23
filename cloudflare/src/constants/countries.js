@@ -59,3 +59,29 @@ export function resolveCountryMatchValues(country) {
   if (code) values.push(code);
   return values;
 }
+
+/**
+ * Extra spellings that should resolve to an ISO code but aren't the canonical lowercase
+ * name in COUNTRY_CODE_TO_NAME (ISO alpha-3 codes, native names). Keys are lowercase.
+ */
+const COUNTRY_ALIASES = Object.freeze({
+  deu: 'de',
+  deutschland: 'de',
+});
+
+/**
+ * Normalize any country representation to its lowercase ISO-3166-1 alpha-2 code.
+ * `user.country` can arrive as an uppercase ISO code from the Entra ID `ctry` claim ("DE"),
+ * a lowercase code or full name from the simulation country picker / users sheet
+ * ("de", "germany", "Germany"), or an alias ("DEU", "Deutschland") — all map to "de".
+ * Unknown values are returned trimmed and lowercased.
+ * @param {string} country - Country code, name or alias (any case)
+ * @returns {string} Lowercase ISO code, or '' for empty input
+ */
+export function normalizeCountryCode(country) {
+  if (!country) return '';
+  const normalized = String(country).trim().toLowerCase();
+  if (!normalized) return '';
+  if (COUNTRY_CODE_TO_NAME[normalized]) return normalized;
+  return COUNTRY_NAME_TO_CODE[normalized] || COUNTRY_ALIASES[normalized] || normalized;
+}
