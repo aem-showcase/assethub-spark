@@ -94,7 +94,7 @@ export async function originHelix(request, env) {
     req.headers.set('x-push-invalidation', 'enabled');
   }
 
-  // console.log('>>>', req.method, req.url /*, req.headers*/);
+  console.log('>>>', req.method, req.url /*, req.headers*/);
 
   const options = {
     method: req.method,
@@ -113,7 +113,7 @@ export async function originHelix(request, env) {
 
   let resp = await fetch(req, options);
 
-  // console.log('<<<', resp.status, resp.headers);
+  console.log('<<<', resp.status, resp.headers);
 
   resp = new Response(resp.body, resp);
   if (resp.status === 301 && savedSearch) {
