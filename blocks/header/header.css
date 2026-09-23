@@ -4,6 +4,11 @@
 
 :root {
   --nav-bar-height: var(--nav-height);
+
+  /* Header palette, matching adapt.to (dark navy bar, light text, blue accent rule) */
+  --header-bg: #081235;
+  --header-fg: #edf0fb;
+  --header-accent: #1b31ff;
 }
 
 header {
@@ -89,6 +94,7 @@ header nav .my-account .my-account-button {
   background: #fff;
   border: 1px solid var(--primary-color);
   border-radius: 60px;
+  color: var(--text-color);
   cursor: pointer;
   display: flex;
   font-family: var(--body-font-family);
@@ -158,8 +164,9 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
-  color: var(--text-color);
+  background-color: var(--header-bg);
+  color: var(--header-fg);
+  border-bottom: 1px solid var(--header-accent);
   color-scheme: light;
   width: 100%;
   z-index: 2;
@@ -208,6 +215,7 @@ header nav:not(:has(.nav-sections)) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background-color: #fff;
+    color: var(--text-color);
     box-shadow: 8px 0 24px -12px rgb(0 0 0 / 30%);
     border-top: 1px solid #ededed;
   }
@@ -771,6 +779,7 @@ header nav .nav-tools .nav-cart-icon button:hover img {
 
 header nav .nav-tools .nav-download-icon button:hover img {
   content: url("/icons/download_icon_red.svg");
+  filter: none;
 }
 
 header nav .nav-tools .nav-reports-icon button:hover img {
@@ -845,7 +854,9 @@ header .search-hidden .main-content {
 header .header-welcome-bar {
   display: flex;
   align-items: center;
-  background-color: var(--light-color);
+  background-color: var(--header-bg);
+  color: var(--header-fg);
+  border-bottom: 1px solid var(--header-accent);
   height: var(--nav-height);
   padding: 0 24px;
   position: fixed;
@@ -863,6 +874,14 @@ header .header-welcome-bar .welcome-logo {
 
 header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
-  width: 150px;
-  height: auto;
+  width: auto;
+  height: calc(var(--nav-height) - 24px);
+  object-fit: contain;
+}
+
+/* Dark header: flip the dark-on-transparent glyphs (hamburger, download) to light so they
+   stay readable; the circled icons already carry their own white disc. */
+header nav .nav-hamburger-icon,
+header nav .nav-tools .nav-download-icon button img {
+  filter: invert(1) brightness(1.1);
 }

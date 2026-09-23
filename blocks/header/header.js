@@ -126,6 +126,44 @@ function toggleMenu(nav, navSections, forceExpanded = null) {
   }
 }
 
+// Header brand logo (adaptTo() mark). Swapped in over whatever icon/image the
+// authored /nav fragment carries, so both header variants show the same logo.
+const BRAND_LOGO_SRC = '/icons/adaptto-logo.svg';
+const BRAND_LOGO_ALT = 'adaptTo()';
+
+function createBrandLogo() {
+  const icon = document.createElement('span');
+  icon.className = 'icon icon-adaptto-logo';
+  const img = document.createElement('img');
+  img.src = BRAND_LOGO_SRC;
+  img.alt = BRAND_LOGO_ALT;
+  img.loading = 'eager';
+  img.width = 535;
+  img.height = 535;
+  icon.append(img);
+  return icon;
+}
+
+function applyBrandLogo(navBrand) {
+  if (!navBrand) return;
+  const existing = navBrand.querySelector('.icon') || navBrand.querySelector('picture, img');
+  if (existing) {
+    existing.replaceWith(createBrandLogo());
+    return;
+  }
+  const link = navBrand.querySelector('a[href]');
+  if (link) {
+    link.replaceChildren(createBrandLogo());
+  } else {
+    const wrapper = navBrand.querySelector('.default-content-wrapper') || navBrand;
+    const home = document.createElement('a');
+    home.href = localizePath('/');
+    home.setAttribute('aria-label', 'Home');
+    home.append(createBrandLogo());
+    wrapper.prepend(home);
+  }
+}
+
 function makeNavSection(role, nodes) {
   const section = document.createElement('div');
   section.classList.add(`nav-${role}`);
@@ -346,6 +384,7 @@ async function createNavBar(t) {
   });
 
   const navBrand = nav.querySelector('.nav-brand');
+  applyBrandLogo(navBrand);
   if (navBrand) {
     const brandLink = navBrand.querySelector('.button');
     if (brandLink) {
@@ -588,26 +627,16 @@ export default async function decorate(block) {
 
   if (getMetadata('header') === 'no') {
     // Minimal welcome-page header: just the brand logo, no nav or toolbar.
-    // Reuses the SAME .nav-brand markup the normal header loads from /nav
-    // (see createNavBar below) instead of a separate hardcoded mark, so this
-    // path automatically carries whatever brand icon Step 4's rebrand wrote
-    // into the nav fragment — no second literal to keep in sync.
+    // Uses the same brand logo as the normal header (see applyBrandLogo).
     block.parentElement.style.height = 'var(--nav-height, 64px)';
-    const navMeta = getMetadata('nav');
-    const navPath = navMeta ? new URL(navMeta, window.location).pathname : localizePath('/nav');
-    const fragment = await loadFragment(navPath);
-    const navBrand = fragment.querySelector('.nav-brand');
     const welcomeBar = document.createElement('div');
     welcomeBar.className = 'header-welcome-bar';
-    const brandIcon = navBrand?.querySelector('.icon');
-    if (brandIcon) {
-      const homeLink = document.createElement('a');
-      homeLink.className = 'welcome-logo';
-      homeLink.setAttribute('aria-label', 'Home');
-      homeLink.setAttribute('href', localizePath('/'));
-      homeLink.append(brandIcon);
-      welcomeBar.append(homeLink);
-    }
+    const homeLink = document.createElement('a');
+    homeLink.className = 'welcome-logo';
+    homeLink.setAttribute('aria-label', 'Home');
+    homeLink.setAttribute('href', localizePath('/'));
+    homeLink.append(createBrandLogo());
+    welcomeBar.append(homeLink);
     block.append(welcomeBar);
     return;
   }

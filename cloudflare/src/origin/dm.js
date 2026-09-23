@@ -118,6 +118,21 @@ const ACL_EDITOR = 'custom:assetCollectionEditor';
  */
 const ACL_VIEWER = 'custom:assetCollectionViewer';
 
+// ==========================================
+// Country-scoped Brand Restrictions
+// ==========================================
+
+/**
+ * Users whose profile country matches a key here only see assets whose
+ * `assetMetadata.brand` is one of the listed values. Keys are lowercase ISO-3166-1
+ * alpha-2 codes; values list the accepted spellings of the brand as stamped on assets
+ * (plain string field written by the rebrand-portal enrichment agent, FIELD.BRAND).
+ * @constant {Object<string, string[]>}
+ */
+const COUNTRY_BRAND_RESTRICTIONS = {
+  de: ['Frescopa', 'frescopa'],
+};
+
 /** ContentAI term paths for collection ACL in search queries */
 const CONTENTAI_COLLECTION_SEARCH_ACL = {
   owner: `collectionMetadata.custom:metadata.custom:acl.${ACL_OWNER}`,
@@ -550,6 +565,8 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `brand`              — users in a country listed in COUNTRY_BRAND_RESTRICTIONS (e.g. DE)
+ *                          only see assets of the brands configured for that country
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -589,6 +606,15 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   // bypass so even admins only see the configured customer's assets.
   if (config.DEMO_COMPANY) {
     clauses.push({ term: { 'assetMetadata.company': [config.DEMO_COMPANY] } });
+  }
+
+  // --- Country-scoped brand restriction (e.g. DE users → Frescopa assets only) ---
+  // Keyed on the user's profile country (Entra ID `ctry` claim, or the simulated country).
+  // Injected BEFORE the admin bypass so the rule applies to every user in that country.
+  const allowedBrands = COUNTRY_BRAND_RESTRICTIONS[String(user.country || '').toLowerCase()];
+  if (allowedBrands) {
+    console.warn(`[${user.email}] asset auth clauses: brand restricted to [${allowedBrands.join(',')}] for country=${user.country}`);
+    clauses.push({ term: { 'assetMetadata.brand': allowedBrands } });
   }
 
   // Admins bypass all per-user asset filters — they see everything in Content Hub
