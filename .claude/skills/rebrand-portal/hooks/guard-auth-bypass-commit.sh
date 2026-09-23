@@ -12,13 +12,18 @@
 # working-tree file check, so unusual command shapes can slip past.
 #
 # Contract: reads the PreToolUse event JSON on stdin. Exit 0 = allow.
-# Exit 2 = block (message on stderr is shown to the model). Works for
-# Claude Code and Copilot CLI PreToolUse hooks.
+# Exit 2 = block. On block the reason goes to stderr (Claude Code) *and* to a
+# permissionDecision object on stdout (Copilot CLI, which discards stderr) --
+# see lib/guardlib.py and README.md. Works for Claude Code and Copilot CLI
+# PreToolUse hooks.
 
 set -uo pipefail
 
 HOOK_INPUT="$(cat)"
 export HOOK_INPUT
+
+GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+export GUARD_LIB_DIR
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${COPILOT_PROJECT_DIR:-$PWD}}"
 AUTH_FILE="${PROJECT_DIR}/cloudflare/src/auth.js"
@@ -28,6 +33,9 @@ import json
 import os
 import re
 import sys
+
+sys.path.insert(0, os.environ.get("GUARD_LIB_DIR", ""))
+import guardlib  # noqa: E402
 
 blob = os.environ.get("HOOK_INPUT", "") or ""
 auth_file = "${AUTH_FILE}"
@@ -46,14 +54,27 @@ tool_name = (
 # Only git commit/add/stage/push commands run through a shell tool are in
 # scope; file edits themselves are how the bypass gets uncommented/recommented
 # and must stay allowed.
-if tool_name not in {"Bash", "Terminal", "execute_command", "run_command"}:
+#
+# Host CLIs disagree on both the tool name and the argument key: Claude Code sends
+# tool_name/tool_input, Copilot CLI sends toolName/toolArgs and lowercase tool names.
+# Matching only one dialect makes the guard silently inert on the other host.
+BASH_TOOLS = {
+    "bash", "terminal", "execute_command", "run_command", "shell", "run_in_terminal",
+}
+if tool_name.lower() not in BASH_TOOLS:
     sys.exit(0)
 
-command = (
-    event.get("tool_input", {}).get("command")
-    if isinstance(event.get("tool_input"), dict)
-    else None
-) or blob
+
+def tool_input_of(ev):
+    for key in ("tool_input", "toolArgs", "tool_args", "arguments", "input"):
+        value = ev.get(key)
+        if isinstance(value, dict):
+            return value
+    nested = (ev.get("tool") or {}).get("input")
+    return nested if isinstance(nested, dict) else {}
+
+
+command = tool_input_of(event).get("command") or blob
 
 if not re.search(r"\bgit\s+(commit|add|push|stage)\b", command):
     sys.exit(0)
@@ -74,15 +95,14 @@ uncommented = re.search(
 )
 
 if uncommented:
-    sys.stderr.write(
-        "Blocked by rebrand-portal auth-bypass guard: "
+    guardlib.deny(
+        "auth-bypass",
         "cloudflare/src/auth.js has the DISABLE_AUTHENTICATION bypass block "
         "UNCOMMENTED. This is a local-testing-only helper (see "
-        "docs/step-4g-verification.md) and must never be committed or "
-        "pushed. Re-comment the block in auth.js before running git "
-        "commit/add/push.\n"
+        "docs/step-4g-verification.md) and must never be committed or pushed.",
+        route="re-comment the DISABLE_AUTHENTICATION block in cloudflare/src/auth.js, "
+              "then re-run the git commit/add/push.",
     )
-    sys.exit(2)
 
 sys.exit(0)
 PY

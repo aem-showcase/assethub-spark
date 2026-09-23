@@ -82,10 +82,8 @@ export function buildDeliveryHost(aemEnvId) {
 // --- Limits (grounded in schema) ---
 export const SEARCH_PAGE_LIMIT = 50;
 export const SEARCH_TOTALCOUNT_CAP = 10000;
-// Folder enumeration scans the tenant repo and filters by repo:path prefix client-side,
-// because the author search's field-scoped startsWith operator does NOT prefix-match
-// repo:path (verified live: it only returns the exact full path, and match-alls on
-// repo:ancestors). This caps how many assets we page through before giving up.
+// Legacy scan cap retained for compatibility with older helpers. Current enrichment
+// discovery lists /content/dam/<companyKey> directly and must not tenant-scan assets.
 export const SEARCH_SCAN_CAP = 20000;
 export const CSV_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -143,6 +141,15 @@ export const ASSET_STATE_PROCESSED = 'processed';
 export const ASSET_PROCESSED_POLL_INTERVAL_MS = 2000;
 export const ASSET_PROCESSED_POLL_TIMEOUT_MS = 60 * 1000;
 
+// --- Post-enrichment delivery/search visibility polling ------------------------
+// AEM Author metadata writes and delivery/Content Hub search indexing are separate async
+// systems. After upload/enrichment, Step 5 may wait for the visible/searchable outcome
+// (company-scoped assets and populated category facets/cards), but never indefinitely.
+// This is an overall Step 5 visibility deadline, distinct from the per-asset Author
+// dam:assetState polling above.
+export const ASSET_VISIBILITY_POLL_INTERVAL_MS = 10 * 1000;
+export const ASSET_VISIBILITY_POLL_TIMEOUT_MS = 10 * 60 * 1000;
+
 export const STATUS_APPROVED = 'approved';
 
 // Minimum number of populated category cards for a credible landing page — a hard floor,
@@ -156,6 +163,20 @@ export const STATUS_APPROVED = 'approved';
 // replacement first, and use a clearly-flagged placeholder only as a last resort once
 // discovery is genuinely exhausted).
 export const MIN_CARDS = 5;
+
+// --- Demo shape: the category/asset budget ---------------------------------------
+// The demo is a fixed shape, not an open-ended crawl: MAX_CARDS categories, each with
+// MIN_ASSETS_PER_CATEGORY..MAX_ASSETS_PER_CATEGORY assets. Every other bring-in bound is
+// derived from these two numbers so they can never drift apart (a previous build shipped
+// a hard floor of 20 downloaded images alongside a target of 10-15, which failed on every
+// run by construction).
+//
+// MAX_CARDS intentionally equals MIN_CARDS: the contract must name exactly this many real
+// categories. There is no slack — a category that yields nothing fails the run loudly
+// rather than silently shrinking the page.
+export const MAX_CARDS = MIN_CARDS;
+export const MIN_ASSETS_PER_CATEGORY = 2;
+export const MAX_ASSETS_PER_CATEGORY = 3;
 
 // The DAM content root. The Assets HTTP API mirrors this tree under /api/assets.
 // NOTE: the DAM asset folder stays FLAT — /content/dam/<companyKey> — because assets are
@@ -173,11 +194,13 @@ export function companyBasePath(companyKey) {
 }
 
 // --- Bring-in (E3: scrape a site -> upload) limits ---
-// Sensible demo-scale bounds so a scrape can't run away or pull a huge binary.
-export const BRING_IN_MAX_IMAGES = 50;
-// Below this many downloaded images, the bring-in result is too thin for a credible demo;
-// the controller warns loudly (see enrich-classic.js) instead of silently proceeding.
-export const BRING_IN_MIN_TARGET_IMAGES = 20;
+// Derived from the demo shape above — NOT free-standing magic numbers. The total a run may
+// bring in is exactly the budget the landing page can show; anything beyond it would be
+// downloaded, uploaded, processed and enriched only to be invisible.
+export const BRING_IN_MAX_IMAGES = MAX_CARDS * MAX_ASSETS_PER_CATEGORY;
+// Below this many downloaded images the bring-in result is too thin for a credible demo;
+// the controller warns loudly instead of silently proceeding.
+export const BRING_IN_MIN_TARGET_IMAGES = MIN_CARDS * MIN_ASSETS_PER_CATEGORY;
 export const BRING_IN_MAX_BYTES = 15 * 1024 * 1024;
 // Skip images smaller than this — typically icons, flags, or tiny renditions.
 export const BRING_IN_MIN_BYTES = 10 * 1024;

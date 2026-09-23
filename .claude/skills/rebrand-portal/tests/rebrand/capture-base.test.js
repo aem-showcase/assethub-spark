@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import {
-  readToken, readVarFallback, readBaseSlug,
+  captureBackgroundAssets, readToken, readVarFallback, readBaseSlug,
 } from '../../scripts/rebrand/capture-base.mjs';
 
 // A minimal :root block mirroring the base template's shape (frescopa at time of writing).
@@ -23,6 +24,12 @@ main::before {
   background-image: radial-gradient(ellipse 80% 55% at 15% 110%, rgb(var(--welcome-panel-accent-rgb, 234 163 58) / 22%) 0%, transparent 100%);
 }
 `;
+
+const BIG_SVG = '<svg><image xlink:href="data:image/png;base64,BASEIMAGE"/></svg>';
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 describe('capture-base reader helpers', () => {
   describe('readToken', () => {
@@ -67,6 +74,35 @@ describe('capture-base reader helpers', () => {
       }
     });
 
+    describe('captureBackgroundAssets', () => {
+      it('captures the full SVG and embedded raster hashes for styles/backgrounds/big.svg', () => {
+        const root = mkdtempSync(join(tmpdir(), 'caps-bg-'));
+        try {
+          mkdirSync(join(root, 'styles', 'backgrounds'), { recursive: true });
+          writeFileSync(join(root, 'styles', 'backgrounds', 'big.svg'), BIG_SVG);
+          const assets = captureBackgroundAssets(
+            root,
+            "main .section.search-hero { background: url('backgrounds/big.svg') no-repeat; }",
+          );
+          expect(assets['styles/backgrounds/big.svg']).toEqual({
+            fileSha256: sha256(BIG_SVG),
+            embeddedImageSha256: sha256('BASEIMAGE'),
+          });
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
+
+      it('does not invent a background entry when the landing CSS does not reference big.svg', () => {
+        const root = mkdtempSync(join(tmpdir(), 'caps-bg2-'));
+        try {
+          expect(captureBackgroundAssets(root, ':root { --light-color: #fff; }')).toEqual({});
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
+    });
+
     it('falls back to <slug>_logo.svg when no -beans mark exists', () => {
       const dir = mkdtempSync(join(tmpdir(), 'caps-icons2-'));
       try {
@@ -108,6 +144,7 @@ describe('capture-base reader helpers', () => {
         expect(state.baseBrand.oldHexes).toContain('#00647D');
         // neutral greys are NOT captured (only named brand tokens feed oldHexes)
         expect(state.baseBrand.oldHexes).not.toContain('#FFF');
+        expect(state.baseBrand.backgroundAssets).toEqual({});
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
@@ -144,6 +181,36 @@ describe('capture-base reader helpers', () => {
         expect(hit).toBeDefined();
         expect(hit.file).toBe(join('blocks', 'search-results', 'styles', 'theme.css'));
         expect(hit.selector).toBe('.pressed');
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it('writes captured background asset hashes into baseBrand when big.svg is referenced', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'caps-root3-'));
+      try {
+        mkdirSync(join(root, 'styles', 'backgrounds'), { recursive: true });
+        mkdirSync(join(root, 'icons'), { recursive: true });
+        mkdirSync(join(root, '.internal'), { recursive: true });
+        writeFileSync(
+          join(root, 'styles', 'styles.css'),
+          `${ROOT_CSS}\nmain .section.search-hero { background: url('backgrounds/big.svg') no-repeat; }`,
+        );
+        writeFileSync(join(root, 'styles', 'backgrounds', 'big.svg'), BIG_SVG);
+        writeFileSync(join(root, 'icons', 'frescopa-beans.svg'), '<svg/>');
+        writeFileSync(join(root, 'icons', 'frescopa-icon.svg'), '<svg/>');
+        writeFileSync(
+          join(root, '.internal', 'onboarding-state.json'),
+          JSON.stringify({ schemaVersion: 4, customer: {}, steps: {} }),
+        );
+        const { execFileSync } = await import('node:child_process');
+        const script = new URL('../../scripts/rebrand/capture-base.mjs', import.meta.url).pathname;
+        execFileSync('node', [script, '--repo-root', root], { stdio: 'pipe' });
+        const state = JSON.parse(
+          (await import('node:fs')).readFileSync(join(root, '.internal', 'onboarding-state.json'), 'utf8'),
+        );
+        expect(state.baseBrand.backgroundAssets['styles/backgrounds/big.svg'].embeddedImageSha256)
+          .toBe(sha256('BASEIMAGE'));
       } finally {
         rmSync(root, { recursive: true, force: true });
       }

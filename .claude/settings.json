@@ -42,6 +42,14 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/skills/rebrand-portal/hooks/guard-step5-verify-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/skills/rebrand-portal/hooks/guard-brand-extraction.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/skills/rebrand-portal/hooks/guard-live-publish-ceiling.sh"
           }
         ]
       }

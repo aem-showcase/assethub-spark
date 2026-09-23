@@ -38,12 +38,14 @@ import { ImsTokenProvider } from './ims-auth.js';
 import { AuthorClient } from './author-client.js';
 import { createFixtureClient } from './fixture-client.js';
 import {
-  STATUS_APPROVED, buildHosts, buildAuthorHost, BRING_IN_MIN_TARGET_IMAGES, MIN_CARDS,
+  STATUS_APPROVED, buildHosts, buildAuthorHost, BRING_IN_MIN_TARGET_IMAGES,
+  BRING_IN_MAX_IMAGES, MIN_CARDS, MAX_CARDS, MAX_ASSETS_PER_CATEGORY,
   companyBasePath,
 } from './constants.js';
 import { mapWithConcurrency } from './concurrency.js';
 import {
   parseArgs, validateOptions, resolveCreds, resolveAemEnvId, resolveDaToken,
+  buildSourceHeaders,
 } from './config.js';
 
 export { mapWithConcurrency };
@@ -115,7 +117,9 @@ export function buildMapClassifier(map) {
 }
 
 /**
- * Build ready-to-author landing card rows — one per contract category (any N). Each row
+ * Build ready-to-author landing card rows — one per contract category. The demo carries
+ * exactly MAX_CARDS categories; this does not validate that (checkCardGate does), but
+ * "one per category" is not a licence to grow the contract. Each row
  * carries exactly what a carousel slide / cards tile needs: label, blurb, facet href, and
  * the DA-hosted image URL of the category's representative asset (see da-card-images.js —
  * uploaded to DA and materialized onto representatives.items[slug].cardImageUrl BEFORE this
@@ -159,9 +163,40 @@ export function buildCardRows({
 }
 
 /**
+ * Trim a planned set so no `productCategory` exceeds its quota.
+ *
+ * Applied before the write because `productCategory` is write-once — once stamped, an
+ * asset is part of the demo and cannot be un-categorised. `existingByCategory` carries
+ * counts from assets already enriched into each category on a previous run, so repeated
+ * passes converge on the same demo instead of stacking.
+ *
+ * @param {Array} planned
+ * @param {Object} [opts]
+ * @param {Map<string,number>} [opts.existingByCategory]
+ * @param {number} [opts.max]
+ * @returns {{kept:Array, dropped:Array}}
+ */
+export function applyCategoryQuota(planned, opts = {}) {
+  const max = Number.isFinite(opts.max) ? opts.max : MAX_ASSETS_PER_CATEGORY;
+  const counts = new Map(opts.existingByCategory || []);
+  const kept = [];
+  const dropped = [];
+  (planned || []).forEach((p) => {
+    const category = p?.fields?.productCategory;
+    if (!category) { kept.push(p); return; }
+    const used = counts.get(category) || 0;
+    if (used >= max) { dropped.push(p); return; }
+    counts.set(category, used + 1);
+    kept.push(p);
+  });
+  return { kept, dropped };
+}
+
+/**
  * Card gate: the report must yield a credible landing card set. Fails when a contract
- * category has zero assets, when fewer than MIN_CARDS cards exist, or when any card row is
- * missing its facet href or image (structurally prevents dead/blank tiles).
+ * category has zero assets, when fewer than MIN_CARDS cards exist, when more than
+ * MAX_CARDS exist, or when any card row is missing its facet href or image (structurally
+ * prevents dead/blank tiles).
  * @returns {{ok:boolean, reason?:string}}
  */
 export function checkCardGate(report, contract = []) {
@@ -178,6 +213,13 @@ export function checkCardGate(report, contract = []) {
         + 'widen source discovery for a real replacement category first, ask the user before '
         + 'dropping vs. using a placeholder, and use a clearly-flagged placeholder category '
         + 'only once real discovery is genuinely exhausted.',
+    };
+  }
+  if (cards.length > MAX_CARDS) {
+    return {
+      ok: false,
+      reason: `${cards.length} card(s); the demo carries exactly ${MAX_CARDS} categories. `
+        + 'Narrow the contract to the strongest categories rather than widening the page.',
     };
   }
   const broken = cards.filter((c) => !c.href || !c.cardImageUrl).map((c) => c.slug);
@@ -273,6 +315,64 @@ function findRepoRoot(startDir) {
   return null;
 }
 
+/**
+ * How many more assets the destination can accept before the demo is full.
+ *
+ * This is the barrier that makes re-running the pipeline CONVERGE rather than accumulate.
+ * A per-run cap is not a ceiling: on a live run the agent honoured a per-run cap of 50 by
+ * splitting the work into 7 single-category runs, which produced 252 assets. Reading the
+ * destination means run 2 finds the quota already met and contributes nothing — without
+ * the agent needing to know that or be told not to re-run.
+ *
+ * A failed enumeration falls back to the full budget rather than blocking the run: the
+ * fallback is still bounded by BRING_IN_MAX_IMAGES, and the card generator caps what can
+ * actually be displayed regardless.
+ */
+export async function resolveRemainingCapacity({
+  options, client, folderPath, log = console,
+}) {
+  if (!client || !folderPath || options?.dryRun) return BRING_IN_MAX_IMAGES;
+  try {
+    const { assets, exceededWindow } = await enumerateFolder({ client, folderPath });
+    const existing = assets.length;
+    const remaining = Math.max(0, BRING_IN_MAX_IMAGES - existing);
+    if (exceededWindow) {
+      log.warn?.('[agent] destination scan hit its window cap; capacity may be overstated');
+    }
+    if (existing > 0) {
+      log.info?.(`[agent] destination holds ${existing} asset(s); remaining demo capacity ${remaining}`);
+    }
+    return remaining;
+  } catch (err) {
+    log.warn?.(`[agent] could not read destination state (${String(err.message || err)}); using the full budget`);
+    return BRING_IN_MAX_IMAGES;
+  }
+}
+
+/**
+ * Resolve how many assets this run may bring in.
+ *
+ * The budget is derived from the demo shape and applied by DEFAULT — it is never
+ * contingent on a flag being passed. `--limit` may only LOWER it. A live run that
+ * omitted `--limit` on all 15 invocations previously left the cross-page merge
+ * completely unbounded, which is how a 15-asset demo became a 252-asset one.
+ *
+ * `remainingCapacity` is what the destination can still accept (see
+ * resolveRemainingCapacity) — this is what makes re-running the pipeline converge
+ * instead of accumulate.
+ *
+ * @param {Object} options            parsed CLI options
+ * @param {number} remainingCapacity  assets the destination can still accept
+ * @returns {{overall:number, perPage:number}}
+ */
+export function resolveBringInBudget(options, remainingCapacity = BRING_IN_MAX_IMAGES) {
+  const requested = options && Number.isFinite(options.limit) && options.limit > 0
+    ? options.limit
+    : BRING_IN_MAX_IMAGES;
+  const overall = Math.max(0, Math.min(requested, BRING_IN_MAX_IMAGES, remainingCapacity));
+  return { overall, perPage: Math.min(MAX_ASSETS_PER_CATEGORY, overall) };
+}
+
 async function discoverTargetAssets({
   options, client, folderPath, report, log,
 }) {
@@ -282,21 +382,48 @@ async function discoverTargetAssets({
     // across pages (the same hero/model image often recurs on several pages). Front-loading
     // the full per-category source map here — instead of the agent re-running the script
     // once per page and serially hunting for a thin category — is the single biggest
-    // time saver in Step 5 (verified: ~10 serial passes on the Honda/Hyundai runs). The
-    // overall --limit still caps total downloads across all pages.
-    const overallLimit = options.limit && Number.isFinite(options.limit) ? options.limit : null;
+    // time saver in Step 5 (verified: ~10 serial passes on the Honda/Hyundai runs).
+    //
+    // The budget binds BEFORE the first fetch, and each source page (which stands in for
+    // one category at scrape time) gets its own quota. Previously the only effective cap
+    // was applied at upload time, after every byte had already been downloaded — 202 of
+    // 252 downloads were discarded on a live run.
+    const remainingCapacity = await resolveRemainingCapacity({
+      options, client, folderPath, log,
+    });
+    const budget = resolveBringInBudget(options, remainingCapacity);
+    if (budget.overall === 0) {
+      log.info?.('[agent] destination already holds a full set of demo assets; nothing to bring in');
+    }
     const merged = [];
     const seenNames = new Set();
     let totalCandidates = 0;
+    // WAF/session escapes from --cookie/--header, applied to source requests only. A
+    // saved rendered DOM (--rendered-html) applies to the FIRST source page; further
+    // pages are fetched normally, since one file cannot stand in for several pages.
+    const sourceHeaders = buildSourceHeaders(options);
+    let renderedHtml = null;
+    if (options.renderedHtml) {
+      try {
+        renderedHtml = readFileSync(options.renderedHtml, 'utf8');
+      } catch (err) {
+        log.warn?.(`[agent] --rendered-html unreadable, falling back to fetch -> ${String(err.message || err)}`);
+      }
+    }
+    let renderedHtmlUsed = false;
     for (const pageUrl of sourceUrls) {
-      if (overallLimit && merged.length >= overallLimit) break;
-      const remaining = overallLimit ? overallLimit - merged.length : undefined;
+      if (merged.length >= budget.overall) break;
+      const remaining = Math.min(budget.perPage, budget.overall - merged.length);
       let scraped;
       try {
+        const useRendered = renderedHtml && !renderedHtmlUsed;
+        if (useRendered) renderedHtmlUsed = true;
         scraped = await scrapeSiteImages({
           pageUrl,
           maxImages: remaining,
           fetchFn: options.fetchFn || fetch,
+          sourceHeaders,
+          renderedHtml: useRendered ? renderedHtml : null,
           log,
         });
       } catch (err) {
@@ -310,7 +437,7 @@ async function discoverTargetAssets({
         if (seenNames.has(key)) continue;
         seenNames.add(key);
         merged.push(img);
-        if (overallLimit && merged.length >= overallLimit) break;
+        if (merged.length >= budget.overall) break;
       }
     }
     const scraped = { images: merged, candidates: totalCandidates };
@@ -382,9 +509,9 @@ async function discoverTargetAssets({
   const {
     assets, scanned, matched, exceededWindow,
   } = await enumerateFolder({ client, folderPath });
-  log.info?.(`[agent] scanned ${scanned} repo assets, ${matched} under ${folderPath}`);
+  log.info?.(`[agent] folder ${folderPath}: ${matched} asset(s) found`);
   if (exceededWindow) {
-    log.warn?.(`[agent] hit the scan cap before exhausting the repo — some assets under ${folderPath} may be missed; narrow with --dam-path`);
+    log.warn?.(`[agent] folder listing hit its window cap — some assets under ${folderPath} may be missed`);
   }
 
   if (options.limit && Number.isFinite(options.limit)) {
@@ -469,8 +596,20 @@ export async function enrichAssets({
   });
   const categoryCoverage = buildCategoryCoverage(withMetadataPlans);
   report.setCategoryCoverage(categoryCoverage);
+  // --hero-map pins a category's card hero when automatic ranking picks a logo or chrome
+  // image. Unreadable/invalid map is a warning, not a failure — ranking still applies.
+  let heroMap = {};
+  if (options.heroMap) {
+    try {
+      heroMap = JSON.parse(readFileSync(options.heroMap, 'utf8'));
+      log.info?.(`[agent] hero pins: ${Object.keys(heroMap).join(', ') || 'none'}`);
+    } catch (err) {
+      log.warn?.(`[agent] --hero-map unreadable, using automatic ranking -> ${String(err.message || err)}`);
+    }
+  }
   let representatives = buildProductCategoryRepresentatives(withMetadataPlans, {
     expectedCategories: contract.map((c) => c.slug),
+    heroMap,
   });
 
   // Materialize each representative's card image as a DA-hosted page image (never the
@@ -496,7 +635,7 @@ export async function enrichAssets({
   }
 
   report.setRepresentatives(representatives);
-  // Ready-to-author landing card rows (one per contract category, any N) — the DA-index
+  // Ready-to-author landing card rows (one per contract category) — the DA-index
   // edit consumes these directly. Built from coverage + representatives, no hand URLs.
   report.setCards(buildCardRows({
     contract,
@@ -506,7 +645,7 @@ export async function enrichAssets({
     basePath: `${companyBasePath(customerKey)}/en`,
   }));
 
-  const writable = [];
+  const writableAll = [];
   withMetadataPlans.forEach((p) => {
     if (!p || p.error) return;
     if (p.skip) {
@@ -538,8 +677,29 @@ export async function enrichAssets({
       report.record(p.asset.assetId, OUTCOME.SKIPPED, { reason: 'no-missing-metadata' });
       return;
     }
-    writable.push(p);
+    writableAll.push(p);
   });
+
+  // Per-category ceiling, bound BEFORE the write. `productCategory` is write-once, so this
+  // is the last point at which the demo's shape can still be decided. Assets already
+  // enriched into a category (from an earlier run) count against its quota, which is what
+  // makes a second pass contribute nothing instead of stacking on top of the first.
+  const alreadyByCategory = new Map();
+  withMetadataPlans.forEach((p) => {
+    const cat = p?.skip ? p.fields?.productCategory : null;
+    if (!cat) return;
+    alreadyByCategory.set(cat, (alreadyByCategory.get(cat) || 0) + 1);
+  });
+  const { kept: writable, dropped: overQuota } = applyCategoryQuota(writableAll, {
+    existingByCategory: alreadyByCategory,
+  });
+  overQuota.forEach((p) => report.record(p.asset.assetId, OUTCOME.SKIPPED, {
+    reason: 'category-quota',
+    productCategory: p.fields?.productCategory || null,
+  }));
+  if (overQuota.length) {
+    log.info?.(`[agent] ${overQuota.length} asset(s) beyond the per-category quota were not enriched`);
+  }
 
   const preview = metadataPreview(writable);
 

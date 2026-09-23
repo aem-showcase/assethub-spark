@@ -2,7 +2,7 @@ import {
   describe, it, expect, vi,
 } from 'vitest';
 import {
-  parseArgs, validateOptions, createCollectionsRun,
+  parseArgs, validateOptions, createCollectionsRun, waitForSearchableAssets,
 } from '../../scripts/assets/create-collections.js';
 
 function silentLog() {
@@ -29,9 +29,17 @@ describe('create-collections controller', () => {
       const opts = parseArgs([
         '--customer-key', 'acme', '--group-by', 'campaign',
         '--limit', '50', '--min-assets', '2', '--dry-run', '--force',
+        '--visibility-timeout-ms', '1000', '--visibility-poll-interval-ms', '50',
       ]);
       expect(opts).toMatchObject({
-        customerKey: 'acme', groupBy: 'campaign', limit: 50, minAssets: 2, dryRun: true, force: true,
+        customerKey: 'acme',
+        groupBy: 'campaign',
+        limit: 50,
+        minAssets: 2,
+        dryRun: true,
+        force: true,
+        visibilityTimeoutMs: 1000,
+        visibilityPollIntervalMs: 50,
       });
     });
     it('parses an explicit display name, defaulting to null', () => {
@@ -74,6 +82,42 @@ describe('create-collections controller', () => {
       client.createCollection.mock.calls.forEach(([arg]) => {
         expect(arg.company).toBe('acme');
       });
+    });
+
+    it('reports existing same-company collections without searching assets or creating more', async () => {
+      const log = silentLog();
+      const client = {
+        searchCompanyCollections: vi.fn(async () => [
+          {
+            collectionId: 'c1',
+            title: 'Disney India — Disney Cruise',
+            company: 'disney-in',
+            itemCount: 3,
+          },
+        ]),
+        searchCompanyAssets: vi.fn(async () => ASSETS),
+        createCollection: vi.fn(async () => ({ collectionId: 'new' })),
+      };
+
+      const { report } = await createCollectionsRun({
+        options: parseArgs(['--customer-key', 'disney-in', '--display-name', 'Disney India']),
+        client,
+        log,
+      });
+
+      expect(report.existing).toBe(1);
+      expect(report.created).toBe(0);
+      expect(report.skipped).toBe(1);
+      expect(report.collections).toEqual([{
+        title: 'Disney India — Disney Cruise',
+        collectionId: 'c1',
+        company: 'disney-in',
+        itemCount: 3,
+        status: 'exists',
+      }]);
+      expect(client.searchCompanyAssets).not.toHaveBeenCalled();
+      expect(client.createCollection).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(expect.stringMatching(/already exist/));
     });
 
     it('uses --display-name verbatim in titles instead of title-casing the slug', async () => {
@@ -126,10 +170,10 @@ describe('create-collections controller', () => {
       const log = silentLog();
       const client = { searchCompanyAssets: vi.fn(async () => []), createCollection: vi.fn() };
       const { report } = await createCollectionsRun({
-        options: parseArgs(['--customer-key', 'acme']), client, log,
+        options: parseArgs(['--customer-key', 'acme', '--visibility-timeout-ms', '0']), client, log,
       });
-      expect(report.error).toBe('no-assets');
-      expect(log.error).toHaveBeenCalledWith(expect.stringMatching(/no searchable assets/));
+      expect(report.error).toBe('visibility-timeout');
+      expect(log.error).toHaveBeenCalledWith(expect.stringMatching(/did not become searchable/));
     });
 
     it('warns when assets exist but none carry the facet', async () => {
@@ -169,6 +213,50 @@ describe('create-collections controller', () => {
       });
       expect(client.searchCompanyAssets).not.toHaveBeenCalled();
       expect(report.collections).toHaveLength(2);
+    });
+  });
+
+  describe('waitForSearchableAssets', () => {
+    it('polls until company assets and expected category facets become visible', async () => {
+      let nowMs = 0;
+      const searchFn = vi.fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ assetId: 'a1', productCategory: 'coffee' }])
+        .mockResolvedValueOnce(ASSETS);
+      const result = await waitForSearchableAssets({
+        searchFn,
+        company: 'acme',
+        groupBy: 'productCategory',
+        minAssets: 1,
+        expectedFacetValues: ['coffee', 'tea'],
+        timeoutMs: 10_000,
+        intervalMs: 1_000,
+        sleepFn: vi.fn(async (ms) => { nowMs += ms; }),
+        now: () => nowMs,
+        log: silentLog(),
+      });
+
+      expect(result.timedOut).toBe(false);
+      expect(result.assets).toHaveLength(3);
+      expect(result.visibility.facetCounts).toMatchObject({ coffee: 2, tea: 1 });
+      expect(searchFn).toHaveBeenCalledTimes(3);
+    });
+
+    it('stops after the bounded visibility timeout instead of waiting indefinitely', async () => {
+      let nowMs = 0;
+      const result = await waitForSearchableAssets({
+        searchFn: vi.fn(async () => []),
+        company: 'acme',
+        timeoutMs: 2_000,
+        intervalMs: 1_000,
+        sleepFn: vi.fn(async (ms) => { nowMs += ms; }),
+        now: () => nowMs,
+        log: silentLog(),
+      });
+
+      expect(result.timedOut).toBe(true);
+      expect(result.elapsedMs).toBe(2_000);
+      expect(result.visibility.assetsFound).toBe(0);
     });
   });
 });

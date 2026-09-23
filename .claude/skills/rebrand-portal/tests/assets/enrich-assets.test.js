@@ -107,7 +107,7 @@ describe('enrichAssets controller', () => {
       productCategory: 'products',
       title: 'Product Hero',
     });
-    expect(client.calls.map((c) => c.op)).toEqual(['search', 'sling', 'sling']);
+    expect(client.calls.map((c) => c.op)).toEqual(['sling', 'sling', 'sling']);
   });
 
   it('source-url dry-run builds category coverage from scraped assets without AEM writes', async () => {
@@ -221,8 +221,9 @@ describe('enrichAssets controller', () => {
       log: silent,
     });
 
-    // Discovery never used the search API...
-    expect(client.calls.some((c) => c.op === 'search')).toBe(false);
+    // Discovery never falls back to a search-API recovery scan.
+    const searchCalls = client.calls.filter((c) => c.op === 'search');
+    expect(searchCalls).toHaveLength(0);
     // ...and the uploaded asset was enriched (reached the Sling write), not marked
     // "not found by folder enumeration".
     expect(out.report.counts().enriched).toBe(1);
@@ -428,10 +429,10 @@ describe('enrichAssets controller', () => {
       log: silent,
     });
     expect(out.report.counts().enriched).toBe(1);
-    // 3 polling GETs (processing, processing, processed) + 1 metadata GET once processed
-    // + 1 post-write verify GET.
+    // 1 folder listing GET + 3 polling GETs (processing, processing, processed)
+    // + 1 metadata GET once processed + 1 post-write verify GET.
     const slingGets = client.calls.filter((c) => c.op === 'sling' && c.opts.method === 'GET');
-    expect(slingGets).toHaveLength(5);
+    expect(slingGets).toHaveLength(6);
   });
 
   it('fails the asset (does not write) when it never reaches processed before the poll timeout', async () => {

@@ -21,7 +21,11 @@ import { writeFileSync, readFileSync } from 'node:fs';
 import { ImsTokenProvider } from './ims-auth.js';
 import { DmCollectionsClient } from './dm-collections-client.js';
 import { planCollections, GROUP_FACETS } from './collections-plan.js';
-import { buildDeliveryHost } from './constants.js';
+import {
+  ASSET_VISIBILITY_POLL_INTERVAL_MS,
+  ASSET_VISIBILITY_POLL_TIMEOUT_MS,
+  buildDeliveryHost,
+} from './constants.js';
 import {
   slugify, RESERVED_CUSTOMER_KEYS, resolveCreds, resolveAemEnvId,
 } from './config.js';
@@ -29,7 +33,7 @@ import {
 const FLAGS_WITH_VALUE = new Set([
   'customer-key', 'group-by', 'limit', 'min-assets', 'secrets-file',
   'aem-env-id', 'report-file', 'fixture', 'access-level', 'display-name',
-  'category-labels',
+  'category-labels', 'visibility-timeout-ms', 'visibility-poll-interval-ms',
 ]);
 const BOOLEAN_FLAGS = new Set(['dry-run', 'force']);
 
@@ -49,6 +53,8 @@ export function parseArgs(argv) {
     fixture: null,
     displayName: null,
     categoryLabels: null,
+    visibilityTimeoutMs: ASSET_VISIBILITY_POLL_TIMEOUT_MS,
+    visibilityPollIntervalMs: ASSET_VISIBILITY_POLL_INTERVAL_MS,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -79,6 +85,8 @@ export function parseArgs(argv) {
           // collection titles instead of the title-cased default (Iphone/Ipad/Airpods).
           try { opts.categoryLabels = JSON.parse(value); } catch { opts.categoryLabels = null; }
           break;
+        case 'visibility-timeout-ms': opts.visibilityTimeoutMs = Number(value); break;
+        case 'visibility-poll-interval-ms': opts.visibilityPollIntervalMs = Number(value); break;
         default: break;
       }
     }
@@ -104,7 +112,100 @@ export function validateOptions(opts) {
   if (!Number.isFinite(opts.minAssets) || opts.minAssets < 1) {
     errors.push(`--min-assets must be >= 1 (got ${opts.minAssets})`);
   }
+  if (!Number.isFinite(opts.visibilityTimeoutMs) || opts.visibilityTimeoutMs < 0) {
+    errors.push(`--visibility-timeout-ms must be >= 0 (got ${opts.visibilityTimeoutMs})`);
+  }
+  if (!Number.isFinite(opts.visibilityPollIntervalMs) || opts.visibilityPollIntervalMs <= 0) {
+    errors.push(`--visibility-poll-interval-ms must be > 0 (got ${opts.visibilityPollIntervalMs})`);
+  }
   return errors;
+}
+
+const defaultSleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+export function summarizeSearchVisibility(assets, {
+  groupBy = 'productCategory',
+  minAssets = 1,
+  expectedFacetValues = [],
+} = {}) {
+  const counts = new Map();
+  (assets || []).forEach((asset) => {
+    const value = asset?.[groupBy];
+    if (!value) return;
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+  const expected = (expectedFacetValues || []).filter(Boolean);
+  const missingFacetValues = expected
+    .filter((value) => (counts.get(value) || 0) < minAssets);
+  const ready = (assets || []).length > 0
+    && (expected.length === 0 || missingFacetValues.length === 0);
+  return {
+    ready,
+    assetsFound: (assets || []).length,
+    facetCounts: Object.fromEntries(counts),
+    missingFacetValues,
+  };
+}
+
+export async function waitForSearchableAssets({
+  searchFn,
+  company,
+  limit,
+  groupBy = 'productCategory',
+  minAssets = 1,
+  expectedFacetValues = [],
+  timeoutMs = ASSET_VISIBILITY_POLL_TIMEOUT_MS,
+  intervalMs = ASSET_VISIBILITY_POLL_INTERVAL_MS,
+  sleepFn = defaultSleep,
+  now = Date.now,
+  log = console,
+}) {
+  if (!searchFn) throw new Error('waitForSearchableAssets: searchFn is required');
+  const startedAt = now();
+  let attempts = 0;
+  let assets = [];
+  let visibility = summarizeSearchVisibility(assets, { groupBy, minAssets, expectedFacetValues });
+  let elapsedMs = 0;
+
+  do {
+    attempts += 1;
+    assets = await searchFn({ company, limit });
+    visibility = summarizeSearchVisibility(assets, { groupBy, minAssets, expectedFacetValues });
+    if (visibility.ready) {
+      return {
+        assets,
+        timedOut: false,
+        attempts,
+        elapsedMs: Math.max(0, now() - startedAt),
+        visibility,
+      };
+    }
+
+    elapsedMs = Math.max(0, now() - startedAt);
+    if (timeoutMs === 0 || elapsedMs >= timeoutMs) {
+      return {
+        assets,
+        timedOut: true,
+        attempts,
+        elapsedMs,
+        visibility,
+      };
+    }
+
+    log.warn?.(
+      '[collections] waiting for enriched assets to become searchable '
+      + `(${visibility.assetsFound} visible; missing facets: `
+      + `${visibility.missingFacetValues.join(', ') || 'none specified'})`,
+    );
+    await sleepFn(Math.min(intervalMs, timeoutMs - elapsedMs));
+  } while (elapsedMs < timeoutMs);
+  return {
+    assets,
+    timedOut: true,
+    attempts,
+    elapsedMs: Math.max(0, now() - startedAt),
+    visibility,
+  };
 }
 
 /**
@@ -112,14 +213,90 @@ export function validateOptions(opts) {
  * Returns a report object; never calls process.exit (the CLI bootstrap does).
  */
 export async function createCollectionsRun({
-  options, client, assets: seededAssets = null, log = console,
+  options,
+  client,
+  assets: seededAssets = null,
+  log = console,
+  sleepFn = defaultSleep,
+  now = Date.now,
 }) {
   const {
     customerKey, groupBy, limit, minAssets, accessLevel, dryRun, displayName, categoryLabels,
+    visibilityTimeoutMs, visibilityPollIntervalMs,
   } = options;
 
-  const assets = seededAssets
-    ?? await client.searchCompanyAssets({ company: customerKey, limit });
+  if (!seededAssets && typeof client?.searchCompanyCollections === 'function') {
+    const existingCollections = await client.searchCompanyCollections({
+      company: customerKey,
+      limit,
+    });
+    if (existingCollections.length > 0) {
+      const report = {
+        company: customerKey,
+        groupBy,
+        dryRun: Boolean(dryRun),
+        assetsFound: 0,
+        collections: existingCollections.map((collection) => ({
+          title: collection.title,
+          collectionId: collection.collectionId,
+          company: collection.company || customerKey,
+          itemCount: collection.itemCount,
+          status: 'exists',
+        })),
+        existing: existingCollections.length,
+        created: 0,
+        skipped: existingCollections.length,
+        failed: 0,
+        visibility: {
+          ready: true,
+          assetsFound: 0,
+          facetCounts: {},
+          missingFacetValues: [],
+          skippedReason: 'same-company-collections-exist',
+        },
+        visibilityAttempts: 0,
+        visibilityElapsedMs: 0,
+      };
+      log.warn(
+        `[collections] ${existingCollections.length} collection(s) already exist for company "${customerKey}"; `
+        + 'no collection changes needed.',
+      );
+      existingCollections.forEach((collection) => {
+        log.warn(`[collections] exists "${collection.title}"${collection.collectionId ? ` id=${collection.collectionId}` : ''}`);
+      });
+      return { report };
+    }
+  }
+
+  const expectedFacetValues = groupBy === 'productCategory' && categoryLabels
+    ? Object.keys(categoryLabels)
+    : [];
+  const visibilityResult = seededAssets
+    ? {
+      assets: seededAssets,
+      timedOut: false,
+      attempts: 0,
+      elapsedMs: 0,
+      visibility: summarizeSearchVisibility(seededAssets, {
+        groupBy,
+        minAssets,
+        expectedFacetValues,
+      }),
+    }
+    : await waitForSearchableAssets({
+      searchFn: (args) => client.searchCompanyAssets(args),
+      company: customerKey,
+      limit,
+      groupBy,
+      minAssets,
+      expectedFacetValues,
+      timeoutMs: visibilityTimeoutMs,
+      intervalMs: visibilityPollIntervalMs,
+      sleepFn,
+      now,
+      log,
+    });
+  const { assets } = visibilityResult;
 
   const report = {
     company: customerKey,
@@ -130,7 +307,20 @@ export async function createCollectionsRun({
     created: 0,
     skipped: 0,
     failed: 0,
+    visibility: visibilityResult.visibility,
+    visibilityAttempts: visibilityResult.attempts,
+    visibilityElapsedMs: visibilityResult.elapsedMs,
   };
+
+  if (visibilityResult.timedOut) {
+    log.error(
+      `[collections] assets for company "${customerKey}" did not become searchable before `
+      + `${visibilityTimeoutMs}ms. Stop here: leave assets-enriched/search-scoped/`
+      + 'collections-created pending or blocked, then resume after indexing catches up.',
+    );
+    report.error = 'visibility-timeout';
+    return { report };
+  }
 
   if (assets.length === 0) {
     log.error(

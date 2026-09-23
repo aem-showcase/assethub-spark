@@ -10,12 +10,19 @@
  *
  *   node .claude/skills/rebrand-portal/scripts/rebrand/verify.mjs \
  *     [--repo-root <dir>] [--preview <host>] [--company <companyKey>] \
- *     [--report <report.json>] [--only <check,check>] [--write-report <path.json>]
+ *     [--report <report.json>] [--only <check,check>] [--write-report <path.json>] \
+ *     [--cascade-report <cascade-report.json>] [--org <org>] [--repo <repo>] \
+ *     [--da-token-file <file>]
  *
  * Tree-only checks (no --preview needed): header-logo, residue, structural-residue,
- *   icon-reference-resolution, welcome-header-home-link, icon-render.
- * Preview checks (need --preview + --company): nav-404-loop, applied-css.
+ *   icon-reference-resolution, welcome-header-home-link, icon-render,
+ *   brand-assets-source, background-tone, background-shorthand,
+ *   background-asset-fidelity, brand-fidelity
+ *   (brand-fidelity also uses --preview when given).
+ * Preview checks (need --preview + --company): nav-404-loop, applied-css, card-ceiling,
+ *   access-json, copied-html-live.
  * Report checks (need --report): stale-card-images, card-count, hero-quality.
+ * Cascade check (needs --cascade-report): cascade.
  *
  * --write-report writes a JSON report ({ checkedAt, checkedCommit, results }) for
  * whatever ran, so hooks/guard-step5-verify-gate.sh has a structured, staleness-
@@ -29,7 +36,13 @@ import {
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { walk, captureAllBaseHexes } from './fs-walk.mjs';
+import {
+  loadBrand, measuredColors, normalizeHex, hexVariants,
+} from './brand-contract.mjs';
+import { MAX_CARDS } from '../assets/constants.js';
+import { resolveDaToken } from '../assets/config.js';
 
 function resolveRepoRoot(arg) {
   if (arg) return resolve(arg);
@@ -410,6 +423,710 @@ export async function checkAppliedCss(previewHost, repoRoot, baseBrand) {
   }
 }
 
+function previewBase(previewHost) {
+  return previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
+}
+
+function accessJsonBase(previewHost) {
+  const base = previewBase(previewHost);
+  const url = new URL(base);
+  const match = url.hostname.match(/^(.+)\.dev\.frescopamedia\.com$/);
+  if (match) {
+    return `https://${match[1]}--assethub-spark--aem-showcase.aem.page`;
+  }
+  return base;
+}
+
+function isSheetJson(json) {
+  return json
+    && typeof json === 'object'
+    && Array.isArray(json.data)
+    && (json[':type'] === 'sheet'
+      || ['total', 'limit', 'offset'].some((key) => Object.hasOwn(json, key)));
+}
+
+function permissionList(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
+}
+
+function hasPreviewGrant(rows = []) {
+  return rows.some((row) => permissionList(row.permissions).includes('preview'));
+}
+
+async function fetchAccessJson(url, fetchFn) {
+  const res = await fetchFn(url, { redirect: 'manual' });
+  if (!res.ok) {
+    return { ok: false, reason: `${url} returned ${res.status}` };
+  }
+  try {
+    const json = await res.json();
+    if (!isSheetJson(json)) {
+      return {
+        ok: false,
+        reason: `${url} is not an EDS sheet JSON response`,
+      };
+    }
+    return { ok: true, json };
+  } catch (e) {
+    return { ok: false, reason: `${url} did not return parseable JSON: ${e.message}` };
+  }
+}
+
+// ---- CHECK: access-json (preview) ----------------------------------------------
+// Foldered demos authenticate through company-scoped access sheets, not root
+// /config/access. DA Author showing the sheets is not enough; the worker reads the
+// published .json endpoints from the branch AEM origin. The worker route itself protects
+// /config/access, so this check intentionally reads the underlying origin JSON.
+export async function checkAccessJson(previewHost, company, fetchFn = fetch) {
+  if (!previewHost || !company) {
+    return { name: 'access-json', pass: false, reason: 'needs --preview and --company' };
+  }
+  const base = accessJsonBase(previewHost);
+  const prefix = `${base}/companies/${company}/config/access`;
+  const applicationUrl = `${prefix}/application.json`;
+  const usersUrl = `${prefix}/users.json`;
+
+  try {
+    const application = await fetchAccessJson(applicationUrl, fetchFn);
+    if (!application.ok) return { name: 'access-json', pass: false, reason: application.reason };
+    if (!hasPreviewGrant(application.json.data)) {
+      return {
+        name: 'access-json',
+        pass: false,
+        reason: `${applicationUrl} has no row granting preview permission`,
+      };
+    }
+
+    const users = await fetchAccessJson(usersUrl, fetchFn);
+    if (!users.ok) return { name: 'access-json', pass: false, reason: users.reason };
+
+    return {
+      name: 'access-json',
+      pass: true,
+      reason: 'company-scoped access application/users sheets are published as JSON and grant preview',
+    };
+  } catch (e) {
+    return { name: 'access-json', pass: false, reason: `fetch error: ${e.message}` };
+  }
+}
+
+function daListUrl({ org, repo, path }) {
+  const root = `https://admin.da.live/list/${org}/${repo}`;
+  const suffix = String(path || '').replace(/^\/+/, '');
+  return suffix ? `${root}/${suffix}` : root;
+}
+
+function pathFromDaItem(item, org, repo) {
+  const raw = String(item?.path || '').replace(/^\/+/, '');
+  const prefix = `${org}/${repo}/`;
+  const rel = raw.startsWith(prefix) ? raw.slice(prefix.length) : raw;
+  if (!rel) return null;
+  const ext = item?.ext;
+  if (ext && !rel.endsWith(`.${ext}`)) return `${rel}.${ext}`;
+  return rel;
+}
+
+async function listDaFiles({
+  org, repo, rootPath, daToken, fetchFn = fetch,
+}) {
+  const files = [];
+  async function walkDa(path) {
+    const res = await fetchFn(daListUrl({ org, repo, path }), {
+      headers: { Authorization: `Bearer ${daToken}` },
+    });
+    if (!res.ok) {
+      throw new Error(`${daListUrl({ org, repo, path })} returned ${res.status}`);
+    }
+    const items = await res.json();
+    if (!Array.isArray(items)) {
+      throw new Error(`${daListUrl({ org, repo, path })} did not return a DA list array`);
+    }
+    for (const item of items) {
+      const rel = pathFromDaItem(item, org, repo);
+      if (!rel) continue;
+      if (item.ext) {
+        files.push(rel);
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await walkDa(rel);
+      }
+    }
+  }
+  await walkDa(rootPath);
+  return files;
+}
+
+function liveOriginBase(previewHost) {
+  const base = previewBase(previewHost);
+  const url = new URL(base);
+  const match = url.hostname.match(/^(.+)\.dev\.frescopamedia\.com$/);
+  if (match) {
+    return `https://${match[1]}--assethub-spark--aem-showcase.aem.live`;
+  }
+  if (url.hostname.endsWith('.aem.page')) {
+    url.hostname = url.hostname.replace(/\.aem\.page$/, '.aem.live');
+    return url.toString().replace(/\/$/, '');
+  }
+  return base;
+}
+
+function copiedHtmlPublishPath(path) {
+  const clean = String(path || '').replace(/^\/+/, '');
+  if (!clean.endsWith('.html')) return null;
+  if (/(^|\/)drafts\//.test(clean)) return null;
+  return clean.replace(/\.html$/i, '');
+}
+
+async function fetchStatus(url, fetchFn) {
+  const res = await fetchFn(url, { redirect: 'manual' });
+  return res.status;
+}
+
+async function liveStatusForPath({ base, path, fetchFn }) {
+  if (path.endsWith('/index')) {
+    const folderUrl = `${base}/${path.slice(0, -'index'.length)}`;
+    const status = await fetchStatus(folderUrl, fetchFn);
+    if (status >= 200 && status < 300) return { status, url: folderUrl };
+  }
+  const url = `${base}/${path}`;
+  return { status: await fetchStatus(url, fetchFn), url };
+}
+
+// ---- CHECK: copied-html-live (DA list + live origin) ----------------------------
+// Step 3 proves the DA copy exists. This proves every copied customer-visible HTML
+// page is also live, so unedited copied pages such as reports/* and my-dam/*
+// cannot stay unpublished while the demo is reported complete. JSON sheets such
+// as config/access/application.json and users.json are intentionally out of scope;
+// checkAccessJson owns those.
+export async function checkCopiedHtmlLive(previewHost, company, {
+  org = 'aem-showcase',
+  repo = 'assethub-spark',
+  repoRoot = process.cwd(),
+  daTokenFile = null,
+  daToken = null,
+  fetchFn = fetch,
+} = {}) {
+  const name = 'copied-html-live';
+  if (!previewHost || !company) return { name, pass: false, reason: 'needs --preview and --company' };
+  const token = daToken || resolveDaToken({ daTokenFile, repoRoot });
+  if (!token) {
+    return {
+      name,
+      pass: false,
+      reason: 'no DA token found (expected DA_TOKEN in token.env or --da-token-file) — cannot enumerate copied DA pages',
+    };
+  }
+
+  let files;
+  try {
+    files = await listDaFiles({
+      org,
+      repo,
+      rootPath: `companies/${company}`,
+      daToken: token,
+      fetchFn,
+    });
+  } catch (e) {
+    return { name, pass: false, reason: `DA list failed: ${e.message}` };
+  }
+
+  const paths = files
+    .map(copiedHtmlPublishPath)
+    .filter(Boolean)
+    .sort();
+  if (!paths.length) {
+    return { name, pass: false, reason: `no copied publishable HTML pages found under /companies/${company}` };
+  }
+
+  const base = liveOriginBase(previewHost);
+  const missing = [];
+  for (const path of paths) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const { status, url } = await liveStatusForPath({ base, path, fetchFn });
+      if (status < 200 || status >= 300) missing.push(`${path} -> ${status} (${url})`);
+    } catch (e) {
+      missing.push(`${path} -> fetch error: ${e.message}`);
+    }
+  }
+
+  if (missing.length) {
+    return {
+      name,
+      pass: false,
+      reason: `${missing.length} copied HTML page(s) are not live:\n  ${missing.join('\n  ')}`,
+    };
+  }
+  return { name, pass: true, reason: `${paths.length} copied HTML page(s) are live under /companies/${company}` };
+}
+
+// ---- CHECK: brand-fidelity (tree + optional preview) ----------------------------
+// The check that had no equivalent before, and whose absence let the cream background ship.
+//
+// Every other colour check here is RESIDUE-shaped: "the old value is gone." That is a
+// necessary condition and a badly insufficient one — a stylesheet where the old cream was
+// deleted and nothing correct replaced it passes `residue` cleanly. What was never asserted
+// is FIDELITY: "the new value is present, and it is the value that was actually measured
+// from the source site."
+//
+// Expected values come from migration-work/brand.json — written by extract-brand.mjs
+// straight from the rendered source — and NEVER from styles.css. That direction matters:
+// the old 4g procedure read its expectations out of excat's edit to styles.css and then
+// compared them against styles.css, so expected == actual by construction and the gate
+// could not fail. Reading brand.json instead is what makes this a real comparison.
+export async function checkBrandFidelity(repoRoot, previewHost) {
+  const name = 'brand-fidelity';
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+  const brand = loaded.data;
+  const map = brand.tokenMap || [];
+  if (!map.length) {
+    return {
+      name,
+      pass: false,
+      reason: 'brand.json has an empty tokenMap — tokens were measured but never mapped to roles. '
+        + 'Fill tokenMap[] (old->new->cssVar, with source "extracted" or "derived"+derivedFrom) in Step 4b.',
+    };
+  }
+
+  const cssPath = join(repoRoot, 'styles', 'styles.css');
+  if (!existsSync(cssPath)) return { name, pass: false, reason: 'styles/styles.css not found' };
+  const local = readFileSync(cssPath, 'utf8');
+
+  // 1. Every mapped variable must be declared with its measured value in the tree.
+  const problems = [];
+  for (const e of map) {
+    const want = normalizeHex(e.newHex);
+    const decl = new RegExp(`${e.cssVar.replace(/[-]/g, '\\-')}\\s*:\\s*([^;]+);`, 'i');
+    const m = local.match(decl);
+    if (!m) { problems.push(`${e.cssVar} is not declared in styles/styles.css`); continue; }
+    const got = normalizeHex(m[1].trim());
+    if (!got) {
+      // A var() indirection is legitimate; only flag a literal that won't parse.
+      if (!/var\(/i.test(m[1])) problems.push(`${e.cssVar} is ${m[1].trim()}, which is not a resolvable colour`);
+      continue;
+    }
+    if (got !== want) {
+      problems.push(`${e.cssVar} is ${got} but the source site measured ${want} (${e.role || 'unnamed role'})`);
+    }
+  }
+  if (problems.length) {
+    return { name, pass: false, reason: `theme does not match the measured source:\n  ${problems.join('\n  ')}` };
+  }
+
+  // 2. If a preview exists, the SERVED stylesheet must carry them too — a correct tree
+  //    that never deployed looks identical to a correct deployment from the tree alone.
+  if (previewHost) {
+    const base = previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
+    try {
+      const res = await fetch(`${base}/styles/styles.css`, { headers: { 'accept-encoding': 'identity' } });
+      if (!res.ok) return { name, pass: false, reason: `served styles.css returned ${res.status}` };
+      const served = await res.text();
+      const missing = map
+        .filter((e) => !hexVariants(e.newHex).some((v) => served.includes(v)))
+        .map((e) => `${e.cssVar}=${normalizeHex(e.newHex)}`);
+      if (missing.length) {
+        return {
+          name,
+          pass: false,
+          reason: `served styles.css is missing measured value(s): ${missing.join(', ')} — the tree is right but the deploy is stale`,
+        };
+      }
+    } catch (e) {
+      return { name, pass: false, reason: `fetch error: ${e.message}` };
+    }
+  }
+
+  const src = brand.provenance?.finalUrl || brand.provenance?.sourceUrl;
+  return {
+    name,
+    pass: true,
+    reason: `${map.length} token(s) match the values measured from ${src}${previewHost ? ', in the tree and as served' : ' (tree only — pass --preview to also check the deploy)'}`,
+  };
+}
+
+function normalizedUsedFor(value) {
+  return String(value || '').replace(/^\/+/, '');
+}
+
+function sourceAssetCandidates(brand) {
+  const declared = Array.isArray(brand?.assetSources) ? brand.assetSources : [];
+  const candidates = declared.filter((a) => a?.sourceUrl && a.kind !== 'generated-fallback' && a.source !== 'generated-fallback');
+  if (candidates.length) return candidates;
+  return (brand?.tokens?.favicons || [])
+    .filter((f) => f?.url)
+    .map((f) => ({ kind: f.rel || 'favicon', sourceUrl: f.url, usedFor: [] }));
+}
+
+function sourceEntryForAsset(brand, relPath) {
+  const target = normalizedUsedFor(relPath);
+  const declared = Array.isArray(brand?.assetSources) ? brand.assetSources : [];
+  return declared.find((a) => (a.usedFor || []).map(normalizedUsedFor).includes(target));
+}
+
+// ---- CHECK: brand-assets-source (tree) ------------------------------------------
+// Existence/rendering is not provenance. The Heineken run had URL-derived favicon/logo
+// candidates in brand.json, then hand-drew portal icons anyway. icon-render passed because
+// the SVG existed and had paths; it could not know the icon came from the agent, not the
+// supplied URL. This check makes the existing brand.json record carry that decision.
+export function checkBrandAssetsSource(repoRoot, company) {
+  const name = 'brand-assets-source';
+  if (!company) return { name, pass: false, reason: 'needs --company' };
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+  const brand = loaded.data;
+  const targets = [
+    `icons/${company}-icon.svg`,
+    `icons/${company}-beans.svg`,
+    'favicon.svg',
+    'favicon.ico',
+  ];
+  const candidates = sourceAssetCandidates(brand);
+  const problems = [];
+  for (const rel of targets) {
+    if (!existsSync(join(repoRoot, rel))) {
+      problems.push(`${rel} is missing`);
+      continue;
+    }
+    const entry = sourceEntryForAsset(brand, rel);
+    if (!entry) {
+      problems.push(`${rel} has no brand.json assetSources[].usedFor trace`);
+      continue;
+    }
+    const isFallback = entry.kind === 'generated-fallback' || entry.source === 'generated-fallback';
+    if (isFallback) {
+      if (candidates.length) {
+        problems.push(`${rel} uses generated-fallback even though URL-derived candidate(s) exist: ${candidates.map((c) => c.sourceUrl).slice(0, 3).join(', ')}`);
+      }
+      if (!entry.reason) problems.push(`${rel} generated-fallback is missing a reason`);
+    } else if (!entry.sourceUrl) {
+      problems.push(`${rel} is mapped to an assetSources[] entry with no sourceUrl`);
+    }
+  }
+  if (problems.length) {
+    return {
+      name,
+      pass: false,
+      reason: `${problems.length} brand asset source problem(s):\n  ${problems.join('\n  ')}\n`
+        + 'Map each asset to URL-derived brand.json assetSources[].usedFor, or record generated-fallback only when no source candidates exist.',
+    };
+  }
+  return { name, pass: true, reason: `${targets.length} brand asset(s) trace to source URL assets or documented fallback` };
+}
+
+function cssRules(css) {
+  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: m[1].trim().replace(/\s+/g, ' '),
+    body: m[2],
+  }));
+}
+
+function cssDeclarations(body) {
+  const out = {};
+  for (const m of body.matchAll(/([-\w]+)\s*:\s*([^;]+);/g)) out[m[1].trim()] = m[2].trim();
+  return out;
+}
+
+function rootVars(css) {
+  const root = cssRules(css).find((r) => r.selector === ':root');
+  return root ? cssDeclarations(root.body) : {};
+}
+
+function resolveCssColor(value, vars, depth = 0) {
+  if (!value || depth > 4) return null;
+  const raw = String(value).trim();
+  const varMatch = raw.match(/^var\(\s*(--[\w-]+)(?:\s*,\s*([^)]+))?\)$/i);
+  if (varMatch) return resolveCssColor(vars[varMatch[1]] || varMatch[2], vars, depth + 1);
+  const firstColor = raw.match(/#[0-9a-f]{3,6}\b|rgba?\([^)]+\)/i);
+  return normalizeHex(firstColor ? firstColor[0] : raw);
+}
+
+function toneForHex(hex) {
+  const norm = normalizeHex(hex);
+  if (!norm) return 'unknown';
+  const rgb = [1, 3, 5].map((i) => parseInt(norm.slice(i, i + 2), 16) / 255);
+  const linear = rgb.map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  const lum = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  if (lum >= 0.62) return 'light';
+  if (lum <= 0.28) return 'dark';
+  return 'mixed';
+}
+
+function sourceBackedSurfaceOverride(brand, selector, tone) {
+  return (brand.surfaceOverrides || []).find((o) => (
+    o?.selector === selector
+    && o.tone === tone
+    && o.reason
+    && o.evidence
+  ));
+}
+
+// ---- CHECK: background-tone (tree) ----------------------------------------------
+// Brand colours being measured does not mean the most saturated accent belongs across
+// the whole hero canvas. This check compares the source page's measured surface tone
+// with the portal hero/search surface tone, so a mostly white source page cannot ship
+// as a dark full-canvas portal unless a source-backed override is recorded.
+export function checkBackgroundTone(repoRoot) {
+  const name = 'background-tone';
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+  const brand = loaded.data;
+  const expected = brand.surfaceProfile?.hero?.tone || brand.surfaceProfile?.page?.dominantTone;
+  if (!['light', 'dark'].includes(expected)) {
+    return {
+      name,
+      pass: false,
+      reason: 'brand.json has no measurable surfaceProfile.hero.tone/page.dominantTone — re-run extract-brand.mjs from the user-provided URL',
+    };
+  }
+
+  const cssPath = join(repoRoot, 'styles', 'styles.css');
+  if (!existsSync(cssPath)) return { name, pass: false, reason: 'styles/styles.css not found' };
+  const css = readFileSync(cssPath, 'utf8');
+  const vars = rootVars(css);
+  const selector = 'main .section.search-hero';
+  const rule = cssRules(css).find((r) => r.selector === selector);
+  if (!rule) return { name, pass: false, reason: `${selector} rule not found` };
+  const decls = cssDeclarations(rule.body);
+  const color = resolveCssColor(decls['background-color'] || decls.background || vars['--light-color'], vars);
+  if (!color) return { name, pass: false, reason: `${selector} has no resolvable background color` };
+  const actual = toneForHex(color);
+  if (!['light', 'dark'].includes(actual)) {
+    return { name, pass: true, reason: `${selector} background ${color} is ${actual}; source hero tone is ${expected}` };
+  }
+  if (actual !== expected) {
+    const override = sourceBackedSurfaceOverride(brand, selector, actual);
+    if (override) {
+      return { name, pass: true, reason: `${selector} tone ${actual} differs from source ${expected}, but surfaceOverrides records source-backed evidence: ${override.evidence}` };
+    }
+    return {
+      name,
+      pass: false,
+      reason: `${selector} background tone is ${actual} (${color}) but the loaded source URL measured ${expected}. `
+        + 'Use a light surface with brand accents, or record a source-backed surfaceOverrides[] entry if a dark hero is intentional.',
+    };
+  }
+  return { name, pass: true, reason: `${selector} background tone ${actual} matches source hero tone ${expected}` };
+}
+
+// ---- CHECK: background-shorthand (tree) -----------------------------------------
+// The exact mechanism behind the background that stayed cream, caught statically.
+//
+// `search-hero` and `category-tiles` are two classes on ONE element. `.section.search-hero`
+// set a layered background (gradient tint + big.svg); `.section.category-tiles` later set the
+// `background:` SHORTHAND. Equal specificity, later rule wins — and because it is the
+// shorthand it resets background-image, -size, -position and every other layer, not just the
+// colour. The tint and the SVG vanished and the base surface painted through.
+//
+// The tell is purely structural: a `background:` shorthand on a `.section.*` rule, where some
+// other `.section.*` rule of equal specificity builds a layered background. No browser needed.
+export function checkBackgroundShorthand(repoRoot) {
+  const name = 'background-shorthand';
+  const cssPath = join(repoRoot, 'styles', 'styles.css');
+  if (!existsSync(cssPath)) return { name, pass: false, reason: 'styles/styles.css not found' };
+  const css = readFileSync(cssPath, 'utf8');
+
+  // selector { ...decls... } — good enough for a flat stylesheet; nested at-rules only
+  // risk a missed detection, never a false positive.
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: m[1].trim().replace(/\s+/g, ' '),
+    body: m[2],
+  }));
+
+  const sectionRules = rules.filter((r) => /(^|,|\s)[.\w[\]="'-]*\.section\b/.test(r.selector));
+  const layered = new Set();
+  for (const r of sectionRules) {
+    if (/background-image\s*:|background\s*:[^;]*(?:url\(|gradient\()/i.test(r.body)) layered.add(r.selector);
+  }
+  if (!layered.size) {
+    return { name, pass: true, reason: 'no layered .section background to clobber' };
+  }
+
+  const offenders = [];
+  for (const r of sectionRules) {
+    // A shorthand that carries no image/gradient of its own resets every layer.
+    const m = r.body.match(/(^|[;{\s])background\s*:\s*([^;]+);/i);
+    if (!m) continue;
+    if (/url\(|gradient\(/i.test(m[2])) continue;
+    if (layered.has(r.selector)) continue;
+    offenders.push(`${r.selector} { background: ${m[2].trim()} }`);
+  }
+  if (offenders.length) {
+    return {
+      name,
+      pass: false,
+      reason: 'background SHORTHAND on a .section rule resets the layered background set by '
+        + `${[...layered].join(', ')} (equal specificity, later rule wins — this is how a `
+        + 'surface silently reverts to the base colour). Use background-color instead:\n  '
+        + offenders.join('\n  '),
+    };
+  }
+  return { name, pass: true, reason: `${layered.size} layered .section background(s), none clobbered by a shorthand` };
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function embeddedImageSha(svg) {
+  const m = svg.match(/\b(?:xlink:href|href)=["']data:image\/[^;,]+;base64,([^"']+)["']/i);
+  return m ? sha256(m[1]) : null;
+}
+
+function effectiveAssetHash(asset) {
+  return asset?.embeddedImageSha256 || asset?.fileSha256 || null;
+}
+
+function currentBackgroundAsset(repoRoot, relPath) {
+  const abs = join(repoRoot, relPath);
+  if (!existsSync(abs)) return null;
+  const raw = readFileSync(abs, 'utf8');
+  return {
+    fileSha256: sha256(raw),
+    embeddedImageSha256: embeddedImageSha(raw),
+  };
+}
+
+function assetMapEntryMatches(entry, relPath) {
+  return entry && typeof entry === 'object' && entry.path === relPath;
+}
+
+function derivedFromMeasured(entry, brand) {
+  const measured = measuredColors(brand);
+  const from = Array.isArray(entry.derivedFrom) ? entry.derivedFrom : [entry.derivedFrom];
+  const normalized = from.map((v) => normalizeHex(v)).filter(Boolean);
+  return normalized.length > 0 && normalized.every((hex) => measured.includes(hex));
+}
+
+export function checkBackgroundAssetFidelity(repoRoot, baseBrand) {
+  const name = 'background-asset-fidelity';
+  const relPath = 'styles/backgrounds/big.svg';
+  const captured = baseBrand?.backgroundAssets?.[relPath];
+  if (!captured || !effectiveAssetHash(captured)) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} was not captured in baseBrand.backgroundAssets — rerun capture-base.mjs before Step 4 edits`,
+    };
+  }
+
+  const current = currentBackgroundAsset(repoRoot, relPath);
+  if (!current || !effectiveAssetHash(current)) {
+    return { name, pass: false, reason: `${relPath} is missing or unreadable` };
+  }
+
+  if (effectiveAssetHash(current) === effectiveAssetHash(captured)) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} still contains the captured base embedded image. Retint or replace the decorative background using measured colors from migration-work/brand.json, then record the mapping in brand.json assetMap[].`,
+    };
+  }
+
+  const loaded = loadBrand(repoRoot);
+  if (!loaded.found || !loaded.valid) {
+    return { name, pass: false, reason: `brand.json unusable — ${loaded.errors.join('; ')}` };
+  }
+
+  const entry = (loaded.data.assetMap || []).find((e) => assetMapEntryMatches(e, relPath));
+  if (!entry) {
+    return {
+      name,
+      pass: false,
+      reason: `${relPath} changed but migration-work/brand.json has no assetMap[] entry documenting the background derivation`,
+    };
+  }
+
+  if (entry.source !== 'derived' && entry.source !== 'extracted') {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap entry for ${relPath} must use source "derived" or "extracted", got ${JSON.stringify(entry.source)}`,
+    };
+  }
+
+  if (!derivedFromMeasured(entry, loaded.data)) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap entry for ${relPath} must list derivedFrom color(s) measured in migration-work/brand.json tokens.colors or tokens.accents[]`,
+    };
+  }
+
+  if (entry.oldEmbeddedImageSha256 && entry.oldEmbeddedImageSha256 !== captured.embeddedImageSha256) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap oldEmbeddedImageSha256 for ${relPath} does not match the captured base background hash`,
+    };
+  }
+
+  if (entry.newEmbeddedImageSha256 && entry.newEmbeddedImageSha256 !== current.embeddedImageSha256) {
+    return {
+      name,
+      pass: false,
+      reason: `assetMap newEmbeddedImageSha256 for ${relPath} does not match the current background hash`,
+    };
+  }
+
+  return {
+    name,
+    pass: true,
+    reason: `${relPath} changed from the captured base asset and is documented in brand.json assetMap[]`,
+  };
+}
+
+// ---- CHECK: cascade (reads cascade-report.json) ---------------------------------
+// 4g has always demanded "read the actual computed value on the deployed preview", which
+// verify.mjs could not do — it has no browser. That check was therefore never performed,
+// while reading as though it were. check-cascade.mjs now performs it using the browser
+// excat already ships, and this check gates on its result so the requirement is enforced
+// rather than merely written down.
+export function checkCascade(cascadeReportPath) {
+  const name = 'cascade';
+  if (!cascadeReportPath || !existsSync(cascadeReportPath)) {
+    return {
+      name,
+      pass: false,
+      reason: 'no cascade report — run scripts/rebrand/check-cascade.mjs --preview <host> --company <key> '
+        + '--write-report .internal/cascade-report.json (it uses the browser bundled with excat)',
+    };
+  }
+  let report;
+  try { report = JSON.parse(readFileSync(cascadeReportPath, 'utf8')); } catch (e) {
+    return { name, pass: false, reason: `bad cascade report json: ${e.message}` };
+  }
+  const surfaces = report.surfaces || [];
+  if (!surfaces.length) return { name, pass: false, reason: 'cascade report contains no surfaces' };
+  // A report produced with no base hexes cannot have failed: every surface is compared
+  // against an empty set and trivially passes. Treat it as unusable rather than green.
+  if (!(report.baseHexes || []).length) {
+    return {
+      name,
+      pass: false,
+      reason: 'cascade report has no baseHexes, so every surface passed vacuously — '
+        + 're-run check-cascade.mjs after the base-brand capture step.',
+    };
+  }
+  const bad = surfaces.filter((s) => !s.pass);
+  if (bad.length) {
+    return {
+      name,
+      pass: false,
+      reason: `computed background wrong on ${bad.length} surface(s):\n  ${
+        bad.map((s) => `${s.selector}: computed ${s.computed}, expected ${s.expected}${s.note ? ` (${s.note})` : ''}`).join('\n  ')}`,
+    };
+  }
+  return { name, pass: true, reason: `${surfaces.length} rendered surface(s) match the measured brand` };
+}
+
 // ---- CHECK: stale-card-images (report) ------------------------------------------
 // No published card image may point at a base-template asset (firefly_*, or any src not
 // produced by this run's enrichment report). Guards the "Top Brands stale placeholder" case.
@@ -496,7 +1213,101 @@ export function checkCardCount(reportPath) {
       reason: `${brokenCards.length} card(s) missing href or image: ${brokenCards.map((c) => c.slug).join(', ')}`,
     };
   }
+  if (cards.length > MAX_CARDS) {
+    return {
+      name: 'card-count',
+      pass: false,
+      reason: `${cards.length} card(s); the demo carries exactly ${MAX_CARDS} categories. Narrow the contract to the strongest categories rather than widening the page.`,
+    };
+  }
   return { name: 'card-count', pass: true, reason: `${cards.length} card(s), one per populated category, all with href + image` };
+}
+
+// ---- CHECK: card-ceiling (preview) ----------------------------------------------
+// The ceiling asserted against the DELIVERED ARTIFACT rather than the run's own report.
+//
+// Every previous card check read report.json — the file the run writes about itself. A run
+// that authored the page by some other route (hand-edited HTML, an ad-hoc script, raw curl)
+// produces a report that says nothing about what actually shipped. `stale-card-images`
+// shipped twice for exactly this reason. This check fetches the published page and counts
+// what a visitor sees.
+export async function checkCardCeiling(previewHost, company) {
+  if (!previewHost || !company) {
+    return { name: 'card-ceiling', pass: false, reason: 'needs --preview and --company' };
+  }
+  const base = previewHost.startsWith('http') ? previewHost : `https://${previewHost}`;
+  const url = `${base}/companies/${company}/en/index.plain.html`;
+  let html;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      return { name: 'card-ceiling', pass: false, reason: `${url} returned ${res.status}` };
+    }
+    html = await res.text();
+  } catch (e) {
+    return { name: 'card-ceiling', pass: false, reason: `fetch error: ${e.message}` };
+  }
+
+  const block = extractBlockInner(html, ['carousel', 'tiles']);
+  if (block === null) {
+    return { name: 'card-ceiling', pass: false, reason: `no .carousel.tiles block found at ${url}` };
+  }
+  const rows = countTopLevelDivs(block);
+  if (rows > MAX_CARDS) {
+    return {
+      name: 'card-ceiling',
+      pass: false,
+      reason: `${rows} category cards are published at ${url}; the demo carries exactly ${MAX_CARDS}.`,
+    };
+  }
+  // A leftover "Top Brands" .cards block is the other way the page grows past its shape.
+  if (extractBlockInner(html, ['cards']) !== null) {
+    return {
+      name: 'card-ceiling',
+      pass: false,
+      reason: `a secondary .cards ("Top Brands") block is still published at ${url}; it must be removed, not repopulated.`,
+    };
+  }
+  return { name: 'card-ceiling', pass: true, reason: `${rows} published category card(s), no secondary cards block` };
+}
+
+/** Inner HTML of the first <div> carrying every class token, or null. */
+function extractBlockInner(html, classTokens) {
+  const openRe = /<div\b[^>]*\bclass=(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
+  for (let match = openRe.exec(html); match !== null; match = openRe.exec(html)) {
+    const classValue = (match[1] || match[2] || '').split(/\s+/);
+    if (!classTokens.every((t) => classValue.includes(t))) continue;
+    const openEnd = openRe.lastIndex;
+    let depth = 1;
+    const tagRe = /<\/?div\b[^>]*>/gi;
+    tagRe.lastIndex = openEnd;
+    for (let tag = tagRe.exec(html); tag !== null; tag = tagRe.exec(html)) {
+      if (tag[0].startsWith('</')) {
+        depth -= 1;
+        if (depth === 0) return html.slice(openEnd, tag.index);
+      } else {
+        depth += 1;
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
+/** Count direct-child <div> elements of a block's inner HTML (one per authored row). */
+function countTopLevelDivs(inner) {
+  const tagRe = /<\/?div\b[^>]*>/gi;
+  let depth = 0;
+  let count = 0;
+  for (let tag = tagRe.exec(inner); tag !== null; tag = tagRe.exec(inner)) {
+    if (tag[0].startsWith('</')) {
+      depth -= 1;
+    } else {
+      if (depth === 0) count += 1;
+      depth += 1;
+    }
+  }
+  return count;
 }
 
 // ---- CHECK: hero-quality (report) -----------------------------------------------
@@ -547,6 +1358,7 @@ async function main() {
   const args = process.argv.slice(2);
   const opt = {
     repoRoot: null, preview: null, company: null, report: null, only: null, writeReport: null,
+    cascadeReport: null, org: 'aem-showcase', repo: 'assethub-spark', daTokenFile: null,
   };
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
@@ -554,6 +1366,10 @@ async function main() {
     else if (a === '--preview') { opt.preview = args[++i]; }
     else if (a === '--company') { opt.company = args[++i]; }
     else if (a === '--report') { opt.report = args[++i]; }
+    else if (a === '--cascade-report') { opt.cascadeReport = args[++i]; }
+    else if (a === '--org') { opt.org = args[++i]; }
+    else if (a === '--repo') { opt.repo = args[++i]; }
+    else if (a === '--da-token-file') { opt.daTokenFile = args[++i]; }
     else if (a === '--only') { opt.only = args[++i].split(',').map((s) => s.trim()); }
     else if (a === '--write-report') { opt.writeReport = args[++i]; }
   }
@@ -569,8 +1385,24 @@ async function main() {
   if (want('icon-reference-resolution')) results.push(checkIconReferenceResolution(repoRoot));
   if (want('welcome-header-home-link')) results.push(checkWelcomeHeaderHomeLink(repoRoot));
   if (want('icon-render')) results.push(checkIconRender(repoRoot, opt.company));
+  if (want('brand-assets-source')) results.push(checkBrandAssetsSource(repoRoot, opt.company));
+  if (want('background-tone')) results.push(checkBackgroundTone(repoRoot));
+  if (want('background-shorthand')) results.push(checkBackgroundShorthand(repoRoot));
+  if (want('background-asset-fidelity')) results.push(checkBackgroundAssetFidelity(repoRoot, baseBrand));
+  if (want('brand-fidelity')) results.push(await checkBrandFidelity(repoRoot, opt.preview));
+  if (want('cascade')) results.push(checkCascade(opt.cascadeReport));
   if (opt.preview && want('nav-404-loop')) results.push(await checkNav404Loop(opt.preview, opt.company));
   if (opt.preview && want('applied-css')) results.push(await checkAppliedCss(opt.preview, repoRoot, baseBrand));
+  if (opt.preview && want('card-ceiling')) results.push(await checkCardCeiling(opt.preview, opt.company));
+  if (opt.preview && want('access-json')) results.push(await checkAccessJson(opt.preview, opt.company));
+  if (opt.preview && want('copied-html-live')) {
+    results.push(await checkCopiedHtmlLive(opt.preview, opt.company, {
+      org: opt.org,
+      repo: opt.repo,
+      repoRoot,
+      daTokenFile: opt.daTokenFile,
+    }));
+  }
   if (opt.report && want('stale-card-images')) results.push(checkStaleCardImages(opt.report));
   if (opt.report && want('card-count')) results.push(checkCardCount(opt.report));
   if (opt.report && want('hero-quality')) results.push(checkHeroQuality(opt.report));
@@ -590,6 +1422,12 @@ async function main() {
     const report = {
       checkedAt: new Date().toISOString(),
       checkedCommit: currentCommit(repoRoot),
+      // Which demo these results describe. Tree checks are worktree-scoped, but the
+      // preview checks (card-ceiling especially) assert against a specific published
+      // company page — without this a report from one demo could be used to wave
+      // through the publish of another.
+      company: opt.company || null,
+      preview: opt.preview || null,
       results: Object.fromEntries(results.map((r) => [r.name, { pass: r.pass, reason: r.reason }])),
     };
     writeFileSync(opt.writeReport, `${JSON.stringify(report, null, 2)}\n`);
