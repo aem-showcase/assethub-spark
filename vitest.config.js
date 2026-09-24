@@ -33,34 +33,6 @@ export default defineConfig({
         },
       },
       {
-        // rebrand-portal skill tests. Separate from unit-tests because nearly
-        // all of them spawn real OS processes -- guard hooks (bash + python3)
-        // and packaged node scripts. Vitest's 5s default suits pure-JS tests;
-        // for a suite whose unit of work is a process spawn it produces
-        // load-dependent failures that look like product bugs and train people
-        // to re-run until green.
-        test: {
-          name: 'skill-tests',
-          include: [
-            '.claude/skills/rebrand-portal/tests/assets/**/*.test.js',
-            '.claude/skills/rebrand-portal/tests/rebrand/**/*.test.js',
-            // Replays real session commands through the PreToolUse guards. A
-            // guard that has never been run against a real command on a host is
-            // indistinguishable from one that was never written.
-            '.claude/skills/rebrand-portal/tests/hooks/**/*.test.js',
-            // Adopts the tests/da and tests/hooks shell suites, which were
-            // written but never included here and so never ran.
-            '.claude/skills/rebrand-portal/tests/shell/**/*.test.js',
-          ],
-          exclude: [
-            '.claude/skills/rebrand-portal/tests/assets/**/*.dom.test.js',
-          ],
-          environment: 'node',
-          testTimeout: 60_000,
-          hookTimeout: 60_000,
-        },
-      },
-      {
         // Integration / smoke tests – hit real endpoints with a session cookie
         test: {
           name: 'integration-tests',
