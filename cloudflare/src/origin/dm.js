@@ -125,6 +125,14 @@ const CONTENTAI_COLLECTION_SEARCH_ACL = {
   viewer: `collectionMetadata.custom:metadata.custom:acl.${ACL_VIEWER}`,
 };
 
+/**
+ * Country-based brand restriction: users whose profile country is Germany may only
+ * see assets whose `assetMetadata.brand` is Frescopa. Brand values are free-form
+ * strings written by the enrichment agent, so both casings are matched.
+ */
+const BRAND_RESTRICTED_COUNTRY = 'de';
+const BRAND_RESTRICTED_VALUES = ['Frescopa', 'frescopa'];
+
 /** ContentAI term path for collection access level in search queries */
 const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
 
@@ -550,6 +558,7 @@ function forceContentAISearchFilter(search, authClauses) {
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
  *                          all values (e.g. 'preview', 'fpo')
+ *   - `brand`              — users whose profile country is DE only see 'Frescopa' assets
  *
  * User attributes that drive filtering (resolved at login, stored in session):
  *   - `user.userType`   — 'internal' or 'external', derived from email domain + sheet overrides
@@ -624,6 +633,16 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country-based brand filter ---
+  // Users whose profile country is DE only see Frescopa-brand assets. The profile value
+  // may be an ISO code or a full name (e.g. 'Germany' from simulation), so compare via
+  // the country mapping rather than the raw value.
+  const countryValues = resolveCountryMatchValues(user.country).map((v) => String(v).toLowerCase());
+  if (countryValues.includes(BRAND_RESTRICTED_COUNTRY)) {
+    console.warn(`[${user.email}] asset auth clauses: brand=[${BRAND_RESTRICTED_VALUES.join(',')}] (country ${user.country})`);
+    clauses.push({ term: { 'assetMetadata.brand': BRAND_RESTRICTED_VALUES } });
   }
 
   // --- Internal status filter ---

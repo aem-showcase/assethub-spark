@@ -87,6 +87,7 @@ header nav .my-account {
 header nav .my-account .my-account-button {
   align-items: center;
   background: #fff;
+  color: var(--text-color);
   border: 1px solid var(--primary-color);
   border-radius: 60px;
   cursor: pointer;
@@ -158,9 +159,9 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
-  color: var(--text-color);
-  color-scheme: light;
+  background-color: #081235;
+  color: #edf0fb;
+  color-scheme: dark;
   width: 100%;
   z-index: 2;
   box-shadow: 0 3px 5px #0000000D;
@@ -208,6 +209,7 @@ header nav:not(:has(.nav-sections)) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background-color: #fff;
+    color: var(--text-color);
     box-shadow: 8px 0 24px -12px rgb(0 0 0 / 30%);
     border-top: 1px solid #ededed;
   }
@@ -298,6 +300,7 @@ header nav[aria-expanded='false'] .nav-hamburger-icon::before,
 header nav[aria-expanded='false'] .nav-hamburger-icon::after {
   height: 36px !important;
   border-radius: 0;
+  filter: brightness(0) invert(1);
   background: url("/icons/ham-menu.svg") no-repeat center / contain !important;
 }
 
@@ -616,6 +619,7 @@ header nav .nav-sections .default-content-wrapper>ul>li[aria-expanded='true']>a 
     top: 100%;
     padding: 16px 20px;
     background-color: white;
+    color: var(--text-color);
     white-space: initial;
     border: 1px solid #e6e6e6;
     border-radius: 6px;
@@ -756,6 +760,10 @@ header nav .nav-tools .nav-reports-icon button img {
   height: 36px;
   width: 36px;
   transition: opacity 0.2s ease;
+}
+
+header nav .nav-tools button:not(:hover) img {
+  filter: brightness(0) invert(1);
 }
 
 /* Reports and download SVGs have thinner inner artwork than bell/cart */
