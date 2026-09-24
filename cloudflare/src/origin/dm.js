@@ -33,7 +33,7 @@ import {
   isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
-import { resolveCountryMatchValues } from '../constants/countries.js';
+import { isCountry, resolveCountryMatchValues } from '../constants/countries.js';
 import { enforceAssetMetadataAuthorization } from './asset-access.js';
 import {
   extractSearchContext,
@@ -538,6 +538,9 @@ function forceContentAISearchFilter(search, authClauses) {
   }
 }
 
+/** Brand metadata values (assetMetadata.brand) visible to users in Germany (DE). */
+const DE_ALLOWED_BRAND_VALUES = ['Frescopa', 'frescopa', 'FRESCOPA', 'Fréscopa', 'fréscopa'];
+
 /**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
@@ -624,6 +627,15 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country-specific brand restriction ---
+  // Users whose profile country is Germany (ISO 'DE' or name 'germany', resolved via
+  // constants/countries.js) only see assets whose assetMetadata.brand is Frescopa.
+  // Term filters match exact strings, so list the spellings the brand may be stored as.
+  if (isCountry(user.country, 'de')) {
+    console.warn(`[${user.email}] asset auth clauses: country DE -> brand restricted to Frescopa`);
+    clauses.push({ term: { 'assetMetadata.brand': DE_ALLOWED_BRAND_VALUES } });
   }
 
   // --- Internal status filter ---

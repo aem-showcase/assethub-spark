@@ -59,3 +59,17 @@ export function resolveCountryMatchValues(country) {
   if (code) values.push(code);
   return values;
 }
+
+/**
+ * Whether a country value (ISO code or full name, any case) refers to the given ISO code.
+ * Uses the same code/name mapping as {@link resolveCountryMatchValues}.
+ * @param {string} country - ISO-3166-1 alpha-2 code or full country name (any case)
+ * @param {string} isoCode - ISO-3166-1 alpha-2 code to compare against (any case)
+ * @returns {boolean}
+ */
+export function isCountry(country, isoCode) {
+  const target = String(isoCode || '').trim().toLowerCase();
+  if (!target) return false;
+  return resolveCountryMatchValues(country)
+    .some((value) => String(value).trim().toLowerCase() === target);
+}

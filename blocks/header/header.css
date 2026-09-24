@@ -158,9 +158,10 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
-  color: var(--text-color);
-  color-scheme: light;
+  /* adapt.to header colours (adapt.to/styles/styles.css: header bg #081235, text #edf0fb) */
+  background-color: #081235;
+  color: #edf0fb;
+  color-scheme: dark;
   width: 100%;
   z-index: 2;
   box-shadow: 0 3px 5px #0000000D;
@@ -865,4 +866,21 @@ header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
   width: 150px;
   height: auto;
+}
+
+/* adapt.to branding: keep header chrome legible on the dark (#081235) bar */
+header nav .nav-hamburger-icon,
+header nav .nav-tools .nav-cart-icon button img,
+header nav .nav-tools .nav-download-icon button img,
+header nav .nav-tools .nav-message-icon button img,
+header nav .nav-tools .nav-reports-icon button img {
+  filter: brightness(0) invert(94%);
+}
+
+/* mobile slide-out menu keeps its white panel, so restore dark text there */
+@media (width < 900px) {
+  header nav[aria-expanded='true'] .nav-sections {
+    color: var(--text-color);
+    color-scheme: light;
+  }
 }
