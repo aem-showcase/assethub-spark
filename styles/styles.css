@@ -85,6 +85,9 @@
   /* nav height (single-row header: brand, nav sections, icons, my account) */
   --nav-height: 72px;
 
+  /* header bar background (dark navy from adapt.to, matches the light adaptTo() logo) */
+  --header-background-color: #081235;
+
   /* button colors */
   --primary-color-disabled: var(--color-neutral-300);
   --button-disabled-bg: var(--color-neutral-300);
