@@ -626,6 +626,17 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
+  // --- Brand restriction for Germany ---
+  // Users whose own profile country is Germany (ISO 'DE' or mapped name, see
+  // constants/countries.js) only see assets whose brand metadata is "Frescopa".
+  // Uses user.country only (the profile country), not additional sheet grants.
+  const germanyValues = resolveCountryMatchValues('DE').map((v) => v.toLowerCase());
+  const userCountryValues = resolveCountryMatchValues(user.country).map((v) => v.toLowerCase());
+  if (userCountryValues.some((v) => germanyValues.includes(v))) {
+    console.warn(`[${user.email}] asset auth clauses: brand=Frescopa (country DE)`);
+    clauses.push({ term: { 'assetMetadata.brand': ['Frescopa'] } });
+  }
+
   // --- Internal status filter ---
   // External users only see assets tagged internalStatus=approved, or where the
   // field is absent entirely. Don't rely on term's undocumented behavior for
