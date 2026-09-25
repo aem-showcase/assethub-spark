@@ -840,6 +840,40 @@ describe('dm.js - ContentAI Authorization', () => {
       expect(clauses).toEqual([internalStatusClause]);
     });
 
+    const frescopaBrandClause = { term: { 'assetMetadata.brand': ['Frescopa'] } };
+
+    const germanyValues = ['de', 'DE', 'germany', 'Germany'];
+    const otherCountryValues = [undefined, 'us', 'at', 'france'];
+
+    it.each(germanyValues)('should restrict users with country %s to the Frescopa brand', async (country) => {
+      const request = { user: { email: 'user@example.com', userType: 'internal', country } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toContainEqual(frescopaBrandClause);
+    });
+
+    it.each(otherCountryValues)('should not restrict the brand for users with country %s', async (country) => {
+      const request = { user: { email: 'user@example.com', userType: 'internal', country } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).not.toContainEqual(frescopaBrandClause);
+    });
+
+    it('should not restrict the brand when DE is only an additional sheet country', async () => {
+      const request = { user: { email: 'user@example.com', userType: 'internal', country: 'us', countries: ['de'] } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).not.toContainEqual(frescopaBrandClause);
+    });
+
+    it('should not restrict the brand for admins in DE', async () => {
+      const request = { user: { email: 'admin@adobe.com', roles: ['admin'], userType: 'internal', country: 'de' } };
+      const clauses = await buildAssetAuthClauses(request, {});
+      expect(clauses).toEqual([]);
+    });
+
+    it('should violate the Frescopa brand clause for an asset of another brand', () => {
+      expect(checkAssetMetadataAuthorization([frescopaBrandClause], { brand: 'Other' }).violated).toBe(true);
+      expect(checkAssetMetadataAuthorization([frescopaBrandClause], { brand: 'Frescopa' }).violated).toBe(false);
+    });
+
     it('should not violate the internalStatus allow clause for an asset with no internalStatus set', () => {
       const authClauses = [internalStatusClause];
       const assetMetadata = { 'custom:contentType': 'marketing' };
