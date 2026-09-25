@@ -158,7 +158,7 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
+  background-color: #081235;
   color: var(--text-color);
   color-scheme: light;
   width: 100%;

@@ -626,6 +626,18 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
   }
 
+  // --- Brand filter (Germany) ---
+  // Users whose own profile country is Germany only see Frescopa-branded assets.
+  // Matched via resolveCountryMatchValues so the ISO code ('DE') and mapped name
+  // ('germany') are both recognised, case-insensitively.
+  const germanyValues = resolveCountryMatchValues('DE').map((v) => v.toLowerCase());
+  const isGermanUser = resolveCountryMatchValues(user.country)
+    .some((v) => germanyValues.includes(String(v).toLowerCase()));
+  if (isGermanUser) {
+    console.warn(`[${user.email}] asset auth clauses: brand=[Frescopa] (country=DE)`);
+    clauses.push({ term: { 'assetMetadata.brand': ['Frescopa'] } });
+  }
+
   // --- Internal status filter ---
   // External users only see assets tagged internalStatus=approved, or where the
   // field is absent entirely. Don't rely on term's undocumented behavior for
