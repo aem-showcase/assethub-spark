@@ -158,7 +158,7 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
+  background-color: var(--header-background-color);
   color: var(--text-color);
   color-scheme: light;
   width: 100%;
@@ -756,6 +756,18 @@ header nav .nav-tools .nav-reports-icon button img {
   height: 36px;
   width: 36px;
   transition: opacity 0.2s ease;
+
+  /* the #333 outline icons are invisible on the dark header background: render them white */
+  filter: brightness(0) invert(1);
+}
+
+/* The hover variants are teal, which lacks contrast on the dark header too: the white
+   filter above applies to them as well, so signal hover with opacity instead. */
+header nav .nav-tools .nav-cart-icon button:hover img,
+header nav .nav-tools .nav-download-icon button:hover img,
+header nav .nav-tools .nav-message-icon button:hover img,
+header nav .nav-tools .nav-reports-icon button:hover img {
+  opacity: 0.7;
 }
 
 /* Reports and download SVGs have thinner inner artwork than bell/cart */
@@ -845,7 +857,7 @@ header .search-hidden .main-content {
 header .header-welcome-bar {
   display: flex;
   align-items: center;
-  background-color: var(--light-color);
+  background-color: var(--header-background-color);
   height: var(--nav-height);
   padding: 0 24px;
   position: fixed;
