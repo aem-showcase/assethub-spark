@@ -86,6 +86,7 @@ header nav .my-account {
 
 header nav .my-account .my-account-button {
   align-items: center;
+  color: var(--text-color);
   background: #fff;
   border: 1px solid var(--primary-color);
   border-radius: 60px;
@@ -158,8 +159,8 @@ header nav .down-arrow-icon:hover::before {
 }
 
 header .nav-wrapper {
-  background-color: #fff;
-  color: var(--text-color);
+  background-color: #081235;
+  color: #fff;
   color-scheme: light;
   width: 100%;
   z-index: 2;
@@ -208,6 +209,7 @@ header nav:not(:has(.nav-sections)) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background-color: #fff;
+    color: var(--text-color);
     box-shadow: 8px 0 24px -12px rgb(0 0 0 / 30%);
     border-top: 1px solid #ededed;
   }

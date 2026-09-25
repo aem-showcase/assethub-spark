@@ -160,6 +160,14 @@ const PERMISSION_READ = 'read';
 const PERMISSION_WRITE = 'write';
 
 // ==========================================
+// Asset Metadata Permission Constants
+// ==========================================
+
+/** Users with a Germany profile country are restricted to Frescopa-branded assets. */
+const GERMANY_COUNTRY_CODE = 'DE';
+const FRESCOPA_BRAND_TAG = 'custom:brand/frescopa';
+
+// ==========================================
 // Template Placeholder
 // ==========================================
 
@@ -539,6 +547,21 @@ function forceContentAISearchFilter(search, authClauses) {
 }
 
 /**
+ * Check a profile country value against a target country code while respecting
+ * code/name aliases from constants/countries.js (for example DE ↔ germany).
+ * @param {string} country - User profile country code or name
+ * @param {string} targetCountryCode - ISO country code to compare against
+ * @returns {boolean} true if the country resolves to the target code/name set
+ */
+function profileCountryMatches(country, targetCountryCode) {
+  const targetValues = resolveCountryMatchValues(targetCountryCode)
+    .map((value) => String(value).toLowerCase());
+  const countryValues = resolveCountryMatchValues(country)
+    .map((value) => String(value).toLowerCase());
+  return countryValues.some((value) => targetValues.includes(value));
+}
+
+/**
  * Build ContentAI authorization clauses for asset search and metadata access.
  *
  * Asset visibility is controlled by metadata fields tagged on Content Hub assets:
@@ -589,6 +612,15 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   // bypass so even admins only see the configured customer's assets.
   if (config.DEMO_COMPANY) {
     clauses.push({ term: { 'assetMetadata.company': [config.DEMO_COMPANY] } });
+  }
+
+  // Germany profile-country rule: DE users only see Frescopa-branded assets.
+  // Apply before the admin bypass because this rule is tied to the user's profile country.
+  if (profileCountryMatches(user.country, GERMANY_COUNTRY_CODE)) {
+    console.warn(
+      `[${user.email}] asset auth clauses: DE profile country brand=[${FRESCOPA_BRAND_TAG}]`,
+    );
+    clauses.push({ term: { 'assetMetadata.custom:brand': [FRESCOPA_BRAND_TAG] } });
   }
 
   // Admins bypass all per-user asset filters — they see everything in Content Hub
