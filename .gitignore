@@ -5,6 +5,8 @@ node_modules/
 .DS_Store
 *.bak
 .idea
+__pycache__/
+*.py[cod]
 
 .env
 secret.env
