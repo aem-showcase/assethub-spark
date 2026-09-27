@@ -240,6 +240,10 @@
 }
 
 /* Loading state */
+.aar-charts {
+  transition: opacity 0.2s ease;
+}
+
 .aar-charts[aria-busy="true"] {
   opacity: 0.5;
   pointer-events: none;

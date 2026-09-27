@@ -138,6 +138,19 @@
 }
 
 /* Calendar popup (portal pattern - rendered in body) */
+@supports (anchor-name: --a) {
+  /* position-anchor is set inline per picker; opens above / aligns right when it would overflow */
+  .my-date-picker-portal.is-anchored {
+    /* stylelint-disable declaration-property-value-no-unknown -- anchor positioning not in stylelint's CSS data yet */
+    top: anchor(bottom);
+    left: anchor(left);
+    /* stylelint-enable declaration-property-value-no-unknown */
+    margin-top: 4px;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-visibility: anchors-visible;
+  }
+}
+
 .my-date-picker-portal .calendar-popup {
   background: white;
   border: 1px solid #e5e7eb;

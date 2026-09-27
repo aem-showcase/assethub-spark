@@ -32,6 +32,30 @@ header .dropdown-menu > ul {
   z-index: 10000;
 }
 
+@supports (anchor-name: --a) {
+  .header-dropdown-anchor {
+    anchor-name: --header-dropdown-anchor;
+  }
+
+  /* Centered under the button; right-aligned and/or above it when it would overflow */
+  .header-dropdown-portal.is-anchored {
+    /* stylelint-disable declaration-property-value-no-unknown -- anchor positioning not in stylelint's CSS data yet */
+    position-anchor: --header-dropdown-anchor;
+    top: anchor(bottom);
+    justify-self: anchor-center;
+    margin-top: 5px;
+    position-try-fallbacks: --header-dropdown-end, flip-block, --header-dropdown-end flip-block;
+    /* stylelint-enable declaration-property-value-no-unknown */
+  }
+}
+
+@position-try --header-dropdown-end {
+  justify-self: normal;
+  left: auto;
+  /* stylelint-disable-next-line at-rule-descriptor-value-no-unknown -- anchor() not in stylelint's CSS data yet */
+  right: anchor(right);
+}
+
 .header-dropdown-portal > ul {
   background-color: #fff;
   border-radius: 4px;
@@ -247,8 +271,7 @@ header nav .nav-sections a.active {
   position: relative;
 }
 
-header nav .nav-sections a.active::after {
-  content: '';
+header nav .nav-sections a.active > .nav-active-underline {
   position: absolute;
   left: 0;
   right: 0;
@@ -397,7 +420,7 @@ header nav .nav-sections ul>li {
     display: block;
   }
 
-  header nav .nav-sections a.active::after {
+  header nav .nav-sections a.active > .nav-active-underline {
     bottom: 0 !important;
   }
 
@@ -865,4 +888,46 @@ header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
   width: 150px;
   height: auto;
+}
+
+/* Add to cart: thumbnail flying into the cart icon (scripts/motion.js) */
+.fly-to-cart {
+  position: fixed;
+  z-index: 10001;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 25%);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+@keyframes header-icon-bump {
+  40% {
+    transform: scale(1.22);
+  }
+
+  70% {
+    transform: scale(0.94);
+  }
+}
+
+@keyframes header-badge-pop {
+  0% {
+    transform: scale(0.4);
+  }
+
+  60% {
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  header nav .nav-tools .nav-cart-icon.is-bumped button img {
+    animation: header-icon-bump 360ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  header nav .nav-tools .nav-cart-icon .cart-badge.is-popping,
+  header nav .nav-tools .nav-download-icon .download-badge.is-popping {
+    animation: header-badge-pop 320ms cubic-bezier(0.2, 0, 0, 1);
+  }
 }

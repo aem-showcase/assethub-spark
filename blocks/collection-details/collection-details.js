@@ -41,6 +41,7 @@ import {
   ICON_EDIT_MD,
   ICON_DELETE_MD,
 } from '../../scripts/collections/collection-icons.js';
+import { whenActivated } from '../../scripts/speculation.js';
 
 function makeActionBtn(label, html, onClick) {
   const btn = document.createElement('button');
@@ -333,5 +334,5 @@ export default async function decorate(block) {
   const queryParam = urlParams.get('query') || urlParams.get('fulltext') || '';
   if (queryParam) setState({ query: queryParam });
 
-  search(queryParam);
+  whenActivated(() => search(queryParam));
 }

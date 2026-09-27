@@ -15,6 +15,8 @@ import {
 } from './aem.js';
 
 import { localizePath, getLocaleRedirectUrl, getLocalePrefixFromPath } from './locale-utils.js';
+import { whenActivated } from './speculation.js';
+import './page-transitions.js';
 
 // Re-export shared constants for use in blocks
 export { SEARCH_URL_PARAMS, getAllSearchParamKeys } from './constants/search-url-params.js';
@@ -333,6 +335,7 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
+  loadCSS(`${window.hlx.codeBasePath}/styles/scroll-effects.css`);
   loadCSS(`${window.hlx.codeBasePath}/styles/global-modal.css`);
   loadCSS(`${window.hlx.codeBasePath}/styles/add-to-collection-modal.css`);
   loadCSS(`${window.hlx.codeBasePath}/scripts/share/share-assets-modal.css`);
@@ -381,8 +384,11 @@ import('./share/share-assets-modal.js').then(async ({ initShareAssetsModal }) =>
  * without impacting the user experience.
  */
 function loadDelayed() {
-  // eslint-disable-next-line import/no-cycle
-  window.setTimeout(() => import('./delayed.js'), 3000);
+  // Prerendered pages wait until they're shown (delayed.js can open priority messages).
+  whenActivated(() => {
+    // eslint-disable-next-line import/no-cycle
+    window.setTimeout(() => import('./delayed.js'), 3000);
+  });
   // load anything that can be postponed to the latest here
 }
 

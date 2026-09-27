@@ -12,6 +12,7 @@ import { dispatchAssetAction } from '../audit/asset-audit.js';
 import { ASSET_AUDIT_ACTIONS } from '../audit/asset-audit-constants.js';
 import setButtonLoading from '../../blocks/search-results/utils/dom-utils.js';
 import { localizePath } from '../locale-utils.js';
+import { playExit } from '../motion.js';
 
 // Global state
 let collectionsClient = null;
@@ -164,6 +165,7 @@ function showCollectionsModal() {
 
 // Hide the modal
 function hideCollectionsModal() {
+  playExit(collectionsModal);
   collectionsModal.style.display = 'none';
   currentAsset = null;
   currentAssets = [];

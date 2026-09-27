@@ -32,6 +32,17 @@ import {
   fetchMetadataWithDisclaimer,
   isDisclaimerRequiredResponse,
 } from './disclaimer-modal.js';
+import {
+  canAnimate,
+  isInViewport,
+  runViewTransition,
+  waitForImage,
+} from '../../../../scripts/view-transitions.js';
+
+// Shared view-transition-name for the card image ↔ modal image morph
+const HERO_TRANSITION_NAME = 'asset-hero';
+// Class on the modal overlay that names its image container as the hero
+const HERO_CLASS = 'vt-hero';
 
 // Module state
 let modalRoot = null;
@@ -52,6 +63,8 @@ let cachedZipRenditionElement = null; // Cache ZIP rendition element
 let zipContentsLoaded = false; // Track if ZIP contents have been loaded
 let originalAssetId = null; // Store original asset ID for cache lookups
 let cachedZipStructure = null; // Cache ZIP structure data to persist across re-renders
+let heroSource = null; // Card image the modal was opened from (for the close morph)
+let closePending = false; // An animated close is waiting to remove its DOM
 
 // Popup/details flow can initialize Adobe viewer before surrounding UI settles.
 // This delay avoids intermittent blank iframe on first paint.
@@ -302,9 +315,16 @@ function getModalRoot() {
 }
 
 /**
- * Close asset details modal
+ * Close asset details modal.
+ *
+ * Module state is reset synchronously so a new modal can open immediately;
+ * only the removal of the old DOM is deferred into a view transition (when
+ * animating) so it can morph back into the card it was opened from.
+ *
+ * @param {Object} [options]
+ * @param {boolean} [options.animate=true] - Animate the close when supported
  */
-export function closeAssetDetails() {
+export function closeAssetDetails({ animate = true } = {}) {
   if (escapeHandler) {
     document.removeEventListener('keydown', escapeHandler);
     escapeHandler = null;
@@ -313,31 +333,111 @@ export function closeAssetDetails() {
     unsubscribe();
     unsubscribe = null;
   }
-  // Clean up PDF overlay (now on document.body, not inside modalOverlay)
-  const pdfOverlay = document.querySelector('.pdf-modal-overlay');
-  if (pdfOverlay) pdfOverlay.remove();
 
-  if (modalOverlay) {
-    modalOverlay.remove();
-    modalOverlay = null;
-  }
-
-  // Remove body class
-  document.body.classList.remove('asset-details-modal-open');
+  const overlay = modalOverlay;
+  const pdfViewer = inlinePdfViewerInstance;
+  const source = heroSource;
 
   // Reset local state
+  modalOverlay = null;
+  heroSource = null;
   showDownloadRenditionsModal = false;
   watermarkRendition = null;
   videoPlayerHandler = null;
   populatedImage = null;
   pdfModalOpen = false;
   pdfUrl = '';
-  if (inlinePdfViewerInstance?.cleanup) inlinePdfViewerInstance.cleanup();
   inlinePdfViewerInstance = null;
   cachedPictureElement = null;
   zipContentsLoaded = false;
   originalAssetId = null;
   cachedZipStructure = null;
+
+  const removeDom = () => {
+    closePending = false;
+    // Clean up PDF overlay (now on document.body, not inside modalOverlay)
+    const pdfOverlay = document.querySelector('.pdf-modal-overlay');
+    if (pdfOverlay) pdfOverlay.remove();
+    if (pdfViewer?.cleanup) pdfViewer.cleanup();
+    overlay?.remove();
+    // A new modal may have opened while this close was animating
+    if (!modalOverlay) document.body.classList.remove('asset-details-modal-open');
+  };
+
+  // Repeat close (e.g. closeFn after onClose) while an animated close is in flight
+  if (!overlay && closePending) return;
+
+  if (!animate || !overlay?.isConnected || !canAnimate()) {
+    removeDom();
+    return;
+  }
+
+  closePending = true;
+  const morph = isInViewport(source);
+  if (morph) overlay.classList.add(HERO_CLASS);
+  const transition = runViewTransition(() => {
+    removeDom();
+    if (morph) source.style.viewTransitionName = HERO_TRANSITION_NAME;
+  }, { types: ['asset-close'] });
+  transition?.finished.finally(() => {
+    if (source) source.style.viewTransitionName = '';
+  });
+}
+
+/**
+ * The large modal rendition is hidden until it loads. Show the (already
+ * loaded) card image in its place so the morph has something to land on,
+ * then remove it once the real image has faded in.
+ */
+function addHeroStandIn(modalImg, sourceImg) {
+  const placeholder = modalImg.closest('#asset-details-image-placeholder');
+  const src = sourceImg.currentSrc || sourceImg.src;
+  if (!placeholder || !src) return;
+  const standIn = document.createElement('img');
+  standIn.className = 'asset-details-hero-standin';
+  standIn.src = src;
+  standIn.alt = '';
+  standIn.setAttribute('aria-hidden', 'true');
+  placeholder.appendChild(standIn);
+  // Wait out the real image's opacity fade-in before removing the stand-in
+  const remove = () => setTimeout(() => standIn.remove(), 250);
+  modalImg.addEventListener('load', remove, { once: true });
+  modalImg.addEventListener('error', remove, { once: true });
+}
+
+/**
+ * Attach the modal overlay to the page, morphing from the source card image
+ * when possible and falling back to a fade.
+ */
+function attachModal(sourceElement) {
+  const overlay = modalOverlay;
+  // Deep links / standalone pages have no source card: show immediately
+  if (!sourceElement) {
+    modalRoot.appendChild(overlay);
+    return;
+  }
+  const morph = canAnimate() && isInViewport(sourceElement);
+  if (morph) sourceElement.style.viewTransitionName = HERO_TRANSITION_NAME;
+
+  const transition = runViewTransition(async () => {
+    if (morph) {
+      sourceElement.style.viewTransitionName = '';
+      overlay.classList.add(HERO_CLASS);
+    }
+    modalRoot.appendChild(overlay);
+    if (morph) {
+      const modalImg = overlay.querySelector('img.asset-details-main-image');
+      await waitForImage(modalImg, 250);
+      if (modalImg && !(modalImg.complete && modalImg.naturalWidth > 0)) {
+        addHeroStandIn(modalImg, sourceElement);
+      }
+    }
+  }, { types: ['asset-open'] });
+
+  transition?.finished.finally(() => {
+    sourceElement?.style.removeProperty('view-transition-name');
+    overlay.classList.remove(HERO_CLASS);
+  });
 }
 
 /**
@@ -620,6 +720,7 @@ export async function openAssetDetails(options) {
     fetchAssetRenditions,
     isDeepLinkAsset = false,
     disableEscapeClose = false,
+    sourceElement = null,
   } = options;
 
   // Ensure placeholders (en/ja labels) are loaded so tooltips and labels render
@@ -683,7 +784,8 @@ export async function openAssetDetails(options) {
   }
 
   // Close any existing modal
-  closeAssetDetails();
+  closeAssetDetails({ animate: false });
+  heroSource = sourceElement;
 
   // Ensure renditions fetcher is initialized (required when opening from standalone asset-details
   // or collections page where search-results decorate() never ran)
@@ -845,7 +947,7 @@ export async function openAssetDetails(options) {
 
   // Initial render
   render();
-  modalRoot.appendChild(modalOverlay);
+  attachModal(sourceElement);
 
   // Subscribe to state changes
   unsubscribe = subscribe((state, prevState, updates) => {
@@ -908,7 +1010,7 @@ export async function openAssetDetails(options) {
   // Fetch metadata and renditions
   fetchMetadata(asset, render, () => {
     // Access denied (restricted brand or partner country) - close modal and show 403
-    closeAssetDetails();
+    closeAssetDetails({ animate: false });
     window.location.href = '/403';
   }, prefetchedMetadata);
   fetchAssetRenditions?.(asset);

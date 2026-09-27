@@ -1,0 +1,63 @@
+/* Scroll-driven effects (progressive enhancement, CSS only).
+   Browsers without animation-timeline, or users preferring reduced motion,
+   get the static page. */
+
+@keyframes scroll-header-shadow {
+  to {
+    box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  }
+}
+
+@keyframes scroll-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes scroll-reveal {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Header shadow deepens over the first 120px of page scroll */
+    header .nav-wrapper {
+      animation: scroll-header-shadow linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 120px;
+    }
+
+    /* Reading progress under the header on search and collection pages */
+    body:has(main .search-results.block, main .collection-details.block)::after {
+      content: '';
+      position: fixed;
+      top: var(--nav-height, 0);
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary-color);
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      pointer-events: none;
+      z-index: 1;
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+
+    /* Result cards fade up as they scroll into view. Cards running (or done with)
+       the "Load more" entry animation are excluded so nothing plays twice. */
+    .search-results .asset-card-view-grid:not(.is-entering, .has-entered),
+    .search-results .asset-card-view-list:not(.is-entering, .has-entered) {
+      animation: scroll-reveal linear both;
+      animation-timeline: view(block);
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}

@@ -25,6 +25,7 @@ import {
 } from '../../scripts/collections/collection-icons.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
+import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 const VIEW_STORAGE_KEY = 'scr-view';
 
@@ -480,9 +481,16 @@ async function fetchAndInjectPreview(client, collection, block) {
   }
 }
 
+function linkForPageTransition(el, collection) {
+  const href = localizePath(`/collection-details?id=${collection.id}`);
+  el.dataset.vtHref = href;
+  prerenderOnIntent(el, href);
+}
+
 function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
   const card = document.createElement('div');
   card.className = 'scr-card';
+  linkForPageTransition(card, collection);
 
   const preview = buildPreview(collection.thumbnailUrl, collection.name, 'scr-card-preview', collection.id);
   preview.addEventListener('click', () => onView(collection));
@@ -517,6 +525,7 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
 function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
   const row = document.createElement('div');
   row.className = 'scr-row';
+  linkForPageTransition(row, collection);
   row.addEventListener('click', () => onView(collection));
 
   const preview = buildPreview(collection.thumbnailUrl, collection.name, 'scr-row-preview', collection.id);
