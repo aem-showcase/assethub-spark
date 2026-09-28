@@ -1,6 +1,13 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createNotification, deleteNotification, getNotification, updateNotification } from '../notifications.js';
+import {
+  createNotification,
+  deleteNotification,
+  getNotification,
+  listNotifications,
+  updateNotification,
+} from '../notifications.js';
+import { sendMessage } from '../../util/notifications-helpers.js';
 
 /**
  * Helper to create a request with authenticated user
@@ -293,6 +300,72 @@ describe('Notifications API', () => {
       // Verify it was deleted
       const stored = await env.MESSAGES.get(`${testUserEmail}:notif-delete`);
       expect(stored).toBeNull();
+    });
+  });
+  describe('without MESSAGES KV binding', () => {
+    // Simulates a wrangler.jsonc without a MESSAGES kv_namespaces entry (e.g. fresh local dev)
+    const envNoKv = { ...env, MESSAGES: undefined };
+
+    it('listNotifications should degrade gracefully and return system notifications only', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages?locale=en');
+      const response = await listNotifications(request, envNoKv);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.messages)).toBe(true);
+      // No EDS origin in tests -> system notifications fetch fails gracefully -> empty list
+      expect(data.count).toBe(0);
+    });
+
+    it('createNotification should return 503', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages', {
+        method: 'POST',
+        body: JSON.stringify({ id: 'notif-1', subject: 'Test', message: 'Hello' }),
+      });
+      const response = await createNotification(request, envNoKv);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Notifications store not configured');
+    });
+
+    it('getNotification should return 503', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages/notif-1');
+      const response = await getNotification(request, envNoKv, 'notif-1');
+
+      expect(response.status).toBe(503);
+    });
+
+    it('updateNotification should return 503', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages/notif-1', {
+        method: 'POST',
+        body: JSON.stringify({ status: 'read' }),
+      });
+      const response = await updateNotification(request, envNoKv, 'notif-1');
+
+      expect(response.status).toBe(503);
+    });
+
+    it('deleteNotification should return 503', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages/notif-1', { method: 'DELETE' });
+      const response = await deleteNotification(request, envNoKv, 'notif-1');
+
+      expect(response.status).toBe(503);
+    });
+
+    it('sendMessage helper should return false', async () => {
+      const result = await sendMessage(envNoKv, 'someone@example.com', { subject: 'Hi', message: 'Body' });
+
+      expect(result).toBe(false);
+    });
+
+    it('still returns 401 for unauthenticated requests', async () => {
+      const request = new Request('http://test/api/messages');
+      const response = await listNotifications(request, envNoKv);
+
+      expect(response.status).toBe(401);
     });
   });
 });
