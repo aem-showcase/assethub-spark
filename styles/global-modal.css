@@ -1,4 +1,7 @@
-/* Global modal – all selectors scoped under .global-modal to avoid clashes with other modals */
+/* Global modal – all selectors scoped under .global-modal to avoid clashes with other modals.
+   Uses px (and the site's px-based font-size vars) instead of rem on purpose: the root font-size
+   is 62.5% (1rem = 10px) on most pages but 100% on search/notification pages, so rem-based sizes
+   would render the modal ~40% too small on regular content pages. */
 
 .global-modal {
   position: fixed;
@@ -36,14 +39,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.5rem 2rem 1rem;
+  gap: 16px;
+  padding: 24px 32px 16px;
   border-bottom: 1px solid #eee;
 }
 
 .global-modal .global-modal-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: var(--heading-font-size-s, 24px);
   font-weight: 600;
   color: #333;
   line-height: 1.3;
@@ -52,14 +55,14 @@
 .global-modal .global-modal-close {
   margin: 0;
   padding: 0;
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border: none;
   border-radius: 4px;
   background: none;
   color: #666;
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 400;
   line-height: 1;
   cursor: pointer;
@@ -73,7 +76,7 @@
 
 .global-modal .global-modal-body {
   flex: 1;
-  padding: 1.5rem 2rem;
+  padding: 24px 32px;
   color: #333;
   overflow-y: auto;
 }
@@ -83,7 +86,7 @@
 }
 
 .global-modal .global-modal-content {
-  font-size: 1rem;
+  font-size: var(--body-font-size-m, 18px); /* same as body text */
   line-height: 1.6;
 }
 
@@ -99,15 +102,15 @@
 }
 
 .global-modal[data-modal-type="priority-summary"] .global-modal-content {
-  max-width: 52rem;
+  max-width: 832px;
   width: 100%;
   text-align: center;
 }
 
 .global-modal .global-modal-meta {
-  font-size: 0.875rem;
+  font-size: var(--body-font-size-s, 16px);
   color: #666;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .global-modal .global-modal-rich-text a {
@@ -134,8 +137,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem 1.5rem;
+  gap: 12px;
+  padding: 16px 32px 24px;
   border-top: 1px solid #eee;
 }
 
