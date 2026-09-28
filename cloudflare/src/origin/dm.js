@@ -546,6 +546,7 @@ function forceContentAISearchFilter(search, authClauses) {
  *   - `allowedCountries`   — which countries can see the asset: ISO-3166-1 alpha-2 codes,
  *                          full lowercase country names (e.g. 'usa', 'india'), or the
  *                          special sentinel 'global' (visible to all countries)
+ *   - `brand`              — users whose profile country is DE only see 'Frescopa' assets
  *   - `internalStatus`     — external users only see 'approved' assets, or assets where the
  *                          field is absent entirely (checked explicitly via an exists clause,
  *                          not relied on as undocumented `term` behavior); internal users see
@@ -624,6 +625,16 @@ async function buildAssetAuthClauses(request, _env, { useRealPermissions = false
   } else {
     console.warn(`[${user.email}] asset auth clauses: countries=[${authorisedCountries.join(',')}]`);
     clauses.push({ term: { 'assetMetadata.allowedCountries': authorisedCountries } });
+  }
+
+  // --- Country brand restriction ---
+  // Users whose profile country is Germany (ISO code 'de' or mapped name 'germany', see
+  // constants/countries.js) may only see Frescopa-branded assets. Only the user's own
+  // country counts here, not the additional sheet-granted `user.countries`.
+  const countryValues = resolveCountryMatchValues(user.country).map((v) => String(v).toLowerCase());
+  if (countryValues.includes('de')) {
+    console.warn(`[${user.email}] asset auth clauses: country DE restricted to brand=[Frescopa]`);
+    clauses.push({ term: { 'assetMetadata.brand': ['Frescopa'] } });
   }
 
   // --- Internal status filter ---
