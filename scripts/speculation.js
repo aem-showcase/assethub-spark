@@ -9,11 +9,15 @@
  * `whenActivated` so a hover never counts as a visit or a search.
  */
 
+import {
+  OPTIONAL_SITE_PATH_REGEX_SOURCE,
+  OPTIONAL_SITE_PATH_URL_PATTERN,
+} from './locale-utils.js';
+
 const HOVER_DELAY_MS = 200;
 const MAX_INTENT_URLS = 2;
 
-// Keep in sync with PRERENDER_URL_PATTERNS below.
-const BASE = String.raw`^(?:/companies/[^/]+)?(?:/(?:en|ja))?`;
+const BASE = `^${OPTIONAL_SITE_PATH_REGEX_SOURCE}`;
 const PRERENDER_PATHS = [
   new RegExp(`${BASE}/?$`), // home
   new RegExp(`${BASE}/search/?$`),
@@ -23,11 +27,11 @@ const PRERENDER_PATHS = [
 ];
 
 const PRERENDER_URL_PATTERNS = [
-  '{/companies/:company}?{/:locale(en|ja)}?{/}?',
-  '{/companies/:company}?{/:locale(en|ja)}?/search{/}?',
-  '{/companies/:company}?{/:locale(en|ja)}?/search-collections{/}?',
-  '{/companies/:company}?{/:locale(en|ja)}?/collection-details{/}?',
-  '{/companies/:company}?{/:locale(en|ja)}?/reports/:report(report-hub|searches|asset-activity){/}?',
+  `${OPTIONAL_SITE_PATH_URL_PATTERN}{/}?`,
+  `${OPTIONAL_SITE_PATH_URL_PATTERN}/search{/}?`,
+  `${OPTIONAL_SITE_PATH_URL_PATTERN}/search-collections{/}?`,
+  `${OPTIONAL_SITE_PATH_URL_PATTERN}/collection-details{/}?`,
+  `${OPTIONAL_SITE_PATH_URL_PATTERN}/reports/:report(report-hub|searches|asset-activity){/}?`,
 ];
 
 const intentUrls = [];

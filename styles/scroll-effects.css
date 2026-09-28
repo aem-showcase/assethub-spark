@@ -4,7 +4,7 @@
 
 @keyframes scroll-header-shadow {
   to {
-    box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+    opacity: 1;
   }
 }
 
@@ -28,7 +28,13 @@
 @supports (animation-timeline: scroll()) {
   @media (prefers-reduced-motion: no-preference) {
     /* Header shadow deepens over the first 120px of page scroll */
-    header .nav-wrapper {
+    header .nav-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 7%);
+      opacity: 0;
+      pointer-events: none;
       animation: scroll-header-shadow linear both;
       animation-timeline: scroll(root block);
       animation-range: 0 120px;

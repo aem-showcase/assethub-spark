@@ -19,6 +19,7 @@
  *   vt-nav-underline  active header nav underline, slides to the newly active item
  */
 import { addPrerenderRules } from './speculation.js';
+import { OPTIONAL_SITE_PATH_REGEX_SOURCE } from './locale-utils.js';
 
 (() => {
   if (typeof window === 'undefined' || !('PageRevealEvent' in window)) return;
@@ -44,7 +45,9 @@ import { addPrerenderRules } from './speculation.js';
   const CARD_TITLE_SELECTOR = '.scr-card-name, .scr-row-name, .report-card-title';
   const TARGET_TITLE_SELECTOR = '.cd-breadcrumb-name, .searches-title, .aar-title';
   // Pages that hold cards linking into a results page (home, the collections list, report hub).
-  const CARD_PAGE_PATH = /^(?:\/companies\/[^/]+)?(?:\/(?:en|ja))?(?:\/|\/index|\/search-collections\/?|\/reports\/report-hub\/?)?$/;
+  const CARD_PAGE_PATH = new RegExp(
+    `^${OPTIONAL_SITE_PATH_REGEX_SOURCE}(?:/|/index|/search-collections/?|/reports/report-hub/?)?$`,
+  );
 
   const named = [];
   let lastIntentUrl = null;
