@@ -100,6 +100,11 @@ header nav .my-account .my-account-menu > ul,
   min-width: 200px;
 }
 
+header nav .mobile-account-action,
+.header-dropdown-portal .mobile-account-action {
+  display: none;
+}
+
 /* User Button (User Dropdown) */
 header nav .my-account {
   flex-shrink: 0;
@@ -220,6 +225,13 @@ header nav:not(:has(.nav-sections)) {
 @media (width < 900px) {
   header nav:not(:has(.nav-sections)) .nav-hamburger {
     display: none !important;
+  }
+
+  header nav .nav-tools {
+    position: static;
+    right: auto;
+    top: auto;
+    transform: none;
   }
 
   header nav[aria-expanded='true'] .nav-sections {
@@ -704,8 +716,31 @@ header nav .nav-tools .nav-reports-icon {
    gaps, shrink icon-button padding, and drop the "My Account" text label (keep the avatar)
    so the cluster stays clear of the logo. Fixes the shared template for every brand, not one
    logo's aspect ratio — see the header logo-size guard in the rebrand-portal skill. */
-@media (width < 480px) {
+@media (width < 600px) {
+  header nav {
+    gap: 0 8px;
+    padding: 0 12px;
+  }
+
+  header .nav-brand {
+    min-width: 0;
+  }
+
+  header .nav-brand a,
+  header .nav-brand .icon {
+    max-width: 100%;
+  }
+
+  header .nav-brand .icon img,
+  header .nav-brand .icon svg {
+    max-width: 112px;
+  }
+
   header nav .nav-tools {
+    position: static;
+    right: auto;
+    top: auto;
+    transform: none;
     gap: 4px;
   }
 
@@ -713,19 +748,40 @@ header nav .nav-tools .nav-reports-icon {
     gap: 0;
   }
 
+  header nav .nav-tools .nav-message-icon,
+  header nav .nav-tools .nav-reports-icon {
+    display: none;
+  }
+
   header nav .nav-tools .nav-cart-icon button,
-  header nav .nav-tools .nav-download-icon button,
-  header nav .nav-tools .nav-message-icon button,
-  header nav .nav-tools .nav-reports-icon button {
-    padding: 2px;
+  header nav .nav-tools .nav-download-icon button {
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+  }
+
+  header nav .nav-tools .nav-cart-icon button img,
+  header nav .nav-tools .nav-download-icon button img {
+    width: 32px;
+    height: 32px;
   }
 
   header nav .my-account-button {
-    padding: 6px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px;
   }
 
   header nav .my-account-label {
     display: none;
+  }
+
+  header nav .down-arrow-icon {
+    display: none;
+  }
+
+  .header-dropdown-portal .mobile-account-action {
+    display: list-item;
   }
 }
 
@@ -890,8 +946,8 @@ header .header-welcome-bar .icon svg {
   height: auto;
 }
 
-/* Add to cart: thumbnail flying into the cart icon (scripts/motion.js) */
-.fly-to-cart {
+/* Asset thumbnail flying into the cart destination (scripts/motion.js) */
+.fly-to-header {
   position: fixed;
   z-index: 10001;
   object-fit: cover;

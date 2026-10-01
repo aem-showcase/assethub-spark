@@ -275,8 +275,12 @@ function createMyAccount(t) {
   if (window.user) {
     const myAccount = document.createElement('div');
     myAccount.className = 'my-account';
-    const myAccountButton = document.createElement('div');
+    const myAccountButton = document.createElement('button');
+    myAccountButton.type = 'button';
     myAccountButton.className = 'my-account-button';
+    myAccountButton.setAttribute('aria-haspopup', 'menu');
+    myAccountButton.setAttribute('aria-expanded', 'false');
+    myAccountButton.setAttribute('aria-label', t('myAccount', 'My Account'));
     const impersonationIndicator = window.user.su ? '<span class="impersonation-indicator"></span>' : '';
     myAccountButton.innerHTML = `
       <div class="avatar">
@@ -289,8 +293,13 @@ function createMyAccount(t) {
 
     const myAccountMenu = document.createElement('div');
     myAccountMenu.className = 'my-account-menu dropdown-menu';
+    const reportsMenuItem = window.user?.permissions?.includes('admin-reports')
+      ? `<li class="mobile-account-action"><a href="${localizePath('/reports/report-hub')}">${t('reports', 'Reports')}</a></li>`
+      : '';
     myAccountMenu.innerHTML = `
       <ul>
+        ${reportsMenuItem}
+        <li class="mobile-account-action"><a href="${localizePath('/my-dam/my-notifications')}">${t('notifications', 'Notifications')}</a></li>
         <li><a href="#" id="my-profile-link">${t('myProfile', 'My Profile')}</a></li>
         <li><a href="/auth/logout">${t('logOut', 'Log Out')}</a></li>
       </ul>
@@ -305,6 +314,7 @@ function createMyAccount(t) {
       activeAccountPortal?.close();
       activeAccountPortal = null;
       myAccountButton.classList.remove('active');
+      myAccountButton.setAttribute('aria-expanded', 'false');
     });
 
     myAccountButton.addEventListener('click', (e) => {
@@ -314,9 +324,11 @@ function createMyAccount(t) {
         activeAccountPortal.close();
         activeAccountPortal = null;
         myAccountButton.classList.remove('active');
+        myAccountButton.setAttribute('aria-expanded', 'false');
       } else {
         activeAccountPortal = openDropdownPortal(myAccountButton, myAccountMenu, 'my-account-portal');
         myAccountButton.classList.add('active');
+        myAccountButton.setAttribute('aria-expanded', 'true');
       }
     });
     myAccount.appendChild(myAccountButton);
@@ -333,6 +345,7 @@ function createMyAccount(t) {
       activeAccountPortal.close();
       activeAccountPortal = null;
       myAccountBtn?.classList.remove('active');
+      myAccountBtn?.setAttribute('aria-expanded', 'false');
     }
   });
 

@@ -3,6 +3,7 @@ import {
 } from 'vitest';
 import {
   canAnimate,
+  hasActiveTransition,
   runViewTransition,
   withTempName,
   isInViewport,
@@ -77,6 +78,42 @@ describe('runViewTransition', () => {
     expect(start).toHaveBeenCalledWith({ update, types: ['asset-open'] });
     await transition.finished;
     expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs setup and cleanup around the transition', async () => {
+    mockStartViewTransition();
+    const setup = vi.fn();
+    const cleanup = vi.fn();
+    const transition = runViewTransition(() => {}, { setup, cleanup });
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(hasActiveTransition()).toBe(true);
+    await transition.finished;
+    await Promise.resolve();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(hasActiveTransition()).toBe(false);
+  });
+
+  it('falls back without starting an overlapping transition', async () => {
+    const updates = [];
+    let finishFirst;
+    document.startViewTransition = vi.fn((arg) => {
+      const update = typeof arg === 'function' ? arg : arg.update;
+      update();
+      const finished = new Promise((resolve) => { finishFirst = resolve; });
+      return { ready: Promise.resolve(), finished, updateCallbackDone: Promise.resolve() };
+    });
+
+    const first = runViewTransition(() => updates.push('first'));
+    const cleanup = vi.fn();
+    const second = runViewTransition(() => updates.push('second'), { cleanup });
+
+    expect(first).not.toBeNull();
+    expect(second).toBeNull();
+    expect(document.startViewTransition).toHaveBeenCalledTimes(1);
+    expect(updates).toEqual(['first', 'second']);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    finishFirst();
+    await first.finished;
   });
 
   it('falls back to the callback form when the options form throws', async () => {

@@ -374,14 +374,19 @@ export function closeAssetDetails({ animate = true } = {}) {
 
   closePending = true;
   const morph = isInViewport(source);
-  if (morph) overlay.classList.add(HERO_CLASS);
   const transition = runViewTransition(() => {
     removeDom();
     if (morph) source.style.viewTransitionName = HERO_TRANSITION_NAME;
-  }, { types: ['asset-close'] });
-  transition?.finished.finally(() => {
-    if (source) source.style.viewTransitionName = '';
+  }, {
+    types: ['asset-close'],
+    setup: () => {
+      if (morph) overlay.classList.add(HERO_CLASS);
+    },
+    cleanup: () => {
+      source?.style.removeProperty('view-transition-name');
+    },
   });
+  if (!transition) closePending = false;
 }
 
 /**
@@ -417,9 +422,8 @@ function attachModal(sourceElement) {
     return;
   }
   const morph = canAnimate() && isInViewport(sourceElement);
-  if (morph) sourceElement.style.viewTransitionName = HERO_TRANSITION_NAME;
 
-  const transition = runViewTransition(async () => {
+  runViewTransition(async () => {
     if (morph) {
       sourceElement.style.viewTransitionName = '';
       overlay.classList.add(HERO_CLASS);
@@ -432,11 +436,15 @@ function attachModal(sourceElement) {
         addHeroStandIn(modalImg, sourceElement);
       }
     }
-  }, { types: ['asset-open'] });
-
-  transition?.finished.finally(() => {
-    sourceElement?.style.removeProperty('view-transition-name');
-    overlay.classList.remove(HERO_CLASS);
+  }, {
+    types: ['asset-open'],
+    setup: () => {
+      if (morph) sourceElement.style.viewTransitionName = HERO_TRANSITION_NAME;
+    },
+    cleanup: () => {
+      sourceElement?.style.removeProperty('view-transition-name');
+      overlay.classList.remove(HERO_CLASS);
+    },
   });
 }
 

@@ -3,7 +3,7 @@
  *
  * - playExit: animates a copy of an overlay out while the real one is removed/hidden right
  *   away, so existing close logic and open/closed state stay synchronous.
- * - flyToCart: a thumbnail flies from its card into the header cart icon.
+ * - flyToCart: a thumbnail flies into the header cart destination.
  * - animateHeight: smooth expand/collapse around a synchronous DOM change.
  */
 
@@ -62,20 +62,59 @@ export function playExit(el, panelSelector = PANEL_SELECTOR) {
   return ghost;
 }
 
-function cartTarget() {
-  const el = document.querySelector('.nav-cart-icon button, .nav-cart-icon');
+function headerTarget(selectors) {
+  const el = selectors.map((selector) => document.querySelector(selector)).find(Boolean);
   if (!el) return null;
   const rect = el.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0 ? { el, rect } : null;
 }
 
+function highlightArrival(resolveElement) {
+  if (!resolveElement) return;
+  let stopped = false;
+  let observer;
+  let timeout;
+  const finish = (el) => {
+    if (!el || stopped) return false;
+    stopped = true;
+    observer?.disconnect();
+    clearTimeout(timeout);
+    el.classList.remove('is-transition-arrival');
+    // Restart the arrival animation when the same destination is used repeatedly.
+    // eslint-disable-next-line no-unused-expressions
+    el.offsetWidth;
+    el.classList.add('is-transition-arrival');
+    el.addEventListener(
+      'animationend',
+      () => el.classList.remove('is-transition-arrival'),
+      { once: true },
+    );
+    return true;
+  };
+  if (finish(resolveElement())) return;
+  observer = new MutationObserver(() => finish(resolveElement()));
+  observer.observe(document.body, { childList: true, subtree: true });
+  timeout = setTimeout(() => {
+    stopped = true;
+    observer.disconnect();
+  }, 1200);
+}
+
 /**
- * Fly a copy of `sourceImg` into the header cart icon, then bump the icon.
+ * Fly a copy of an image into a header destination, then bump and highlight it.
  * @param {HTMLImageElement|null} sourceImg
+ * @param {Object} options
+ * @param {string[]} options.targetSelectors
+ * @param {string} options.targetContainerSelector
+ * @param {() => HTMLElement|null} [options.arrival]
  * @returns {Animation|null}
  */
-export function flyToCart(sourceImg) {
-  const target = cartTarget();
+function flyToHeader(sourceImg, {
+  targetSelectors,
+  targetContainerSelector,
+  arrival,
+}) {
+  const target = headerTarget(targetSelectors);
   if (!sourceImg || !target || !prefersMotion()) return null;
   const from = sourceImg.getBoundingClientRect();
   const src = sourceImg.currentSrc || sourceImg.src;
@@ -84,7 +123,7 @@ export function flyToCart(sourceImg) {
   const flyer = document.createElement('img');
   flyer.src = src;
   flyer.alt = '';
-  flyer.className = 'fly-to-cart';
+  flyer.className = 'fly-to-header';
   flyer.setAttribute('aria-hidden', 'true');
   Object.assign(flyer.style, {
     left: `${from.left}px`,
@@ -116,16 +155,40 @@ export function flyToCart(sourceImg) {
 
   const land = () => {
     flyer.remove();
-    const icon = target.el.closest('.nav-cart-icon') || target.el;
+    const icon = target.el.closest(targetContainerSelector) || target.el;
     icon.classList.remove('is-bumped');
     // Restart the bump animation on repeated adds
     // eslint-disable-next-line no-unused-expressions
     icon.offsetWidth;
     icon.classList.add('is-bumped');
     icon.addEventListener('animationend', () => icon.classList.remove('is-bumped'), { once: true });
+    highlightArrival(arrival);
   };
   flight.finished.then(land, () => flyer.remove());
   return flight;
+}
+
+export function flyToCart(sourceImg, assetId) {
+  return flyToHeader(sourceImg, {
+    targetSelectors: ['.nav-cart-icon button', '.nav-cart-icon'],
+    targetContainerSelector: '.nav-cart-icon',
+    arrival: assetId
+      ? () => [...document.querySelectorAll('.cart-asset-row')]
+        .find((row) => row.dataset.assetId === String(assetId)) || null
+      : null,
+  });
+}
+
+/**
+ * Emphasize an element after a successful state-changing action.
+ */
+export function pulseConfirmation(el) {
+  if (!el?.isConnected || !prefersMotion()) return null;
+  return el.animate([
+    { transform: 'scale(1)', boxShadow: '0 0 0 0 rgb(40 167 69 / 0%)' },
+    { transform: 'scale(1.015)', boxShadow: '0 0 0 5px rgb(40 167 69 / 28%)', offset: 0.45 },
+    { transform: 'scale(1)', boxShadow: '0 0 0 0 rgb(40 167 69 / 0%)' },
+  ], { duration: 650, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
 }
 
 /**

@@ -1,7 +1,12 @@
 import {
   describe, it, expect, vi, beforeEach, afterEach,
 } from 'vitest';
-import { playExit, flyToCart, animateHeight } from '../motion.js';
+import {
+  playExit,
+  flyToCart,
+  pulseConfirmation,
+  animateHeight,
+} from '../motion.js';
 
 function setMotion(reduce) {
   window.matchMedia = vi.fn().mockReturnValue({ matches: !reduce });
@@ -68,7 +73,36 @@ describe('flyToCart', () => {
     setMotion(true);
     document.body.innerHTML = '<div class="nav-cart-icon"><button></button></div><img id="img">';
     flyToCart(document.getElementById('img'));
-    expect(document.querySelector('.fly-to-cart')).toBeNull();
+    expect(document.querySelector('.fly-to-header')).toBeNull();
+  });
+
+  it('flies to cart and highlights a rendered destination row', async () => {
+    document.body.innerHTML = `
+      <div class="nav-cart-icon"><button></button></div>
+      <img id="img" src="https://example.com/asset.png">
+      <div class="cart-asset-row" data-asset-id="asset-1"></div>`;
+    const img = document.getElementById('img');
+    Object.defineProperty(img, 'currentSrc', {
+      value: 'https://example.com/asset.png',
+      configurable: true,
+    });
+    vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
+      top: 100, bottom: 200, left: 100, right: 200, width: 100, height: 100,
+    });
+    vi.spyOn(document.querySelector('.nav-cart-icon button'), 'getBoundingClientRect')
+      .mockReturnValue({
+        top: 0, bottom: 40, left: 400, right: 440, width: 40, height: 40,
+      });
+    const animation = fakeAnimation();
+    Element.prototype.animate = vi.fn(() => animation);
+
+    flyToCart(img, 'asset-1');
+    expect(document.querySelector('.fly-to-header')).not.toBeNull();
+    animation.finish();
+    await animation.finished;
+    await Promise.resolve();
+    expect(document.querySelector('.cart-asset-row').classList)
+      .toContain('is-transition-arrival');
   });
 });
 
@@ -86,6 +120,15 @@ describe('animateHeight', () => {
       [{ height: '40px' }, { height: '200px' }],
       expect.objectContaining({ duration: 220 }),
     );
+  });
+
+  describe('pulseConfirmation', () => {
+    it('animates a connected element when motion is allowed', () => {
+      const el = document.createElement('div');
+      document.body.append(el);
+      expect(pulseConfirmation(el)).not.toBeNull();
+      expect(el.animate).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('only runs the change when reduced motion is on', () => {

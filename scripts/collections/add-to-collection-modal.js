@@ -12,13 +12,14 @@ import { dispatchAssetAction } from '../audit/asset-audit.js';
 import { ASSET_AUDIT_ACTIONS } from '../audit/asset-audit-constants.js';
 import setButtonLoading from '../../blocks/search-results/utils/dom-utils.js';
 import { localizePath } from '../locale-utils.js';
-import { playExit } from '../motion.js';
+import { playExit, pulseConfirmation } from '../motion.js';
 
 // Global state
 let collectionsClient = null;
 let allCollections = [];
 let currentAsset = null; // legacy single asset support
 let currentAssets = [];
+let currentSourceElement = null;
 let collectionsModal = null;
 
 // Pagination state for ContentAI cursor-based pagination
@@ -59,7 +60,9 @@ async function initAddToCollectionModal() {
 
 // Handle the custom event from React components
 function handleOpenCollectionModal(event) {
-  const { asset, assets, assetPath } = event.detail || {};
+  const {
+    asset, assets, assetPath, sourceElement,
+  } = event.detail || {};
   if (Array.isArray(assets)) {
     currentAssets = assets.slice();
   } else if (asset) {
@@ -72,6 +75,7 @@ function handleOpenCollectionModal(event) {
   } else {
     currentAsset = null;
   }
+  currentSourceElement = sourceElement || null;
   try {
     // Log asset details when opening the modal to inspect available fields
     // Using JSON.stringify for readable formatting
@@ -169,6 +173,7 @@ function hideCollectionsModal() {
   collectionsModal.style.display = 'none';
   currentAsset = null;
   currentAssets = [];
+  currentSourceElement = null;
 }
 
 /**
@@ -412,15 +417,22 @@ async function handleAddToSelectedCollections(event) {
     setButtonLoading(addBtnRef, false);
     updatedCount = results.reduce((sum, count) => sum + count, 0);
 
-    // Hide modal and show success
-    hideCollectionsModal();
-
     if (updatedCount > 0) {
+      const sourceElement = currentSourceElement;
+      const firstCollectionId = selectedCollectionIds[0];
+      hideCollectionsModal();
+      pulseConfirmation(sourceElement);
       assets.forEach((asset) => {
         dispatchAssetAction(ASSET_AUDIT_ACTIONS.COLLECTION_ADD, asset.assetId || asset.id);
       });
-      showToast('ASSETS ADDED TO COLLECTIONS SUCCESSFULLY', 'success');
+      showToast('ASSETS ADDED TO COLLECTIONS SUCCESSFULLY', 'success', {
+        actionLabel: selectedCollectionIds.length === 1 ? 'Open collection' : '',
+        actionHref: selectedCollectionIds.length === 1
+          ? localizePath(`/collection-details?id=${encodeURIComponent(firstCollectionId)}`)
+          : '',
+      });
     } else {
+      hideCollectionsModal();
       showToast('Failed to add assets to collections', 'error');
     }
   } catch (error) {

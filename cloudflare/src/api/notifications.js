@@ -147,8 +147,10 @@ export async function listNotifications(request, env) {
     const locale = getLocaleFromRequest(request);
 
     // Fetch user notifications from KV and system notifications from EDS in parallel
+    const hasMessagesStore = typeof env.MESSAGES?.list === 'function'
+      && typeof env.MESSAGES?.get === 'function';
     const [kvNotifications, systemNotifications] = await Promise.all([
-      (async () => {
+      hasMessagesStore ? (async () => {
         // List all keys with user email prefix
         const prefix = `${userEmail}:`;
         const { keys } = await env.MESSAGES.list({ prefix, limit: 1000 });
@@ -160,7 +162,7 @@ export async function listNotifications(request, env) {
         });
 
         return (await Promise.all(notificationPromises)).filter((msg) => msg !== null);
-      })(),
+      })() : Promise.resolve([]),
       fetchSystemNotifications(request, env, locale),
     ]);
 

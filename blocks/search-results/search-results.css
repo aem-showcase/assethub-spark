@@ -260,6 +260,12 @@ main > .section > div:has(.search-results) {
   align-items: flex-start;
 }
 
+@media (width <= 768px) {
+  .search-results .images-content-row {
+    flex-direction: column;
+  }
+}
+
 /* ========================================
    Item Thumbnails (Renditions, etc.)
    ======================================== */

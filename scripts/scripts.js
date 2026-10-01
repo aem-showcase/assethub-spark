@@ -561,6 +561,16 @@ export async function fetchSpreadsheetData(sheetPath, sheetName = '') {
         throw new Error(`Failed to fetch spreadsheet: ${resp.status} ${resp.statusText}`);
       }
 
+      const responseUrl = new URL(resp.url || url, window.location.origin);
+      if (resp.redirected && responseUrl.pathname.endsWith('/404.html')) {
+        return { data: [] };
+      }
+
+      const contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Expected JSON spreadsheet response, received ${contentType || 'unknown content type'}`);
+      }
+
       // eslint-disable-next-line no-await-in-loop
       const json = await resp.json();
 

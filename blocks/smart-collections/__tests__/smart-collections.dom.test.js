@@ -137,7 +137,11 @@ describe('smart-collections block', () => {
     await decorate(block);
 
     expect(block.querySelector('[role="status"]').textContent)
-      .toContain('No Smart Collections available.');
+      .toContain('No Smart Collections yet.');
+    expect(block.querySelector('.smart-collections-empty-action')).toMatchObject({
+      pathname: '/en/search',
+      textContent: 'Browse assets',
+    });
     expect(searchAssetsMock).not.toHaveBeenCalled();
     expect(block.hasAttribute('aria-busy')).toBe(false);
   });

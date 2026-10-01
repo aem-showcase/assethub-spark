@@ -1,6 +1,12 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createNotification, deleteNotification, getNotification, updateNotification } from '../notifications.js';
+import {
+  createNotification,
+  deleteNotification,
+  getNotification,
+  listNotifications,
+  updateNotification,
+} from '../notifications.js';
 
 /**
  * Helper to create a request with authenticated user
@@ -18,6 +24,18 @@ describe('Notifications API', () => {
     // Clear KV store before each test
     const { keys } = await env.MESSAGES.list();
     await Promise.all(keys.map((key) => env.MESSAGES.delete(key.name)));
+  });
+
+  describe('listNotifications', () => {
+    it('degrades to system notifications when the user-message KV binding is unavailable', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages?locale=en');
+      const response = await listNotifications(request, {});
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.messages).toEqual([]);
+    });
   });
 
   describe('createNotification', () => {

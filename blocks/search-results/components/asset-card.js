@@ -233,7 +233,7 @@ export function createAssetCard(options) {
       if (btn.classList.contains('remove-from-cart')) {
         onRemoveFromCart?.(image);
       } else {
-        flyToCart(card.querySelector('.image-wrapper img'));
+        flyToCart(card.querySelector('.image-wrapper img'), image.assetId);
         onAddToCart?.(image, e);
       }
     });

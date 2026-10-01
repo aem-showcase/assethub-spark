@@ -121,6 +121,22 @@ function createStatus(className, message, role = 'status') {
   return status;
 }
 
+function createEmptyState(t) {
+  const status = createStatus(
+    'smart-collections-empty',
+    t(
+      'noSmartCollections',
+      'No Smart Collections yet. Start with a search, then save the filters you use most.',
+    ),
+  );
+  const action = document.createElement('a');
+  action.className = 'button primary smart-collections-empty-action';
+  action.href = localizePath('/search');
+  action.textContent = t('browseAssets', 'Browse assets');
+  status.append(action);
+  return status;
+}
+
 function createPlaceholder(label) {
   const placeholder = document.createElement('div');
   placeholder.className = 'smart-collections-card-placeholder';
@@ -203,10 +219,7 @@ export default async function decorate(block) {
   try {
     const collections = await listSmartCollections();
     if (!collections.length) {
-      block.replaceChildren(createStatus(
-        'smart-collections-empty',
-        t('noSmartCollections', 'No Smart Collections available.'),
-      ));
+      block.replaceChildren(createEmptyState(t));
       return;
     }
 

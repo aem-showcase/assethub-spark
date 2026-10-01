@@ -5,6 +5,7 @@
  */
 
 const EXPECTED_ERRORS = new Set(['AbortError', 'InvalidStateError', 'TimeoutError']);
+let activeTransition = null;
 
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function'
@@ -15,6 +16,10 @@ export function canAnimate() {
   return typeof document.startViewTransition === 'function'
     && !prefersReducedMotion()
     && document.visibilityState !== 'hidden';
+}
+
+export function hasActiveTransition() {
+  return activeTransition !== null;
 }
 
 function swallow(promise) {
@@ -31,11 +36,24 @@ function swallow(promise) {
  * @param {Function} update - Sync or async function that mutates the DOM
  * @param {Object} [options]
  * @param {string[]} [options.types] - Transition types (for :active-view-transition-type)
+ * @param {Function} [options.setup] - Runs before the old state is captured
+ * @param {Function} [options.cleanup] - Runs once after completion or fallback
  * @returns {ViewTransition|null} The transition, or null when run without animation
  */
-export function runViewTransition(update, { types = [] } = {}) {
-  if (!canAnimate()) {
-    update();
+export function runViewTransition(update, { types = [], setup, cleanup } = {}) {
+  let cleaned = false;
+  const finishCleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup?.();
+  };
+
+  setup?.();
+
+  if (!canAnimate() || activeTransition) {
+    const result = update();
+    if (result?.finally) result.finally(finishCleanup);
+    else finishCleanup();
     return null;
   }
 
@@ -46,9 +64,13 @@ export function runViewTransition(update, { types = [] } = {}) {
     // Older engines only accept the callback form
     transition = document.startViewTransition(update);
   }
+  activeTransition = transition;
 
   swallow(transition.ready);
-  swallow(transition.finished);
+  swallow(transition.finished?.finally(() => {
+    if (activeTransition === transition) activeTransition = null;
+    finishCleanup();
+  }));
   // If the update callback throws, the DOM change still needs to surface to callers
   swallow(transition.updateCallbackDone);
   return transition;
