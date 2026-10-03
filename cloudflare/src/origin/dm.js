@@ -1132,9 +1132,11 @@ export {
   // Query chunking utilities
   chunkIntoAnd,
   chunkIntoOr,
+  applyCollectionKindFilter,
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
+  validateCollectionAccess,
   // Company metadata: stamp custom:metadata.company on collection create/update
   stampCollectionCompany,
   // IMS token (shared with coa.js — same DM S2S technical account, same x-api-key)
