@@ -1382,6 +1382,7 @@ async function openFacetModal(facetKey, callbacks) {
         facetFilters: selectedFacetFilters,
         numericFilters: state.selectedNumericFilters || [],
         filters: state.presetFilters || [],
+        nativeQuery: state.nativeSmartCollectionQuery,
       },
     );
 

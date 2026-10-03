@@ -29,6 +29,10 @@ must have `custom:metadata.company` matching `DEMO_COMPANY`. Native Smart Collec
 exempt from this company filter, including in All Collections. Asset searches still use
 the configured company scope, including assets opened from a Smart Collection.
 
+Opening a native Smart Collection restores configured category filters from its saved
+positive term clauses. These selections use the normal facet scopes and selected-value
+counts. The saved query remains intact, including conditions not represented by checkboxes.
+
 ## Setup
 
 - Node.js and npm installed

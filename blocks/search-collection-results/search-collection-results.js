@@ -25,6 +25,11 @@ import {
   ICON_SMART_COLLECTION_SM,
   PLACEHOLDER_SVG,
 } from '../../scripts/collections/collection-icons.js';
+import {
+  getNativeSmartCollectionQuery,
+  getSmartCollectionDisplayState,
+  isDeliverySmartCollection,
+} from '../../scripts/collections/smart-collection-query.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
 
@@ -435,6 +440,24 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+export function buildCollectionPath(collection) {
+  const params = new URLSearchParams();
+  if (isDeliverySmartCollection(collection)) {
+    params.set(SEARCH_URL_PARAMS.SMART_COLLECTION_ID, collection.id);
+    const nativeQuery = getNativeSmartCollectionQuery(collection);
+    if (nativeQuery) {
+      const displayState = getSmartCollectionDisplayState(nativeQuery);
+      if (displayState.query) params.set(SEARCH_URL_PARAMS.QUERY, displayState.query);
+      if (displayState.searchMode !== 'FULLTEXT') {
+        params.set(SEARCH_URL_PARAMS.SEARCH_MODE, displayState.searchMode);
+      }
+    }
+    return `${localizePath('/search')}?${params.toString()}`;
+  }
+  params.set('id', collection.id);
+  return `${localizePath('/collection-details')}?${params.toString()}`;
+}
+
 function buildPreview(thumbnailUrl, name, className, collectionId) {
   const el = document.createElement('div');
   el.className = className;
@@ -590,7 +613,7 @@ export default async function decorate(block) {
   let requestToken = 0;
 
   const onView = (collection) => {
-    window.location.href = localizePath(`/collection-details?id=${collection.id}`);
+    window.location.href = buildCollectionPath(collection);
   };
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
@@ -719,8 +742,7 @@ export default async function decorate(block) {
   const onEdit = (collection) => editModal.show(collection);
   const onDelete = (collection) => deleteModal.show(collection);
   const onShareLink = (collection) => {
-    const path = localizePath(`/collection-details?id=${collection.id}`);
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${buildCollectionPath(collection)}`;
     navigator.clipboard.writeText(url).then(() => {
       showToast(t('linkCopied', 'Link copied to clipboard'), 'success');
     }).catch(() => {
@@ -738,7 +760,9 @@ export default async function decorate(block) {
       results.append(el);
     });
     items.forEach((c) => {
-      if (!c.thumbnailUrl) fetchAndInjectPreview(client, c, block);
+      if (!c.thumbnailUrl && !isDeliverySmartCollection(c)) {
+        fetchAndInjectPreview(client, c, block);
+      }
     });
   };
 
