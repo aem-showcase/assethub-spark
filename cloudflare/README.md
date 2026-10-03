@@ -24,9 +24,10 @@ Here are the various URL paths handled by the worker:
 | `/login`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js) | ❌ | 🌎  Login page & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
 | `/*`                   | ✅ | 📑  Adobe Helix content | `*.aem.live` / `*.aem.page` | `/*` |
 
-Collection searches use ownership, sharing, and public access rules. Regular and native
-Smart Collections do not need `custom:metadata.company` to appear. Asset searches still
-use the configured `DEMO_COMPANY` scope, including assets opened from a Smart Collection.
+Collection searches use ownership, sharing, and public access rules. Regular collections
+must have `custom:metadata.company` matching `DEMO_COMPANY`. Native Smart Collections are
+exempt from this company filter, including in All Collections. Asset searches still use
+the configured company scope, including assets opened from a Smart Collection.
 
 ## Setup
 

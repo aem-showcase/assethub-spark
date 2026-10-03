@@ -134,6 +134,9 @@ const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
 const CONTENTAI_COLLECTION_TYPE = 'collectionMetadata.collectionType';
 const CONTENTAI_COLLECTION_CREATED_BY = 'repositoryMetadata.repo:createdBy';
 
+/** ContentAI company scope for regular collections; native Smart Collections are exempt. */
+const CONTENTAI_COLLECTION_COMPANY = 'collectionMetadata.custom:metadata.company';
+
 // ==========================================
 // Collection Roles
 // ==========================================
@@ -718,11 +721,25 @@ function applyCollectionKindFilter(search, collectionKind) {
  *   + optional accessLevel; sharedWithMe = viewer ACL only; public = accessLevel public only;
  *   omitted → legacy owner/editor/viewer filter.
  * - visibility: only for `createdByMe`; ignored otherwise → `all`.
- * Collection company tags are optional and do not restrict search results.
+ * Regular collections require the configured company tag; native Smart Collections do not.
  */
 function collectionsSearchContentAIAuthorization(request, search, options = {}) {
   const user = request.user;
   const userEmailLower = user?.email?.toLowerCase();
+
+  if (config.DEMO_COMPANY) {
+    forceContentAISearchFilter(search, [{
+      or: [
+        { term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] } },
+        {
+          and: [
+            { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
+            { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
+          ],
+        },
+      ],
+    }]);
+  }
 
   if (!userEmailLower) {
     forceContentAISearchFilter(search, [
@@ -827,7 +844,7 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
 
 /**
  * Stamp the demo company onto collection CREATE or UPDATE bodies for metadata tracking.
- * Collection searches do not require this tag.
+ * Regular collection searches require this tag; native Smart Collections are exempt.
  *
  * The tag is written FLAT under `custom:metadata.company`; the delivery tier namespaces it
  * as collectionMetadata.custom:metadata.company on read.
@@ -988,8 +1005,8 @@ export async function originDynamicMedia(request, env, ctx) {
   // --- Stamp company on collection CREATE and UPDATE (always applied) ---
   // Create = POST to exactly PATH_COLLECTIONS. Update = POST to
   // /adobe/assets/collections/{id} (excludes /search and /{id}/items — those have a
-  // different segment shape). Keep the company tag for metadata tracking on both paths;
-  // it is not a collection search requirement.
+  // different segment shape). Keep the company tag on both paths so regular collections
+  // remain visible under the company filter; native Smart Collections are exempt.
   const isCollectionCreate = url.pathname === PATH_COLLECTIONS
     || url.pathname === `${PATH_COLLECTIONS}/`;
   const isCollectionUpdate = /^\/adobe\/assets\/collections\/(?!search$)[^/]+$/.test(url.pathname);
