@@ -133,6 +133,8 @@
   "tags": "Tags",
   "keywords": "Keywords",
   "createNewCollection": "Create New Collection",
+  "smartCollections": "Smart Collections",
+  "autoUpdatingBasedOnFilters": "Auto-updating based on filters",
   "showing": "Showing",
   "of": "of",
   "collectionSharedSuccessfully": "COLLECTION SHARED SUCCESSFULLY WITH {0} USER(S)",

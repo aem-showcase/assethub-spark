@@ -1,7 +1,8 @@
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
-import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collection-ownership-20261003';
 import {
   createEditModal,
   createDeleteModal,
@@ -21,6 +22,7 @@ import {
   ICON_PERSON_FILTER,
   ICON_GLOBE_SM,
   ICON_LOCK_SM,
+  ICON_SMART_COLLECTION_SM,
   PLACEHOLDER_SVG,
 } from '../../scripts/collections/collection-icons.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
@@ -616,6 +618,9 @@ export default async function decorate(block) {
       },
       {
         key: 'sharedByMe', label: t('sharedByMe', 'Shared by me'), description: t('privateCollectionsIShared', 'Private collections you shared with others'), icon: ICON_PERSON_FILTER,
+      },
+      {
+        key: 'smartCollections', label: t('smartCollections', 'Smart Collections'), description: t('autoUpdatingBasedOnFilters', 'Auto-updating based on filters'), icon: ICON_SMART_COLLECTION_SM,
       },
       {
         key: 'sharedWithMe', label: t('sharedWithMe', 'Shared with me'), description: t('privateSharedWithYou', 'Private collections shared with you'), icon: ICON_PERSON_FILTER,

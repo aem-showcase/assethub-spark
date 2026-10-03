@@ -24,7 +24,9 @@ import { decodeJwt } from 'jose';
 import config from '../config.js';
 import {
   CollectionCreatedByMeVisibility,
+  CollectionKind,
   CollectionListSegment,
+  CollectionType,
 } from '../../../scripts/collections/collection-search-constants.js';
 import {
   DM_COLLECTIONS_PATH_PREFIX,
@@ -127,6 +129,10 @@ const CONTENTAI_COLLECTION_SEARCH_ACL = {
 
 /** ContentAI term path for collection access level in search queries */
 const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
+
+/** ContentAI term paths for native Smart Collection filtering and ownership. */
+const CONTENTAI_COLLECTION_TYPE = 'collectionMetadata.collectionType';
+const CONTENTAI_COLLECTION_CREATED_BY = 'repositoryMetadata.repo:createdBy';
 
 /** ContentAI term path for the demo-company scope on a collection.
  * Mirrors the asset-side `assetMetadata.company` scope, but on the collection's own
@@ -350,9 +356,17 @@ async function validateCollectionAccess(collectionId, userEmail, requiredRole, i
   const acl = metadata?.['custom:metadata']?.['custom:acl'] || null;
   const accessLevel = String(metadata.accessLevel || 'private').toLowerCase();
 
-  // Owner: full access (read + write)
+  // Owner: full access (read + write). Native Smart Collections created outside
+  // the portal may expose ownership only through repository metadata.
   const ownerValue = acl?.[ACL_OWNER];
-  if (ownerValue && String(ownerValue).toLowerCase() === userEmail) {
+  const repositoryOwner = collection?.repositoryMetadata?.['repo:createdBy'];
+  const isSmartCollection = metadata.collectionType === CollectionType.DELIVERY_SMART_COLLECTION;
+  const isAclOwner = ownerValue && String(ownerValue).toLowerCase() === userEmail;
+  const isSmartRepositoryOwner = !ownerValue
+    && isSmartCollection
+    && repositoryOwner
+    && String(repositoryOwner).toLowerCase() === userEmail;
+  if (isAclOwner || isSmartRepositoryOwner) {
     return { allowed: true, role: COLLECTION_ROLE_OWNER };
   }
 
@@ -687,17 +701,32 @@ function normalizeCollectionsSearchRelationship(rel) {
   return CollectionListSegment.PUBLIC;
 }
 
+function applyCollectionKindFilter(search, collectionKind) {
+  if (collectionKind === CollectionKind.SMART) {
+    forceContentAISearchFilter(search, [{
+      term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+    }]);
+  } else if (collectionKind === CollectionKind.REGULAR) {
+    forceContentAISearchFilter(search, [{
+      not: [{
+        term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+      }],
+    }]);
+  }
+}
+
 /**
  * ContentAI Search: search authorization for collections
  * @param {Object} request - Request object with user info
  * @param {Object} search - ContentAI search object to modify
  * @param {{
- *   relationship?: 'createdByMe' | 'sharedWithMe' | 'public',
- *   visibility?: 'all' | 'private' | 'public',
+ *   relationship?: 'all' | 'createdByMe' | 'sharedWithMe' | 'publicView' | 'public',
+ *   visibility?: 'all' | 'private' | 'read_only' | 'public',
  * }} [options]
- * - relationship: createdByMe = owner ACL + optional accessLevel; sharedWithMe = viewer ACL only;
- *   public = accessLevel public only; omitted → legacy owner/editor/viewer filter.
- *   visibility: only for `createdByMe` (`all` | `private` | `public`); ignored otherwise → `all`.
+ * - relationship: createdByMe = owner ACL or native Smart Collection creator
+ *   + optional accessLevel; sharedWithMe = viewer ACL only; public = accessLevel public only;
+ *   omitted → legacy owner/editor/viewer filter.
+ * - visibility: only for `createdByMe`; ignored otherwise → `all`.
  */
 function collectionsSearchContentAIAuthorization(request, search, options = {}) {
   const user = request.user;
@@ -742,6 +771,17 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   const searchViewerClause = {
     term: { [CONTENTAI_COLLECTION_SEARCH_ACL.viewer]: emailVariants },
   };
+  const repositoryOwnerClause = {
+    term: { [CONTENTAI_COLLECTION_CREATED_BY]: emailVariants },
+  };
+  const smartRepositoryOwnerClause = {
+    and: [
+      {
+        term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+      },
+      repositoryOwnerClause,
+    ],
+  };
 
   // Backward-compatible mode when no relationship is specified.
   if (options.relationship === undefined) {
@@ -785,9 +825,11 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   let authClauses;
 
   if (relationship === CollectionListSegment.ALL) {
-    authClauses = [{ or: [searchOwnerClause, accessAnyPublic, searchViewerClause] }];
+    authClauses = [{
+      or: [searchOwnerClause, smartRepositoryOwnerClause, accessAnyPublic, searchViewerClause],
+    }];
   } else if (relationship === CollectionListSegment.CREATED_BY_ME) {
-    authClauses = [searchOwnerClause];
+    authClauses = [{ or: [searchOwnerClause, smartRepositoryOwnerClause] }];
     if (visibility === CollectionCreatedByMeVisibility.PRIVATE) {
       authClauses.push(accessPrivate);
     } else if (visibility === CollectionCreatedByMeVisibility.READ_ONLY) {
@@ -936,6 +978,10 @@ export async function originDynamicMedia(request, env, ctx) {
     const search = JSON.parse(body);
     extractSearchContext(request, search);
     const relationship = search.relationship;
+    const collectionKind = search.collectionKind === CollectionKind.SMART
+      || search.collectionKind === CollectionKind.REGULAR
+      ? search.collectionKind
+      : undefined;
     const normalizedRelationship = normalizeCollectionsSearchRelationship(relationship);
     const visibility =
       normalizedRelationship === CollectionListSegment.CREATED_BY_ME &&
@@ -947,7 +993,9 @@ export async function originDynamicMedia(request, env, ctx) {
         : CollectionCreatedByMeVisibility.ALL;
     if (search.relationship !== undefined) delete search.relationship;
     if (search.visibility !== undefined) delete search.visibility;
+    if (search.collectionKind !== undefined) delete search.collectionKind;
     if (search.writeOnly !== undefined) delete search.writeOnly;
+    applyCollectionKindFilter(search, collectionKind);
     collectionsSearchContentAIAuthorization(request, search, {
       relationship,
       visibility,

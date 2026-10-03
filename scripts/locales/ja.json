@@ -121,6 +121,8 @@
   "tags": "タグ",
   "keywords": "キーワード",
   "createNewCollection": "新しいコレクションの作成",
+  "smartCollections": "スマートコレクション",
+  "autoUpdatingBasedOnFilters": "フィルターに基づいて自動更新",
   "showing": "表示中",
   "of": "/",
   "collectionSharedSuccessfully": "COLLECTION SHARED SUCCESSFULLY WITH {0} USER(S)",
