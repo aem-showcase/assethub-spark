@@ -4,7 +4,7 @@
  */
 
 // Import the centralized JavaScript collections client with auth
-import { CollectionListSegment } from './collection-search-constants.js';
+import { CollectionKind, CollectionListSegment } from './collection-search-constants.js';
 import { DynamicMediaCollectionsClient } from './collections-api-client.js';
 import { transformApiCollectionToInternal } from './collections-utils.js';
 import { MAX_HITS_PER_PAGE } from '../../blocks/search-results/utils/config.js';
@@ -217,6 +217,7 @@ async function loadCollectionsForSelection(loadMore = false) {
       createdByMeCursor !== null || !loadMore
         ? collectionsClient.searchCollections({
           limit,
+          collectionKind: CollectionKind.REGULAR,
           relationship: CollectionListSegment.CREATED_BY_ME,
           ...(loadMore && createdByMeCursor ? { cursor: createdByMeCursor } : {}),
         })
@@ -224,6 +225,7 @@ async function loadCollectionsForSelection(loadMore = false) {
       publicCursor !== null || !loadMore
         ? collectionsClient.searchCollections({
           limit,
+          collectionKind: CollectionKind.REGULAR,
           relationship: CollectionListSegment.PUBLIC,
           ...(loadMore && publicCursor ? { cursor: publicCursor } : {}),
         })

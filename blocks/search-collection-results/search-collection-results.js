@@ -627,8 +627,8 @@ export default async function decorate(block) {
   const client = new DynamicMediaCollectionsClient({ user: window.user });
 
   // Filter state
-  let accessFilter = 'all'; // all | onlyMe | viewOnly | edit
-  let creatorFilter = 'anyone'; // anyone | me
+  let accessFilter = 'all';
+  let creatorFilter = 'anyone';
 
   let collections = [];
   let total = 0;
