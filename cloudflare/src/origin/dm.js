@@ -134,15 +134,6 @@ const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
 const CONTENTAI_COLLECTION_TYPE = 'collectionMetadata.collectionType';
 const CONTENTAI_COLLECTION_CREATED_BY = 'repositoryMetadata.repo:createdBy';
 
-/** ContentAI term path for the demo-company scope on a collection.
- * Mirrors the asset-side `assetMetadata.company` scope, but on the collection's own
- * metadata surface. Stamped by scripts/agent/create-collections.js when a collection
- * is created, and matched against config.DEMO_COMPANY on every collections search so a
- * demo only ever surfaces the current company's collections.
- * @constant {string}
- */
-const CONTENTAI_COLLECTION_COMPANY = 'collectionMetadata.custom:metadata.company';
-
 // ==========================================
 // Collection Roles
 // ==========================================
@@ -727,30 +718,11 @@ function applyCollectionKindFilter(search, collectionKind) {
  *   + optional accessLevel; sharedWithMe = viewer ACL only; public = accessLevel public only;
  *   omitted → legacy owner/editor/viewer filter.
  * - visibility: only for `createdByMe`; ignored otherwise → `all`.
+ * Collection company tags are optional and do not restrict search results.
  */
 function collectionsSearchContentAIAuthorization(request, search, options = {}) {
   const user = request.user;
   const userEmailLower = user?.email?.toLowerCase();
-
-  // --- Customer scope filter (always applied) ---
-  // Mirrors the asset company scope (buildAssetAuthClauses): config.DEMO_COMPANY restricts
-  // every collections search to collections tagged collectionMetadata.custom:metadata.company
-  // === DEMO_COMPANY. Injected BEFORE all ACL/visibility branches below (and before the
-  // early returns) so it holds on every path — including admins, so the demo never leaks
-  // another company's collections. create-collections.js stamps this tag at creation time.
-  //
-  // The explicit `exists` clause matters on its own: a `term` match on a missing field is
-  // normally excluded, but collections created before this company-scoping code existed (or
-  // written by any path that skips stampCollectionCompany) have no company field at all —
-  // without a hard exists check, any relaxation of the term match (or a backend quirk in how
-  // missing fields are scored) can let untagged legacy collections leak into every company's
-  // demo. Requiring existence closes that off by construction, independent of term semantics.
-  if (config.DEMO_COMPANY) {
-    forceContentAISearchFilter(search, [
-      { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
-      { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
-    ]);
-  }
 
   if (!userEmailLower) {
     forceContentAISearchFilter(search, [
@@ -854,17 +826,12 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
 }
 
 /**
- * Stamp the demo company onto a collection CREATE or UPDATE request body so that EVERY
- * collection written through the worker — the portal UI, scripts/collections, the Step 6
- * agent, anything — carries custom:metadata.company === config.DEMO_COMPANY. This is the
- * write side of the company scope: without it a collection has no company tag (on create)
- * or could lose it (on an update that overwrites custom:metadata) and would then be hidden
- * by the collectionsSearchContentAIAuthorization company filter (i.e. become "unlisted" —
- * reachable only by direct id).
+ * Stamp the demo company onto collection CREATE or UPDATE bodies for metadata tracking.
+ * Collection searches do not require this tag.
  *
  * The tag is written FLAT under `custom:metadata.company`; the delivery tier namespaces it
- * as collectionMetadata.custom:metadata.company on read (the exact key the search filter
- * matches). Mutates and returns the parsed body. No-op when DEMO_COMPANY is unset.
+ * as collectionMetadata.custom:metadata.company on read.
+ * Mutates and returns the parsed body. No-op when DEMO_COMPANY is unset.
  *
  * @param {Object} parsedBody - the parsed JSON create/update body
  * @returns {Object} the same body with custom:metadata.company set
@@ -1021,10 +988,8 @@ export async function originDynamicMedia(request, env, ctx) {
   // --- Stamp company on collection CREATE and UPDATE (always applied) ---
   // Create = POST to exactly PATH_COLLECTIONS. Update = POST to
   // /adobe/assets/collections/{id} (excludes /search and /{id}/items — those have a
-  // different segment shape). Stamping on BOTH means a collection can never lose its
-  // company tag — not at creation, and not via a later metadata update that overwrites
-  // custom:metadata — so it always stays visible under the company search filter,
-  // whatever client wrote it (portal UI, scripts, the Step 6 agent).
+  // different segment shape). Keep the company tag for metadata tracking on both paths;
+  // it is not a collection search requirement.
   const isCollectionCreate = url.pathname === PATH_COLLECTIONS
     || url.pathname === `${PATH_COLLECTIONS}/`;
   const isCollectionUpdate = /^\/adobe\/assets\/collections\/(?!search$)[^/]+$/.test(url.pathname);
@@ -1153,7 +1118,7 @@ export {
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
-  // Company scope: stamp custom:metadata.company on collection create/update
+  // Company metadata: stamp custom:metadata.company on collection create/update
   stampCollectionCompany,
   // IMS token (shared with coa.js — same DM S2S technical account, same x-api-key)
   getIMSToken,
