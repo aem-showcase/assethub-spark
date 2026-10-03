@@ -33,6 +33,10 @@ Opening a native Smart Collection restores configured category filters from its 
 positive term clauses. These selections use the normal facet scopes and selected-value
 counts. The saved query remains intact, including conditions not represented by checkboxes.
 
+Smart Collection thumbnails use the first asset matching the saved query and the viewer's
+asset access rules. Empty collections keep the placeholder. Previews refresh on collection
+fetches rather than using a session-cached Smart Collection thumbnail.
+
 ## Setup
 
 - Node.js and npm installed

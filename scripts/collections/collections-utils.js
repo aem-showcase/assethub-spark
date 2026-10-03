@@ -54,7 +54,8 @@ export function transformApiCollectionToInternal(apiCollection) {
     smartCollectionQuery:
       metadata.smartCollectionQuery || apiCollection.smartCollectionQuery || null,
     itemCount: apiCollection.itemCount || 0,
-    thumbnailUrl: metadata['dam:thumbnailUrl'] || '',
+    thumbnailUrl: collectionType === CollectionType.DELIVERY_SMART_COLLECTION
+      ? '' : metadata['dam:thumbnailUrl'] || '',
     acl,
     isOwner,
     contents: [],

@@ -1,8 +1,10 @@
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
-import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
 // eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
-import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collection-picker-order-20261003';
+import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js?v=smart-collection-thumbnails-20261003';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collection-thumbnails-20261003';
+import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import {
   createEditModal,
   createDeleteModal,
@@ -34,6 +36,7 @@ import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
 
 const VIEW_STORAGE_KEY = 'scr-view';
+const pendingPreviews = new WeakSet();
 
 /**
  * Simple accessible picker: a button that opens a dropdown list of options.
@@ -486,22 +489,46 @@ function injectPreviewUrl(previewUrl, collection, block) {
 }
 
 async function fetchAndInjectPreview(client, collection, block) {
+  if (pendingPreviews.has(collection)) return;
+  const isSmartCollection = isDeliverySmartCollection(collection);
   const cacheKey = `scr-thumb-${collection.id}`;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) { injectPreviewUrl(cached, collection, block); return; }
-  } catch { /* ignore */ }
+  if (!isSmartCollection) {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { injectPreviewUrl(cached, collection, block); return; }
+    } catch { /* ignore */ }
+  }
 
+  pendingPreviews.add(collection);
   try {
-    const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
-    if (!items || items.length === 0) return;
-    const assetId = items[0].id;
+    let assetId;
+    if (isSmartCollection) {
+      const nativeQuery = getNativeSmartCollectionQuery(collection);
+      if (!nativeQuery) throw new Error('Smart Collection has no valid saved query');
+      const response = await getContentAIClient().searchAssets('', {
+        nativeQuery,
+        hitsPerPage: 1,
+        orderBy: null,
+        skipFacetsRequest: true,
+      });
+      assetId = response.hits?.results?.[0]?.assetId;
+    } else {
+      const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
+      assetId = items?.[0]?.id;
+    }
     if (!assetId) return;
     const previewUrl = `/api/adobe/assets/${assetId}/as/thumbnail.jpg?width=400`;
-    try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    if (isSmartCollection) {
+      collection.thumbnailUrl = previewUrl;
+    } else {
+      try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    }
     injectPreviewUrl(previewUrl, collection, block);
-  } catch {
-    // non-critical, placeholder stays
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[search-collection-results] preview failed', collection.id, error);
+  } finally {
+    pendingPreviews.delete(collection);
   }
 }
 
@@ -760,7 +787,7 @@ export default async function decorate(block) {
       results.append(el);
     });
     items.forEach((c) => {
-      if (!c.thumbnailUrl && !isDeliverySmartCollection(c)) {
+      if (!c.thumbnailUrl) {
         fetchAndInjectPreview(client, c, block);
       }
     });
