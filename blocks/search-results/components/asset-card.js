@@ -17,6 +17,7 @@ import {
   selectPrioritizedRendition, getMediaType, getRenditionUrl,
 } from './asset-details/zip-media-handler.js';
 import { openDownloadRenditionsModal } from './download-renditions/download-renditions-modal.js';
+import { flyToCart } from '../../../scripts/motion.js';
 
 /**
  * Create an asset card element
@@ -232,6 +233,7 @@ export function createAssetCard(options) {
       if (btn.classList.contains('remove-from-cart')) {
         onRemoveFromCart?.(image);
       } else {
+        flyToCart(card.querySelector('.image-wrapper img'), image.assetId);
         onAddToCart?.(image, e);
       }
     });

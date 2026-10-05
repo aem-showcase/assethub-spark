@@ -144,6 +144,11 @@ main .smart-collections .smart-collections-status {
 
 main .smart-collections .smart-collections-status p {
   margin: 0;
+  max-width: 46ch;
+}
+
+main .smart-collections .smart-collections-empty-action {
+  margin: 4px 0 0;
 }
 
 main .smart-collections .smart-collections-status-icon {

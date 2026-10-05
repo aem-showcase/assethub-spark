@@ -43,6 +43,8 @@ import {
   ICON_DELETE_MD,
   ICON_DOWNLOAD_MD,
 } from '../../scripts/collections/collection-icons.js';
+import { whenActivated } from '../../scripts/speculation.js';
+import subscribeCollectionSearchRefresh from './collection-search-refresh.js';
 
 function makeActionBtn(label, html, onClick) {
   const btn = document.createElement('button');
@@ -362,9 +364,11 @@ export default async function decorate(block) {
     }
   });
 
+  subscribeCollectionSearchRefresh({ subscribe, search });
+
   // Read query from URL and kick off first search
   const queryParam = urlParams.get('query') || urlParams.get('fulltext') || '';
   if (queryParam) setState({ query: queryParam });
 
-  search(queryParam);
+  whenActivated(() => search(queryParam));
 }

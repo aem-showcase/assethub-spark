@@ -8,6 +8,8 @@ vi.mock('../../../scripts/locale-utils.js', () => ({
   getLocaleRedirectUrl: () => null,
   hasLocalePrefix: () => true,
   getCurrentLocale: () => 'en',
+  OPTIONAL_SITE_PATH_REGEX_SOURCE: String.raw`(?:/companies/[^/]+)?(?:/(?:en|ja))?`,
+  OPTIONAL_SITE_PATH_URL_PATTERN: '{/companies/:company}?{/:locale(en|ja)}?',
 }));
 
 vi.mock('../../search-results/utils/sort-utils.js', () => ({

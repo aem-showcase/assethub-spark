@@ -27,6 +27,18 @@ describe('Notifications API', () => {
     await Promise.all(keys.map((key) => env.MESSAGES.delete(key.name)));
   });
 
+  describe('listNotifications', () => {
+    it('degrades to system notifications when the user-message KV binding is unavailable', async () => {
+      const request = createAuthenticatedRequest('http://test/api/messages?locale=en');
+      const response = await listNotifications(request, {});
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.messages).toEqual([]);
+    });
+  });
+
   describe('createNotification', () => {
     it('should return 401 when user is not authenticated', async () => {
       const request = new Request('http://test/api/messages', {
