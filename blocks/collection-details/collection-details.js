@@ -1,13 +1,20 @@
 /**
  * Collection Details block
  * Renders assets in a collection using the full search-results UI (gallery + facets panel).
- * Delegates all rendering to search-results by setting collectionId in externalParams so
- * performSearchImages scopes every query to this collection.
+ * Regular collections use their items endpoint; native Smart Collections run their saved
+ * asset query through the same gallery and facets.
  */
 
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
+import {
+  getNativeSmartCollectionQuery,
+  getSmartCollectionDisplayState,
+  getSmartCollectionFacetState,
+  isDeliverySmartCollection,
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+} from '../../scripts/collections/smart-collection-query.js?v=smart-collection-details-20261005';
 import {
   CollectionAccessLevel,
   CollectionAclField,
@@ -28,11 +35,17 @@ import {
   handleClearAllFacets,
   fetchAssetRenditions,
 } from '../search-results/search-results.js';
-import { createImageGallery } from '../search-results/components/image-gallery.js';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { createImageGallery } from '../search-results/components/image-gallery.js?v=smart-collection-details-20261005';
 import { createFacetsPanel } from '../search-results/components/facets/index.js';
 import { getDynamicMediaClient } from '../search-results/clients/dynamicmedia-client.js';
-import { getFacetsConfig } from '../search-results/constants/facets.js';
-import { getHitsPerPage } from '../search-results/utils/config.js';
+import { getFacetsConfig, getMetadataPath } from '../search-results/constants/facets.js';
+import {
+  getHitsPerPage,
+  loadSearchFiltersFromUrl,
+  saveSearchFiltersToUrl,
+} from '../search-results/utils/config.js';
+import { DEFAULT_SORT_TYPE, DEFAULT_SORT_DIRECTION } from '../search-results/utils/sort-utils.js';
 import { loadSearchExpandAllDetailsState } from '../search-results/utils/toggle-state-storage.js';
 import { localizePath, getAppLabel } from '../../scripts/locale-utils.js';
 import { getBlockKeyValues, stripHtmlAndNewlines } from '../../scripts/scripts.js';
@@ -53,8 +66,19 @@ function makeActionBtn(label, html, onClick) {
   return btn;
 }
 
+function showCollectionLoadError(block, t) {
+  block.textContent = '';
+  const error = document.createElement('div');
+  error.className = 'cd-error';
+  error.innerHTML = `<p>${t('collectionNotFound', 'We couldn\'t load this collection. It may no longer exist, or the link may be incorrect.')}</p>
+    <p>${t('collectionNotFoundHelp', 'Still need help? Reach out to our Asset Management Team.')}</p>
+    <p><a href="${localizePath('/search-collections')}">${t('backToCollections', 'Back to Collections')}</a></p>`;
+  block.append(error);
+}
+
 export default async function decorate(block) {
   const t = await getAppLabel();
+  const blockConfig = getBlockKeyValues(block);
 
   loadCSS('/blocks/search-results/search-results.css');
   // Modal styles (.scr-modal-*, .scr-share-*) live alongside search-collection-results
@@ -77,7 +101,6 @@ export default async function decorate(block) {
   // Fetch the full collection (name, ACL, accessLevel) for breadcrumb + actions.
   // Retry once on transient errors (5xx / network) so a flaky upstream doesn't
   // silently hide Edit / Delete / Share-access until a hard refresh.
-  // Falls through to id-only behaviour if both attempts fail.
   let collection = null;
   // eslint-disable-next-line no-restricted-syntax
   for (const attempt of [1, 2]) {
@@ -92,13 +115,7 @@ export default async function decorate(block) {
     } catch (err) {
       // 401 / 403 → definitive access denied; show a clear message and bail out.
       if (err?.status === 401 || err?.status === 403) {
-        block.textContent = '';
-        const denied = document.createElement('div');
-        denied.className = 'cd-error';
-        denied.innerHTML = `<p>${t('collectionNotFound', 'We couldn\'t load this collection. It may no longer exist, or the link may be incorrect.')}</p>
-          <p>${t('collectionNotFoundHelp', 'Still need help? Reach out to our Asset Management Team.')}</p>
-          <p><a href="${localizePath('/search-collections')}">${t('backToCollections', 'Back to Collections')}</a></p>`;
-        block.append(denied);
+        showCollectionLoadError(block, t);
         return;
       }
       // Only retry on transient errors. The client wraps fetch failures in an
@@ -113,11 +130,24 @@ export default async function decorate(block) {
         continue;
       }
       // eslint-disable-next-line no-console
-      console.warn('[collection-details] failed to load full metadata; owner-only actions hidden', err);
+      console.warn('[collection-details] failed to load collection metadata', err);
       break;
     }
   }
 
+  if (!collection) {
+    showCollectionLoadError(block, t);
+    return;
+  }
+  const isSmartCollection = isDeliverySmartCollection(collection);
+  const nativeQuery = isSmartCollection ? getNativeSmartCollectionQuery(collection) : null;
+  if (isSmartCollection && !nativeQuery) {
+    // eslint-disable-next-line no-console
+    console.error('[collection-details] Smart Collection has no valid saved query', collectionId);
+    showCollectionLoadError(block, t);
+    return;
+  }
+  const displayState = nativeQuery ? getSmartCollectionDisplayState(nativeQuery) : null;
   const collectionName = collection?.name || '';
 
   block.textContent = '';
@@ -214,11 +244,13 @@ export default async function decorate(block) {
 
       // Bulk "Remove from collection" — owner-only, same gate as edit/delete.
       // Wired into the gallery below via onBulkRemoveFromCollection.
-      removeModal = createRemoveAssetsModal({
-        client,
-        t,
-        onRemoved: () => search(),
-      });
+      if (!isSmartCollection) {
+        removeModal = createRemoveAssetsModal({
+          client,
+          t,
+          onRemoved: () => search(),
+        });
+      }
     }
 
     wrapper.append(editModal.overlay, deleteModal.overlay, shareModal.overlay);
@@ -260,7 +292,6 @@ export default async function decorate(block) {
 
   // Read excFacets: from block content, or cached from a prior search page visit
   let excFacets = {};
-  const blockConfig = getBlockKeyValues(block);
   if (blockConfig.excFacets) {
     try {
       excFacets = JSON.parse(stripHtmlAndNewlines(blockConfig.excFacets));
@@ -277,7 +308,7 @@ export default async function decorate(block) {
   window.SearchResultsConfig = window.SearchResultsConfig || {};
   window.SearchResultsConfig.externalParams = {
     isBlockIntegration: true,
-    collectionId,
+    collectionId: isSmartCollection ? undefined : collectionId,
     hitsPerPage: String(getHitsPerPage()),
     sortType: '',
     sortDirection: '',
@@ -287,12 +318,42 @@ export default async function decorate(block) {
     presetFilters: [],
   };
 
+  const savedFacetState = nativeQuery ? getSmartCollectionFacetState(
+    nativeQuery,
+    Object.fromEntries(
+      Object.entries(excFacets)
+        .filter(([, config]) => config.type !== 'date')
+        .map(([key]) => [key, getMetadataPath(key)]),
+    ),
+  ) : {};
+  const urlFilters = loadSearchFiltersFromUrl();
+  const facetCheckedState = { ...savedFacetState, ...urlFilters?.facetCheckedState };
+  const query = displayState?.query || urlParams.get('query') || urlParams.get('fulltext') || '';
+
   setState({
     externalParams: window.SearchResultsConfig.externalParams,
     authenticated: true,
     dynamicMediaClient: getDynamicMediaClient(),
     excFacets: getFacetsConfig(),
     presetFilters: [],
+    query,
+    searchMode: displayState?.searchMode || 'FULLTEXT',
+    nativeSmartCollectionQuery: nativeQuery,
+    smartCollectionLoadFailed: false,
+    facetCheckedState,
+    selectedNumericFilters: urlFilters?.selectedNumericFilters || [],
+    expandedFacets: Object.fromEntries(
+      Object.entries(facetCheckedState)
+        .filter(([, values]) => Object.values(values).some(Boolean))
+        .map(([key]) => [key, true]),
+    ),
+    expandedHierarchyItems: {},
+    selectedSortType: DEFAULT_SORT_TYPE,
+    selectedSortDirection: DEFAULT_SORT_DIRECTION,
+    currentPage: 0,
+    contentAICursor: null,
+    dmImages: [],
+    searchResults: null,
     expandAllDetails: loadSearchExpandAllDetailsState(true),
   });
 
@@ -305,8 +366,9 @@ export default async function decorate(block) {
   const galleryContainer = wrapper.querySelector('#image-gallery');
   const facetsContainer = wrapper.querySelector('#facet-filter-panel');
 
-  createImageGallery(galleryContainer, {
+  await createImageGallery(galleryContainer, {
     onLoadMoreResults: handleLoadMoreResults,
+    onShareSearch: onShareLink,
     onFacetCheckbox: handleFacetCheckbox,
     onClearAllFacets: handleClearAllFacets,
     fetchAssetRenditions,
@@ -315,7 +377,7 @@ export default async function decorate(block) {
       : undefined,
   });
 
-  createFacetsPanel(facetsContainer, {
+  await createFacetsPanel(facetsContainer, {
     search,
     onFacetCheckbox: handleFacetCheckbox,
     onClearAllFacets: handleClearAllFacets,
@@ -327,11 +389,20 @@ export default async function decorate(block) {
       const panel = wrapper.querySelector('.facet-filter-panel');
       if (panel) panel.classList.toggle('mobile-open', currentState.isMobileFilterOpen);
     }
+    if (
+      updates.facetCheckedState !== undefined
+      || updates.selectedNumericFilters !== undefined
+      || updates.selectedSortType !== undefined
+      || updates.selectedSortDirection !== undefined
+    ) {
+      saveSearchFiltersToUrl(
+        currentState.facetCheckedState,
+        currentState.selectedNumericFilters,
+        currentState.query,
+      );
+      search();
+    }
   });
 
-  // Read query from URL and kick off first search
-  const queryParam = urlParams.get('query') || urlParams.get('fulltext') || '';
-  if (queryParam) setState({ query: queryParam });
-
-  search(queryParam);
+  search(query);
 }

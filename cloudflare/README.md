@@ -29,9 +29,11 @@ must have `custom:metadata.company` matching `DEMO_COMPANY`. Native Smart Collec
 exempt from this company filter, including in All Collections. Asset searches still use
 the configured company scope, including assets opened from a Smart Collection.
 
-Opening a native Smart Collection restores configured category filters from its saved
-positive term clauses. These selections use the normal facet scopes and selected-value
-counts. The saved query remains intact, including conditions not represented by checkboxes.
+Opening a native Smart Collection shows its saved asset search in `collection-details`,
+with the same gallery, breadcrumb, and filters as a regular collection. Configured category
+filters are restored from its saved positive term clauses and use the normal facet scopes
+and selected-value counts. The saved query remains intact, including conditions not
+represented by checkboxes. Static asset removal is unavailable for Smart Collections.
 
 Smart Collection thumbnails use the first asset matching the saved query and the viewer's
 asset access rules. Empty collections keep the placeholder. Previews refresh on collection

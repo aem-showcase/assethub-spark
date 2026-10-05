@@ -3,7 +3,7 @@ import { DynamicMediaCollectionsClient } from '../../scripts/collections/collect
 // eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js?v=smart-collection-thumbnails-20261003';
 // eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
-import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collection-thumbnails-20261003';
+import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collection-details-20261005';
 import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import {
   createEditModal,
@@ -29,7 +29,6 @@ import {
 } from '../../scripts/collections/collection-icons.js';
 import {
   getNativeSmartCollectionQuery,
-  getSmartCollectionDisplayState,
   isDeliverySmartCollection,
 } from '../../scripts/collections/smart-collection-query.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
@@ -445,18 +444,6 @@ function formatDate(dateStr) {
 
 export function buildCollectionPath(collection) {
   const params = new URLSearchParams();
-  if (isDeliverySmartCollection(collection)) {
-    params.set(SEARCH_URL_PARAMS.SMART_COLLECTION_ID, collection.id);
-    const nativeQuery = getNativeSmartCollectionQuery(collection);
-    if (nativeQuery) {
-      const displayState = getSmartCollectionDisplayState(nativeQuery);
-      if (displayState.query) params.set(SEARCH_URL_PARAMS.QUERY, displayState.query);
-      if (displayState.searchMode !== 'FULLTEXT') {
-        params.set(SEARCH_URL_PARAMS.SEARCH_MODE, displayState.searchMode);
-      }
-    }
-    return `${localizePath('/search')}?${params.toString()}`;
-  }
   params.set('id', collection.id);
   return `${localizePath('/collection-details')}?${params.toString()}`;
 }

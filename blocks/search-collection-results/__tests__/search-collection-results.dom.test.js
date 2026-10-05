@@ -122,14 +122,14 @@ describe('search-collection-results native Smart Collections', () => {
     });
   });
 
-  it('builds regular details links and reloadable Smart Search links', () => {
+  it('builds collection-details links for regular and Smart Collections', () => {
     expect(buildCollectionPath({ id: 'regular-id' }))
       .toBe('/en/collection-details?id=regular-id');
     expect(buildCollectionPath({
       id: 'urn:cid:aem:smart-id',
       collectionType: 'DELIVERY_SMART_COLLECTION',
       smartCollectionQuery: smartCollection.collectionMetadata.smartCollectionQuery,
-    })).toBe('/en/search?smartCollectionId=urn%3Acid%3Aaem%3Asmart-id&query=tea&searchMode=HYBRID');
+    })).toBe('/en/collection-details?id=urn%3Acid%3Aaem%3Asmart-id');
   });
 
   it('uses the first saved-query asset instead of static items for a Smart Collection thumbnail', async () => {
