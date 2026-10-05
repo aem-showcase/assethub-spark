@@ -2,24 +2,30 @@
 import { populateAssetFromContentAIHit } from '../asset-transformers.js';
 import showToast from '../toast/toast.js';
 import { getHitsPerPage } from '../../blocks/search-results/utils/config.js';
-import { getDynamicMediaClient } from '../../blocks/search-results/clients/dynamicmedia-client.js';
+import {
+  getContentAIClient,
+  getDynamicMediaClient,
+} from '../../blocks/search-results/clients/dynamicmedia-client.js';
 import { saveArchiveAndOpenDownloadPanel } from '../../blocks/search-results/utils/archive-download.js';
+import { getNativeSmartCollectionQuery, isDeliverySmartCollection } from './smart-collection-query.js';
 
 const pendingCollectionDownloads = new Set();
 
 /**
- * Fetch every currently visible asset in a collection by paging the existing collection search.
+ * Fetch all accessible collection assets by paging its items or native Smart Collection query.
  *
  * @param {object} options
  * @param {import('./collections-api-client.js').DynamicMediaCollectionsClient} options.client
  * @param {string} options.collectionId
  * @param {number} [options.hitsPerPage]
+ * @param {Array<object>} [options.nativeQuery] - Validated native Smart Collection query.
  * @returns {Promise<Array<object>>}
  */
 export async function fetchCollectionAssetsForDownload({
   client,
   collectionId,
   hitsPerPage = getHitsPerPage(),
+  nativeQuery = null,
 }) {
   if (!client) throw new Error('fetchCollectionAssetsForDownload: client is required');
   if (!collectionId) throw new Error('fetchCollectionAssetsForDownload: collectionId is required');
@@ -28,11 +34,18 @@ export async function fetchCollectionAssetsForDownload({
   let cursor;
 
   do {
-    const response = await client.searchAssetsInCollection('', {
-      collectionId,
-      hitsPerPage,
-      cursor,
-    });
+    const response = nativeQuery
+      ? await getContentAIClient().searchAssets('', {
+        nativeQuery,
+        hitsPerPage,
+        cursor,
+        skipFacetsRequest: true,
+      })
+      : await client.searchAssetsInCollection('', {
+        collectionId,
+        hitsPerPage,
+        cursor,
+      });
 
     const hits = response?.hits?.results || [];
     hits.forEach((hit) => {
@@ -69,7 +82,12 @@ export async function downloadCollection({
   onLoadingChange?.(true);
 
   try {
-    const assets = await fetchCollectionAssetsForDownload({ client, collectionId });
+    const isSmartCollection = isDeliverySmartCollection(collection);
+    const nativeQuery = isSmartCollection ? getNativeSmartCollectionQuery(collection) : null;
+    if (isSmartCollection && !nativeQuery) {
+      throw new Error('Smart Collection has no valid saved query');
+    }
+    const assets = await fetchCollectionAssetsForDownload({ client, collectionId, nativeQuery });
     if (assets.length === 0) {
       showToast(
         t('collectionHasNoAssetsToDownload', 'This collection has no assets to download.'),

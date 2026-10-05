@@ -1,8 +1,12 @@
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
-import { downloadCollection } from '../../scripts/collections/collection-download.js';
-import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
-import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { downloadCollection } from '../../scripts/collections/collection-download.js?v=smart-collections-merge-20261005';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js?v=smart-collection-thumbnails-20261003';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collections-merge-20261005';
+import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import {
   createEditModal,
   createDeleteModal,
@@ -23,13 +27,19 @@ import {
   ICON_PERSON_FILTER,
   ICON_GLOBE_SM,
   ICON_LOCK_SM,
+  ICON_SMART_COLLECTION_SM,
   PLACEHOLDER_SVG,
 } from '../../scripts/collections/collection-icons.js';
+import {
+  getNativeSmartCollectionQuery,
+  isDeliverySmartCollection,
+} from '../../scripts/collections/smart-collection-query.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
 import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 const VIEW_STORAGE_KEY = 'scr-view';
+const pendingPreviews = new WeakSet();
 
 /**
  * Simple accessible picker: a button that opens a dropdown list of options.
@@ -448,6 +458,12 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+export function buildCollectionPath(collection) {
+  const params = new URLSearchParams();
+  params.set('id', collection.id);
+  return `${localizePath('/collection-details')}?${params.toString()}`;
+}
+
 function buildPreview(thumbnailUrl, name, className, collectionId) {
   const el = document.createElement('div');
   el.className = className;
@@ -476,22 +492,46 @@ function injectPreviewUrl(previewUrl, collection, block) {
 }
 
 async function fetchAndInjectPreview(client, collection, block) {
+  if (pendingPreviews.has(collection)) return;
+  const isSmartCollection = isDeliverySmartCollection(collection);
   const cacheKey = `scr-thumb-${collection.id}`;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) { injectPreviewUrl(cached, collection, block); return; }
-  } catch { /* ignore */ }
+  if (!isSmartCollection) {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { injectPreviewUrl(cached, collection, block); return; }
+    } catch { /* ignore */ }
+  }
 
+  pendingPreviews.add(collection);
   try {
-    const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
-    if (!items || items.length === 0) return;
-    const assetId = items[0].id;
+    let assetId;
+    if (isSmartCollection) {
+      const nativeQuery = getNativeSmartCollectionQuery(collection);
+      if (!nativeQuery) throw new Error('Smart Collection has no valid saved query');
+      const response = await getContentAIClient().searchAssets('', {
+        nativeQuery,
+        hitsPerPage: 1,
+        orderBy: null,
+        skipFacetsRequest: true,
+      });
+      assetId = response.hits?.results?.[0]?.assetId;
+    } else {
+      const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
+      assetId = items?.[0]?.id;
+    }
     if (!assetId) return;
     const previewUrl = `/api/adobe/assets/${assetId}/as/thumbnail.jpg?width=400`;
-    try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    if (isSmartCollection) {
+      collection.thumbnailUrl = previewUrl;
+    } else {
+      try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    }
     injectPreviewUrl(previewUrl, collection, block);
-  } catch {
-    // non-critical, placeholder stays
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[search-collection-results] preview failed', collection.id, error);
+  } finally {
+    pendingPreviews.delete(collection);
   }
 }
 
@@ -620,8 +660,8 @@ export default async function decorate(block) {
   const client = new DynamicMediaCollectionsClient({ user: window.user });
 
   // Filter state
-  let accessFilter = 'all'; // all | onlyMe | viewOnly | edit
-  let creatorFilter = 'anyone'; // anyone | me
+  let accessFilter = 'all';
+  let creatorFilter = 'anyone';
 
   let collections = [];
   let total = 0;
@@ -633,7 +673,7 @@ export default async function decorate(block) {
   let requestToken = 0;
 
   const onView = (collection) => {
-    window.location.href = localizePath(`/collection-details?id=${collection.id}`);
+    window.location.href = buildCollectionPath(collection);
   };
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
@@ -664,6 +704,9 @@ export default async function decorate(block) {
       },
       {
         key: 'sharedWithMe', label: translate('sharedWithMe', 'Shared with me'), description: translate('privateSharedWithYou', 'Private collections shared with you'), icon: ICON_PERSON_FILTER,
+      },
+      {
+        key: 'smartCollections', label: translate('smartCollections', 'Smart Collections'), description: translate('autoUpdatingBasedOnFilters', 'Auto-updating based on filters'), icon: ICON_SMART_COLLECTION_SM,
       },
     ],
     // applyCreatorPickerForAccess and refetch are function declarations defined
@@ -759,8 +802,7 @@ export default async function decorate(block) {
   const onEdit = (collection) => editModal.show(collection);
   const onDelete = (collection) => deleteModal.show(collection);
   const onShareLink = (collection) => {
-    const path = localizePath(`/collection-details?id=${collection.id}`);
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${buildCollectionPath(collection)}`;
     navigator.clipboard.writeText(url).then(() => {
       showToast(translate('linkCopied', 'Link copied to clipboard'), 'success');
     }).catch(() => {
@@ -779,7 +821,9 @@ export default async function decorate(block) {
       results.append(el);
     });
     items.forEach((c) => {
-      if (!c.thumbnailUrl) fetchAndInjectPreview(client, c, block);
+      if (!c.thumbnailUrl) {
+        fetchAndInjectPreview(client, c, block);
+      }
     });
   };
 

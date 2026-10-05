@@ -130,6 +130,7 @@ export async function createImageGallery(container, callbacks) {
     onRemoveFromCart,
     onBulkAddToCart,
     onBulkRemoveFromCollection,
+    onShareSearch,
   } = callbacks;
 
   // Load placeholders for localization
@@ -333,7 +334,7 @@ export async function createImageGallery(container, callbacks) {
           clearAllCheckboxes();
           updateSelectionUI();
         } : undefined,
-        onShareSearch: handleShareSearch,
+        onShareSearch: onShareSearch || handleShareSearch,
       });
     }
 

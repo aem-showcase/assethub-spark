@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyCollectionKindFilter,
   buildAssetAuthClauses,
   checkAssetMetadataAuthorization,
   chunkIntoAnd,
@@ -8,6 +9,7 @@ import {
   forceContentAISearchFilter,
   searchContentAIAuthorization,
   stampCollectionCompany,
+  validateCollectionAccess,
 } from '../dm.js';
 import config from '../../config.js';
 
@@ -1241,7 +1243,8 @@ describe('dm.js - ContentAI Authorization', () => {
 
       collectionsSearchContentAIAuthorization(request, search, { relationship: 'createdByMe' });
 
-      expect(getNestedAuthClauses(search)).toContainEqual({
+      const ownerFilter = getNestedAuthClauses(search).find((clause) => clause.or);
+      expect(ownerFilter.or).toContainEqual({
         term: {
           'collectionMetadata.custom:metadata.custom:acl.custom:assetCollectionOwner': [
             'user@example.com',
@@ -1251,38 +1254,111 @@ describe('dm.js - ContentAI Authorization', () => {
       });
     });
 
+    it('should match native Smart Collections created by the current user', () => {
+      const request = { user: { email: 'user@example.com' } };
+      const search = { query: [{ and: [] }] };
+
+      collectionsSearchContentAIAuthorization(request, search, {
+        relationship: 'createdByMe',
+        visibility: 'private',
+        collectionKind: 'smart',
+      });
+
+      const ownerFilter = getNestedAuthClauses(search).find((clause) => clause.or);
+      expect(ownerFilter.or).toContainEqual({
+        and: [
+          { term: { 'collectionMetadata.collectionType': ['DELIVERY_SMART_COLLECTION'] } },
+          {
+            term: {
+              'repositoryMetadata.repo:createdBy': ['user@example.com', 'USER@EXAMPLE.COM'],
+            },
+          },
+        ],
+      });
+      expect(getNestedAuthClauses(search)).toContainEqual({
+        term: { 'collectionMetadata.accessLevel': ['private'] },
+      });
+    });
+
+    it('should include owned native Smart Collections in All Collections', () => {
+      const request = { user: { email: 'user@example.com' } };
+      const search = { query: [{ and: [] }] };
+
+      collectionsSearchContentAIAuthorization(request, search, { relationship: 'all' });
+
+      const allFilter = getNestedAuthClauses(search).find((clause) => clause.or);
+      expect(allFilter.or).toContainEqual({
+        and: [
+          {
+            term: {
+              'collectionMetadata.collectionType': ['DELIVERY_SMART_COLLECTION'],
+            },
+          },
+          {
+            term: {
+              'repositoryMetadata.repo:createdBy': ['user@example.com', 'USER@EXAMPLE.COM'],
+            },
+          },
+        ],
+      });
+    });
+
+    it('should inject and strip-safe Smart and regular collection-kind clauses', () => {
+      const smartSearch = { query: [{ and: [] }] };
+      applyCollectionKindFilter(smartSearch, 'smart');
+      expect(getNestedAuthClauses(smartSearch)).toContainEqual({
+        term: { 'collectionMetadata.collectionType': ['DELIVERY_SMART_COLLECTION'] },
+      });
+
+      const regularSearch = { query: [{ and: [] }] };
+      applyCollectionKindFilter(regularSearch, 'regular');
+      expect(getNestedAuthClauses(regularSearch)).toContainEqual({
+        not: [{
+          term: { 'collectionMetadata.collectionType': ['DELIVERY_SMART_COLLECTION'] },
+        }],
+      });
+    });
+
     describe('demo customer scope (DEMO_COMPANY)', () => {
       const companyClause = {
         term: { 'collectionMetadata.custom:metadata.company': ['santander'] },
+      };
+      const companyScopeClause = {
+        or: [
+          { term: { 'collectionMetadata.collectionType': ['DELIVERY_SMART_COLLECTION'] } },
+          {
+            and: [
+              { exists: { field: 'collectionMetadata.custom:metadata.company' } },
+              companyClause,
+            ],
+          },
+        ],
       };
       /** Flatten every clause across all nested auth blocks. */
       function getAllClauses(search) {
         return getAllNestedAuthBlocks(search).flatMap((b) => b.and);
       }
 
-      it('adds the company scope term on every collections search when DEMO_COMPANY is set', () => {
+      it('scopes regular collections by company while exempting native Smart Collections', () => {
         config.DEMO_COMPANY = 'santander';
         const request = { user: { email: 'user@example.com' } };
         const search = { query: [{ and: [] }] };
 
         collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
 
-        expect(getAllClauses(search)).toContainEqual(companyClause);
+        expect(getAllClauses(search)).toContainEqual(companyScopeClause);
       });
 
-      it('also requires the company field to exist, so collections with no company tag at all are excluded', () => {
-        // A `term` match alone already excludes a missing field, but that's an implicit
-        // property of the ContentAI backend's term semantics, not something this filter
-        // enforces by construction. Collections created before company-scoping existed (or
-        // written by any path that skips stampCollectionCompany) have no company field —
-        // the explicit `exists` clause closes that gap regardless of term-matching quirks.
+      it('requires a company tag for regular collections but not native Smart Collections', () => {
         config.DEMO_COMPANY = 'santander';
         const request = { user: { email: 'user@example.com' } };
         const search = { query: [{ and: [] }] };
 
         collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
 
-        expect(getAllClauses(search)).toContainEqual({
+        const scope = getAllClauses(search).find((clause) => clause.or);
+        expect(scope.or[0]).toEqual(companyScopeClause.or[0]);
+        expect(scope.or[1].and).toContainEqual({
           exists: { field: 'collectionMetadata.custom:metadata.company' },
         });
       });
@@ -1294,7 +1370,7 @@ describe('dm.js - ContentAI Authorization', () => {
 
         collectionsSearchContentAIAuthorization(request, search);
 
-        expect(getAllClauses(search)).toContainEqual(companyClause);
+        expect(getAllClauses(search)).toContainEqual(companyScopeClause);
       });
 
       it('applies the company scope alongside the legacy ACL filter', () => {
@@ -1305,7 +1381,7 @@ describe('dm.js - ContentAI Authorization', () => {
         collectionsSearchContentAIAuthorization(request, search);
 
         const clauses = getAllClauses(search);
-        expect(clauses).toContainEqual(companyClause);
+        expect(clauses).toContainEqual(companyScopeClause);
         // the legacy ACL OR-filter is still present
         expect(clauses.some((c) => c.or && c.or.length === 3)).toBe(true);
       });
@@ -1318,8 +1394,8 @@ describe('dm.js - ContentAI Authorization', () => {
         collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
 
         const clauses = getAllClauses(search);
-        expect(clauses).toContainEqual(companyClause);
-        expect(clauses).not.toContainEqual({
+        expect(clauses).toContainEqual(companyScopeClause);
+        expect(clauses.find((clause) => clause.or).or[1].and).not.toContainEqual({
           term: { 'collectionMetadata.custom:metadata.company': ['adobe'] },
         });
       });
@@ -1332,11 +1408,118 @@ describe('dm.js - ContentAI Authorization', () => {
         collectionsSearchContentAIAuthorization(request, search, { relationship: 'public' });
 
         const clauses = getAllNestedAuthBlocks(search).flatMap((b) => b.and);
-        expect(clauses.some(
-          (c) => c.term?.['collectionMetadata.custom:metadata.company'],
-        )).toBe(false);
+        expect(clauses).toEqual([{
+          term: { 'collectionMetadata.accessLevel': ['public'] },
+        }]);
       });
     });
+  });
+});
+
+describe('validateCollectionAccess for native Smart Collections', () => {
+  const env = { DM_CLIENT_ID: { get: vi.fn() } };
+
+  beforeEach(() => {
+    env.DM_CLIENT_ID.get.mockResolvedValue('test-client-id');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('allows a private Smart Collection owner identified by repo:createdBy', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        repositoryMetadata: { 'repo:createdBy': 'tphan@adobe.com' },
+        collectionMetadata: {
+          collectionType: 'DELIVERY_SMART_COLLECTION',
+          accessLevel: 'private',
+        },
+      }),
+    }));
+
+    const access = await validateCollectionAccess(
+      'urn:cid:aem:private-smart',
+      'tphan@adobe.com',
+      'read',
+      'ims-token',
+      'https://delivery.example.com',
+      env,
+    );
+
+    expect(access).toEqual({ allowed: true, role: 'owner' });
+  });
+
+  it('allows an authenticated user to read a public Smart Collection', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        collectionMetadata: {
+          collectionType: 'DELIVERY_SMART_COLLECTION',
+          accessLevel: 'public',
+        },
+      }),
+    }));
+
+    const access = await validateCollectionAccess(
+      'urn:cid:aem:public-smart',
+      'viewer@example.com',
+      'read',
+      'ims-token',
+      'https://delivery.example.com',
+      env,
+    );
+
+    expect(access).toEqual({ allowed: true, role: 'viewer' });
+  });
+
+  it('does not infer regular collection ownership from repo:createdBy', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        repositoryMetadata: { 'repo:createdBy': 'creator@adobe.com' },
+        collectionMetadata: { accessLevel: 'private' },
+      }),
+    }));
+
+    const access = await validateCollectionAccess(
+      'regular-id',
+      'creator@adobe.com',
+      'write',
+      'ims-token',
+      'https://delivery.example.com',
+      env,
+    );
+
+    expect(access.allowed).toBe(false);
+  });
+
+  it('prefers an explicit Smart ACL owner over repo:createdBy', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        repositoryMetadata: { 'repo:createdBy': 'creator@adobe.com' },
+        collectionMetadata: {
+          collectionType: 'DELIVERY_SMART_COLLECTION',
+          accessLevel: 'private',
+          'custom:metadata': {
+            'custom:acl': { 'custom:assetCollectionOwner': 'new-owner@adobe.com' },
+          },
+        },
+      }),
+    }));
+
+    const access = await validateCollectionAccess(
+      'smart-id',
+      'creator@adobe.com',
+      'write',
+      'ims-token',
+      'https://delivery.example.com',
+      env,
+    );
+
+    expect(access.allowed).toBe(false);
   });
 });
 

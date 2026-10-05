@@ -13,7 +13,7 @@ import {
   SEARCH_URL_PARAMS,
 } from '../../scripts/scripts.js';
 import { localizePath, getAppLabel } from '../../scripts/locale-utils.js';
-import { getDateFacets, getFacetsConfig } from './constants/facets.js';
+import { getDateFacets, getFacetsConfig, getMetadataPath } from './constants/facets.js';
 import { fetchTagsFromResponse } from './clients/tags-client.js';
 import { getDynamicMediaClient, getContentAIClient } from './clients/dynamicmedia-client.js';
 import {
@@ -53,6 +53,13 @@ import {
   getState as getCartGlobalState,
 } from '../../scripts/cart-state.js';
 import cartService from '../../scripts/utils/cart-service.js';
+import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
+import {
+  getNativeSmartCollectionQuery,
+  getSmartCollectionDisplayState,
+  getSmartCollectionFacetState,
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+} from '../../scripts/collections/smart-collection-query.js?v=smart-facet-state-20261003';
 
 // Import toast utilities
 // eslint-disable-next-line no-unused-vars
@@ -84,6 +91,8 @@ const state = {
 
   // Search state
   query: '',
+  nativeSmartCollectionQuery: null,
+  smartCollectionLoadFailed: false,
   searchResults: null,
   dmImages: [],
   loading: { [LOADING.dmImages]: false },
@@ -302,6 +311,7 @@ export async function performSearchImages(query, page = 0) {
       orderBy: getOrderBy(),
       collectionId: state.externalParams?.collectionId,
       searchMode: state.searchMode,
+      nativeQuery: state.nativeSmartCollectionQuery,
     });
 
     await processContentAIImages(rawResponse, isLoadingMoreFlag, hitsPerPage);
@@ -444,6 +454,27 @@ export async function handleBulkAddToCart(selectedCardIds, images) {
   );
 }
 
+async function loadSmartCollectionSearch(collectionId) {
+  const client = new DynamicMediaCollectionsClient({ user: window.user });
+  const collection = await client.getCollectionMetadata(collectionId);
+  const nativeQuery = getNativeSmartCollectionQuery(collection);
+  if (!nativeQuery) {
+    throw new Error('The selected Smart Collection has no valid saved query');
+  }
+  return {
+    nativeQuery,
+    ...getSmartCollectionDisplayState(nativeQuery),
+    facetCheckedState: getSmartCollectionFacetState(
+      nativeQuery,
+      Object.fromEntries(
+        Object.keys(state.excFacets || {})
+          .filter((key) => !getDateFacets().includes(key))
+          .map((key) => [key, getMetadataPath(key)]),
+      ),
+    ),
+  };
+}
+
 /**
  * Initialize the block
  * @param {HTMLElement} block - Block element
@@ -517,6 +548,11 @@ export default async function decorate(block) {
     externalParams,
     authenticated: true,
     dynamicMediaClient: getDynamicMediaClient(),
+    nativeSmartCollectionQuery: null,
+    smartCollectionLoadFailed: false,
+    facetCheckedState: {},
+    selectedNumericFilters: [],
+    expandedFacets: {},
     excFacets,
     presetFilters: externalParams.presetFilters || [],
     expandAllDetails: loadSearchExpandAllDetailsState(true),
@@ -549,6 +585,7 @@ export default async function decorate(block) {
   const params = new URLSearchParams(window.location.search);
   const queryParam = params.get('query');
   const fulltextParam = params.get('fulltext');
+  const smartCollectionIdParam = params.get(SEARCH_URL_PARAMS.SMART_COLLECTION_ID);
 
   // Use 'query' if present, otherwise fall back to 'fulltext'
   const urlQuery = queryParam || fulltextParam;
@@ -611,6 +648,29 @@ export default async function decorate(block) {
     searchMode: searchModeParam,
   });
 
+  if (smartCollectionIdParam) {
+    try {
+      const smartSearch = await loadSmartCollectionSearch(smartCollectionIdParam);
+      setState({
+        query: smartSearch.query,
+        searchMode: smartSearch.searchMode,
+        nativeSmartCollectionQuery: smartSearch.nativeQuery,
+        smartCollectionLoadFailed: false,
+        facetCheckedState: smartSearch.facetCheckedState,
+      });
+      const queryInput = document.querySelector('input.query-input');
+      if (queryInput) queryInput.value = smartSearch.query;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[search-results] failed to load Smart Collection', error);
+      setState({
+        nativeSmartCollectionQuery: null,
+        smartCollectionLoadFailed: true,
+      });
+      ToastQueue.negative('Unable to open this Smart Collection');
+    }
+  }
+
   // Always ensure sort options are in the URL (populate defaults if missing)
   {
     const url = new URL(window.location.href);
@@ -623,14 +683,19 @@ export default async function decorate(block) {
 
   // Load filters from URL parameters
   const urlFilters = loadSearchFiltersFromUrl();
-  if (urlFilters) {
-    // Auto-expand facets that have values from URL
+  if (urlFilters || smartCollectionIdParam) {
+    const facetCheckedState = {
+      ...state.facetCheckedState,
+      ...urlFilters?.facetCheckedState,
+    };
+    const selectedNumericFilters = urlFilters?.selectedNumericFilters || [];
+    // Auto-expand facets restored from the saved query or URL.
     const expandedFacets = {};
 
     // Expand facets from facetCheckedState
-    if (urlFilters.facetCheckedState) {
-      Object.keys(urlFilters.facetCheckedState).forEach((key) => {
-        const values = urlFilters.facetCheckedState[key];
+    if (facetCheckedState) {
+      Object.keys(facetCheckedState).forEach((key) => {
+        const values = facetCheckedState[key];
         if (values && Object.values(values).some((v) => v)) {
           // For hierarchy facets, expand the parent facet (remove hierarchy suffix)
           const baseFacetKey = key.includes('.#hierarchy') ? key.split('.#hierarchy')[0] : key;
@@ -645,7 +710,7 @@ export default async function decorate(block) {
     dateFacets.forEach((key) => {
       const keyWithColon = key.replace(/-/g, ':');
       const keyWithHyphen = key.replace(/:/g, '-');
-      const hasFilter = urlFilters.selectedNumericFilters?.some(
+      const hasFilter = selectedNumericFilters.some(
         (f) => f.startsWith(key) || f.startsWith(keyWithColon) || f.startsWith(keyWithHyphen),
       );
       if (hasFilter) {
@@ -654,18 +719,24 @@ export default async function decorate(block) {
     });
 
     setState({
-      facetCheckedState: urlFilters.facetCheckedState || {},
-      selectedNumericFilters: urlFilters.selectedNumericFilters || [],
+      facetCheckedState,
+      selectedNumericFilters,
       expandedFacets,
     });
+    if (smartCollectionIdParam && !state.smartCollectionLoadFailed) {
+      saveSearchFiltersToUrl(facetCheckedState, selectedNumericFilters, state.query);
+    }
   }
 
   // Create main app
   createMainApp(container);
 
-  // Auto-search on load. A prerendered page (hover) holds the search until it is shown, so a
-  // hover never gets logged as a search.
-  if (state.dynamicMediaClient && state.excFacets !== undefined) {
+  // Hold a prerendered page's search until it is shown, so hover is not logged as a search.
+  if (
+    state.dynamicMediaClient
+    && state.excFacets !== undefined
+    && !state.smartCollectionLoadFailed
+  ) {
     whenActivated(() => search());
   }
 
@@ -719,7 +790,9 @@ export default async function decorate(block) {
       window.history.replaceState({}, '', url.toString());
     }
 
-    const canSearch = currentState.authenticated && currentState.dynamicMediaClient;
+    const canSearch = currentState.authenticated
+      && currentState.dynamicMediaClient
+      && !currentState.smartCollectionLoadFailed;
     if (canSearch) {
       if (updates.facetCheckedState !== undefined
           || updates.selectedNumericFilters !== undefined
