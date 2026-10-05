@@ -3,9 +3,7 @@ import {
 } from 'vitest';
 import {
   canAnimate,
-  hasActiveTransition,
   runViewTransition,
-  withTempName,
   isInViewport,
   toTransitionName,
   waitForImage,
@@ -86,11 +84,9 @@ describe('runViewTransition', () => {
     const cleanup = vi.fn();
     const transition = runViewTransition(() => {}, { setup, cleanup });
     expect(setup).toHaveBeenCalledTimes(1);
-    expect(hasActiveTransition()).toBe(true);
     await transition.finished;
     await Promise.resolve();
     expect(cleanup).toHaveBeenCalledTimes(1);
-    expect(hasActiveTransition()).toBe(false);
   });
 
   it('falls back without starting an overlapping transition', async () => {
@@ -141,20 +137,6 @@ describe('runViewTransition', () => {
     runViewTransition(() => {});
     await new Promise((r) => { setTimeout(r, 0); });
     expect(warn).not.toHaveBeenCalled();
-  });
-});
-
-describe('withTempName', () => {
-  it('sets and clears the name and class', () => {
-    const el = document.createElement('div');
-    const cleanup = withTempName(el, 'asset-hero', 'asset-card');
-    expect(el.style.viewTransitionName).toBe('asset-hero');
-    cleanup();
-    expect(el.style.viewTransitionName).toBe('');
-  });
-
-  it('is a no-op for a missing element', () => {
-    expect(() => withTempName(null, 'x')()).not.toThrow();
   });
 });
 

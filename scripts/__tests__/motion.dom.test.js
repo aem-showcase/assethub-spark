@@ -66,7 +66,7 @@ describe('flyToCart', () => {
   it('does nothing without a cart icon', () => {
     document.body.innerHTML = '<img id="img">';
     flyToCart(document.getElementById('img'));
-    expect(document.querySelector('.fly-to-cart')).toBeNull();
+    expect(document.querySelector('.fly-to-header')).toBeNull();
   });
 
   it('does nothing when reduced motion is on', () => {

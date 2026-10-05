@@ -37,7 +37,7 @@ const PRERENDER_URL_PATTERNS = [
 const intentUrls = [];
 let intentRules = null;
 
-export function supportsPrerender() {
+function supportsPrerender() {
   return typeof HTMLScriptElement !== 'undefined'
     && typeof HTMLScriptElement.supports === 'function'
     && HTMLScriptElement.supports('speculationrules');

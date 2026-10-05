@@ -18,10 +18,6 @@ export function canAnimate() {
     && document.visibilityState !== 'hidden';
 }
 
-export function hasActiveTransition() {
-  return activeTransition !== null;
-}
-
 function swallow(promise) {
   promise?.catch?.((err) => {
     if (!EXPECTED_ERRORS.has(err?.name)) {
@@ -74,19 +70,6 @@ export function runViewTransition(update, { types = [], setup, cleanup } = {}) {
   // If the update callback throws, the DOM change still needs to surface to callers
   swallow(transition.updateCallbackDone);
   return transition;
-}
-
-/**
- * Set an inline view-transition-name and return a cleanup function.
- */
-export function withTempName(el, name, className) {
-  if (!el) return () => {};
-  el.style.viewTransitionName = name;
-  if (className) el.style.viewTransitionClass = className;
-  return () => {
-    el.style.viewTransitionName = '';
-    if (className) el.style.viewTransitionClass = '';
-  };
 }
 
 /**

@@ -19,7 +19,7 @@ const PANEL_SELECTOR = [
   '.email-preview-modal-content',
 ].join(', ');
 
-export function prefersMotion() {
+function prefersMotion() {
   return !!window.matchMedia?.('(prefers-reduced-motion: no-preference)').matches
     && typeof Element.prototype.animate === 'function';
 }

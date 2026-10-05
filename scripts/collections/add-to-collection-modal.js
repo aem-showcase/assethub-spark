@@ -13,6 +13,7 @@ import { ASSET_AUDIT_ACTIONS } from '../audit/asset-audit-constants.js';
 import setButtonLoading from '../../blocks/search-results/utils/dom-utils.js';
 import { localizePath } from '../locale-utils.js';
 import { playExit, pulseConfirmation } from '../motion.js';
+import showToast from '../toast/toast.js';
 
 // Global state
 let collectionsClient = null;
@@ -441,37 +442,6 @@ async function handleAddToSelectedCollections(event) {
     showToast('Error adding asset to collections', 'error');
     setButtonLoading(addBtnRef, false);
   }
-}
-
-function showToast(message, type = 'success') {
-  // Check if toast already exists
-  const existingToast = document.querySelector('.toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-
-  // Add to document
-  document.body.appendChild(toast);
-
-  // Trigger animation
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 10);
-
-  // Remove after timeout
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => {
-      if (toast.parentNode) {
-        document.body.removeChild(toast);
-      }
-    }, 300);
-  }, 3000);
 }
 
 // Initialize when DOM is loaded (guard allows importing this module in Node/test environments)

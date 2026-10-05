@@ -5,6 +5,7 @@
 
 import { error, json } from 'itty-router';
 import { fetchHelixSheet } from '../util/helixutil.js';
+import { getMessagesStore } from '../util/notifications-helpers.js';
 
 // Constants
 const DEFAULT_NOTIFICATION_TYPE = 'Notification';
@@ -17,6 +18,8 @@ const SYSTEM_NOTIFICATION_EXPIRATION_DAYS = 0;
 // Locale for system notifications (must match EDS sheet path: /{locale}/system-notifications)
 const SUPPORTED_SYSTEM_NOTIFICATION_LOCALES = ['en', 'ja'];
 const DEFAULT_SYSTEM_NOTIFICATION_LOCALE = 'en';
+
+const STORE_NOT_CONFIGURED_ERROR = { success: false, error: 'Notifications store not configured' };
 
 /**
  * Main Notifications API handler - routes requests to appropriate endpoint
@@ -146,23 +149,27 @@ export async function listNotifications(request, env) {
 
     const locale = getLocaleFromRequest(request);
 
+    // Without the MESSAGES KV binding, degrade gracefully: only system notifications from EDS
+    const messages = getMessagesStore(env);
+
     // Fetch user notifications from KV and system notifications from EDS in parallel
-    const hasMessagesStore = typeof env.MESSAGES?.list === 'function'
-      && typeof env.MESSAGES?.get === 'function';
     const [kvNotifications, systemNotifications] = await Promise.all([
-      hasMessagesStore ? (async () => {
+      (async () => {
+        if (!messages) {
+          return [];
+        }
         // List all keys with user email prefix
         const prefix = `${userEmail}:`;
-        const { keys } = await env.MESSAGES.list({ prefix, limit: 1000 });
+        const { keys } = await messages.list({ prefix, limit: 1000 });
 
         // Fetch all notification values in parallel
         const notificationPromises = keys.map(async (key) => {
-          const value = await env.MESSAGES.get(key.name, { type: 'text' });
+          const value = await messages.get(key.name, { type: 'text' });
           return safeJsonParse(value, key.name);
         });
 
         return (await Promise.all(notificationPromises)).filter((msg) => msg !== null);
-      })() : Promise.resolve([]),
+      })(),
       fetchSystemNotifications(request, env, locale),
     ]);
 
@@ -191,8 +198,13 @@ export async function getNotification(request, env, notificationId) {
       return error(401, { success: false, error: 'User not authenticated' });
     }
 
+    const messages = getMessagesStore(env);
+    if (!messages) {
+      return error(503, STORE_NOT_CONFIGURED_ERROR);
+    }
+
     const key = buildNotificationKey(userEmail, notificationId);
-    const value = await env.MESSAGES.get(key, { type: 'text' });
+    const value = await messages.get(key, { type: 'text' });
 
     if (value === null) {
       return error(404, { success: false, error: 'Notification not found' });
@@ -225,6 +237,11 @@ export async function createNotification(request, env) {
       return error(401, { success: false, error: 'User not authenticated' });
     }
 
+    const messages = getMessagesStore(env);
+    if (!messages) {
+      return error(503, STORE_NOT_CONFIGURED_ERROR);
+    }
+
     const body = await request.json();
     const { id, subject, message, type, from, priority, expiresInXDays, status } = body;
 
@@ -251,7 +268,7 @@ export async function createNotification(request, env) {
     const value = JSON.stringify(notificationData);
 
     // Store in KV with metadata
-    await env.MESSAGES.put(key, value, {
+    await messages.put(key, value, {
       metadata: {
         priority: notificationData.priority,
         status: notificationData.status,
@@ -281,10 +298,15 @@ export async function updateNotification(request, env, notificationId) {
       return error(401, { success: false, error: 'User not authenticated' });
     }
 
+    const messages = getMessagesStore(env);
+    if (!messages) {
+      return error(503, STORE_NOT_CONFIGURED_ERROR);
+    }
+
     const key = buildNotificationKey(userEmail, notificationId);
 
     // Get existing notification
-    const existingValue = await env.MESSAGES.get(key, { type: 'text' });
+    const existingValue = await messages.get(key, { type: 'text' });
     if (existingValue === null) {
       return error(404, { success: false, error: 'Notification not found' });
     }
@@ -310,7 +332,7 @@ export async function updateNotification(request, env, notificationId) {
     const value = JSON.stringify(updatedNotification);
 
     // Update in KV with new metadata
-    await env.MESSAGES.put(key, value, {
+    await messages.put(key, value, {
       metadata: {
         priority: updatedNotification.priority,
         status: updatedNotification.status,
@@ -339,15 +361,20 @@ export async function deleteNotification(request, env, notificationId) {
       return error(401, { success: false, error: 'User not authenticated' });
     }
 
+    const messages = getMessagesStore(env);
+    if (!messages) {
+      return error(503, STORE_NOT_CONFIGURED_ERROR);
+    }
+
     const key = buildNotificationKey(userEmail, notificationId);
 
     // Check if notification exists before deleting
-    const existing = await env.MESSAGES.get(key);
+    const existing = await messages.get(key);
     if (existing === null) {
       return error(404, { success: false, error: 'Notification not found' });
     }
 
-    await env.MESSAGES.delete(key);
+    await messages.delete(key);
 
     return json({
       success: true,
