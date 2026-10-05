@@ -23,6 +23,7 @@
 }
 
 .carousel .carousel-slide {
+    box-sizing: border-box;
     flex: 0 0 calc((100% - 48px) / 4); /* 4 slides per row */
     scroll-snap-align: start;
     display: flex;
@@ -301,11 +302,11 @@
 @media (width <= 480px) {
     .carousel .carousel-slides {
         gap: 8px;
-        padding: 0 8px;
+        padding: 0;
     }
 
     .carousel .carousel-slide {
-        flex: 0 0 calc(100% - 16px); /* 1 slide on mobile */
+        flex: 0 0 100%;
         min-height: 220px;
     }
 
@@ -320,13 +321,14 @@
     }
 
     .carousel .carousel-navigation-buttons {
-        left: -50px;
-        right: -50px;
+        left: -10px;
+        right: -10px;
     }
 
     .carousel .carousel-navigation-buttons button {
         width: 36px;
         height: 36px;
+        background: white;
     }
 }
 

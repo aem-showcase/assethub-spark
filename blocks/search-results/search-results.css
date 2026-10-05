@@ -12,6 +12,7 @@
 @import url('./styles/action-button.css');
 @import url('./styles/download-renditions.css');
 @import url('./styles/adobe-pdf-viewer.css');
+@import url('./styles/view-transitions.css');
 @import url('../../scripts/share/share-asset-button.css');
 
 /* ========================================
@@ -256,6 +257,12 @@ main > .section > div:has(.search-results) {
   flex: 1;
   min-height: 0;
   align-items: flex-start;
+}
+
+@media (width <= 768px) {
+  .search-results .images-content-row {
+    flex-direction: column;
+  }
 }
 
 /* ========================================

@@ -30,9 +30,7 @@ import {
 } from '../../../scripts/collections/collection-search-constants.js';
 import {
   DM_COLLECTIONS_PATH_PREFIX,
-  DM_CONTENT_HUB_COLLECTIONS_API_KEY,
   getDynamicMediaApiKeyForPath,
-  isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
 import { resolveCountryMatchValues } from '../constants/countries.js';
@@ -66,11 +64,6 @@ const IMS_SCOPE = 'AdobeID,openid';
 // ==========================================
 // Adobe API Constants
 // ==========================================
-
-/** API key for AEM Assets Content Hub collections endpoint
- * @constant {string}
- */
-const ADOBE_API_KEY_COLLECTIONS = DM_CONTENT_HUB_COLLECTIONS_API_KEY;
 
 /** Prefix for Adobe AEM Cloud delivery hostname
  * @constant {string}
@@ -323,18 +316,19 @@ async function getIMSToken(request, env) {
  * @returns {string} returns.reason - Denial reason if not allowed
  *
  * @example
- * const access = await validateCollectionAccess('col-123', 'user@example.com', 'read', token, origin);
+ * const access = await validateCollectionAccess('col-123', 'user@example.com', 'read', token, origin, env);
  * if (access.allowed) {
  *   console.log(`Access granted as ${access.role}`);
  * }
  */
-async function validateCollectionAccess(collectionId, userEmail, requiredRole, imsToken, dmOrigin) {
+async function validateCollectionAccess(collectionId, userEmail, requiredRole, imsToken, dmOrigin, env) {
   // Fetch collection metadata
   const metadataUrl = `${dmOrigin}/adobe/assets/collections/${collectionId}`;
+  const dmClientId = await env.DM_CLIENT_ID.get();
   const response = await fetch(metadataUrl, {
     headers: {
       [HEADER_AUTHORIZATION]: `Bearer ${imsToken}`,
-      [HEADER_API_KEY]: ADOBE_API_KEY_COLLECTIONS,
+      [HEADER_API_KEY]: getDynamicMediaApiKeyForPath(metadataUrl, dmClientId),
     },
   });
 
@@ -406,6 +400,7 @@ async function checkCollectionAuthorization(
   request,
   imsToken,
   origin,
+  env,
   resourceDescription = 'collection',
 ) {
   const requiredRole = request.method === 'GET' ? PERMISSION_READ : PERMISSION_WRITE;
@@ -416,6 +411,7 @@ async function checkCollectionAuthorization(
     requiredRole,
     imsToken,
     origin,
+    env,
   );
 
   if (!access.allowed) {
@@ -922,9 +918,7 @@ export async function originDynamicMedia(request, env, ctx) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const dmClientId = isDynamicMediaCollectionsPath(url.pathname)
-    ? undefined
-    : await env.DM_CLIENT_ID.get();
+  const dmClientId = await env.DM_CLIENT_ID.get();
   headers.set(HEADER_API_KEY, getDynamicMediaApiKeyForPath(url.pathname, dmClientId));
   headers.set(HEADER_AUTHORIZATION, `Bearer ${imsToken}`);
   headers.delete(HEADER_COOKIE);
@@ -1038,7 +1032,7 @@ export async function originDynamicMedia(request, env, ctx) {
   // Exclude /adobe/assets/collections/search (search endpoint, not a collectionId)
   if (url.pathname.match(/^\/adobe\/assets\/collections\/(?!search$)[^/]+$/)) {
     const collectionId = url.pathname.split('/').pop();
-    const authResponse = await checkCollectionAuthorization(collectionId, request, imsToken, url.origin, 'collection');
+    const authResponse = await checkCollectionAuthorization(collectionId, request, imsToken, url.origin, env, 'collection');
     if (authResponse) return authResponse;
   }
 
@@ -1052,6 +1046,7 @@ export async function originDynamicMedia(request, env, ctx) {
       request,
       imsToken,
       url.origin,
+      env,
       'collection items',
     );
     if (authResponse) return authResponse;

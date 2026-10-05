@@ -4,6 +4,7 @@
  * other modals (e.g. .modal-content, .modal-header in blocks).
  */
 import { handleModalClose } from './modal-utils.js';
+import { playExit } from './motion.js';
 
 export const MODAL_CONTENT_TYPES = {
   TEXT: 'text',
@@ -292,6 +293,7 @@ export function createGlobalModal(config = {}) {
       document.removeEventListener('keydown', escapeHandler);
       escapeHandler = null;
     }
+    playExit(modal);
     modal.remove();
     isOpen = false;
   };

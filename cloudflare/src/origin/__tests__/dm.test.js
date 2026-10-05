@@ -1417,6 +1417,12 @@ describe('dm.js - ContentAI Authorization', () => {
 });
 
 describe('validateCollectionAccess for native Smart Collections', () => {
+  const env = { DM_CLIENT_ID: { get: vi.fn() } };
+
+  beforeEach(() => {
+    env.DM_CLIENT_ID.get.mockResolvedValue('test-client-id');
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -1439,6 +1445,7 @@ describe('validateCollectionAccess for native Smart Collections', () => {
       'read',
       'ims-token',
       'https://delivery.example.com',
+      env,
     );
 
     expect(access).toEqual({ allowed: true, role: 'owner' });
@@ -1461,6 +1468,7 @@ describe('validateCollectionAccess for native Smart Collections', () => {
       'read',
       'ims-token',
       'https://delivery.example.com',
+      env,
     );
 
     expect(access).toEqual({ allowed: true, role: 'viewer' });
@@ -1481,6 +1489,7 @@ describe('validateCollectionAccess for native Smart Collections', () => {
       'write',
       'ims-token',
       'https://delivery.example.com',
+      env,
     );
 
     expect(access.allowed).toBe(false);
@@ -1507,6 +1516,7 @@ describe('validateCollectionAccess for native Smart Collections', () => {
       'write',
       'ims-token',
       'https://delivery.example.com',
+      env,
     );
 
     expect(access.allowed).toBe(false);

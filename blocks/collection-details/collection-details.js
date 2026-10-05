@@ -7,6 +7,8 @@
 
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { downloadCollection } from '../../scripts/collections/collection-download.js?v=smart-collections-merge-20261005';
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
 import {
   getNativeSmartCollectionQuery,
@@ -14,7 +16,7 @@ import {
   getSmartCollectionFacetState,
   isDeliverySmartCollection,
 // eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
-} from '../../scripts/collections/smart-collection-query.js?v=smart-collection-details-20261005';
+} from '../../scripts/collections/smart-collection-query.js?v=smart-collections-merge-20261005';
 import {
   CollectionAccessLevel,
   CollectionAclField,
@@ -36,7 +38,7 @@ import {
   fetchAssetRenditions,
 } from '../search-results/search-results.js';
 // eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
-import { createImageGallery } from '../search-results/components/image-gallery.js?v=smart-collection-details-20261005';
+import { createImageGallery } from '../search-results/components/image-gallery.js?v=smart-collections-merge-20261005';
 import { createFacetsPanel } from '../search-results/components/facets/index.js';
 import { getDynamicMediaClient } from '../search-results/clients/dynamicmedia-client.js';
 import { getFacetsConfig, getMetadataPath } from '../search-results/constants/facets.js';
@@ -53,7 +55,10 @@ import {
   ICON_PEOPLE_MD,
   ICON_EDIT_MD,
   ICON_DELETE_MD,
+  ICON_DOWNLOAD_MD,
 } from '../../scripts/collections/collection-icons.js';
+import { whenActivated } from '../../scripts/speculation.js';
+import subscribeCollectionSearchRefresh from './collection-search-refresh.js';
 
 function makeActionBtn(label, html, onClick) {
   const btn = document.createElement('button');
@@ -74,6 +79,19 @@ function showCollectionLoadError(block, t) {
     <p>${t('collectionNotFoundHelp', 'Still need help? Reach out to our Asset Management Team.')}</p>
     <p><a href="${localizePath('/search-collections')}">${t('backToCollections', 'Back to Collections')}</a></p>`;
   block.append(error);
+}
+
+function setActionButtonPending(button, pending, pendingLabel) {
+  if (!button) return;
+  button.disabled = pending;
+  button.setAttribute('aria-busy', pending ? 'true' : 'false');
+  if (pending) {
+    button.dataset.pendingTitle = button.title;
+    button.title = pendingLabel;
+  } else if (button.dataset.pendingTitle) {
+    button.title = button.dataset.pendingTitle;
+    delete button.dataset.pendingTitle;
+  }
 }
 
 export default async function decorate(block) {
@@ -231,6 +249,24 @@ export default async function decorate(block) {
     const canShareAccess = collection.accessLevel === CollectionAccessLevel.PRIVATE
       && collection.isOwner;
 
+    const downloadBtn = makeActionBtn(
+      t('downloadCollection', 'Download'),
+      ICON_DOWNLOAD_MD,
+      () => downloadCollection({
+        client,
+        collection,
+        t,
+        onLoadingChange: (loading) => {
+          setActionButtonPending(
+            downloadBtn,
+            loading,
+            t('preparingCollectionDownload', 'Preparing collection download...'),
+          );
+        },
+      }),
+    );
+    actionBar.append(downloadBtn);
+
     if (canShareAccess) {
       actionBar.append(
         makeActionBtn(t('shareAccess', 'Share access'), ICON_PEOPLE_MD, () => shareModal.show(collection)),
@@ -383,7 +419,7 @@ export default async function decorate(block) {
     onClearAllFacets: handleClearAllFacets,
   });
 
-  // Mobile filter panel toggle
+  // Mobile filter panel and refinement URL
   subscribe((currentState, _prev, updates) => {
     if (updates.isMobileFilterOpen !== undefined) {
       const panel = wrapper.querySelector('.facet-filter-panel');
@@ -400,9 +436,9 @@ export default async function decorate(block) {
         currentState.selectedNumericFilters,
         currentState.query,
       );
-      search();
     }
   });
 
-  search(query);
+  subscribeCollectionSearchRefresh({ subscribe, search: () => whenActivated(() => search()) });
+  whenActivated(() => search(query));
 }

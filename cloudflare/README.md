@@ -34,6 +34,8 @@ with the same gallery, breadcrumb, and filters as a regular collection. Configur
 filters are restored from its saved positive term clauses and use the normal facet scopes
 and selected-value counts. The saved query remains intact, including conditions not
 represented by checkboxes. Static asset removal is unavailable for Smart Collections.
+Collection downloads also run the saved query for Smart Collections; regular collections
+continue to download their static items.
 
 Smart Collection thumbnails use the first asset matching the saved query and the viewer's
 asset access rules. Empty collections keep the placeholder. Previews refresh on collection

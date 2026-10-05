@@ -24,6 +24,10 @@ export const ICON_DELETE_SM = `<svg width="16" height="16" viewBox="0 0 16 16" f
   <path d="M3 5h10M6 5V3h4v2M6.5 8v4M9.5 8v4M4 5l1 8h6l1-8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+export const ICON_DOWNLOAD_SM = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 2.5v6M5.5 6.5 8 9l2.5-2.5M3 12.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 export const ICON_PEOPLE_MD = `<svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="6" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/>
   <path d="M1.5 13c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
@@ -36,6 +40,10 @@ export const ICON_EDIT_MD = `<svg width="18" height="18" viewBox="0 0 16 16" fil
 
 export const ICON_DELETE_MD = `<svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M3 5h10M6 5V3h4v2M6.5 8v4M9.5 8v4M4 5l1 8h6l1-8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+export const ICON_DOWNLOAD_MD = `<svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 2.5v6M5.5 6.5 8 9l2.5-2.5M3 12.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 export const ICON_STAR_SM = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -20,6 +20,24 @@
   text-align: center;
 }
 
+.toast-message {
+  display: inline;
+}
+
+.toast-action {
+  color: inherit;
+  font-weight: 700;
+  margin-left: 16px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.toast-action:hover,
+.toast-action:focus-visible {
+  text-decoration-thickness: 2px;
+}
+
 .toast-success {
   background-color: #28a745;
   border: 1px solid #1e7e34;
@@ -58,4 +76,3 @@
     transform: translateY(0);
   }
 }
-

@@ -30,6 +30,7 @@ vi.mock('../../../scripts/collections/collection-modals.js', () => {
 });
 
 vi.mock('../../../scripts/toast/toast.js', () => ({ default: vi.fn() }));
+vi.mock('../../../scripts/speculation.js', () => ({ prerenderOnIntent: vi.fn() }));
 vi.mock('../../../scripts/locale-utils.js', () => ({
   getAppLabel: vi.fn(async () => (_key, fallback) => fallback),
   localizePath: vi.fn((path) => `/en${path}`),

@@ -67,6 +67,7 @@ import showToast, { ToastQueue } from '../../scripts/toast/toast.js';
 
 // Import components
 import { createMainApp } from './components/main-app.js';
+import { whenActivated } from '../../scripts/speculation.js';
 
 // Constants
 const LOADING = {
@@ -730,13 +731,13 @@ export default async function decorate(block) {
   // Create main app
   createMainApp(container);
 
-  // Auto-search on load
+  // Hold a prerendered page's search until it is shown, so hover is not logged as a search.
   if (
     state.dynamicMediaClient
     && state.excFacets !== undefined
     && !state.smartCollectionLoadFailed
   ) {
-    search();
+    whenActivated(() => search());
   }
 
   // Handle assetId deep link - fetch asset and open details modal
