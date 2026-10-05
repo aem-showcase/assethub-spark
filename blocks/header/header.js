@@ -5,6 +5,7 @@ import {
   localizePath,
 } from '../../scripts/locale-utils.js';
 import showProfileModal from './profile.js';
+import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
@@ -204,6 +205,9 @@ function getUserInitials() {
 // Map portal elements to their original menu containers for cleanup
 const portalOrigins = new WeakMap();
 
+const DROPDOWN_ANCHOR = '--header-dropdown-anchor';
+const supportsAnchor = () => !!window.CSS?.supports?.('anchor-name', DROPDOWN_ANCHOR);
+
 /**
  * Opens a dropdown menu as a fixed-position overlay on document.body,
  * escaping the header-bar stacking context so menus render above the nav bar.
@@ -223,19 +227,29 @@ function openDropdownPortal(triggerEl, menuEl, portalClass = '') {
     }
     p.remove();
   });
+  document.querySelectorAll('.header-dropdown-anchor').forEach((el) => {
+    el.classList.remove('header-dropdown-anchor');
+  });
 
   const ul = menuEl.querySelector('ul');
   if (!ul) return { portal: null, close: () => {} };
 
-  // Compute position from trigger button
-  const rect = triggerEl.getBoundingClientRect();
-
   const portal = document.createElement('div');
   portal.className = `header-dropdown-portal${portalClass ? ` ${portalClass}` : ''}`;
-  portal.style.top = `${rect.bottom + 5}px`;
-  portal.style.left = `${rect.left + rect.width / 2}px`;
-  portal.style.transform = 'translateX(-50%)';
   portalOrigins.set(portal, menuEl); // store reference for cleanup
+
+  // CSS anchor positioning keeps the menu attached to its button on scroll/resize
+  // and flips it when it would leave the viewport; otherwise measure once.
+  const anchored = supportsAnchor();
+  if (anchored) {
+    triggerEl.classList.add('header-dropdown-anchor');
+    portal.classList.add('is-anchored');
+  } else {
+    const rect = triggerEl.getBoundingClientRect();
+    portal.style.top = `${rect.bottom + 5}px`;
+    portal.style.left = `${rect.left + rect.width / 2}px`;
+    portal.style.transform = 'translateX(-50%)';
+  }
 
   // Move the <ul> from the in-DOM dropdown to the portal
   portal.appendChild(ul);
@@ -246,6 +260,7 @@ function openDropdownPortal(triggerEl, menuEl, portalClass = '') {
     if (ul.parentElement === portal) {
       menuEl.appendChild(ul);
     }
+    triggerEl.classList.remove('header-dropdown-anchor');
     portal.remove();
   };
 
@@ -260,8 +275,12 @@ function createMyAccount(t) {
   if (window.user) {
     const myAccount = document.createElement('div');
     myAccount.className = 'my-account';
-    const myAccountButton = document.createElement('div');
+    const myAccountButton = document.createElement('button');
+    myAccountButton.type = 'button';
     myAccountButton.className = 'my-account-button';
+    myAccountButton.setAttribute('aria-haspopup', 'menu');
+    myAccountButton.setAttribute('aria-expanded', 'false');
+    myAccountButton.setAttribute('aria-label', t('myAccount', 'My Account'));
     const impersonationIndicator = window.user.su ? '<span class="impersonation-indicator"></span>' : '';
     myAccountButton.innerHTML = `
       <div class="avatar">
@@ -274,8 +293,13 @@ function createMyAccount(t) {
 
     const myAccountMenu = document.createElement('div');
     myAccountMenu.className = 'my-account-menu dropdown-menu';
+    const reportsMenuItem = window.user?.permissions?.includes('admin-reports')
+      ? `<li class="mobile-account-action"><a href="${localizePath('/reports/report-hub')}">${t('reports', 'Reports')}</a></li>`
+      : '';
     myAccountMenu.innerHTML = `
       <ul>
+        ${reportsMenuItem}
+        <li class="mobile-account-action"><a href="${localizePath('/my-dam/my-notifications')}">${t('notifications', 'Notifications')}</a></li>
         <li><a href="#" id="my-profile-link">${t('myProfile', 'My Profile')}</a></li>
         <li><a href="/auth/logout">${t('logOut', 'Log Out')}</a></li>
       </ul>
@@ -290,6 +314,7 @@ function createMyAccount(t) {
       activeAccountPortal?.close();
       activeAccountPortal = null;
       myAccountButton.classList.remove('active');
+      myAccountButton.setAttribute('aria-expanded', 'false');
     });
 
     myAccountButton.addEventListener('click', (e) => {
@@ -299,9 +324,11 @@ function createMyAccount(t) {
         activeAccountPortal.close();
         activeAccountPortal = null;
         myAccountButton.classList.remove('active');
+        myAccountButton.setAttribute('aria-expanded', 'false');
       } else {
         activeAccountPortal = openDropdownPortal(myAccountButton, myAccountMenu, 'my-account-portal');
         myAccountButton.classList.add('active');
+        myAccountButton.setAttribute('aria-expanded', 'true');
       }
     });
     myAccount.appendChild(myAccountButton);
@@ -318,6 +345,7 @@ function createMyAccount(t) {
       activeAccountPortal.close();
       activeAccountPortal = null;
       myAccountBtn?.classList.remove('active');
+      myAccountBtn?.setAttribute('aria-expanded', 'false');
     }
   });
 
@@ -395,6 +423,13 @@ async function createNavBar(t) {
         const hrefPath = new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/$/, '');
         if (hrefPath && hrefPath === currentPath) {
           link.classList.add('active');
+          // Real element (not ::after) so page transitions can slide it between nav items
+          if (!link.querySelector('.nav-active-underline')) {
+            const underline = document.createElement('span');
+            underline.className = 'nav-active-underline';
+            underline.setAttribute('aria-hidden', 'true');
+            link.append(underline);
+          }
           const li = link.closest('li');
           if (li) li.classList.add('active');
           const parentDrop = li?.closest('ul')?.closest('li.nav-drop') || link.closest('li.nav-drop');
@@ -483,9 +518,11 @@ async function createNavBar(t) {
       `;
 
       // Add click handler for reports icon
+      const reportHubUrl = localizePath('/reports/report-hub');
       reportsIcon.addEventListener('click', () => {
-        window.location.href = localizePath('/reports/report-hub');
+        window.location.href = reportHubUrl;
       });
+      prerenderOnIntent(reportsIcon, reportHubUrl);
 
       iconsWrapper.appendChild(reportsIcon);
     }
@@ -513,6 +550,21 @@ async function createNavBar(t) {
       }
     };
 
+    // Pop the badge when its count goes up (e.g. after add to cart)
+    const popBadgeOnIncrease = (badge, count) => {
+      const previous = Number(badge.dataset.count || 0);
+      badge.dataset.count = String(count || 0);
+      if (!count || count <= previous || !badge.dataset.ready) {
+        badge.dataset.ready = 'true';
+        return;
+      }
+      badge.classList.remove('is-popping');
+      // eslint-disable-next-line no-unused-expressions
+      badge.offsetWidth; // restart the animation
+      badge.classList.add('is-popping');
+      badge.addEventListener('animationend', () => badge.classList.remove('is-popping'), { once: true });
+    };
+
     // Expose function to update cart badge
     window.updateCartBadge = function (numCartAssetItems) {
       const badge = cartIcon.querySelector('.cart-badge');
@@ -523,6 +575,7 @@ async function createNavBar(t) {
         } else {
           badge.style.display = 'none';
         }
+        popBadgeOnIncrease(badge, numCartAssetItems);
       }
     };
 
@@ -536,6 +589,7 @@ async function createNavBar(t) {
         } else {
           badge.style.display = 'none';
         }
+        popBadgeOnIncrease(badge, numDownloadAssetItems);
       }
     };
 

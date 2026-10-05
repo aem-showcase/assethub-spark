@@ -31,6 +31,7 @@ import {
 import { openSaveSmartCollectionModal } from '../../../../scripts/smart-collections/smart-collection-modal.js';
 import { buildCriteriaFromCurrentState } from '../../../../scripts/smart-collections/smart-collection-state.js';
 import { hasActiveCriteria } from '../../../../scripts/smart-collections/smart-collection-types.js';
+import { animateHeight } from '../../../../scripts/motion.js';
 
 /**
  * Get locale from URL path. Handles both the root site (/en/search/...) and a foldered
@@ -1227,7 +1228,13 @@ async function openFacetModal(facetKey, callbacks) {
         const children = container?.querySelector(':scope > .hierarchy-children');
         const isExpanding = children?.style.display === 'none';
         if (caret) caret.classList.toggle('expanded', isExpanding);
-        if (children) children.style.display = isExpanding ? '' : 'none';
+        if (children) {
+          animateHeight(
+            () => container,
+            () => { children.style.display = isExpanding ? '' : 'none'; },
+            { fadeSelector: ':scope > .hierarchy-children' },
+          );
+        }
         // Track expanded state within the modal for restoring after re-renders
         if (isExpanding) modalExpandedKeys.add(hKey);
         else modalExpandedKeys.delete(hKey);
@@ -2645,6 +2652,20 @@ function updateFacetCheckboxList(facetKey, callbacks) {
 }
 
 /**
+ * Expand/collapse a top-level facet section with a height animation. The section is
+ * re-rendered by the state change, so it is looked up again afterwards.
+ * @param {string} key - Facet key
+ * @param {() => void} change - Synchronous state change that re-renders the section
+ */
+function animateFacetSection(key, change) {
+  animateHeight(
+    () => containerElement?.querySelector(`.facet-filter-section[data-facet-key="${CSS.escape(key)}"]`),
+    change,
+    { fadeSelector: '.facet-filter-checkbox-list' },
+  );
+}
+
+/**
  * Toggle a hierarchy item's expanded state (DOM-only, no re-render)
  * @param {string} hierarchyKey - The hierarchy item key
  * @param {string} facetTechId - The facet technical ID
@@ -2682,7 +2703,11 @@ function toggleHierarchyItem(hierarchyKey, facetTechId, fullPath) {
     if (container) {
       const childrenWrapper = container.querySelector(':scope > .hierarchy-children');
       if (childrenWrapper) {
-        childrenWrapper.style.display = isCurrentlyExpanded ? 'none' : '';
+        animateHeight(
+          () => container,
+          () => { childrenWrapper.style.display = isCurrentlyExpanded ? 'none' : ''; },
+          { fadeSelector: ':scope > .hierarchy-children' },
+        );
       }
     }
   }
@@ -2772,7 +2797,7 @@ async function bindEvents(callbacks) {
         searchMode[key] = false;
         delete searchTerms[key];
       }
-      setState({ expandedFacets: newExpandedFacets });
+      animateFacetSection(key, () => setState({ expandedFacets: newExpandedFacets }));
     });
   });
 
@@ -2793,7 +2818,7 @@ async function bindEvents(callbacks) {
         searchMode[key] = false;
         delete searchTerms[key];
       }
-      setState({ expandedFacets: newExpandedFacets });
+      animateFacetSection(key, () => setState({ expandedFacets: newExpandedFacets }));
     });
   });
 

@@ -1,4 +1,5 @@
 import { getAppLabel } from '../../scripts/locale-utils.js';
+import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 // Function to update aria attributes for accessibility based on current page
 function updateActiveSlide(block, currentPage) {
@@ -250,6 +251,11 @@ function createSlide(row, slideIndex, carouselId) {
 
     // Store the URL as data attribute for potential future use
     slide.dataset.cardLink = cardLinkUrl;
+
+    // Pairs this card with the page it opens for the page transition, and prerenders that
+    // page on hover so it is ready to animate into.
+    slide.dataset.vtHref = cardLinkUrl;
+    prerenderOnIntent(slide, cardLinkUrl);
   }
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');
