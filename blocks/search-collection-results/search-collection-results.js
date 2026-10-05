@@ -1,5 +1,6 @@
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
+import { downloadCollection } from '../../scripts/collections/collection-download.js';
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
 import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js';
 import {
@@ -16,6 +17,7 @@ import {
   ICON_PERSON_SM,
   ICON_EDIT_SM,
   ICON_DELETE_SM,
+  ICON_DOWNLOAD_SM,
   ICON_PEOPLE_MD,
   ICON_GRID_SM,
   ICON_PERSON_FILTER,
@@ -310,14 +312,11 @@ function notImplemented(e) {
   showToast(NOT_IMPLEMENTED, 'info');
 }
 
-const MENU_ACTIONS_OWNER = [
-  { key: 'edit', label: 'Edit collection', icon: ICON_EDIT_SM },
-  { key: 'delete', label: 'Delete collection', icon: ICON_DELETE_SM },
-];
-
 function createActionBar({
+  t,
   isOwner = false,
   canShareAccess = false,
+  onDownload = null,
   onEdit = null,
   onDelete = null,
   onShareLink = null,
@@ -390,12 +389,22 @@ function createActionBar({
       { key: 'shareLink', label: 'Share', icon: shareIconImg },
     ];
 
+  const ownerMenuItems = [
+    { key: 'download', label: t('downloadCollection', 'Download'), icon: ICON_DOWNLOAD_SM },
+    { key: 'edit', label: t('editCollection', 'Edit collection'), icon: ICON_EDIT_SM },
+    { key: 'delete', label: t('deleteCollection', 'Delete collection'), icon: ICON_DELETE_SM },
+  ];
+
   const menuActions = isOwner
-    ? [...shareMenuItems, ...MENU_ACTIONS_OWNER]
-    : [...shareMenuItems];
+    ? [...shareMenuItems, ...ownerMenuItems]
+    : [...shareMenuItems, { key: 'download', label: t('downloadCollection', 'Download'), icon: ICON_DOWNLOAD_SM }];
 
   const menuHandlers = {
-    edit: onEdit, delete: onDelete, shareLink: onShareLink, shareAccess: onShareAccess,
+    download: onDownload,
+    edit: onEdit,
+    delete: onDelete,
+    shareLink: onShareLink,
+    shareAccess: onShareAccess,
   };
 
   menuActions.forEach(({ key, label, icon }) => {
@@ -405,10 +414,15 @@ function createActionBar({
     btn.innerHTML = `<span class="scr-menu-icon">${icon}</span>${label}`;
     const handler = menuHandlers[key];
     if (handler) {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         menu.hidden = true;
-        handler();
+        btn.disabled = true;
+        try {
+          await handler();
+        } finally {
+          btn.disabled = false;
+        }
       });
     } else {
       btn.addEventListener('click', notImplemented);
@@ -487,7 +501,16 @@ function linkForPageTransition(el, collection) {
   prerenderOnIntent(el, href);
 }
 
-function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
+function createCard(
+  collection,
+  t,
+  onView,
+  onDownload,
+  onEdit,
+  onDelete,
+  onShareLink,
+  onShareAccess,
+) {
   const card = document.createElement('div');
   card.className = 'scr-card';
   linkForPageTransition(card, collection);
@@ -512,8 +535,10 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
 
   info.append(name, meta);
   card.append(preview, info, createActionBar({
+    t,
     isOwner: collection.isOwner,
     canShareAccess,
+    onDownload: () => onDownload(collection),
     onEdit: collection.isOwner ? () => onEdit(collection) : null,
     onDelete: collection.isOwner ? () => onDelete(collection) : null,
     onShareLink: () => onShareLink(collection),
@@ -522,7 +547,16 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
   return card;
 }
 
-function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
+function createRow(
+  collection,
+  t,
+  onView,
+  onDownload,
+  onEdit,
+  onDelete,
+  onShareLink,
+  onShareAccess,
+) {
   const row = document.createElement('div');
   row.className = 'scr-row';
   linkForPageTransition(row, collection);
@@ -555,8 +589,10 @@ function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAcc
     && collection.isOwner;
 
   const actions = createActionBar({
+    t,
     isOwner: collection.isOwner,
     canShareAccess,
+    onDownload: () => onDownload(collection),
     onEdit: collection.isOwner ? () => onEdit(collection) : null,
     onDelete: collection.isOwner ? () => onDelete(collection) : null,
     onShareLink: () => onShareLink(collection),
@@ -732,13 +768,14 @@ export default async function decorate(block) {
     });
   };
   const onShareAccess = (collection) => shareModal.show(collection);
+  const onDownload = (collection) => downloadCollection({ client, collection, t });
 
   const appendCollectionItems = (items) => {
     const view = getView();
     items.forEach((c) => {
       const el = view === 'grid'
-        ? createCard(c, onView, onEdit, onDelete, onShareLink, onShareAccess)
-        : createRow(c, onView, onEdit, onDelete, onShareLink, onShareAccess);
+        ? createCard(c, t, onView, onDownload, onEdit, onDelete, onShareLink, onShareAccess)
+        : createRow(c, t, onView, onDownload, onEdit, onDelete, onShareLink, onShareAccess);
       results.append(el);
     });
     items.forEach((c) => {

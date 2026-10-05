@@ -7,6 +7,7 @@
 
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
+import { downloadCollection } from '../../scripts/collections/collection-download.js';
 import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
 import {
   CollectionAccessLevel,
@@ -40,6 +41,7 @@ import {
   ICON_PEOPLE_MD,
   ICON_EDIT_MD,
   ICON_DELETE_MD,
+  ICON_DOWNLOAD_MD,
 } from '../../scripts/collections/collection-icons.js';
 import { whenActivated } from '../../scripts/speculation.js';
 import subscribeCollectionSearchRefresh from './collection-search-refresh.js';
@@ -53,6 +55,19 @@ function makeActionBtn(label, html, onClick) {
   btn.innerHTML = html;
   btn.addEventListener('click', onClick);
   return btn;
+}
+
+function setActionButtonPending(button, pending, pendingLabel) {
+  if (!button) return;
+  button.disabled = pending;
+  button.setAttribute('aria-busy', pending ? 'true' : 'false');
+  if (pending) {
+    button.dataset.pendingTitle = button.title;
+    button.title = pendingLabel;
+  } else if (button.dataset.pendingTitle) {
+    button.title = button.dataset.pendingTitle;
+    delete button.dataset.pendingTitle;
+  }
 }
 
 export default async function decorate(block) {
@@ -202,6 +217,24 @@ export default async function decorate(block) {
 
     const canShareAccess = collection.accessLevel === CollectionAccessLevel.PRIVATE
       && collection.isOwner;
+
+    const downloadBtn = makeActionBtn(
+      t('downloadCollection', 'Download'),
+      ICON_DOWNLOAD_MD,
+      () => downloadCollection({
+        client,
+        collection,
+        t,
+        onLoadingChange: (loading) => {
+          setActionButtonPending(
+            downloadBtn,
+            loading,
+            t('preparingCollectionDownload', 'Preparing collection download...'),
+          );
+        },
+      }),
+    );
+    actionBar.append(downloadBtn);
 
     if (canShareAccess) {
       actionBar.append(
