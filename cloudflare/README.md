@@ -323,7 +323,7 @@ This worker uses the following [Cloudflare KV](https://developers.cloudflare.com
 | `spark-saved-searches` | `env.SAVED_SEARCHES` | Saved searches from users |
 | `spark-rights-requests` | `env.RIGHTS_REQUESTS` | Rights requests |
 | `spark-rights-request-reviews` | `env.RIGHTS_REQUEST_REVIEWS` | Review results of rights requests |
-| `spark-messages` | `env.MESSAGES` | Notifications for users |
+| `spark-messages` | `env.MESSAGES` | Notifications for users. ⚠️ Currently **not bound** in `wrangler.jsonc`: the worker logs a warning, `/api/messages` returns only system notifications from EDS and write endpoints return 503. To enable, add a `MESSAGES` entry under `kv_namespaces` (top-level, `env.production` and `env.branch`) with the real namespace id. Local `wrangler dev` then auto-creates a local KV, no extra setup needed. |
 
 ### D1 Database
 
