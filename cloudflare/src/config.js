@@ -46,8 +46,17 @@ const config = {
   // Entra common JWKS endpoint (tenant-independent) for id_token signature checks.
   MICROSOFT_ENTRA_JWKS_URL: 'https://login.microsoftonline.com/common/discovery/keys',
 
-  // Lifetime of our own session JWT cookie.
-  SESSION_COOKIE_EXPIRATION: '6h',
+  // Trusted portal origins, including branch/fork routes and explicit local development.
+  ENTRA_ALLOWED_ORIGINS: [
+    'https://frescopamedia.com',
+    'https://preview.frescopamedia.com',
+    /^https:\/\/[^.]+\.dev\.frescopamedia\.com$/,
+    'http://localhost',
+    /^http:\/\/localhost:\d+$/,
+  ],
+
+  // Lifetime of our own session JWT cookie, in seconds.
+  SESSION_COOKIE_TTL_SECONDS: 6 * 60 * 60,
 
   // Cloudflare account id owning the Analytics Engine dataset queried by the analytics API.
   ANALYTICS_ACCOUNT_ID: 'd3259185ae56522248254092489d6755',

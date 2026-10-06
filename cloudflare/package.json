@@ -25,6 +25,7 @@
     "wrangler": "^4.140.0"
   },
   "dependencies": {
+    "astra-sdk": "file:../../../../../astra-sdk/astra-sdk-0.1.0.tgz",
     "escape-html": "^1.0.3",
     "itty-router": "^5.0.22",
     "jose": "^6.0.13"

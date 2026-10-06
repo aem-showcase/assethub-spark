@@ -51,13 +51,28 @@ To produce a branded demo of the portal for a company, see [docs/rebrand-guide.m
 
 ## Installation
 
-Install npm dependencies for the root project and cloudflare worker:
+Build the SDK archive before installing Spark dependencies. Keep the SDK source in its separate checkout:
 
 ```sh
-npm install
+cd ~/Work/Git/astra-sdk
+npm ci && npm pack
 ```
 
-This automatically installs cloudflare worker dependencies via the `postinstall` script.
+This creates `astra-sdk-0.1.0.tgz` in the SDK checkout. The Worker dependency is
+`astra-sdk: file:../../../../../astra-sdk/astra-sdk-0.1.0.tgz`, relative to `cloudflare`.
+This path is specific to the `assethub-spark/.claude/worktrees/entra-sdk` layout.
+
+From this Spark worktree root (`~/Work/Git/assethub-spark/.claude/worktrees/entra-sdk`), run:
+
+```sh
+npm install && npm start
+```
+
+Root `npm install` installs Worker dependencies through the existing `postinstall` script.
+No manual copy or custom installer is needed. Do not commit generated SDK archives.
+
+A clean GitHub CI checkout cannot access this local file dependency.
+Artifactory distribution is not implemented yet.
 
 ### Cleanup
 

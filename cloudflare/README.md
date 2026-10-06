@@ -260,9 +260,49 @@ Understanding how different Cloudflare resources behave across deployment enviro
 - Use **local development** for features involving D1 or when you don't want to affect production KV/analytics
 - Use **branch preview** for testing frontend changes, authentication flows, and production data integration
 
+## Entra authentication library
+
+The Worker imports the Entra authentication library from the separate `astra-sdk` repo.
+`src/auth.js` is the Spark adapter: it keeps the authored login page, permissions,
+impersonation, login analytics, and user-login reporting in this portal.
+The library handles Microsoft login, callback validation, cookies, sessions, and logout.
+
+The Worker dependency is `astra-sdk: file:../../../../../astra-sdk/astra-sdk-0.1.0.tgz`,
+relative to this `cloudflare` folder. This path is specific to the
+`assethub-spark/.claude/worktrees/entra-sdk` layout. Keep SDK source in the separate
+`~/Work/Git/astra-sdk` checkout and build its archive before installing Spark:
+
+```sh
+cd ~/Work/Git/astra-sdk
+npm ci && npm pack
+```
+
+Then install and start Spark from this worktree root:
+
+```sh
+cd ~/Work/Git/assethub-spark/.claude/worktrees/entra-sdk
+npm install && npm start
+```
+
+Root `npm install` installs Worker dependencies through the existing `postinstall` script.
+No manual copy or custom installer is needed. Do not commit generated SDK archives.
+A clean GitHub CI checkout cannot access this local file dependency.
+Artifactory distribution is not implemented yet.
+
+Update the dependency filename when releasing a new version. The SDK README describes
+standalone Worker usage and the public configuration preset.
+
+Public tenant/client IDs and trusted portal origins are configured in `src/config.js`.
+The signing secret stays in the runtime `COOKIE_SECRET` binding. No secret is included
+in the SDK. Each deployed callback URL still needs to be allowed by the Entra app.
+This login uses an ID token, not a client-secret exchange or an OAuth access/refresh token.
+Existing valid Spark sessions remain compatible; an in-flight login from before the
+migration must be restarted because the signed State cookie format changed.
+
 ## Configuration
 
-Most configuration is done via environment variables in the `wrangler.toml` file:
+Static application settings are in `src/config.js`. Deployment variables, routes,
+and bindings are in `wrangler.jsonc`.
 
 | Variable | Default in code | Description |
 |----------|---------|-------------|
@@ -274,8 +314,8 @@ Most configuration is done via environment variables in the `wrangler.toml` file
 | `MICROSOFT_ENTRA_TENANT_ID` | - | Directory (tenant) ID from the app registration in [Microsoft Entra admin center](http://entra.microsoft.com). |
 | `MICROSOFT_ENTRA_CLIENT_ID` | - | Application (client) ID from the app registration in [Microsoft Entra admin center](http://entra.microsoft.com). |
 | `MICROSOFT_ENTRA_JWKS_URL` | `https://login.microsoftonline.com/common/discovery/keys` | The Microsoft Entra ID public keys URL. Get this from `https://login.microsoftonline.com/{MICROSOFT_ENTRA_TENANT_ID}/.well-known/openid-configuration` and json field `jwks_uri` |
-| `SESSION_COOKIE_EXPIRATION` | `6h` | The expiration time for the session cookie. Example: `1h` for 1 hour, or `10m` for 10 minutes. [Format documentation](https://github.com/panva/jose/blob/main/docs/jwt/sign/classes/SignJWT.md#setexpirationtime) |
-| `DISABLE_AUTHENTICATION` | not set (enabled) | If set to `true`, disable authentication entirely. WARNING: be careful with this! |
+| `ENTRA_ALLOWED_ORIGINS` | Production, preview, branch, and localhost origins | Trusted origins for login and origin-bound sessions. CORS alone does not grant authentication trust. |
+| `SESSION_COOKIE_TTL_SECONDS` | `21600` | Session JWT lifetime in seconds. The Session cookie itself lasts for the browser session. |
 
 ## Secrets
 
@@ -299,7 +339,7 @@ Secret Store ID: `1e5b0170484843c69f8b9bb71c055468`
 | `SPARK_HELIX_ORIGIN_AUTHENTICATION` | `HELIX_ORIGIN_AUTHENTICATION` | AEM EDS authentication token. | TODO: possible using Helix admin APIs? |
 | `SPARK_PUBLISH_API_USER` | `PUBLISH_API_USER` | AEM CS user in the format of `<user>:<password>`. Used for proxying requests to AEM publish environment for certain features not re-implemented in the new portal yet. Must be available on the publish environment. Must have impersonation rights for all portal users on publish. Current user id: `spark-contenthub`. | Manually rotate in AEM CS and then update in secret store. |
 | `SPARK_SMTP_USERNAME` | `SMTP_USERNAME` | Email address for SMTP authentication (e.g., `noreply@example.com`). This is the Microsoft 365 mailbox that sends emails. | Only if the sending mailbox changes. |
-| `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET` | `MICROSOFT_ENTRA_CLIENT_SECRET` | Client secret for the Microsoft Entra app registration. Used for both user login and SMTP OAuth2 authentication. | **Max 24 months.** Rotate in Microsoft Entra Admin Center before expiration. See [SMTP OAuth2 Configuration](#smtp-oauth2-configuration). |
+| `SPARK_MICROSOFT_ENTRA_CLIENT_SECRET` | `MICROSOFT_ENTRA_CLIENT_SECRET` | Legacy SMTP OAuth2 credential. Not used or required by the current Entra user-login implementation. | See [SMTP OAuth2 Configuration](#smtp-oauth2-configuration) for the legacy integration. |
 
 
 ### CI secrets
