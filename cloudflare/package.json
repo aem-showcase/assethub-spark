@@ -25,7 +25,7 @@
     "wrangler": "^4.140.0"
   },
   "dependencies": {
-    "assethub-sdk": "file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz",
+    "@assethub/sdk": "file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz",
     "escape-html": "^1.0.3",
     "itty-router": "^5.0.22",
     "jose": "^6.0.13"

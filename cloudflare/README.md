@@ -283,7 +283,7 @@ The Worker imports the Entra authentication library from the separate `assethub-
 impersonation, login analytics, and user-login reporting in this portal.
 The library handles Microsoft login, callback validation, cookies, sessions, and logout.
 
-The Worker dependency is `assethub-sdk: file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz`,
+The Worker dependency is `"@assethub/sdk": "file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz"`,
 relative to this `cloudflare` folder. This path is specific to the
 `assethub-spark/.claude/worktrees/entra-sdk` layout. Keep SDK source in the separate
 `~/Work/Git/assethub-sdk` checkout and build its archive before installing Spark:
@@ -303,7 +303,10 @@ npm install && npm start
 Root `npm install` installs Worker dependencies through the existing `postinstall` script.
 No manual copy or custom installer is needed. Do not commit generated SDK archives.
 A clean GitHub CI checkout cannot access this local file dependency.
-Artifactory distribution is not implemented yet.
+The Artifactory repositories `npm-assethub-sdk-release` and `npm-assethub-sdk-release-local`
+have been created. The package is not published, and consumer registry distribution is
+not configured yet. Exact registry URLs, access roles, and publication authentication
+have not been verified.
 
 Update the dependency filename when releasing a new version. The SDK README describes
 standalone Worker usage and the public configuration preset.

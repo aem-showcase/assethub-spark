@@ -59,7 +59,7 @@ npm ci && npm pack
 ```
 
 This creates `assethub-sdk-0.1.0.tgz` in the SDK checkout. The Worker dependency is
-`assethub-sdk: file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz`, relative to `cloudflare`.
+`"@assethub/sdk": "file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz"`, relative to `cloudflare`.
 This path is specific to the `assethub-spark/.claude/worktrees/entra-sdk` layout.
 
 From this Spark worktree root (`~/Work/Git/assethub-spark/.claude/worktrees/entra-sdk`), run:
@@ -72,7 +72,10 @@ Root `npm install` installs Worker dependencies through the existing `postinstal
 No manual copy or custom installer is needed. Do not commit generated SDK archives.
 
 A clean GitHub CI checkout cannot access this local file dependency.
-Artifactory distribution is not implemented yet.
+The Artifactory repositories `npm-assethub-sdk-release` and `npm-assethub-sdk-release-local`
+have been created. The package is not published, and consumer registry distribution is
+not configured yet. Exact registry URLs, access roles, and publication authentication
+have not been verified.
 
 ### Cleanup
 
