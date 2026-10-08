@@ -9,12 +9,12 @@
 // See https://github.com/anthropics/claude-code/issues/67384
 //
 // This script otherwise reproduces standard `claude -w` behavior 1:1: create the
-// worktree at the given dir off the given base ref, and bring in the files listed
-// in .worktreeinclude (which a custom hook bypasses, so we re-do it here).
+// worktree at the given dir off the given base ref, and copy in the secret/config
+// files each worktree needs its own independent copy of (rebrand-portal I9).
 //
-// Note: `git worktree add` also fires .husky/post-checkout, which symlinks the same
-// .worktreeinclude entries for worktrees created outside Claude. Both are idempotent
-// and run strictly one after the other (git runs the husky hook before it returns).
+// Note: `git worktree add` also fires .husky/post-checkout, which does the same
+// secrets copy for worktrees created outside Claude. Both are idempotent and run
+// strictly one after the other (git runs the husky hook before it returns).
 //
 // If Claude Code ever makes the branch prefix configurable, DELETE this script and
 // the WorktreeCreate entry in .claude/settings.json and use that setting instead.
@@ -73,25 +73,5 @@ SECRET_FILES.forEach((rel) => {
     fs.copyFileSync(src, dst);
   }
 });
-
-// Symlink files listed in .worktreeinclude from the main checkout into the worktree
-// (a WorktreeCreate hook bypasses Claude Code's native .worktreeinclude copy).
-const includeFile = path.join(cwd, '.worktreeinclude');
-if (fs.existsSync(includeFile)) {
-  fs.readFileSync(includeFile, 'utf8')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((rel) => rel && !rel.startsWith('#'))
-    .filter((rel) => !SECRET_FILES.includes(rel)) // copied above (I9); never symlink
-    .forEach((rel) => {
-      const src = path.join(cwd, rel);
-      const dst = path.join(worktreeDir, rel);
-      if (fs.existsSync(src) && !pathExists(dst)) {
-        fs.mkdirSync(path.dirname(dst), { recursive: true });
-        // Relative target so the link survives the repo being moved/cloned elsewhere.
-        fs.symlinkSync(path.relative(path.dirname(dst), src), dst);
-      }
-    });
-}
 
 process.stdout.write(`${worktreeDir}\n`); // required: absolute worktree path on stdout
