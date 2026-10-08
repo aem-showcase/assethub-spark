@@ -278,18 +278,18 @@ Understanding how different Cloudflare resources behave across deployment enviro
 
 ## Entra authentication library
 
-The Worker imports the Entra authentication library from the separate `astra-sdk` repo.
+The Worker imports the Entra authentication library from the separate `assethub-sdk` repo.
 `src/auth.js` is the Spark adapter: it keeps the authored login page, permissions,
 impersonation, login analytics, and user-login reporting in this portal.
 The library handles Microsoft login, callback validation, cookies, sessions, and logout.
 
-The Worker dependency is `astra-sdk: file:../../../../../astra-sdk/astra-sdk-0.1.0.tgz`,
+The Worker dependency is `assethub-sdk: file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz`,
 relative to this `cloudflare` folder. This path is specific to the
 `assethub-spark/.claude/worktrees/entra-sdk` layout. Keep SDK source in the separate
-`~/Work/Git/astra-sdk` checkout and build its archive before installing Spark:
+`~/Work/Git/assethub-sdk` checkout and build its archive before installing Spark:
 
 ```sh
-cd ~/Work/Git/astra-sdk
+cd ~/Work/Git/assethub-sdk
 npm ci && npm pack
 ```
 

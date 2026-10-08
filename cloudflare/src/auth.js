@@ -1,4 +1,4 @@
-import { AuthConfigurationError, createEntraAuth } from 'astra-sdk';
+import { AuthConfigurationError, createEntraAuth } from 'assethub-sdk';
 import { Router } from 'itty-router';
 import config, { companyBasePath } from './config.js';
 import { createSession, getUser } from './user.js';

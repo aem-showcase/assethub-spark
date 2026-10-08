@@ -54,12 +54,12 @@ To produce a branded demo of the portal for a company, see [docs/rebrand-guide.m
 Build the SDK archive before installing Spark dependencies. Keep the SDK source in its separate checkout:
 
 ```sh
-cd ~/Work/Git/astra-sdk
+cd ~/Work/Git/assethub-sdk
 npm ci && npm pack
 ```
 
-This creates `astra-sdk-0.1.0.tgz` in the SDK checkout. The Worker dependency is
-`astra-sdk: file:../../../../../astra-sdk/astra-sdk-0.1.0.tgz`, relative to `cloudflare`.
+This creates `assethub-sdk-0.1.0.tgz` in the SDK checkout. The Worker dependency is
+`assethub-sdk: file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz`, relative to `cloudflare`.
 This path is specific to the `assethub-spark/.claude/worktrees/entra-sdk` layout.
 
 From this Spark worktree root (`~/Work/Git/assethub-spark/.claude/worktrees/entra-sdk`), run:
