@@ -9,6 +9,7 @@ export const SEARCH_URL_PARAMS = {
   NUMERIC_FILTERS: 'numericFilters',
   RIGHTS_FILTERS: 'rightsFilters',
   SEARCH_MODE: 'searchMode',
+  SMART_COLLECTION_ID: 'smartCollectionId',
 };
 
 /**

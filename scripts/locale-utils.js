@@ -4,7 +4,7 @@
  */
 
 // Supported locales
-const SUPPORTED_LOCALES = ['en', 'ja'];
+export const SUPPORTED_LOCALES = ['en', 'ja'];
 const DEFAULT_LOCALE = 'en';
 const LOCALE_STORAGE_KEY = 'spark-preferred-locale';
 // Remembers the foldered-demo company base (e.g. '/volkswagen') so localized links stay
@@ -59,7 +59,9 @@ export function getSavedLocalePreference() {
 // Container folder for foldered company demos. A demo is served under
 // /<COMPANIES_CONTAINER>/<company>/<locale>/... so the DA/content root stays uncluttered.
 // Keep in sync with COMPANIES_CONTAINER in the rebrand-portal skill's asset constants.
-const COMPANIES_CONTAINER = 'companies';
+export const COMPANIES_CONTAINER = 'companies';
+export const OPTIONAL_SITE_PATH_REGEX_SOURCE = String.raw`(?:/${COMPANIES_CONTAINER}/[^/]+)?(?:/(?:${SUPPORTED_LOCALES.join('|')}))?`;
+export const OPTIONAL_SITE_PATH_URL_PATTERN = `{/${COMPANIES_CONTAINER}/:company}?{/:locale(${SUPPORTED_LOCALES.join('|')})}?`;
 
 /**
  * Detects a foldered company demo base from the CURRENT URL, if present.

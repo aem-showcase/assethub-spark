@@ -9,6 +9,9 @@
  * @param {string} type - Type of toast ('success', 'error', 'info')
  * @param {Object} options - Optional configuration
  * @param {number} options.timeout - Duration in milliseconds (default: 3000)
+ * @param {string} options.actionLabel - Optional action label
+ * @param {string} options.actionHref - Optional action destination
+ * @returns {HTMLElement} The created toast
  */
 export default function showToast(message, type = 'success', options = {}) {
   const timeout = options.timeout || 3000;
@@ -16,7 +19,21 @@ export default function showToast(message, type = 'success', options = {}) {
   // Create toast element
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+  const text = document.createElement('span');
+  text.className = 'toast-message';
+  text.textContent = message;
+  toast.appendChild(text);
+
+  if (options.actionLabel && options.actionHref) {
+    const action = document.createElement('a');
+    action.className = 'toast-action';
+    action.href = options.actionHref;
+    action.textContent = options.actionLabel;
+    toast.appendChild(action);
+  }
 
   // Add to document
   document.body.appendChild(toast);
@@ -35,6 +52,8 @@ export default function showToast(message, type = 'success', options = {}) {
       }
     }, 300);
   }, timeout);
+
+  return toast;
 }
 
 /**

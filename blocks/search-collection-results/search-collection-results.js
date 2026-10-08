@@ -1,7 +1,12 @@
 import showToast from '../../scripts/toast/toast.js';
 import { DynamicMediaCollectionsClient } from '../../scripts/collections/collections-api-client.js';
-import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js';
-import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { downloadCollection } from '../../scripts/collections/collection-download.js?v=smart-collections-merge-20261005';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { transformApiCollectionToInternal } from '../../scripts/collections/collections-utils.js?v=smart-collection-thumbnails-20261003';
+// eslint-disable-next-line import/no-unresolved -- Browser cache-busting query.
+import { getApiParams, applyClientFilter } from '../../scripts/collections/collection-list-filters.js?v=smart-collections-merge-20261005';
+import { getContentAIClient } from '../search-results/clients/dynamicmedia-client.js';
 import {
   createEditModal,
   createDeleteModal,
@@ -16,17 +21,25 @@ import {
   ICON_PERSON_SM,
   ICON_EDIT_SM,
   ICON_DELETE_SM,
+  ICON_DOWNLOAD_SM,
   ICON_PEOPLE_MD,
   ICON_GRID_SM,
   ICON_PERSON_FILTER,
   ICON_GLOBE_SM,
   ICON_LOCK_SM,
+  ICON_SMART_COLLECTION_SM,
   PLACEHOLDER_SVG,
 } from '../../scripts/collections/collection-icons.js';
+import {
+  getNativeSmartCollectionQuery,
+  isDeliverySmartCollection,
+} from '../../scripts/collections/smart-collection-query.js';
 import { SEARCH_URL_PARAMS } from '../../scripts/scripts.js';
 import { getAppLabel, localizePath } from '../../scripts/locale-utils.js';
+import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 const VIEW_STORAGE_KEY = 'scr-view';
+const pendingPreviews = new WeakSet();
 
 /**
  * Simple accessible picker: a button that opens a dropdown list of options.
@@ -128,7 +141,7 @@ function hideScrCreateModal() {
   if (scopeSelect) scopeSelect.value = 'private';
 }
 
-function buildCreateModal(client, t, onCreated) {
+function buildCreateModal(client, translate, onCreated) {
   const overlay = document.createElement('div');
   overlay.className = 'scr-modal-overlay';
   overlay.hidden = true;
@@ -146,12 +159,12 @@ function buildCreateModal(client, t, onCreated) {
   const heading = document.createElement('h2');
   heading.id = 'scr-modal-heading';
   heading.className = 'scr-modal-heading';
-  heading.textContent = t('newCollection', 'New collection');
+  heading.textContent = translate('newCollection', 'New collection');
 
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'scr-modal-close';
-  closeBtn.setAttribute('aria-label', t('close', 'Close'));
+  closeBtn.setAttribute('aria-label', translate('close', 'Close'));
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', hideScrCreateModal);
 
@@ -165,7 +178,7 @@ function buildCreateModal(client, t, onCreated) {
   const titleLabel = document.createElement('label');
   titleLabel.className = 'scr-form-label';
   titleLabel.setAttribute('for', 'scr-modal-title');
-  titleLabel.textContent = t('labelTitle', 'Title');
+  titleLabel.textContent = translate('labelTitle', 'Title');
   const reqMark = document.createElement('span');
   reqMark.className = 'scr-form-required';
   reqMark.setAttribute('aria-hidden', 'true');
@@ -182,7 +195,7 @@ function buildCreateModal(client, t, onCreated) {
   const descLabel = document.createElement('label');
   descLabel.className = 'scr-form-label';
   descLabel.setAttribute('for', 'scr-modal-desc');
-  descLabel.textContent = t('description', 'Description');
+  descLabel.textContent = translate('description', 'Description');
 
   const descInput = document.createElement('textarea');
   descInput.id = 'scr-modal-desc';
@@ -195,7 +208,7 @@ function buildCreateModal(client, t, onCreated) {
 
   const accessHeading = document.createElement('div');
   accessHeading.className = 'scr-modal-access-heading';
-  accessHeading.textContent = t('whoHasAccess', 'Who has access');
+  accessHeading.textContent = translate('whoHasAccess', 'Who has access');
 
   const ownerRow = document.createElement('div');
   ownerRow.className = 'scr-modal-owner-row';
@@ -210,7 +223,7 @@ function buildCreateModal(client, t, onCreated) {
 
   const ownerBadge = document.createElement('span');
   ownerBadge.className = 'scr-modal-owner-badge';
-  ownerBadge.textContent = t('owner', 'Owner');
+  ownerBadge.textContent = translate('owner', 'Owner');
 
   ownerRow.append(ownerAvatar, ownerName, ownerBadge);
 
@@ -219,9 +232,9 @@ function buildCreateModal(client, t, onCreated) {
   scopeSelect.className = 'scr-form-select';
 
   [
-    { value: 'private', label: t('accessScopePrivate', 'Only you and admins can view and edit') },
-    { value: 'public-view', label: t('accessScopePublicView', 'Anyone can view') },
-    { value: 'public-edit', label: t('accessScopePublicEdit', 'Anyone can view and edit') },
+    { value: 'private', label: translate('accessScopePrivate', 'Only you and admins can view and edit') },
+    { value: 'public-view', label: translate('accessScopePublicView', 'Anyone can view') },
+    { value: 'public-edit', label: translate('accessScopePublicEdit', 'Anyone can view and edit') },
   ].forEach(({ value, label }) => {
     const opt = document.createElement('option');
     opt.value = value;
@@ -239,24 +252,24 @@ function buildCreateModal(client, t, onCreated) {
   const cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
   cancelBtn.className = 'scr-modal-btn scr-modal-btn-cancel';
-  cancelBtn.textContent = t('cancel', 'Cancel');
+  cancelBtn.textContent = translate('cancel', 'Cancel');
   cancelBtn.addEventListener('click', hideScrCreateModal);
 
   const createBtn = document.createElement('button');
   createBtn.type = 'button';
   createBtn.className = 'scr-modal-btn scr-modal-btn-create';
-  createBtn.textContent = t('create', 'Create');
+  createBtn.textContent = translate('create', 'Create');
   createBtn.addEventListener('click', async () => {
     const name = titleInput.value.trim();
     if (!name) {
       titleInput.focus();
-      showToast(t('collectionNameRequired', 'Collection name is required'), 'info');
+      showToast(translate('collectionNameRequired', 'Collection name is required'), 'info');
       return;
     }
 
     createBtn.disabled = true;
     const orig = createBtn.textContent;
-    createBtn.textContent = t('creating', 'Creating…');
+    createBtn.textContent = translate('creating', 'Creating…');
 
     try {
       const userEmail = window.user?.email || '';
@@ -279,12 +292,12 @@ function buildCreateModal(client, t, onCreated) {
 
       await client.createCollection(collectionData);
       hideScrCreateModal();
-      showToast(t('collectionCreatedSuccessfully', 'Collection created successfully'), 'success');
+      showToast(translate('collectionCreatedSuccessfully', 'Collection created successfully'), 'success');
       onCreated();
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[search-collection-results] create collection failed', err);
-      showToast(t('collectionCreateFailed', 'Failed to create collection. Please try again.'), 'error');
+      showToast(translate('collectionCreateFailed', 'Failed to create collection. Please try again.'), 'error');
     } finally {
       createBtn.disabled = false;
       createBtn.textContent = orig;
@@ -309,14 +322,11 @@ function notImplemented(e) {
   showToast(NOT_IMPLEMENTED, 'info');
 }
 
-const MENU_ACTIONS_OWNER = [
-  { key: 'edit', label: 'Edit collection', icon: ICON_EDIT_SM },
-  { key: 'delete', label: 'Delete collection', icon: ICON_DELETE_SM },
-];
-
 function createActionBar({
+  translate,
   isOwner = false,
   canShareAccess = false,
+  onDownload = null,
   onEdit = null,
   onDelete = null,
   onShareLink = null,
@@ -389,12 +399,22 @@ function createActionBar({
       { key: 'shareLink', label: 'Share', icon: shareIconImg },
     ];
 
+  const ownerMenuItems = [
+    { key: 'download', label: translate('downloadCollection', 'Download'), icon: ICON_DOWNLOAD_SM },
+    { key: 'edit', label: translate('editCollection', 'Edit collection'), icon: ICON_EDIT_SM },
+    { key: 'delete', label: translate('deleteCollection', 'Delete collection'), icon: ICON_DELETE_SM },
+  ];
+
   const menuActions = isOwner
-    ? [...shareMenuItems, ...MENU_ACTIONS_OWNER]
-    : [...shareMenuItems];
+    ? [...shareMenuItems, ...ownerMenuItems]
+    : [...shareMenuItems, { key: 'download', label: translate('downloadCollection', 'Download'), icon: ICON_DOWNLOAD_SM }];
 
   const menuHandlers = {
-    edit: onEdit, delete: onDelete, shareLink: onShareLink, shareAccess: onShareAccess,
+    download: onDownload,
+    edit: onEdit,
+    delete: onDelete,
+    shareLink: onShareLink,
+    shareAccess: onShareAccess,
   };
 
   menuActions.forEach(({ key, label, icon }) => {
@@ -404,10 +424,15 @@ function createActionBar({
     btn.innerHTML = `<span class="scr-menu-icon">${icon}</span>${label}`;
     const handler = menuHandlers[key];
     if (handler) {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         menu.hidden = true;
-        handler();
+        btn.disabled = true;
+        try {
+          await handler();
+        } finally {
+          btn.disabled = false;
+        }
       });
     } else {
       btn.addEventListener('click', notImplemented);
@@ -431,6 +456,12 @@ function createActionBar({
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function buildCollectionPath(collection) {
+  const params = new URLSearchParams();
+  params.set('id', collection.id);
+  return `${localizePath('/collection-details')}?${params.toString()}`;
 }
 
 function buildPreview(thumbnailUrl, name, className, collectionId) {
@@ -461,28 +492,68 @@ function injectPreviewUrl(previewUrl, collection, block) {
 }
 
 async function fetchAndInjectPreview(client, collection, block) {
+  if (pendingPreviews.has(collection)) return;
+  const isSmartCollection = isDeliverySmartCollection(collection);
   const cacheKey = `scr-thumb-${collection.id}`;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) { injectPreviewUrl(cached, collection, block); return; }
-  } catch { /* ignore */ }
+  if (!isSmartCollection) {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { injectPreviewUrl(cached, collection, block); return; }
+    } catch { /* ignore */ }
+  }
 
+  pendingPreviews.add(collection);
   try {
-    const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
-    if (!items || items.length === 0) return;
-    const assetId = items[0].id;
+    let assetId;
+    if (isSmartCollection) {
+      const nativeQuery = getNativeSmartCollectionQuery(collection);
+      if (!nativeQuery) throw new Error('Smart Collection has no valid saved query');
+      const response = await getContentAIClient().searchAssets('', {
+        nativeQuery,
+        hitsPerPage: 1,
+        orderBy: null,
+        skipFacetsRequest: true,
+      });
+      assetId = response.hits?.results?.[0]?.assetId;
+    } else {
+      const { items } = await client.getCollectionItems(collection.id, { limit: 1 });
+      assetId = items?.[0]?.id;
+    }
     if (!assetId) return;
     const previewUrl = `/api/adobe/assets/${assetId}/as/thumbnail.jpg?width=400`;
-    try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    if (isSmartCollection) {
+      collection.thumbnailUrl = previewUrl;
+    } else {
+      try { sessionStorage.setItem(cacheKey, previewUrl); } catch { /* ignore */ }
+    }
     injectPreviewUrl(previewUrl, collection, block);
-  } catch {
-    // non-critical, placeholder stays
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[search-collection-results] preview failed', collection.id, error);
+  } finally {
+    pendingPreviews.delete(collection);
   }
 }
 
-function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
+function linkForPageTransition(el, collection) {
+  const href = localizePath(`/collection-details?id=${collection.id}`);
+  el.dataset.vtHref = href;
+  prerenderOnIntent(el, href);
+}
+
+function createCard(
+  collection,
+  translate,
+  onView,
+  onDownload,
+  onEdit,
+  onDelete,
+  onShareLink,
+  onShareAccess,
+) {
   const card = document.createElement('div');
   card.className = 'scr-card';
+  linkForPageTransition(card, collection);
 
   const preview = buildPreview(collection.thumbnailUrl, collection.name, 'scr-card-preview', collection.id);
   preview.addEventListener('click', () => onView(collection));
@@ -504,8 +575,10 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
 
   info.append(name, meta);
   card.append(preview, info, createActionBar({
+    translate,
     isOwner: collection.isOwner,
     canShareAccess,
+    onDownload: () => onDownload(collection),
     onEdit: collection.isOwner ? () => onEdit(collection) : null,
     onDelete: collection.isOwner ? () => onDelete(collection) : null,
     onShareLink: () => onShareLink(collection),
@@ -514,9 +587,19 @@ function createCard(collection, onView, onEdit, onDelete, onShareLink, onShareAc
   return card;
 }
 
-function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAccess) {
+function createRow(
+  collection,
+  translate,
+  onView,
+  onDownload,
+  onEdit,
+  onDelete,
+  onShareLink,
+  onShareAccess,
+) {
   const row = document.createElement('div');
   row.className = 'scr-row';
+  linkForPageTransition(row, collection);
   row.addEventListener('click', () => onView(collection));
 
   const preview = buildPreview(collection.thumbnailUrl, collection.name, 'scr-row-preview', collection.id);
@@ -546,8 +629,10 @@ function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAcc
     && collection.isOwner;
 
   const actions = createActionBar({
+    translate,
     isOwner: collection.isOwner,
     canShareAccess,
+    onDownload: () => onDownload(collection),
     onEdit: collection.isOwner ? () => onEdit(collection) : null,
     onDelete: collection.isOwner ? () => onDelete(collection) : null,
     onShareLink: () => onShareLink(collection),
@@ -561,7 +646,7 @@ function createRow(collection, onView, onEdit, onDelete, onShareLink, onShareAcc
 }
 
 export default async function decorate(block) {
-  const t = await getAppLabel();
+  const translate = await getAppLabel();
   block.textContent = '';
 
   // Close any open menus/pickers when clicking outside
@@ -575,8 +660,8 @@ export default async function decorate(block) {
   const client = new DynamicMediaCollectionsClient({ user: window.user });
 
   // Filter state
-  let accessFilter = 'all'; // all | onlyMe | viewOnly | edit
-  let creatorFilter = 'anyone'; // anyone | me
+  let accessFilter = 'all';
+  let creatorFilter = 'anyone';
 
   let collections = [];
   let total = 0;
@@ -588,7 +673,7 @@ export default async function decorate(block) {
   let requestToken = 0;
 
   const onView = (collection) => {
-    window.location.href = localizePath(`/collection-details?id=${collection.id}`);
+    window.location.href = buildCollectionPath(collection);
   };
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
@@ -599,26 +684,29 @@ export default async function decorate(block) {
   filtersRow.className = 'scr-filters';
 
   const accessPicker = createPicker({
-    label: t('allCollections', 'All Collections'),
+    label: translate('allCollections', 'All Collections'),
     icon: `<span class="scr-picker-icon">${ICON_GRID_SM}</span>`,
     options: [
       {
-        key: 'all', label: t('allCollections', 'All Collections'), description: t('privateAndPublic', 'Private and Public'), icon: ICON_GRID_SM,
+        key: 'all', label: translate('allCollections', 'All Collections'), description: translate('privateAndPublic', 'Private and Public'), icon: ICON_GRID_SM,
       },
       {
-        key: 'onlyMe', label: t('onlyMe', 'Only Me'), description: t('privateContentOnly', 'Private content only'), icon: ICON_LOCK_SM,
+        key: 'onlyMe', label: translate('onlyMe', 'Only Me'), description: translate('privateContentOnly', 'Private content only'), icon: ICON_LOCK_SM,
       },
       {
-        key: 'viewOnly', label: t('anyOneCanView', 'Any One Can View'), description: t('publicOnlyCreatorCanEdit', 'Public, only creator can edit'), icon: ICON_GLOBE_SM,
+        key: 'viewOnly', label: translate('anyOneCanView', 'Any One Can View'), description: translate('publicOnlyCreatorCanEdit', 'Public, only creator can edit'), icon: ICON_GLOBE_SM,
       },
       {
-        key: 'edit', label: t('anyOneCanEdit', 'Any One Can Edit'), description: t('publicAnyoneCanEdit', 'Public, anyone can edit'), icon: ICON_GLOBE_SM,
+        key: 'edit', label: translate('anyOneCanEdit', 'Any One Can Edit'), description: translate('publicAnyoneCanEdit', 'Public, anyone can edit'), icon: ICON_GLOBE_SM,
       },
       {
-        key: 'sharedByMe', label: t('sharedByMe', 'Shared by me'), description: t('privateCollectionsIShared', 'Private collections you shared with others'), icon: ICON_PERSON_FILTER,
+        key: 'sharedByMe', label: translate('sharedByMe', 'Shared by me'), description: translate('privateCollectionsIShared', 'Private collections you shared with others'), icon: ICON_PERSON_FILTER,
       },
       {
-        key: 'sharedWithMe', label: t('sharedWithMe', 'Shared with me'), description: t('privateSharedWithYou', 'Private collections shared with you'), icon: ICON_PERSON_FILTER,
+        key: 'sharedWithMe', label: translate('sharedWithMe', 'Shared with me'), description: translate('privateSharedWithYou', 'Private collections shared with you'), icon: ICON_PERSON_FILTER,
+      },
+      {
+        key: 'smartCollections', label: translate('smartCollections', 'Smart Collections'), description: translate('autoUpdatingBasedOnFilters', 'Auto-updating based on filters'), icon: ICON_SMART_COLLECTION_SM,
       },
     ],
     // applyCreatorPickerForAccess and refetch are function declarations defined
@@ -633,11 +721,11 @@ export default async function decorate(block) {
   });
 
   const creatorPicker = createPicker({
-    label: t('createdByAnyone', 'Created by anyone'),
+    label: translate('createdByAnyone', 'Created by anyone'),
     icon: `<span class="scr-picker-icon">${ICON_PERSON_FILTER}</span>`,
     options: [
-      { key: 'anyone', label: t('createdByAnyone', 'Created by anyone'), icon: ICON_PERSON_FILTER },
-      { key: 'me', label: t('createdByMe', 'Created by me'), icon: ICON_PERSON_FILTER },
+      { key: 'anyone', label: translate('createdByAnyone', 'Created by anyone'), icon: ICON_PERSON_FILTER },
+      { key: 'me', label: translate('createdByMe', 'Created by me'), icon: ICON_PERSON_FILTER },
     ],
     // eslint-disable-next-line no-use-before-define
     onSelect: (key) => { creatorFilter = key; refetch(); },
@@ -648,9 +736,9 @@ export default async function decorate(block) {
   // produce results, then visually disable the picker with a tooltip explaining why.
   function applyCreatorPickerForAccess(accessKey) {
     const overrides = {
-      sharedByMe: { creator: 'me', reason: t('creatorLockedSharedByMe', 'Only collections you created can be shared by you') },
-      sharedWithMe: { creator: 'anyone', reason: t('creatorLockedSharedWithMe', 'You can\'t be the owner of a collection shared with you') },
-      onlyMe: { creator: null, reason: t('creatorLockedOnlyMe', 'Private collections are visible only to their owner') },
+      sharedByMe: { creator: 'me', reason: translate('creatorLockedSharedByMe', 'Only collections you created can be shared by you') },
+      sharedWithMe: { creator: 'anyone', reason: translate('creatorLockedSharedWithMe', 'You can\'t be the owner of a collection shared with you') },
+      onlyMe: { creator: null, reason: translate('creatorLockedOnlyMe', 'Private collections are visible only to their owner') },
     };
     const o = overrides[accessKey];
     if (o) {
@@ -667,7 +755,7 @@ export default async function decorate(block) {
   const newCollectionBtn = document.createElement('button');
   newCollectionBtn.type = 'button';
   newCollectionBtn.className = 'scr-new-btn';
-  newCollectionBtn.innerHTML = `<span class="scr-new-btn-icon">+</span>${t('createCollection', 'Create collection')}`;
+  newCollectionBtn.innerHTML = `<span class="scr-new-btn-icon">+</span>${translate('createCollection', 'Create collection')}`;
 
   filtersRow.append(accessPicker.element, creatorPicker.element, newCollectionBtn);
 
@@ -687,13 +775,13 @@ export default async function decorate(block) {
   const gridBtn = document.createElement('button');
   gridBtn.type = 'button';
   gridBtn.className = 'view-toggle-btn scr-view-btn';
-  gridBtn.setAttribute('aria-label', t('gridView', 'Grid view'));
+  gridBtn.setAttribute('aria-label', translate('gridView', 'Grid view'));
   gridBtn.setAttribute('aria-pressed', 'false');
 
   const listBtn = document.createElement('button');
   listBtn.type = 'button';
   listBtn.className = 'view-toggle-btn scr-view-btn';
-  listBtn.setAttribute('aria-label', t('listView', 'List view'));
+  listBtn.setAttribute('aria-label', translate('listView', 'List view'));
   listBtn.setAttribute('aria-pressed', 'false');
 
   viewToggle.append(gridBtn, listBtn);
@@ -706,34 +794,36 @@ export default async function decorate(block) {
 
   // `refetch` is the function declaration below; resolved at click time, hence safe.
   /* eslint-disable no-use-before-define */
-  const editModal = createEditModal({ client, t, onUpdated: () => refetch() });
-  const deleteModal = createDeleteModal({ client, t, onDeleted: () => refetch() });
-  const shareModal = createShareModal({ client, t, onUpdated: () => refetch() });
+  const editModal = createEditModal({ client, t: translate, onUpdated: () => refetch() });
+  const deleteModal = createDeleteModal({ client, t: translate, onDeleted: () => refetch() });
+  const shareModal = createShareModal({ client, t: translate, onUpdated: () => refetch() });
   /* eslint-enable no-use-before-define */
 
   const onEdit = (collection) => editModal.show(collection);
   const onDelete = (collection) => deleteModal.show(collection);
   const onShareLink = (collection) => {
-    const path = localizePath(`/collection-details?id=${collection.id}`);
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${buildCollectionPath(collection)}`;
     navigator.clipboard.writeText(url).then(() => {
-      showToast(t('linkCopied', 'Link copied to clipboard'), 'success');
+      showToast(translate('linkCopied', 'Link copied to clipboard'), 'success');
     }).catch(() => {
-      showToast(t('copyFailed', 'Could not copy link'), 'error');
+      showToast(translate('copyFailed', 'Could not copy link'), 'error');
     });
   };
   const onShareAccess = (collection) => shareModal.show(collection);
+  const onDownload = (collection) => downloadCollection({ client, collection, t: translate });
 
   const appendCollectionItems = (items) => {
     const view = getView();
     items.forEach((c) => {
       const el = view === 'grid'
-        ? createCard(c, onView, onEdit, onDelete, onShareLink, onShareAccess)
-        : createRow(c, onView, onEdit, onDelete, onShareLink, onShareAccess);
+        ? createCard(c, translate, onView, onDownload, onEdit, onDelete, onShareLink, onShareAccess)
+        : createRow(c, translate, onView, onDownload, onEdit, onDelete, onShareLink, onShareAccess);
       results.append(el);
     });
     items.forEach((c) => {
-      if (!c.thumbnailUrl) fetchAndInjectPreview(client, c, block);
+      if (!c.thumbnailUrl) {
+        fetchAndInjectPreview(client, c, block);
+      }
     });
   };
 
@@ -754,8 +844,8 @@ export default async function decorate(block) {
       const empty = document.createElement('div');
       empty.className = 'scr-empty';
       empty.textContent = query
-        ? `${t('noCollectionsFoundFor', 'No collections found for')} "${query}"`
-        : t('noCollections', 'No collections found.');
+        ? `${translate('noCollectionsFoundFor', 'No collections found for')} "${query}"`
+        : translate('noCollections', 'No collections found.');
       results.append(empty);
       return;
     }
@@ -771,13 +861,13 @@ export default async function decorate(block) {
   const loadMoreBtn = document.createElement('button');
   loadMoreBtn.type = 'button';
   loadMoreBtn.className = 'scr-load-more';
-  loadMoreBtn.textContent = t('loadMore', 'Load more');
+  loadMoreBtn.textContent = translate('loadMore', 'Load more');
 
   loadMoreBtn.addEventListener('click', async () => {
     requestToken += 1;
     const myToken = requestToken;
     loadMoreBtn.disabled = true;
-    loadMoreBtn.textContent = t('loading', 'Loading...');
+    loadMoreBtn.textContent = translate('loading', 'Loading...');
     try {
       const { empty, _clientFilter, ...searchParams } = getApiParams(accessFilter, creatorFilter);
       if (empty) {
@@ -796,7 +886,7 @@ export default async function decorate(block) {
       if (_clientFilter) {
         // Under a client filter, `total` is the displayed count — keep it in sync.
         total = collections.length;
-        countEl.textContent = `${total} ${t('total', 'Total')}`;
+        countEl.textContent = `${total} ${translate('total', 'Total')}`;
       }
       loadMoreBtn.hidden = !hasMore();
     } catch (err) {
@@ -806,7 +896,7 @@ export default async function decorate(block) {
     } finally {
       if (myToken === requestToken) {
         loadMoreBtn.disabled = false;
-        loadMoreBtn.textContent = t('loadMore', 'Load more');
+        loadMoreBtn.textContent = translate('loadMore', 'Load more');
       }
     }
   });
@@ -814,7 +904,7 @@ export default async function decorate(block) {
   // ── Fetch & render ────────────────────────────────────────────────────────
   const loadingEl = document.createElement('div');
   loadingEl.className = 'scr-loading';
-  loadingEl.textContent = t('loading', 'Loading...');
+  loadingEl.textContent = translate('loading', 'Loading...');
 
   async function refetch() {
     requestToken += 1;
@@ -827,7 +917,7 @@ export default async function decorate(block) {
       collections = [];
       total = 0;
       cursor = undefined;
-      countEl.textContent = `${total} ${t('total', 'Total')}`;
+      countEl.textContent = `${total} ${translate('total', 'Total')}`;
       render(getView());
       return;
     }
@@ -848,11 +938,11 @@ export default async function decorate(block) {
       results.textContent = '';
       const error = document.createElement('div');
       error.className = 'scr-error';
-      error.textContent = t('errorLoadingCollections', 'Failed to load collections. Please try again.');
+      error.textContent = translate('errorLoadingCollections', 'Failed to load collections. Please try again.');
       results.append(error);
       return;
     }
-    countEl.textContent = `${total} ${t('total', 'Total')}`;
+    countEl.textContent = `${total} ${translate('total', 'Total')}`;
     loadMoreBtn.hidden = !hasMore();
     render(getView());
   }
@@ -860,7 +950,7 @@ export default async function decorate(block) {
   gridBtn.addEventListener('click', () => render('grid'));
   listBtn.addEventListener('click', () => render('list'));
 
-  scrCreateModal = buildCreateModal(client, t, () => refetch());
+  scrCreateModal = buildCreateModal(client, translate, () => refetch());
   newCollectionBtn.addEventListener('click', showScrCreateModal);
 
   block.append(

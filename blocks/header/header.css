@@ -32,6 +32,30 @@ header .dropdown-menu > ul {
   z-index: 10000;
 }
 
+@supports (anchor-name: --a) {
+  .header-dropdown-anchor {
+    anchor-name: --header-dropdown-anchor;
+  }
+
+  /* Centered under the button; right-aligned and/or above it when it would overflow */
+  .header-dropdown-portal.is-anchored {
+    /* stylelint-disable declaration-property-value-no-unknown -- anchor positioning not in stylelint's CSS data yet */
+    position-anchor: --header-dropdown-anchor;
+    top: anchor(bottom);
+    justify-self: anchor-center;
+    margin-top: 5px;
+    position-try-fallbacks: --header-dropdown-end, flip-block, --header-dropdown-end flip-block;
+    /* stylelint-enable declaration-property-value-no-unknown */
+  }
+}
+
+@position-try --header-dropdown-end {
+  justify-self: normal;
+  left: auto;
+  /* stylelint-disable-next-line at-rule-descriptor-value-no-unknown -- anchor() not in stylelint's CSS data yet */
+  right: anchor(right);
+}
+
 .header-dropdown-portal > ul {
   background-color: #fff;
   border-radius: 4px;
@@ -74,6 +98,11 @@ header nav .dropdown-menu > ul > li a:hover,
 header nav .my-account .my-account-menu > ul,
 .header-dropdown-portal.my-account-portal > ul {
   min-width: 200px;
+}
+
+header nav .mobile-account-action,
+.header-dropdown-portal .mobile-account-action {
+  display: none;
 }
 
 /* User Button (User Dropdown) */
@@ -198,6 +227,13 @@ header nav:not(:has(.nav-sections)) {
     display: none !important;
   }
 
+  header nav .nav-tools {
+    position: static;
+    right: auto;
+    top: auto;
+    transform: none;
+  }
+
   header nav[aria-expanded='true'] .nav-sections {
     width: 320px;
     position: fixed;
@@ -247,8 +283,7 @@ header nav .nav-sections a.active {
   position: relative;
 }
 
-header nav .nav-sections a.active::after {
-  content: '';
+header nav .nav-sections a.active > .nav-active-underline {
   position: absolute;
   left: 0;
   right: 0;
@@ -397,7 +432,7 @@ header nav .nav-sections ul>li {
     display: block;
   }
 
-  header nav .nav-sections a.active::after {
+  header nav .nav-sections a.active > .nav-active-underline {
     bottom: 0 !important;
   }
 
@@ -681,8 +716,31 @@ header nav .nav-tools .nav-reports-icon {
    gaps, shrink icon-button padding, and drop the "My Account" text label (keep the avatar)
    so the cluster stays clear of the logo. Fixes the shared template for every brand, not one
    logo's aspect ratio — see the header logo-size guard in the rebrand-portal skill. */
-@media (width < 480px) {
+@media (width < 600px) {
+  header nav {
+    gap: 0 8px;
+    padding: 0 12px;
+  }
+
+  header .nav-brand {
+    min-width: 0;
+  }
+
+  header .nav-brand a,
+  header .nav-brand .icon {
+    max-width: 100%;
+  }
+
+  header .nav-brand .icon img,
+  header .nav-brand .icon svg {
+    max-width: 112px;
+  }
+
   header nav .nav-tools {
+    position: static;
+    right: auto;
+    top: auto;
+    transform: none;
     gap: 4px;
   }
 
@@ -690,19 +748,40 @@ header nav .nav-tools .nav-reports-icon {
     gap: 0;
   }
 
+  header nav .nav-tools .nav-message-icon,
+  header nav .nav-tools .nav-reports-icon {
+    display: none;
+  }
+
   header nav .nav-tools .nav-cart-icon button,
-  header nav .nav-tools .nav-download-icon button,
-  header nav .nav-tools .nav-message-icon button,
-  header nav .nav-tools .nav-reports-icon button {
-    padding: 2px;
+  header nav .nav-tools .nav-download-icon button {
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+  }
+
+  header nav .nav-tools .nav-cart-icon button img,
+  header nav .nav-tools .nav-download-icon button img {
+    width: 32px;
+    height: 32px;
   }
 
   header nav .my-account-button {
-    padding: 6px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px;
   }
 
   header nav .my-account-label {
     display: none;
+  }
+
+  header nav .down-arrow-icon {
+    display: none;
+  }
+
+  .header-dropdown-portal .mobile-account-action {
+    display: list-item;
   }
 }
 
@@ -865,4 +944,46 @@ header .header-welcome-bar .icon img,
 header .header-welcome-bar .icon svg {
   width: 150px;
   height: auto;
+}
+
+/* Asset thumbnail flying into the cart destination (scripts/motion.js) */
+.fly-to-header {
+  position: fixed;
+  z-index: 10001;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 25%);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+@keyframes header-icon-bump {
+  40% {
+    transform: scale(1.22);
+  }
+
+  70% {
+    transform: scale(0.94);
+  }
+}
+
+@keyframes header-badge-pop {
+  0% {
+    transform: scale(0.4);
+  }
+
+  60% {
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  header nav .nav-tools .nav-cart-icon.is-bumped button img {
+    animation: header-icon-bump 360ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  header nav .nav-tools .nav-cart-icon .cart-badge.is-popping,
+  header nav .nav-tools .nav-download-icon .download-badge.is-popping {
+    animation: header-badge-pop 320ms cubic-bezier(0.2, 0, 0, 1);
+  }
 }

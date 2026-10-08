@@ -23,14 +23,7 @@ import { parseContentAIResponse } from '../../../../scripts/asset-transformers.j
 import { getCurrentLocale } from '../../../../scripts/locale-utils.js';
 import { createActionDropdown } from '../action-dropdown.js';
 import { escapeHtml } from '../../utils/dom-utils.js';
-import {
-  renderSmartCollectionsList,
-  refreshSmartCollections,
-  bindSmartCollectionsListEvents,
-} from './smart-collections-panel.js';
-import { openSaveSmartCollectionModal } from '../../../../scripts/smart-collections/smart-collection-modal.js';
-import { buildCriteriaFromCurrentState } from '../../../../scripts/smart-collections/smart-collection-state.js';
-import { hasActiveCriteria } from '../../../../scripts/smart-collections/smart-collection-types.js';
+import { animateHeight } from '../../../../scripts/motion.js';
 
 /**
  * Get locale from URL path. Handles both the root site (/en/search/...) and a foldered
@@ -85,10 +78,6 @@ const fetchingFacetIds = new Set(); // Facet IDs fetching (for spinner during re
 // Paths created by synthesizeMissingParents (parent checkbox cascades to descendants)
 const synthesizedPaths = new Set();
 let storedCallbacks = null; // Store callbacks for re-render after fetch completes
-
-/** Which header tab is active: 'filters' (default) or 'smartCollections'. */
-let activeFacetTab = 'filters';
-let smartCollectionsInitialized = false;
 
 /** Facet keys removed from UI (legacy rights search) */
 const REMOVED_FACET_KEYS = new Set([
@@ -157,15 +146,6 @@ export async function createFacetsPanel(container, callbacks) {
   // Initial render
   render(callbacks);
 
-  // Load Smart Collections in the background so the tab is ready by the time it's clicked;
-  // re-render only if the user is already on that tab (avoids clobbering the Filters view).
-  if (!smartCollectionsInitialized) {
-    smartCollectionsInitialized = true;
-    refreshSmartCollections().then(() => {
-      if (activeFacetTab === 'smartCollections') render(storedCallbacks);
-    });
-  }
-
   // Subscribe to state changes
   subscribe((state, prevState, updates) => {
     // Re-acquire container if it's no longer in DOM (e.g., after re-render of parent)
@@ -209,8 +189,6 @@ export async function createFacetsPanel(container, callbacks) {
 
       // Always update clear all count
       updateClearAllCount(state);
-      // Keep Save button's enabled state in sync with facet changes
-      updateSaveSmartCollectionButtonState();
       return;
     }
 
@@ -439,17 +417,6 @@ function updateClearAllCount(state) {
   }
 }
 
-/**
- * Update the Save as Smart Collection button's disabled state without a full re-render
- * (called from the targeted facetCheckedState update path).
- */
-function updateSaveSmartCollectionButtonState() {
-  if (!containerElement) return;
-  const saveBtn = containerElement.querySelector('#save-smart-collection-btn');
-  if (!saveBtn) return;
-  saveBtn.disabled = !hasActiveCriteria(buildCriteriaFromCurrentState());
-}
-
 function render(callbacks) {
   // Store callbacks for re-render after fetch completes
   storedCallbacks = callbacks;
@@ -503,8 +470,6 @@ function render(callbacks) {
   // Get localized strings
   const filtersLabel = ph(placeholders, 'filters', 'Filters');
   const clearAllLabel = ph(placeholders, 'clearAll', 'CLEAR ALL');
-  const smartCollectionsLabel = ph(placeholders, 'smartCollections', 'Smart Collections');
-  const saveSmartCollectionLabel = ph(placeholders, 'saveAsSmartCollection', 'Save as Smart Collection');
 
   let filtersTabContent;
   if (!facetsPanelReady) {
@@ -523,58 +488,27 @@ function render(callbacks) {
         `;
   }
 
-  const smartCollectionsTabContent = `
-    <div class="facet-filter-list" id="facet-list">
-      ${renderSmartCollectionsList()}
-    </div>
-  `;
-
-  const isFiltersActive = activeFacetTab === 'filters';
-  const currentCriteria = buildCriteriaFromCurrentState();
-  const canSaveSmartCollection = hasActiveCriteria(currentCriteria);
-  const saveSmartCollectionAction = `
-    <div class="smart-collection-save-actions">
-      <button
-        type="button"
-        class="smart-collection-save-btn"
-        id="save-smart-collection-btn"
-        ${canSaveSmartCollection ? '' : 'disabled'}
-      >${saveSmartCollectionLabel}</button>
-    </div>
-  `;
-
   containerElement.innerHTML = `
     <div class="facet-filter-container">
       <div class="facet-filter">
         <div class="facet-filter-header">
           <div class="facet-filter-tabs">
-            <div class="facet-filter-tab-group left${isFiltersActive ? ' active' : ''}" style="cursor: pointer;">
-              <button class="facet-filter-tab${isFiltersActive ? ' active' : ''}" id="filters-tab">
+            <div class="facet-filter-tab-group left active" style="cursor: pointer;">
+              <button class="facet-filter-tab active" id="filters-tab">
                 ${filtersLabel}
                 ${totalCheckedCount > 0 ? `<div class="assets-details-tag custom-tag facet-filter-count-tag">${totalCheckedCount}</div>` : ''}
               </button>
               <button class="facet-filter-tab clear" id="clear-all-btn">${clearAllLabel}</button>
             </div>
-            <div class="facet-filter-tab-group right${!isFiltersActive ? ' active' : ''}" style="cursor: pointer;">
-              <button class="facet-filter-tab${!isFiltersActive ? ' active' : ''}" id="smart-collections-tab">
-                ${smartCollectionsLabel}
-              </button>
-            </div>
           </div>
         </div>
 
-        ${isFiltersActive
-    ? `${filtersTabContent}${saveSmartCollectionAction}`
-    : smartCollectionsTabContent}
+        ${filtersTabContent}
       </div>
     </div>
   `;
 
   bindEvents(callbacks);
-
-  if (!isFiltersActive) {
-    bindSmartCollectionsListEvents(containerElement, () => render(callbacks));
-  }
 
   // Focus the search input that has autofocus (React uses autoFocus prop, we need manual focus)
   const autofocusInput = containerElement.querySelector('.facet-search-input[autofocus]');
@@ -1227,7 +1161,13 @@ async function openFacetModal(facetKey, callbacks) {
         const children = container?.querySelector(':scope > .hierarchy-children');
         const isExpanding = children?.style.display === 'none';
         if (caret) caret.classList.toggle('expanded', isExpanding);
-        if (children) children.style.display = isExpanding ? '' : 'none';
+        if (children) {
+          animateHeight(
+            () => container,
+            () => { children.style.display = isExpanding ? '' : 'none'; },
+            { fadeSelector: ':scope > .hierarchy-children' },
+          );
+        }
         // Track expanded state within the modal for restoring after re-renders
         if (isExpanding) modalExpandedKeys.add(hKey);
         else modalExpandedKeys.delete(hKey);
@@ -1449,6 +1389,7 @@ async function openFacetModal(facetKey, callbacks) {
         facetFilters: selectedFacetFilters,
         numericFilters: state.selectedNumericFilters || [],
         filters: state.presetFilters || [],
+        nativeQuery: state.nativeSmartCollectionQuery,
       },
     );
 
@@ -2645,6 +2586,20 @@ function updateFacetCheckboxList(facetKey, callbacks) {
 }
 
 /**
+ * Expand/collapse a top-level facet section with a height animation. The section is
+ * re-rendered by the state change, so it is looked up again afterwards.
+ * @param {string} key - Facet key
+ * @param {() => void} change - Synchronous state change that re-renders the section
+ */
+function animateFacetSection(key, change) {
+  animateHeight(
+    () => containerElement?.querySelector(`.facet-filter-section[data-facet-key="${CSS.escape(key)}"]`),
+    change,
+    { fadeSelector: '.facet-filter-checkbox-list' },
+  );
+}
+
+/**
  * Toggle a hierarchy item's expanded state (DOM-only, no re-render)
  * @param {string} hierarchyKey - The hierarchy item key
  * @param {string} facetTechId - The facet technical ID
@@ -2682,7 +2637,11 @@ function toggleHierarchyItem(hierarchyKey, facetTechId, fullPath) {
     if (container) {
       const childrenWrapper = container.querySelector(':scope > .hierarchy-children');
       if (childrenWrapper) {
-        childrenWrapper.style.display = isCurrentlyExpanded ? 'none' : '';
+        animateHeight(
+          () => container,
+          () => { childrenWrapper.style.display = isCurrentlyExpanded ? 'none' : ''; },
+          { fadeSelector: ':scope > .hierarchy-children' },
+        );
       }
     }
   }
@@ -2708,35 +2667,6 @@ function bindHierarchyToggleEvents(checkboxList) {
 
 async function bindEvents(callbacks) {
   const { onFacetCheckbox, onClearAllFacets } = callbacks;
-
-  // Smart Collections tab switching
-  const filtersTabBtn = containerElement.querySelector('#filters-tab');
-  filtersTabBtn?.addEventListener('click', () => {
-    if (activeFacetTab === 'filters') return;
-    activeFacetTab = 'filters';
-    render(callbacks);
-  });
-
-  const smartCollectionsTabBtn = containerElement.querySelector('#smart-collections-tab');
-  smartCollectionsTabBtn?.addEventListener('click', () => {
-    if (activeFacetTab === 'smartCollections') return;
-    activeFacetTab = 'smartCollections';
-    render(callbacks);
-    refreshSmartCollections().then(() => render(callbacks));
-  });
-
-  // Save as Smart Collection
-  const saveSmartCollectionBtn = containerElement.querySelector('#save-smart-collection-btn');
-  saveSmartCollectionBtn?.addEventListener('click', () => {
-    const criteria = buildCriteriaFromCurrentState();
-    openSaveSmartCollectionModal({
-      criteria,
-      onSaved: () => {
-        activeFacetTab = 'smartCollections';
-        refreshSmartCollections().then(() => render(callbacks));
-      },
-    });
-  });
 
   // Clear all button
   const clearAllBtn = containerElement.querySelector('#clear-all-btn');
@@ -2772,7 +2702,7 @@ async function bindEvents(callbacks) {
         searchMode[key] = false;
         delete searchTerms[key];
       }
-      setState({ expandedFacets: newExpandedFacets });
+      animateFacetSection(key, () => setState({ expandedFacets: newExpandedFacets }));
     });
   });
 
@@ -2793,7 +2723,7 @@ async function bindEvents(callbacks) {
         searchMode[key] = false;
         delete searchTerms[key];
       }
-      setState({ expandedFacets: newExpandedFacets });
+      animateFacetSection(key, () => setState({ expandedFacets: newExpandedFacets }));
     });
   });
 

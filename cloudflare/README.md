@@ -24,6 +24,22 @@ Here are the various URL paths handled by the worker:
 | `/login`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js) | ❌ | 🌎  Login page & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
 | `/*`                   | ✅ | 📑  Adobe Helix content | `*.aem.live` / `*.aem.page` | `/*` |
 
+Collection searches use ownership, sharing, and public access rules. Regular collections
+must have `custom:metadata.company` matching `DEMO_COMPANY`. Native Smart Collections are
+exempt from this company filter, including in All Collections. Asset searches still use
+the configured company scope, including assets opened from a Smart Collection.
+
+Opening a native Smart Collection shows its saved asset search in `collection-details`,
+with the same gallery, breadcrumb, and filters as a regular collection. Configured category
+filters are restored from its saved positive term clauses and use the normal facet scopes
+and selected-value counts. The saved query remains intact, including conditions not
+represented by checkboxes. Static asset removal is unavailable for Smart Collections.
+Collection downloads also run the saved query for Smart Collections; regular collections
+continue to download their static items.
+
+Smart Collection thumbnails use the first asset matching the saved query and the viewer's
+asset access rules. Empty collections keep the placeholder. Previews refresh on collection
+fetches rather than using a session-cached Smart Collection thumbnail.
 
 ## Setup
 

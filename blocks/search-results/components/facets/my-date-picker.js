@@ -82,6 +82,10 @@ function isDateAfter(date1, date2) {
   return d1 > d2;
 }
 
+function supportsAnchorPositioning() {
+  return !!window.CSS?.supports?.('anchor-name', '--a');
+}
+
 /**
  * Create the date picker component
  * @param {Object} options
@@ -123,6 +127,7 @@ export async function createDatePicker(options) {
 
   pickerCounter += 1;
   const pickerId = `date-picker-${pickerCounter}`;
+  const anchorName = `--${pickerId}`;
 
   // State
   let currentValue = value;
@@ -311,23 +316,29 @@ export async function createDatePicker(options) {
     const inputGroup = container.querySelector('.date-input-group');
     if (!inputGroup) return;
 
-    const rect = inputGroup.getBoundingClientRect();
-
     popupElement = document.createElement('div');
     popupElement.className = 'my-date-picker-portal';
     popupElement.innerHTML = renderCalendar();
-    popupElement.style.cssText = `
-      position: fixed;
-      top: ${rect.bottom + 4}px;
-      left: ${rect.left}px;
-      z-index: ${portalZIndex};
-    `;
+    popupElement.style.position = 'fixed';
+    popupElement.style.zIndex = String(portalZIndex);
 
-    document.body.appendChild(popupElement);
+    if (supportsAnchorPositioning()) {
+      // CSS keeps the popup attached to the input (and flips it when it would
+      // overflow the viewport), so no scroll listener is needed.
+      inputGroup.style.setProperty('anchor-name', anchorName);
+      popupElement.style.setProperty('position-anchor', anchorName);
+      popupElement.classList.add('is-anchored');
+      document.body.appendChild(popupElement);
+    } else {
+      const rect = inputGroup.getBoundingClientRect();
+      popupElement.style.top = `${rect.bottom + 4}px`;
+      popupElement.style.left = `${rect.left}px`;
+      document.body.appendChild(popupElement);
 
-    // Add scroll listener to update position (use capture to catch all scroll events)
-    scrollHandler = () => updatePopupPosition();
-    window.addEventListener('scroll', scrollHandler, true);
+      // Add scroll listener to update position (use capture to catch all scroll events)
+      scrollHandler = () => updatePopupPosition();
+      window.addEventListener('scroll', scrollHandler, true);
+    }
 
     // Bind popup events
     bindPopupEvents();

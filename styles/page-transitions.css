@@ -1,0 +1,118 @@
+/*
+ * Cross-document view transitions (page-to-page). Behaviour lives in scripts/page-transitions.js.
+ * Kept out of the theme stylesheet so brand work and motion work don't collide.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/*
+ * Page body: quick fade out, then the new page settles in. Scoped to page navigations so the
+ * in-page transitions (asset details, grid updates) keep their own root animation.
+ */
+html:active-view-transition-type(page-nav)::view-transition-old(root) {
+  animation: 160ms cubic-bezier(0.4, 0, 1, 1) both vt-page-fade-out;
+}
+
+html:active-view-transition-type(page-nav)::view-transition-new(root) {
+  animation: 280ms cubic-bezier(0.2, 0, 0, 1) 40ms both vt-page-fade-in-up;
+}
+
+html:active-view-transition-type(page-back)::view-transition-new(root) {
+  animation-name: vt-page-fade-in-down;
+}
+
+/* Header stays put: no cross-fade, painted above the moving content. */
+::view-transition-group(vt-site-header) {
+  z-index: 10;
+  animation: none;
+}
+
+::view-transition-old(vt-site-header) {
+  display: none;
+}
+
+::view-transition-new(vt-site-header) {
+  animation: none;
+}
+
+/* Active nav underline slides from the old item to the new one; fades if only one side has it. */
+::view-transition-group(vt-nav-underline) {
+  z-index: 11;
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Card grows into the results area (and shrinks back on Back). */
+::view-transition-group(vt-hero) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  border-radius: 12px;
+  overflow: clip;
+}
+
+::view-transition-old(vt-hero),
+::view-transition-new(vt-hero) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+::view-transition-old(vt-hero) {
+  animation: 200ms ease-out both vt-page-fade-out;
+}
+
+::view-transition-new(vt-hero) {
+  animation: 320ms ease-in 100ms both vt-page-fade-in;
+}
+
+/* Search box and collection title slide/resize without stretching their text. */
+::view-transition-group(vt-search-box),
+::view-transition-group(vt-title) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  overflow: clip;
+}
+
+::view-transition-old(vt-search-box),
+::view-transition-new(vt-search-box),
+::view-transition-old(vt-title),
+::view-transition-new(vt-title) {
+  height: 100%;
+  object-fit: none;
+  object-position: left center;
+}
+
+@keyframes vt-page-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes vt-page-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes vt-page-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes vt-page-fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

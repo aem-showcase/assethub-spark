@@ -777,3 +777,76 @@
   }
 }
 
+
+/* Loading skeleton (same grid as the real report, so nothing jumps) */
+.searches-report-container .report-skeleton-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.searches-report-container .report-skeleton-block,
+.searches-report-container .report-skeleton-line {
+  background: linear-gradient(90deg, #eee 25%, #f6f6f6 50%, #eee 75%) 0 0 / 200% 100%;
+  border-radius: 8px;
+  animation: report-skeleton-shimmer 1.4s linear infinite;
+}
+
+.searches-report-container .report-skeleton-filters {
+  height: 64px;
+  margin-bottom: var(--report-spacing-lg);
+}
+
+.searches-report-container .report-skeleton-metric {
+  height: 84px;
+  box-shadow: none;
+}
+
+.searches-report-container .report-skeleton-line {
+  height: 14px;
+  width: 50%;
+  margin: 0 auto 22px;
+}
+
+.searches-report-container .report-skeleton .chart-card:hover,
+.searches-report-container .report-skeleton .metric-card:hover {
+  transform: none;
+}
+
+@keyframes report-skeleton-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes report-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Charts stay visible (dimmed) while a filter change reloads data */
+.searches-report-container > * {
+  transition: opacity 0.2s ease;
+}
+
+.searches-report-container[aria-busy='true'] > :not(.searches-header, .searches-filters) {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .searches-report-container.is-loaded > :not(.searches-header, .searches-filters) {
+    animation: report-fade-in 0.28s cubic-bezier(0.2, 0, 0, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searches-report-container .report-skeleton-block,
+  .searches-report-container .report-skeleton-line {
+    animation: none;
+  }
+}

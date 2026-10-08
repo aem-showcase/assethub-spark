@@ -6,6 +6,8 @@ node_modules/
 *.bak
 *.tgz
 .idea
+__pycache__/
+*.py[cod]
 
 .env
 secret.env
