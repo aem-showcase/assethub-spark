@@ -7,6 +7,8 @@ jobs:
   test:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_READ_TOKEN }}
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-node@v6
@@ -24,6 +26,8 @@ jobs:
   deploy:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_READ_TOKEN }}
     permissions:
       contents: read
       deployments: write
@@ -103,6 +107,8 @@ jobs:
   undeploy:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_READ_TOKEN }}
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-node@v6

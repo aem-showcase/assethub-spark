@@ -1,13 +1,7 @@
 #!/usr/bin/env sh
 
-# check we don't add internal artifactory dependencies to the repo
-if grep "artifactory" **/package-lock.json; then
-  echo
-  echo "Error: Adobe internal Artifactory detected in a package-lock.json ^^^^"
-  echo "       Please use public npm as your main registry (https://registry.npmjs.org/)"
-  echo "       and avoid adding Adobe internal dependencies to the repo."
-  exit 1
-fi
+# Keep internal dependencies out, except the approved shared AssetHub SDK.
+node .husky/check-package-registries.mjs package-lock.json */package-lock.json || exit 1
 
 # Disable react build - no longer used
 #

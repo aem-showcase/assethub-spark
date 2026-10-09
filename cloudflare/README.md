@@ -283,33 +283,44 @@ The Worker imports the Entra authentication library from the separate `assethub-
 impersonation, login analytics, and user-login reporting in this portal.
 The library handles Microsoft login, callback validation, cookies, sessions, and logout.
 
-The Worker dependency is `"@assethub/sdk": "file:../../../../../assethub-sdk/assethub-sdk-0.1.0.tgz"`,
-relative to this `cloudflare` folder. This path is specific to the
-`assethub-spark/.claude/worktrees/entra-sdk` layout. Keep SDK source in the separate
-`~/Work/Git/assethub-sdk` checkout and build its archive before installing Spark:
+The Worker uses the published dependency `"@assethub/sdk": "^0.1.0"`.
+This folder's `.npmrc` routes the `@assethub` scope to
+`https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-assethub-sdk-release/`.
+Other dependencies keep their existing registry configuration. No SDK checkout,
+build, archive, or copy is needed for consumer installs.
 
-```sh
-cd ~/Work/Git/assethub-sdk
-npm ci && npm pack
-```
+Before installing, obtain an Artifactory token with **Read** permission for the SDK
+repository. From the Spark checkout root, enter it at a hidden prompt in zsh:
 
-Then install and start Spark from this worktree root:
-
-```sh
-cd ~/Work/Git/assethub-spark/.claude/worktrees/entra-sdk
+```zsh
+read -rs "NODE_AUTH_TOKEN?Artifactory npm read token: "
+printf '\n'
+export NODE_AUTH_TOKEN
 npm install && npm start
 ```
 
+Keep these commands in the same terminal. Make `NODE_AUTH_TOKEN` available in each
+new terminal before installing dependencies. Never paste the token into chat or
+commit its actual value. The npm configuration uses a `${NODE_AUTH_TOKEN}` placeholder
+for the `npm-assethub-sdk-release` endpoint.
 Root `npm install` installs Worker dependencies through the existing `postinstall` script.
-No manual copy or custom installer is needed. Do not commit generated SDK archives.
-A clean GitHub CI checkout cannot access this local file dependency.
-The Artifactory repositories `npm-assethub-sdk-release` and `npm-assethub-sdk-release-local`
-have been created. The package is not published, and consumer registry distribution is
-not configured yet. Exact registry URLs, access roles, and publication authentication
-have not been verified.
 
-Update the dependency filename when releasing a new version. The SDK README describes
-standalone Worker usage and the public configuration preset.
+For GitHub Actions, add a repository secret named `ARTIFACTORY_NPM_READ_TOKEN` under
+**Settings > Secrets and variables > Actions**. Its token identity must have **Read**
+permission for the SDK repository. Each job that installs dependencies must map
+this secret to `NODE_AUTH_TOKEN` at the job level:
+
+```yaml
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_READ_TOKEN }}
+```
+
+The secret must be added separately; it is not created by this checkout.
+GitHub Actions package downloads have not been verified. This package-download
+token is separate from Entra runtime credentials.
+
+Update the dependency version range when adopting a new SDK release. The SDK README
+describes standalone Worker usage and the public configuration preset.
 
 Public tenant/client IDs and trusted portal origins are configured in `src/config.js`.
 The signing secret stays in the runtime `COOKIE_SECRET` binding. No secret is included
