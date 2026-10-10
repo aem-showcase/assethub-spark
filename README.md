@@ -51,7 +51,10 @@ To produce a branded demo of the portal for a company, see [docs/rebrand-guide.m
 
 ## Installation
 
-The Worker uses the published dependency `"@assethub/sdk": "^0.1.0"`.
+The Worker uses the published dependency `"@assethub/sdk": "^0.2.0"`.
+When upgrading from SDK `0.1.0`, start a fresh login: cookies with its old SDK token
+markers are rejected by `0.2.0`. Compatible legacy sessions without a `typ` header
+or with `typ: 'JWT'` retain their existing validation behavior.
 `cloudflare/.npmrc` routes the `@assethub` scope to
 `https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-assethub-sdk-release/`.
 Other dependencies keep their existing registry configuration. No SDK checkout,
