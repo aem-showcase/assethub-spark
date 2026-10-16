@@ -51,6 +51,8 @@ function createReportCard(report) {
   const card = document.createElement('a');
   card.className = `report-card ${report.status}`;
   card.href = report.status === 'available' ? localizePath(report.url) : '#';
+  // Lets scripts/page-transitions.js grow this card into the report page (and back)
+  if (report.status === 'available') card.dataset.vtHref = card.href;
 
   if (report.status === 'coming-soon') {
     card.addEventListener('click', (e) => {

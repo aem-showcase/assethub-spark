@@ -7,8 +7,7 @@
  * technical account as Dynamic Media, so this reuses `dm.js`'s `getIMSToken`
  * rather than minting/caching a second token under separate COA credentials.
  * The `x-api-key` follows the same rule `originDynamicMedia` uses for every
- * non-collections DM call: the DM client id itself, not the collections-only
- * `aem-assets-content-hub-1` key.
+ * DM call: the DM client id itself.
  *
  * @module origin/coa
  */

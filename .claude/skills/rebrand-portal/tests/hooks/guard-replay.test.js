@@ -2,7 +2,9 @@ import {
   describe, it, expect, beforeAll,
 } from 'vitest';
 import { spawnSync, execFile } from 'node:child_process';
-import { readFileSync, readdirSync, existsSync, mkdtempSync } from 'node:fs';
+import {
+  readFileSync, readdirSync, existsSync, mkdtempSync, cpSync, rmSync,
+} from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cpus, tmpdir } from 'node:os';
@@ -261,4 +263,29 @@ describe('guards are host-dialect aware', () => {
       expect(result.status).toBe(2);
     });
   }
+});
+
+describe('guards do not write Python bytecode into the worktree', () => {
+  it('leaves hooks/lib free of __pycache__ after every guard runs', () => {
+    const temp = mkdtempSync(join(tmpdir(), 'rebrand-hook-bytecode-'));
+    const copiedHooks = join(temp, 'hooks');
+    cpSync(HOOKS, copiedHooks, { recursive: true });
+    rmSync(join(copiedHooks, 'lib', '__pycache__'), { recursive: true, force: true });
+
+    try {
+      for (const script of guardScripts()) {
+        const result = spawnSync('bash', [join(copiedHooks, script)], {
+          input: JSON.stringify({ toolName: 'bash', toolArgs: { command: 'ls -la' } }),
+          cwd: REPO,
+          encoding: 'utf8',
+          timeout: 15_000,
+        });
+        expect(result.status, `${script}: ${result.stderr}`).toBe(0);
+      }
+
+      expect(existsSync(join(copiedHooks, 'lib', '__pycache__'))).toBe(false);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
+  });
 });

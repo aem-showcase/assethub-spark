@@ -11,7 +11,7 @@
  *                    x-api-key: <DM client id>, x-ch-request: search,
  *                    x-polaris-search-provider: 3
  *   - Create/update  POST /adobe/assets/collections
- *                    x-api-key: aem-assets-content-hub-1
+ *                    x-api-key: <DM client id>
  *
  * The company scope is enforced two ways: (1) this client filters the asset search by
  * assetMetadata.company so only the demo company's assets become members, and (2) every
@@ -24,7 +24,6 @@
 import {
   HEADER_AUTHORIZATION,
   HEADER_API_KEY,
-  ADOBE_API_KEY_COLLECTIONS,
   getDynamicMediaApiKeyForPath,
   SEARCH_PAGE_LIMIT,
 } from './constants.js';
@@ -122,9 +121,7 @@ export class DmCollectionsClient {
       method,
       headers: {
         [HEADER_AUTHORIZATION]: `Bearer ${token}`,
-        [HEADER_API_KEY]: path === COLLECTIONS_SEARCH_PATH
-          ? ADOBE_API_KEY_COLLECTIONS
-          : getDynamicMediaApiKeyForPath(path, this.clientId),
+        [HEADER_API_KEY]: getDynamicMediaApiKeyForPath(path, this.clientId),
         'Content-Type': 'application/json',
         ...((path === ASSET_SEARCH_PATH || path === COLLECTIONS_SEARCH_PATH)
           ? { 'x-ch-request': 'search', 'x-polaris-search-provider': '3' }

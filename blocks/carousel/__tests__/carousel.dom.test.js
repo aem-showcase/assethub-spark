@@ -4,6 +4,8 @@ import {
 
 vi.mock('../../../scripts/locale-utils.js', () => ({
   getAppLabel: async () => (key, fallback) => fallback || key,
+  OPTIONAL_SITE_PATH_REGEX_SOURCE: String.raw`(?:/companies/[^/]+)?(?:/(?:en|ja))?`,
+  OPTIONAL_SITE_PATH_URL_PATTERN: '{/companies/:company}?{/:locale(en|ja)}?',
 }));
 
 const { default: decorate } = await import('../carousel.js');

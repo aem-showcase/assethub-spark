@@ -3,7 +3,11 @@
  * Shared utilities for collection data transformation and management
  */
 
-import { CollectionAccessLevel, CollectionAclField } from './collection-search-constants.js';
+import {
+  CollectionAccessLevel,
+  CollectionAclField,
+  CollectionType,
+} from './collection-search-constants.js';
 
 /**
  * Transform API collection format to internal format
@@ -26,7 +30,11 @@ export function transformApiCollectionToInternal(apiCollection) {
   const createdBy = repoMetadata['repo:createdBy'] || repoMetadata['repo-createdBy'];
   const modifiedBy = repoMetadata['repo:modifiedBy'] || repoMetadata['repo-modifiedBy'];
   const acl = metadata['custom:metadata']?.['custom:acl'] || null;
-  const ownerEmail = acl?.[CollectionAclField.OWNER] || '';
+  const collectionType = metadata.collectionType || apiCollection.collectionType || '';
+  const aclOwner = acl?.[CollectionAclField.OWNER] || '';
+  const ownerEmail = aclOwner || (
+    collectionType === CollectionType.DELIVERY_SMART_COLLECTION ? createdBy : ''
+  );
   const currentUserEmail = typeof window !== 'undefined' ? window.user?.email || '' : '';
   const isOwner = !!ownerEmail && ownerEmail.toLowerCase() === currentUserEmail.toLowerCase();
 
@@ -42,8 +50,12 @@ export function transformApiCollectionToInternal(apiCollection) {
     createdBy,
     modifiedBy,
     accessLevel: metadata.accessLevel || CollectionAccessLevel.PRIVATE,
+    collectionType,
+    smartCollectionQuery:
+      metadata.smartCollectionQuery || apiCollection.smartCollectionQuery || null,
     itemCount: apiCollection.itemCount || 0,
-    thumbnailUrl: metadata['dam:thumbnailUrl'] || '',
+    thumbnailUrl: collectionType === CollectionType.DELIVERY_SMART_COLLECTION
+      ? '' : metadata['dam:thumbnailUrl'] || '',
     acl,
     isOwner,
     contents: [],

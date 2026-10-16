@@ -134,7 +134,7 @@ Progress is saved in `.internal/onboarding-state.json` (gitignored). If the sess
 - Opens a pull request for the portal build.
 - Loads and labels company assets.
 - Replaces copied placeholder card visuals with real company assets.
-- Creates company-scoped collections after assets are searchable.
+- Creates company-scoped regular collections after assets are searchable.
 
 ## Assets
 

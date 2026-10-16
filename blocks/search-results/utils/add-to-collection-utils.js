@@ -38,6 +38,7 @@ export function attachAddToCollectionOverlayListener(overlayElement, asset, clie
       detail: {
         asset: { ...asset, previewUrl },
         assetPath: asset.repositoryPath || asset.assetId,
+        sourceElement: overlayElement.closest('.asset-card-view-grid, .asset-card-view-list'),
       },
     }));
   });

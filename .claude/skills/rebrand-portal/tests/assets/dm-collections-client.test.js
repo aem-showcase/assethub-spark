@@ -93,8 +93,8 @@ describe('dm-collections-client', () => {
       });
 
       describe('searchCompanyCollections', () => {
-        it('uses the Content Hub collections api-key and search headers', async () => {
-          const fetchFn = vi.fn(async () => makeRes({
+        it('uses the DM client id and search headers for collection search', async () => {
+          const collectionFetchFn = vi.fn(async () => makeRes({
             body: {
               hits: {
                 results: [{
@@ -107,11 +107,11 @@ describe('dm-collections-client', () => {
               },
             },
           }));
-          const client = new DmCollectionsClient({
-            tokenProvider: stubTokenProvider(), clientId: 'dm-client', deliveryHost: HOST, fetchFn,
+          const collectionsClient = new DmCollectionsClient({
+            tokenProvider: stubTokenProvider(), clientId: 'dm-client', deliveryHost: HOST, fetchFn: collectionFetchFn,
           });
 
-          const collections = await client.searchCompanyCollections({ company: 'disney-in', limit: 50 });
+          const collections = await collectionsClient.searchCompanyCollections({ company: 'disney-in', limit: 50 });
 
           expect(collections).toEqual([{
             collectionId: 'c1',
@@ -119,9 +119,9 @@ describe('dm-collections-client', () => {
             company: 'disney-in',
             itemCount: null,
           }]);
-          const [url, init] = fetchFn.mock.calls[0];
+          const [url, init] = collectionFetchFn.mock.calls[0];
           expect(url).toBe(`${HOST}/adobe/experimental/collectionsearch-expires-20260915/assets/collections/search`);
-          expect(init.headers['x-api-key']).toBe('aem-assets-content-hub-1');
+          expect(init.headers['x-api-key']).toBe('dm-client');
           expect(init.headers['x-ch-request']).toBe('search');
           expect(init.headers['x-polaris-search-provider']).toBe('3');
         });
@@ -166,7 +166,7 @@ describe('dm-collections-client', () => {
   });
 
   describe('createCollection', () => {
-    it('stamps custom:metadata.company, accessLevel and asset items with the collections api-key', async () => {
+    it('stamps custom:metadata.company, accessLevel and asset items with the DM client id', async () => {
       const fetchFn = vi.fn(async () => makeRes({ body: { collectionId: 'col-1' } }));
       const client = new DmCollectionsClient({
         tokenProvider: stubTokenProvider(), clientId: 'dm-client', deliveryHost: HOST, fetchFn,
@@ -177,7 +177,7 @@ describe('dm-collections-client', () => {
       expect(out).toEqual({ collectionId: 'col-1' });
       const [url, init] = fetchFn.mock.calls[0];
       expect(url).toBe(`${HOST}/adobe/assets/collections`);
-      expect(init.headers['x-api-key']).toBe('aem-assets-content-hub-1');
+      expect(init.headers['x-api-key']).toBe('dm-client');
       const body = JSON.parse(init.body);
       expect(body['custom:metadata']).toEqual({ company: 'acme' });
       expect(body.accessLevel).toBe('public');
@@ -192,7 +192,7 @@ describe('dm-collections-client', () => {
 
       await client.createCollection({ title: 'Acme', company: 'acme' });
 
-      expect(fetchFn.mock.calls[0][1].headers['x-api-key']).toBe('aem-assets-content-hub-1');
+      expect(fetchFn.mock.calls[0][1].headers['x-api-key']).toBe('different-dm-client');
     });
 
     it('throws a descriptive error on non-2xx', async () => {

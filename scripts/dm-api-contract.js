@@ -6,7 +6,6 @@
  */
 
 export const DM_COLLECTIONS_PATH_PREFIX = '/adobe/assets/collections';
-export const DM_CONTENT_HUB_COLLECTIONS_API_KEY = 'aem-assets-content-hub-1';
 
 function toPathname(pathOrUrl) {
   const value = String(pathOrUrl || '');
@@ -24,11 +23,8 @@ export function isDynamicMediaCollectionsPath(pathOrUrl) {
 }
 
 export function getDynamicMediaApiKeyForPath(pathOrUrl, dmClientId) {
-  if (isDynamicMediaCollectionsPath(pathOrUrl)) {
-    return DM_CONTENT_HUB_COLLECTIONS_API_KEY;
-  }
   if (!dmClientId) {
-    throw new Error('getDynamicMediaApiKeyForPath: dmClientId is required for non-collection paths');
+    throw new Error('getDynamicMediaApiKeyForPath: dmClientId is required');
   }
   return dmClientId;
 }

@@ -5,11 +5,12 @@
  * Extracted from the block so it can be unit-tested without a DOM. No
  * imports of browser globals — keep it that way.
  *
- * @typedef {'all'|'onlyMe'|'viewOnly'|'edit'|'sharedByMe'|'sharedWithMe'} AccessFilter
+ * @typedef {string} AccessFilter
  * @typedef {'anyone'|'me'} CreatorFilter
  * @typedef {{ empty: true } | {
  *   relationship: string,
  *   visibility?: string,
+ *   collectionKind?: string,
  *   _clientFilter?: 'hasViewers',
  * }} ApiParams
  */
@@ -20,10 +21,14 @@ import {
   CollectionAccessFilter,
   CollectionCreatorFilter,
   CollectionAclField,
+  CollectionKind,
 } from './collection-search-constants.js';
 
 /**
  * Map (accessFilter, creatorFilter) → API params.
+ *
+ * Smart Collections uses the same visibility and creator rules as All Collections,
+ * restricted to native Smart Collections by collectionKind.
  *
  * Special return values:
  *   { empty: true }
@@ -58,6 +63,18 @@ export function getApiParams(accessFilter, creatorFilter) {
       visibility: CollectionCreatedByMeVisibility.PRIVATE,
       _clientFilter: 'hasViewers',
     };
+  }
+  if (accessFilter === CollectionAccessFilter.SMART_COLLECTIONS) {
+    return isMe
+      ? {
+        relationship: CollectionListSegment.CREATED_BY_ME,
+        visibility: CollectionCreatedByMeVisibility.ALL,
+        collectionKind: CollectionKind.SMART,
+      }
+      : {
+        relationship: CollectionListSegment.ALL,
+        collectionKind: CollectionKind.SMART,
+      };
   }
   if (accessFilter === CollectionAccessFilter.ALL) {
     if (isMe) {

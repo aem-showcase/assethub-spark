@@ -4,6 +4,7 @@
  */
 
 import { localizePath } from '../locale-utils.js';
+import { playExit } from '../motion.js';
 
 // Configuration constants
 const EMAIL_TEMPLATE = {
@@ -153,6 +154,7 @@ function showEmailPreviewModal() {
 
 // Hide email preview modal
 function hideEmailPreviewModal() {
+  playExit(emailPreviewModal);
   emailPreviewModal.style.display = 'none';
   // Clear the assets array now that we're done with the share flow
   currentAssets = [];

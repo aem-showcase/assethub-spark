@@ -30,6 +30,17 @@ async function fetchDAPlaceholders() {
     const localizedPath = localizePath('/placeholders');
     const response = await fetch(`${localizedPath}.json`);
     if (response.ok) {
+      const responseUrl = new URL(response.url, window.location.origin);
+      if (response.redirected && responseUrl.pathname.endsWith('/404.html')) {
+        daPlaceholdersCache = {};
+        return daPlaceholdersCache;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Expected JSON placeholders response, received ${contentType || 'unknown content type'}`);
+      }
+
       const json = await response.json();
       // Convert array format [{Key, Text}] to object {key: value}
       // Note: DA placeholders.json uses "Text" field, not "Value"

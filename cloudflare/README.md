@@ -6,7 +6,8 @@ A Cloudflare Worker that acts as outermost CDN for the Spark project with some a
 
 - Live: https://frescopamedia.com
 - Preview: https://preview.frescopamedia.com
-- Branch: <https://{branch}.dev.frescopamedia.com>
+- Branch (preview): <https://{branch}.dev.frescopamedia.com>
+- Branch (live): <https://{branch}-live.dev.frescopamedia.com>
 
 ## URL Paths
 
@@ -23,6 +24,22 @@ Here are the various URL paths handled by the worker:
 | `/login`<br>`/scripts/*`<br>`/styles/*`<br>&nbsp;[more](src/index.js) | ❌ | 🌎  Login page & code from Adobe Helix. | `*.aem.live` / `*.aem.page` | as is |
 | `/*`                   | ✅ | 📑  Adobe Helix content | `*.aem.live` / `*.aem.page` | `/*` |
 
+Collection searches use ownership, sharing, and public access rules. Regular collections
+must have `custom:metadata.company` matching `DEMO_COMPANY`. Native Smart Collections are
+exempt from this company filter, including in All Collections. Asset searches still use
+the configured company scope, including assets opened from a Smart Collection.
+
+Opening a native Smart Collection shows its saved asset search in `collection-details`,
+with the same gallery, breadcrumb, and filters as a regular collection. Configured category
+filters are restored from its saved positive term clauses and use the normal facet scopes
+and selected-value counts. The saved query remains intact, including conditions not
+represented by checkboxes. Static asset removal is unavailable for Smart Collections.
+Collection downloads also run the saved query for Smart Collections; regular collections
+continue to download their static items.
+
+Smart Collection thumbnails use the first asset matching the saved query and the viewer's
+asset access rules. Empty collections keep the placeholder. Previews refresh on collection
+fetches rather than using a session-cached Smart Collection thumbnail.
 
 ## Setup
 
@@ -93,6 +110,7 @@ On each branch/PR push, the Github Actions CI will automatically deploy a dedica
 | URL | Helix origin |
 |-----|--------------|
 | `https://{branch}.dev.frescopamedia.com` | `https://{branch}--assethub-spark--aem-showcase.aem.page` |
+| `https://{branch}-live.dev.frescopamedia.com` | `https://{branch}--assethub-spark--aem-showcase.aem.live` |
 
 ### CI main
 
@@ -321,7 +339,7 @@ This worker uses the following [Cloudflare KV](https://developers.cloudflare.com
 | `spark-saved-searches` | `env.SAVED_SEARCHES` | Saved searches from users |
 | `spark-rights-requests` | `env.RIGHTS_REQUESTS` | Rights requests |
 | `spark-rights-request-reviews` | `env.RIGHTS_REQUEST_REVIEWS` | Review results of rights requests |
-| `spark-messages` | `env.MESSAGES` | Notifications for users |
+| `spark-messages` | `env.MESSAGES` | Notifications for users. ⚠️ Currently **not bound** in `wrangler.jsonc`: the worker logs a warning, `/api/messages` returns only system notifications from EDS and write endpoints return 503. To enable, add a `MESSAGES` entry under `kv_namespaces` (top-level, `env.production` and `env.branch`) with the real namespace id. Local `wrangler dev` then auto-creates a local KV, no extra setup needed. |
 
 ### D1 Database
 

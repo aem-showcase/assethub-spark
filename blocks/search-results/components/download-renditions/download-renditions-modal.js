@@ -5,6 +5,7 @@
  */
 
 import { createDownloadRenditionsContent } from './download-renditions-content.js';
+import { playExit } from '../../../../scripts/motion.js';
 
 // Module state
 let modalOverlay = null;
@@ -111,6 +112,7 @@ export function closeDownloadRenditionsModal() {
 
   // Remove elements
   if (modalOverlay) {
+    playExit(modalOverlay);
     modalOverlay.remove();
     modalOverlay = null;
   }

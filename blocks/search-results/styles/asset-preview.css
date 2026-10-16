@@ -239,15 +239,82 @@
 
 /* Responsive Modal */
 @media (width <= 768px) {
-    .asset-preview-modal .asset-preview-modal-inner {
-        margin: 10px;
-        max-height: 95vh;
-    }
+  .asset-preview-modal {
+    align-items: flex-start;
+    padding: 12px;
+  }
 
-    .asset-preview-modal .preview-modal-grid {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 15px;
-    }
+  .asset-preview-modal .asset-preview-modal-inner {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+    margin: 0;
+    padding: 24px 20px 20px;
+  }
+
+  .asset-preview-modal-container {
+    gap: 16px;
+  }
+
+  .asset-preview-modal .modal-header {
+    padding-right: 40px;
+  }
+
+  .asset-preview-modal .modal-image-container {
+    width: 100%;
+    min-height: 0;
+    max-height: 42dvh;
+    aspect-ratio: 4 / 3;
+  }
+
+  .asset-preview-modal .modal-image-container picture,
+  .asset-preview-modal .modal-image-container .modal-image {
+    width: 100%;
+    height: 100%;
+    max-height: 42dvh;
+  }
+
+  .asset-preview-modal .modal-image-container .modal-image {
+    object-fit: contain;
+  }
+
+  .asset-preview-modal .add-to-collection-overlay {
+    opacity: 1;
+    visibility: visible;
+    max-width: 100%;
+  }
+
+  .asset-preview-modal .preview-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .asset-preview-modal .preview-modal-group {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+  }
+
+  .asset-preview-modal .preview-metadata-label,
+  .asset-preview-modal .preview-metadata-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .asset-preview-modal .product-actions {
+    position: sticky;
+    bottom: -20px;
+    z-index: 2;
+    gap: 12px;
+    padding-block: 12px 0;
+    background: white;
+  }
+
+  .asset-preview-modal .right-buttons-wrapper .primary-button {
+    min-height: 44px;
+  }
 }
 
 /* PDF Modal Styles */

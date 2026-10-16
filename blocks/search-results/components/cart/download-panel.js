@@ -9,6 +9,7 @@ import { renderWorkflowProgress } from './workflow-progress.js';
 import { renderEmptyCartContent } from './empty-cart-content.js';
 import { WorkflowStep, StepStatus } from './workflow-types.js';
 import { getAppLabel } from '../../../../scripts/locale-utils.js';
+import { playExit } from '../../../../scripts/motion.js';
 
 let ph = null;
 let panelOverlay = null;
@@ -219,6 +220,7 @@ function cleanupDownloadPanel() {
   }
   cancelAllPolling();
   if (panelOverlay) {
+    playExit(panelOverlay);
     panelOverlay.remove();
     panelOverlay = null;
   }

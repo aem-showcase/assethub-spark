@@ -8,6 +8,31 @@ import { companyBasePath } from '../config.js';
 
 const PERMISSIONS = { ADMIN_SYSTEM: 'admin-system' };
 
+// Warn only once per isolate about a missing MESSAGES binding to avoid flooding logs on every request
+let missingMessagesStoreWarned = false;
+
+/**
+ * Get the MESSAGES KV namespace binding, or null if it is not configured.
+ * Logs a warning (once per isolate) when the binding is missing, e.g. because
+ * wrangler.jsonc has no `MESSAGES` entry under `kv_namespaces`.
+ * @param {Object} env - Cloudflare environment bindings
+ * @returns {KVNamespace|null} MESSAGES KV namespace or null
+ */
+export function getMessagesStore(env) {
+  if (env?.MESSAGES) {
+    return env.MESSAGES;
+  }
+  if (!missingMessagesStoreWarned) {
+    missingMessagesStoreWarned = true;
+    console.warn(
+      '[Notifications] MESSAGES KV namespace binding is not configured in wrangler.jsonc. ' +
+        'User notifications are disabled; only system notifications from EDS are available. ' +
+        'See cloudflare/README.md, KV Namespaces.',
+    );
+  }
+  return null;
+}
+
 /**
  * Generate a unique message ID
  * @returns {string} Unique message ID
@@ -69,6 +94,11 @@ export async function getSystemAdminEmails(env) {
  * @returns {Promise<boolean>} True if message was sent successfully
  */
 export async function sendMessage(env, recipientEmail, messageData) {
+  const messages = getMessagesStore(env);
+  if (!messages) {
+    console.warn(`[Notifications] Cannot send message to ${recipientEmail}: MESSAGES KV not configured`);
+    return false;
+  }
   try {
     const messageId = generateMessageId();
     const now = new Date().toISOString();
@@ -88,7 +118,7 @@ export async function sendMessage(env, recipientEmail, messageData) {
 
     // Store in MESSAGES KV
     const kvKey = `${recipientEmail.toLowerCase()}:${messageId}`;
-    await env.MESSAGES.put(kvKey, JSON.stringify(message), {
+    await messages.put(kvKey, JSON.stringify(message), {
       metadata: {
         priority: message.priority,
         status: message.status,

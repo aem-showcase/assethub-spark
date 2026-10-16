@@ -11,6 +11,7 @@ import {
   formatFileSize,
 } from '../../utils/formatters.js';
 import mapMimeTypeToDisplayType from '../../utils/mime-type-mapper.js';
+import { saveArchiveAndOpenDownloadPanel } from '../../utils/archive-download.js';
 import { EAGER_LOAD_IMAGE_COUNT } from '../../constants/images.js';
 import { renderPictureHTML } from '../picture.js';
 import showToast from '../../../../scripts/toast/toast.js';
@@ -269,30 +270,6 @@ export async function createDownloadRenditionsContent(container, options) {
 }
 
 /**
- * Save archive to download panel localStorage and open the download panel.
- * Dedupes by archiveId so the same archive cannot create duplicate rows.
- */
-function saveArchiveAndOpenDownloadPanel(assetsRenditions, archiveId, t) {
-  const existingDownloads = JSON.parse(localStorage.getItem('downloadArchives') || '[]');
-  const newDownloadEntry = {
-    assetsRenditions: assetsRenditions.map((item) => ({
-      assetId: item.asset.assetId || '',
-      assetName: item.asset.name || item.asset.title || 'Unknown Asset',
-      renditions: ['original'],
-    })),
-    archiveId,
-  };
-
-  const deduped = existingDownloads.filter((entry) => entry.archiveId !== archiveId);
-  deduped.push(newDownloadEntry);
-  localStorage.setItem('downloadArchives', JSON.stringify(deduped));
-  if (window.updateDownloadBadge) {
-    window.updateDownloadBadge(deduped.length);
-  }
-  showToast(t('downloadArchiveCreatedSuccessfully', 'Download archive created successfully'), 'success');
-}
-
-/**
  * Handle download action (always downloads original)
  */
 async function handleDownload(assets, onClose, onCloseCartPanel, onDownloadCompleted, t) {
@@ -338,7 +315,12 @@ async function handleDownload(assets, onClose, onCloseCartPanel, onDownloadCompl
     const archiveId = await client.createAssetsArchive(assetsRenditions);
 
     if (archiveId) {
-      saveArchiveAndOpenDownloadPanel(assetsRenditions, archiveId, t);
+      saveArchiveAndOpenDownloadPanel({
+        assetsRenditions,
+        archiveId,
+        t,
+        openPanel: false,
+      });
       onDownloadCompleted?.(true, successfulAssets);
 
       // Close cart panel and open download panel so user sees the archive

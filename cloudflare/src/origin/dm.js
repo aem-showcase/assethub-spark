@@ -24,13 +24,13 @@ import { decodeJwt } from 'jose';
 import config from '../config.js';
 import {
   CollectionCreatedByMeVisibility,
+  CollectionKind,
   CollectionListSegment,
+  CollectionType,
 } from '../../../scripts/collections/collection-search-constants.js';
 import {
   DM_COLLECTIONS_PATH_PREFIX,
-  DM_CONTENT_HUB_COLLECTIONS_API_KEY,
   getDynamicMediaApiKeyForPath,
-  isDynamicMediaCollectionsPath,
 } from '../../../scripts/dm-api-contract.js';
 import { ROLE, USER_TYPE } from '../user.js';
 import { resolveCountryMatchValues } from '../constants/countries.js';
@@ -64,11 +64,6 @@ const IMS_SCOPE = 'AdobeID,openid';
 // ==========================================
 // Adobe API Constants
 // ==========================================
-
-/** API key for AEM Assets Content Hub collections endpoint
- * @constant {string}
- */
-const ADOBE_API_KEY_COLLECTIONS = DM_CONTENT_HUB_COLLECTIONS_API_KEY;
 
 /** Prefix for Adobe AEM Cloud delivery hostname
  * @constant {string}
@@ -128,13 +123,11 @@ const CONTENTAI_COLLECTION_SEARCH_ACL = {
 /** ContentAI term path for collection access level in search queries */
 const CONTENTAI_COLLECTION_ACCESS_LEVEL = 'collectionMetadata.accessLevel';
 
-/** ContentAI term path for the demo-company scope on a collection.
- * Mirrors the asset-side `assetMetadata.company` scope, but on the collection's own
- * metadata surface. Stamped by scripts/agent/create-collections.js when a collection
- * is created, and matched against config.DEMO_COMPANY on every collections search so a
- * demo only ever surfaces the current company's collections.
- * @constant {string}
- */
+/** ContentAI term paths for native Smart Collection filtering and ownership. */
+const CONTENTAI_COLLECTION_TYPE = 'collectionMetadata.collectionType';
+const CONTENTAI_COLLECTION_CREATED_BY = 'repositoryMetadata.repo:createdBy';
+
+/** ContentAI company scope for regular collections; native Smart Collections are exempt. */
 const CONTENTAI_COLLECTION_COMPANY = 'collectionMetadata.custom:metadata.company';
 
 // ==========================================
@@ -323,18 +316,19 @@ async function getIMSToken(request, env) {
  * @returns {string} returns.reason - Denial reason if not allowed
  *
  * @example
- * const access = await validateCollectionAccess('col-123', 'user@example.com', 'read', token, origin);
+ * const access = await validateCollectionAccess('col-123', 'user@example.com', 'read', token, origin, env);
  * if (access.allowed) {
  *   console.log(`Access granted as ${access.role}`);
  * }
  */
-async function validateCollectionAccess(collectionId, userEmail, requiredRole, imsToken, dmOrigin) {
+async function validateCollectionAccess(collectionId, userEmail, requiredRole, imsToken, dmOrigin, env) {
   // Fetch collection metadata
   const metadataUrl = `${dmOrigin}/adobe/assets/collections/${collectionId}`;
+  const dmClientId = await env.DM_CLIENT_ID.get();
   const response = await fetch(metadataUrl, {
     headers: {
       [HEADER_AUTHORIZATION]: `Bearer ${imsToken}`,
-      [HEADER_API_KEY]: ADOBE_API_KEY_COLLECTIONS,
+      [HEADER_API_KEY]: getDynamicMediaApiKeyForPath(metadataUrl, dmClientId),
     },
   });
 
@@ -350,9 +344,17 @@ async function validateCollectionAccess(collectionId, userEmail, requiredRole, i
   const acl = metadata?.['custom:metadata']?.['custom:acl'] || null;
   const accessLevel = String(metadata.accessLevel || 'private').toLowerCase();
 
-  // Owner: full access (read + write)
+  // Owner: full access (read + write). Native Smart Collections created outside
+  // the portal may expose ownership only through repository metadata.
   const ownerValue = acl?.[ACL_OWNER];
-  if (ownerValue && String(ownerValue).toLowerCase() === userEmail) {
+  const repositoryOwner = collection?.repositoryMetadata?.['repo:createdBy'];
+  const isSmartCollection = metadata.collectionType === CollectionType.DELIVERY_SMART_COLLECTION;
+  const isAclOwner = ownerValue && String(ownerValue).toLowerCase() === userEmail;
+  const isSmartRepositoryOwner = !ownerValue
+    && isSmartCollection
+    && repositoryOwner
+    && String(repositoryOwner).toLowerCase() === userEmail;
+  if (isAclOwner || isSmartRepositoryOwner) {
     return { allowed: true, role: COLLECTION_ROLE_OWNER };
   }
 
@@ -398,6 +400,7 @@ async function checkCollectionAuthorization(
   request,
   imsToken,
   origin,
+  env,
   resourceDescription = 'collection',
 ) {
   const requiredRole = request.method === 'GET' ? PERMISSION_READ : PERMISSION_WRITE;
@@ -408,6 +411,7 @@ async function checkCollectionAuthorization(
     requiredRole,
     imsToken,
     origin,
+    env,
   );
 
   if (!access.allowed) {
@@ -687,40 +691,50 @@ function normalizeCollectionsSearchRelationship(rel) {
   return CollectionListSegment.PUBLIC;
 }
 
+function applyCollectionKindFilter(search, collectionKind) {
+  if (collectionKind === CollectionKind.SMART) {
+    forceContentAISearchFilter(search, [{
+      term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+    }]);
+  } else if (collectionKind === CollectionKind.REGULAR) {
+    forceContentAISearchFilter(search, [{
+      not: [{
+        term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+      }],
+    }]);
+  }
+}
+
 /**
  * ContentAI Search: search authorization for collections
  * @param {Object} request - Request object with user info
  * @param {Object} search - ContentAI search object to modify
  * @param {{
- *   relationship?: 'createdByMe' | 'sharedWithMe' | 'public',
- *   visibility?: 'all' | 'private' | 'public',
+ *   relationship?: 'all' | 'createdByMe' | 'sharedWithMe' | 'publicView' | 'public',
+ *   visibility?: 'all' | 'private' | 'read_only' | 'public',
  * }} [options]
- * - relationship: createdByMe = owner ACL + optional accessLevel; sharedWithMe = viewer ACL only;
- *   public = accessLevel public only; omitted → legacy owner/editor/viewer filter.
- *   visibility: only for `createdByMe` (`all` | `private` | `public`); ignored otherwise → `all`.
+ * - relationship: createdByMe = owner ACL or native Smart Collection creator
+ *   + optional accessLevel; sharedWithMe = viewer ACL only; public = accessLevel public only;
+ *   omitted → legacy owner/editor/viewer filter.
+ * - visibility: only for `createdByMe`; ignored otherwise → `all`.
+ * Regular collections require the configured company tag; native Smart Collections do not.
  */
 function collectionsSearchContentAIAuthorization(request, search, options = {}) {
   const user = request.user;
   const userEmailLower = user?.email?.toLowerCase();
 
-  // --- Customer scope filter (always applied) ---
-  // Mirrors the asset company scope (buildAssetAuthClauses): config.DEMO_COMPANY restricts
-  // every collections search to collections tagged collectionMetadata.custom:metadata.company
-  // === DEMO_COMPANY. Injected BEFORE all ACL/visibility branches below (and before the
-  // early returns) so it holds on every path — including admins, so the demo never leaks
-  // another company's collections. create-collections.js stamps this tag at creation time.
-  //
-  // The explicit `exists` clause matters on its own: a `term` match on a missing field is
-  // normally excluded, but collections created before this company-scoping code existed (or
-  // written by any path that skips stampCollectionCompany) have no company field at all —
-  // without a hard exists check, any relaxation of the term match (or a backend quirk in how
-  // missing fields are scored) can let untagged legacy collections leak into every company's
-  // demo. Requiring existence closes that off by construction, independent of term semantics.
   if (config.DEMO_COMPANY) {
-    forceContentAISearchFilter(search, [
-      { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
-      { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
-    ]);
+    forceContentAISearchFilter(search, [{
+      or: [
+        { term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] } },
+        {
+          and: [
+            { exists: { field: CONTENTAI_COLLECTION_COMPANY } },
+            { term: { [CONTENTAI_COLLECTION_COMPANY]: [config.DEMO_COMPANY] } },
+          ],
+        },
+      ],
+    }]);
   }
 
   if (!userEmailLower) {
@@ -741,6 +755,17 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   };
   const searchViewerClause = {
     term: { [CONTENTAI_COLLECTION_SEARCH_ACL.viewer]: emailVariants },
+  };
+  const repositoryOwnerClause = {
+    term: { [CONTENTAI_COLLECTION_CREATED_BY]: emailVariants },
+  };
+  const smartRepositoryOwnerClause = {
+    and: [
+      {
+        term: { [CONTENTAI_COLLECTION_TYPE]: [CollectionType.DELIVERY_SMART_COLLECTION] },
+      },
+      repositoryOwnerClause,
+    ],
   };
 
   // Backward-compatible mode when no relationship is specified.
@@ -785,9 +810,11 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
   let authClauses;
 
   if (relationship === CollectionListSegment.ALL) {
-    authClauses = [{ or: [searchOwnerClause, accessAnyPublic, searchViewerClause] }];
+    authClauses = [{
+      or: [searchOwnerClause, smartRepositoryOwnerClause, accessAnyPublic, searchViewerClause],
+    }];
   } else if (relationship === CollectionListSegment.CREATED_BY_ME) {
-    authClauses = [searchOwnerClause];
+    authClauses = [{ or: [searchOwnerClause, smartRepositoryOwnerClause] }];
     if (visibility === CollectionCreatedByMeVisibility.PRIVATE) {
       authClauses.push(accessPrivate);
     } else if (visibility === CollectionCreatedByMeVisibility.READ_ONLY) {
@@ -812,17 +839,12 @@ function collectionsSearchContentAIAuthorization(request, search, options = {}) 
 }
 
 /**
- * Stamp the demo company onto a collection CREATE or UPDATE request body so that EVERY
- * collection written through the worker — the portal UI, scripts/collections, the Step 6
- * agent, anything — carries custom:metadata.company === config.DEMO_COMPANY. This is the
- * write side of the company scope: without it a collection has no company tag (on create)
- * or could lose it (on an update that overwrites custom:metadata) and would then be hidden
- * by the collectionsSearchContentAIAuthorization company filter (i.e. become "unlisted" —
- * reachable only by direct id).
+ * Stamp the demo company onto collection CREATE or UPDATE bodies for metadata tracking.
+ * Regular collection searches require this tag; native Smart Collections are exempt.
  *
  * The tag is written FLAT under `custom:metadata.company`; the delivery tier namespaces it
- * as collectionMetadata.custom:metadata.company on read (the exact key the search filter
- * matches). Mutates and returns the parsed body. No-op when DEMO_COMPANY is unset.
+ * as collectionMetadata.custom:metadata.company on read.
+ * Mutates and returns the parsed body. No-op when DEMO_COMPANY is unset.
  *
  * @param {Object} parsedBody - the parsed JSON create/update body
  * @returns {Object} the same body with custom:metadata.company set
@@ -896,9 +918,7 @@ export async function originDynamicMedia(request, env, ctx) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const dmClientId = isDynamicMediaCollectionsPath(url.pathname)
-    ? undefined
-    : await env.DM_CLIENT_ID.get();
+  const dmClientId = await env.DM_CLIENT_ID.get();
   headers.set(HEADER_API_KEY, getDynamicMediaApiKeyForPath(url.pathname, dmClientId));
   headers.set(HEADER_AUTHORIZATION, `Bearer ${imsToken}`);
   headers.delete(HEADER_COOKIE);
@@ -936,6 +956,10 @@ export async function originDynamicMedia(request, env, ctx) {
     const search = JSON.parse(body);
     extractSearchContext(request, search);
     const relationship = search.relationship;
+    const collectionKind = search.collectionKind === CollectionKind.SMART
+      || search.collectionKind === CollectionKind.REGULAR
+      ? search.collectionKind
+      : undefined;
     const normalizedRelationship = normalizeCollectionsSearchRelationship(relationship);
     const visibility =
       normalizedRelationship === CollectionListSegment.CREATED_BY_ME &&
@@ -947,7 +971,9 @@ export async function originDynamicMedia(request, env, ctx) {
         : CollectionCreatedByMeVisibility.ALL;
     if (search.relationship !== undefined) delete search.relationship;
     if (search.visibility !== undefined) delete search.visibility;
+    if (search.collectionKind !== undefined) delete search.collectionKind;
     if (search.writeOnly !== undefined) delete search.writeOnly;
+    applyCollectionKindFilter(search, collectionKind);
     collectionsSearchContentAIAuthorization(request, search, {
       relationship,
       visibility,
@@ -973,10 +999,8 @@ export async function originDynamicMedia(request, env, ctx) {
   // --- Stamp company on collection CREATE and UPDATE (always applied) ---
   // Create = POST to exactly PATH_COLLECTIONS. Update = POST to
   // /adobe/assets/collections/{id} (excludes /search and /{id}/items — those have a
-  // different segment shape). Stamping on BOTH means a collection can never lose its
-  // company tag — not at creation, and not via a later metadata update that overwrites
-  // custom:metadata — so it always stays visible under the company search filter,
-  // whatever client wrote it (portal UI, scripts, the Step 6 agent).
+  // different segment shape). Keep the company tag on both paths so regular collections
+  // remain visible under the company filter; native Smart Collections are exempt.
   const isCollectionCreate = url.pathname === PATH_COLLECTIONS
     || url.pathname === `${PATH_COLLECTIONS}/`;
   const isCollectionUpdate = /^\/adobe\/assets\/collections\/(?!search$)[^/]+$/.test(url.pathname);
@@ -1008,7 +1032,7 @@ export async function originDynamicMedia(request, env, ctx) {
   // Exclude /adobe/assets/collections/search (search endpoint, not a collectionId)
   if (url.pathname.match(/^\/adobe\/assets\/collections\/(?!search$)[^/]+$/)) {
     const collectionId = url.pathname.split('/').pop();
-    const authResponse = await checkCollectionAuthorization(collectionId, request, imsToken, url.origin, 'collection');
+    const authResponse = await checkCollectionAuthorization(collectionId, request, imsToken, url.origin, env, 'collection');
     if (authResponse) return authResponse;
   }
 
@@ -1022,6 +1046,7 @@ export async function originDynamicMedia(request, env, ctx) {
       request,
       imsToken,
       url.origin,
+      env,
       'collection items',
     );
     if (authResponse) return authResponse;
@@ -1102,10 +1127,12 @@ export {
   // Query chunking utilities
   chunkIntoAnd,
   chunkIntoOr,
+  applyCollectionKindFilter,
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
   searchContentAIAuthorization,
-  // Company scope: stamp custom:metadata.company on collection create/update
+  validateCollectionAccess,
+  // Company metadata: stamp custom:metadata.company on collection create/update
   stampCollectionCompany,
   // IMS token (shared with coa.js — same DM S2S technical account, same x-api-key)
   getIMSToken,

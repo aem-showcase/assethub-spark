@@ -13,6 +13,7 @@ import {
   createDefaultStepStatuses,
 } from './workflow-types.js';
 import { renderCartPanelAssets } from './cart-panel-assets.js';
+import { playExit } from '../../../../scripts/motion.js';
 
 let panelOverlay = null;
 let panelElement = null;
@@ -55,6 +56,7 @@ function cleanupCartPanel() {
   }
 
   if (panelOverlay) {
+    playExit(panelOverlay);
     panelOverlay.remove();
     panelOverlay = null;
   }

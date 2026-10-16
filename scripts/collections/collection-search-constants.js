@@ -14,6 +14,17 @@ export const CollectionListSegment = Object.freeze({
   PUBLIC: 'public', // accessLevel=public (anyone can view and edit)
 });
 
+/** Native Dynamic Media collection types used by the portal. */
+export const CollectionType = Object.freeze({
+  DELIVERY_SMART_COLLECTION: 'DELIVERY_SMART_COLLECTION',
+});
+
+/** Portal-only collection-kind selectors translated by the Worker into ContentAI clauses. */
+export const CollectionKind = Object.freeze({
+  SMART: 'smart',
+  REGULAR: 'regular',
+});
+
 /** Created-by-me visibility filter. READ_ONLY and PUBLIC align with DM accessLevel values. */
 export const CollectionCreatedByMeVisibility = Object.freeze({
   ALL: 'all',
@@ -53,6 +64,7 @@ export const CollectionAccessFilter = Object.freeze({
   VIEW_ONLY: 'viewOnly',
   EDIT: 'edit',
   SHARED_BY_ME: 'sharedByMe',
+  SMART_COLLECTIONS: 'smartCollections',
   SHARED_WITH_ME: 'sharedWithMe',
 });
 

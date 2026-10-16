@@ -15,6 +15,7 @@ import { buildOrderBy, SORT_TYPE, SORT_DIRECTION } from '../utils/sort-utils.js'
 import { getExternalParams } from '../utils/config.js';
 import { dispatchAssetAction } from '../../../scripts/audit/asset-audit.js';
 import { ASSET_AUDIT_ACTIONS } from '../../../scripts/audit/asset-audit-constants.js';
+import { cloneNativeQuery } from '../../../scripts/collections/smart-collection-query.js';
 
 // Note: The following limit is imposed by Polaris as of Mar 12, 2026
 // Size for each facet bucket must be less than or equal to 1000
@@ -590,6 +591,50 @@ export class DynamicMediaClient {
   }
 
   /**
+   * Preserve a saved Smart Collection query and optionally AND current UI refinements around it.
+   * @param {Object[]} nativeQuery
+   * @param {Object} options
+   * @returns {Object[]|null}
+   */
+  buildNativeQueryArray(nativeQuery, options = {}) {
+    const baseQuery = cloneNativeQuery(nativeQuery);
+    if (!baseQuery) return null;
+
+    const {
+      numericFilters = [], filters = [], facetFilters = [],
+    } = options;
+    const runtimeFilters = [];
+
+    filters.forEach((filter) => {
+      const termQuery = this.parsePresetFilter(filter);
+      if (termQuery) runtimeFilters.push(termQuery);
+    });
+
+    const termsByField = {};
+    facetFilters.flat().forEach(({ key, value }) => {
+      if (!key || !value) return;
+      const field = this.getContentAIFieldPath(key);
+      if (!termsByField[field]) termsByField[field] = [];
+      termsByField[field].push(value);
+    });
+    Object.entries(termsByField).forEach(([field, values]) => {
+      runtimeFilters.push({ term: { [field]: values } });
+    });
+
+    Object.entries(this.parseNumericFilters(numericFilters)).forEach(([field, range]) => {
+      runtimeFilters.push({ range: { [field]: range } });
+    });
+
+    if (runtimeFilters.length === 0) return baseQuery;
+    return [{
+      and: [
+        this.chunkIntoAnd(baseQuery),
+        this.chunkIntoAnd(runtimeFilters),
+      ],
+    }];
+  }
+
+  /**
    * Build facets array for ContentAI request
    * @param {string[]} facetKeys - Facet keys
    * @param {string[][]} facetFilters - Facet filters
@@ -714,10 +759,17 @@ export class DynamicMediaClient {
       cursor = null,
       orderBy = buildOrderBy(SORT_TYPE.LAST_MODIFIED, SORT_DIRECTION.DESCENDING),
       searchMode,
+      nativeQuery,
     } = options;
 
+    const savedQuery = this.buildNativeQueryArray(nativeQuery, {
+      numericFilters, filters, facetFilters,
+    });
+    if (nativeQuery != null && !savedQuery) {
+      throw new Error('Invalid native Smart Collection query');
+    }
     const request = {
-      query: this.buildQueryArray(query, {
+      query: savedQuery || this.buildQueryArray(query, {
         numericFilters, filters, facetFilters, searchMode,
       }),
       limit: hitsPerPage,
@@ -748,6 +800,7 @@ export class DynamicMediaClient {
       numericFilters = [],
       filters = [],
       searchMode,
+      nativeQuery,
     } = options;
 
     const facetsArray = this.buildFacetsArray(facetKeys, facetFilters, numericFilters);
@@ -756,7 +809,8 @@ export class DynamicMediaClient {
     }
 
     return {
-      query: this.buildQueryArray(query, { numericFilters, filters, searchMode }),
+      query: this.buildNativeQueryArray(nativeQuery, { numericFilters, filters })
+        || this.buildQueryArray(query, { numericFilters, filters, searchMode }),
       limit: 0,
       facets: facetsArray,
     };
@@ -774,6 +828,7 @@ export class DynamicMediaClient {
       facetFilters = [],
       numericFilters = [],
       filters = [],
+      nativeQuery,
     } = options;
 
     // Flatten if array of arrays, otherwise use as-is
@@ -860,7 +915,8 @@ export class DynamicMediaClient {
     });
 
     return {
-      query: this.buildQueryArray(query, { numericFilters, filters }),
+      query: this.buildNativeQueryArray(nativeQuery, { numericFilters, filters })
+        || this.buildQueryArray(query, { numericFilters, filters }),
       limit: 0,
       facets,
     };
@@ -872,6 +928,7 @@ export class DynamicMediaClient {
    * @param {string} query - Search query
    * @param {Object} options - Search options
    * @param {string} [options.collectionId] - Collection ID for searching within a collection
+   * @param {Object[]} [options.nativeQuery] - Validated native Smart Collection query clauses.
    * @param {boolean} [options.skipFacetsRequest=false] - Skip facets request (query only)
    * @param {boolean} [options.useRealPermissions=false] - Build the country auth filter from
    *   the real, pre-simulation identity instead of the currently-simulated one, when
@@ -1012,6 +1069,7 @@ export class DynamicMediaClient {
       facetFilters = [],
       numericFilters = [],
       filters = [],
+      nativeQuery,
     } = options;
 
     const contentAIField = this.getContentAIFieldPath(facetKey);
@@ -1054,7 +1112,8 @@ export class DynamicMediaClient {
     const facets = [facet];
 
     const request = {
-      query: this.buildQueryArray(query, { numericFilters, filters }),
+      query: this.buildNativeQueryArray(nativeQuery, { numericFilters, filters })
+        || this.buildQueryArray(query, { numericFilters, filters }),
       limit: 0,
       facets,
     };

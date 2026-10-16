@@ -14,7 +14,6 @@ import { error, Router, withCookies } from 'itty-router';
 import { analyticsApi, searchMetricsApi } from './api/analytics';
 import { auditGetExportCsv, auditGetSummary, auditPostEvent } from './api/audit';
 import { notificationsApi } from './api/notifications';
-import { smartCollectionsApi } from './api/smart-collections';
 import { authRouter, LEGACY_LOGIN_PAGE, LOGIN_PAGE, withAuthentication } from './auth';
 import { originCoa, originCoaImage } from './origin/coa';
 import { originDynamicMedia } from './origin/dm';
@@ -47,12 +46,34 @@ function withTlsCheck(request) {
   return undefined;
 }
 
-/** Switch to AEM preview content for preview hostnames. */
+/**
+ * Switch the Helix/EDS origin suffix (aem.live vs aem.page) based on the
+ * request hostname, and store it on request.helixOrigin (do not mutate env,
+ * which is shared across requests). A single branch worker serves both:
+ *   <branch>.dev.frescopamedia.com       → aem.page (preview)
+ *   <branch>-live.dev.frescopamedia.com  → aem.live
+ */
 function withPreviewOrigin(request, env) {
   const { hostname } = new URL(request.url);
+
+  // Local dev: use HELIX_ORIGIN as-is
+  if (hostname === 'localhost') return;
+
+  // Production preview: preview.frescopamedia.com → aem.page
   if (hostname === 'preview.frescopamedia.com') {
     request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
     console.info(`Preview hostname detected: ${hostname}, using Helix origin: ${request.helixOrigin}`);
+    return;
+  }
+
+  // Branch subdomains: <name>.dev.frescopamedia.com
+  const match = hostname.match(/^([^.]+)\.dev\.frescopamedia\.com$/);
+  if (!match) return;
+
+  if (match[1].endsWith('-live')) {
+    request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.page', '.aem.live');
+  } else {
+    request.helixOrigin = env.HELIX_ORIGIN.replace('.aem.live', '.aem.page');
   }
 }
 
@@ -171,10 +192,6 @@ router
   .post('/api/audit/event', auditPostEvent)
   .get('/api/audit/summary', auditGetSummary)
   .get('/api/audit/export.csv', auditGetExportCsv)
-
-  // Smart Collections API (D1) — persisted dynamic search queries
-  .all('/api/smart-collections', smartCollectionsApi)
-  .all('/api/smart-collections/*', smartCollectionsApi)
 
   // catch-all for unknown API routes
   .all('/api/*', () => error(404))

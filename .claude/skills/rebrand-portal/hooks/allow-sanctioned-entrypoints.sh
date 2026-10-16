@@ -48,6 +48,7 @@
 # Staying silent is the no-opinion answer and leaves the command to the CLI.
 
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 
 GUARD_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 export GUARD_LIB_DIR

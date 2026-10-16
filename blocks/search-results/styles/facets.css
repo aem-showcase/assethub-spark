@@ -384,9 +384,13 @@
 
 @media (width <= 768px) {
   .search-results .facet-filter-panel.mobile-open {
-    width: 100%;
+    width: min(100%, 420px);
     min-width: auto;
     max-width: none;
+    max-height: calc(100dvh - var(--nav-height, 72px));
+    overflow-y: auto;
+    padding: 20px 16px;
+    box-sizing: border-box;
   }
 }
 

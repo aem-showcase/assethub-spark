@@ -13,6 +13,7 @@ import {
 import {
   CollectionListSegment,
   CollectionCreatedByMeVisibility,
+  CollectionKind,
 } from './collection-search-constants.js';
 
 // Default search fields for ContentAI text search
@@ -170,6 +171,7 @@ export class DynamicMediaCollectionsClient {
    *   (`CollectionListSegment`; see `collection-search-constants.js`)
    * @param {string} [options.visibility] - `CollectionCreatedByMeVisibility`
    *   (`all` | `private` | `public`). Sent only when `relationship` is `createdByMe`.
+   * @param {string} [options.collectionKind] - Portal-only Smart/regular collection selector.
    * @returns {Promise<{items: Array, total: number, cursor: string}>} Promise with search results
    */
   async searchCollections(options = {}) {
@@ -186,6 +188,7 @@ export class DynamicMediaCollectionsClient {
         favorite,
         relationship,
         visibility = CollectionCreatedByMeVisibility.ALL,
+        collectionKind,
       } = options;
 
       // Build ContentAI search request
@@ -236,6 +239,9 @@ export class DynamicMediaCollectionsClient {
         )
       ) {
         searchBody.visibility = visibility;
+      }
+      if (collectionKind === CollectionKind.SMART || collectionKind === CollectionKind.REGULAR) {
+        searchBody.collectionKind = collectionKind;
       }
 
       // eslint-disable-next-line no-console

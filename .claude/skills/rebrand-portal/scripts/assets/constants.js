@@ -34,7 +34,6 @@ export const AEM_ASSETS_FRONTEND_API_KEY = 'aem-assets-frontend-1';
 
 export {
   DM_COLLECTIONS_PATH_PREFIX,
-  DM_CONTENT_HUB_COLLECTIONS_API_KEY as ADOBE_API_KEY_COLLECTIONS,
   getDynamicMediaApiKeyForPath,
   isDynamicMediaCollectionsPath,
 } from '../../../../../scripts/dm-api-contract.js';

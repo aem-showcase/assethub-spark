@@ -1,4 +1,5 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
+import { prerenderOnIntent } from '../../scripts/speculation.js';
 
 export default function decorate(block) {
   /* change to ul, li */
@@ -33,6 +34,12 @@ export default function decorate(block) {
 
       // Make the whole card clickable
       li.style.cursor = 'pointer';
+      if (target !== '_blank') {
+        // Pairs this card with the page it opens for the page transition, and prerenders
+        // that page on hover so it is ready to animate into.
+        li.dataset.vtHref = href;
+        prerenderOnIntent(li, href);
+      }
       li.addEventListener('click', (e) => {
         // Prevent default if clicking directly on the link
         if (e.target.tagName === 'A') return;

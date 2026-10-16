@@ -293,13 +293,10 @@ async function refreshMarketOptions() {
 /**
  * Refresh the report with current filter settings
  */
-async function refreshReport() {
+async function refreshReportData() {
   const { filters } = state;
 
   await refreshMarketOptions();
-
-  // Destroy all existing charts
-  destroyCharts(state.chartInstances);
 
   // Fetch new data
   const metrics = await fetchSearchMetrics(filters);
@@ -361,10 +358,24 @@ async function refreshReport() {
     tableContainer.replaceWith(newTable);
   }
 
-  // Re-initialize all charts
+  // Re-initialize all charts (old ones are destroyed just before, so there is no blank gap)
   setTimeout(() => {
+    destroyCharts(state.chartInstances);
     initializeCharts();
   }, CHART_INIT_DELAY);
+}
+
+/**
+ * Refresh the report, keeping the current charts on screen (dimmed) while new data loads
+ */
+async function refreshReport() {
+  const container = document.querySelector('.searches-report-container');
+  container?.setAttribute('aria-busy', 'true');
+  try {
+    await refreshReportData();
+  } finally {
+    container?.setAttribute('aria-busy', 'false');
+  }
 }
 
 /**
@@ -410,6 +421,27 @@ async function handleFilterReset() {
  * Main decorate function - initializes the searches report
  * @param {HTMLElement} block - The block element to decorate
  */
+/**
+ * Placeholder with the report's layout (filters, metric cards, chart rows)
+ * @returns {HTMLElement}
+ */
+function createReportSkeleton() {
+  const chartCard = '<div class="chart-card"><div class="report-skeleton-line"></div><div class="chart-container report-skeleton-block"></div></div>';
+  const skeleton = document.createElement('div');
+  skeleton.className = 'report-skeleton';
+  skeleton.setAttribute('role', 'status');
+  skeleton.innerHTML = `
+    <span class="report-skeleton-label">Loading search data...</span>
+    <div class="report-skeleton-filters report-skeleton-block" aria-hidden="true"></div>
+    <div class="searches-metrics" aria-hidden="true">
+      ${'<div class="metric-card report-skeleton-block report-skeleton-metric"></div>'.repeat(3)}
+    </div>
+    <div class="searches-charts" aria-hidden="true">${chartCard.repeat(3)}</div>
+    <div class="searches-charts" aria-hidden="true">${chartCard.repeat(3)}</div>
+  `;
+  return skeleton;
+}
+
 export default async function decorate(block) {
   block.innerHTML = '';
 
@@ -438,18 +470,16 @@ export default async function decorate(block) {
   header.appendChild(title);
   container.appendChild(header);
 
-  // Add loading state
-  const loading = document.createElement('div');
-  loading.className = 'loading-state';
-  loading.textContent = 'Loading search data...';
+  // Skeleton shaped like the report so nothing jumps when data arrives
+  const loading = createReportSkeleton();
   container.appendChild(loading);
+  let filtersEl = null;
 
   block.appendChild(container);
 
   try {
     // Load Chart.js library
     await loadChartJs();
-    loading.remove();
 
     // Load market options and add filters section
     state.marketOptions = await fetchDistinctMarkets(state.filters);
@@ -458,13 +488,13 @@ export default async function decorate(block) {
       state.filters.region = 'all';
     }
 
-    const filtersEl = createFiltersSection(
+    filtersEl = createFiltersSection(
       state.filters,
       handleFilterChange,
       handleFilterReset,
       state.marketOptions,
     );
-    container.appendChild(filtersEl);
+    loading.querySelector('.report-skeleton-filters')?.replaceWith(filtersEl);
 
     // Fetch initial data
     const metrics = await fetchSearchMetrics(state.filters);
@@ -487,6 +517,11 @@ export default async function decorate(block) {
       topSearches: metrics.topSearches,
       topZeroResultSearches: metrics.topZeroResultSearches,
     };
+
+    // Real content replaces the skeleton (filters are already in place above it)
+    loading.before(filtersEl);
+    loading.remove();
+    container.classList.add('is-loaded');
 
     // Add metrics section (Row 1)
     const metricsEl = createMetricsSection({
@@ -553,6 +588,8 @@ export default async function decorate(block) {
       `;
     }
 
+    // Keep the filters if they were already shown inside the skeleton
+    if (filtersEl && loading.contains(filtersEl)) loading.before(filtersEl);
     container.appendChild(errorState);
     loading.remove();
   }

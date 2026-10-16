@@ -20,10 +20,85 @@ import { buildAssetDetailsUrl } from '../../../scripts/asset-id-utils.js';
 import showToast from '../../../scripts/toast/toast.js';
 import { getAppLabel, localizePath } from '../../../scripts/locale-utils.js';
 import { getSearchPlaceholders, ph } from '../utils/placeholders.js';
+import {
+  isInViewport,
+  runViewTransition,
+  toTransitionName,
+} from '../../../scripts/view-transitions.js';
+
+const CARD_SELECTOR = '.asset-card-view-grid, .asset-card-view-list';
+// Only cards on/near screen get a view-transition-name (cost scales with count)
+const MAX_NAMED_CARDS = 48;
+const VIEWPORT_MARGIN_PX = 200;
+// Load more: stagger entry animations, capped so late cards don't wait long
+const MAX_ENTER_STAGGER = 12;
+
+// Cards below the fold fade in on scroll instead (styles/scroll-effects.css)
+function supportsScrollReveal() {
+  return !!window.CSS?.supports?.('animation-timeline', 'view()')
+    && !!window.matchMedia?.('(prefers-reduced-motion: no-preference)').matches;
+}
 
 let popstateHandler = null;
 let escapeHandler = null;
 let cartSyncCleanup = null;
+
+/**
+ * Give cards near the viewport unique view-transition-names so that cards in
+ * both the old and new result sets move to their new positions.
+ * @returns {Function} cleanup
+ */
+function nameVisibleCards(root) {
+  const named = [];
+  const used = new Set();
+  const viewportBottom = window.innerHeight + VIEWPORT_MARGIN_PX;
+  const cards = root.querySelectorAll(CARD_SELECTOR);
+  for (let i = 0; i < cards.length && named.length < MAX_NAMED_CARDS; i += 1) {
+    const card = cards[i];
+    // Cards are in document order; once one starts below the viewport, stop
+    if (card.getBoundingClientRect().top > viewportBottom) break;
+    const name = card.id ? toTransitionName('card', card.id) : '';
+    if (name && !used.has(name) && isInViewport(card, VIEWPORT_MARGIN_PX)) {
+      used.add(name);
+      card.style.viewTransitionName = name;
+      card.style.viewTransitionClass = 'asset-card';
+      named.push(card);
+    }
+  }
+  return () => named.forEach((card) => {
+    card.style.viewTransitionName = '';
+    card.style.viewTransitionClass = '';
+  });
+}
+
+/**
+ * Re-render the gallery inside a view transition.
+ */
+function runGridTransition(container, doRender, isViewSwitch) {
+  let clearOld = nameVisibleCards(container);
+  let clearNew = () => {};
+  const panel = () => container.querySelector('#search-panel-container');
+  const oldPanel = panel();
+  if (oldPanel) oldPanel.style.viewTransitionName = 'search-panel';
+
+  const transition = runViewTransition(() => {
+    clearOld();
+    clearOld = () => {};
+    doRender();
+    clearNew = nameVisibleCards(container);
+    const newPanel = panel();
+    if (newPanel) newPanel.style.viewTransitionName = 'search-panel';
+  }, { types: [isViewSwitch ? 'grid-view-switch' : 'grid-results'] });
+
+  const cleanup = () => {
+    clearOld();
+    clearNew();
+    const p = panel();
+    if (p) p.style.viewTransitionName = '';
+  };
+  if (transition) transition.finished.finally(cleanup);
+  else cleanup();
+}
 
 function replaceMarkedTextWithLinks(message, hrefs = []) {
   const markerRegex = /(?:<<|{{)(.*?)(?:>>|}})/g;
@@ -55,6 +130,7 @@ export async function createImageGallery(container, callbacks) {
     onRemoveFromCart,
     onBulkAddToCart,
     onBulkRemoveFromCollection,
+    onShareSearch,
   } = callbacks;
 
   // Load placeholders for localization
@@ -65,6 +141,48 @@ export async function createImageGallery(container, callbacks) {
 
   let selectedCards = new Set();
   let previousImageCount = 0; // Track image count for Load More optimization
+  // While a grid view transition waits to capture the old grid, further
+  // render requests are merged into it (it renders the latest state).
+  let pendingRender = null;
+
+  function doRender(syncCart) {
+    render();
+    previousImageCount = getState().dmImages.length;
+    if (syncCart) {
+      if (cartSyncCleanup) cartSyncCleanup();
+      cartSyncCleanup = cart.syncButtons({
+        selector: '.add-to-cart-btn',
+        getAssetIds: (btn) => {
+          const cardEl = btn.closest(CARD_SELECTOR);
+          return cardEl ? [cardEl.id] : [];
+        },
+        labels: {
+          add: ph(placeholders, 'addToCart', 'Add To Cart'),
+          remove: ph(placeholders, 'removeFromCart', 'Remove From Cart'),
+        },
+      });
+    }
+  }
+
+  // A new search updates dmImages ([] then results), searchResults and loading
+  // back-to-back in one task; rendering each step would wipe the old cards
+  // before the transition could capture them.
+  function requestRender({ animate, syncCart, isViewSwitch }) {
+    if (pendingRender) {
+      pendingRender.syncCart = pendingRender.syncCart || syncCart;
+      return;
+    }
+    if (!animate) {
+      doRender(syncCart);
+      return;
+    }
+    const pending = { syncCart };
+    pendingRender = pending;
+    runGridTransition(container, () => {
+      pendingRender = null;
+      doRender(pending.syncCart);
+    }, isViewSwitch);
+  }
 
   /**
    * Notify listeners (e.g. search-bar's generate-mode) that the selection changed.
@@ -216,7 +334,7 @@ export async function createImageGallery(container, callbacks) {
           clearAllCheckboxes();
           updateSelectionUI();
         } : undefined,
-        onShareSearch: handleShareSearch,
+        onShareSearch: onShareSearch || handleShareSearch,
       });
     }
 
@@ -286,6 +404,7 @@ export async function createImageGallery(container, callbacks) {
     if (!assetsGrid || newImages.length === 0) return;
 
     const currentCount = assetsGrid.children.length;
+    const newCards = [];
 
     newImages.forEach((image, index) => {
       const cardElement = createAssetCard({
@@ -312,6 +431,27 @@ export async function createImageGallery(container, callbacks) {
         fetchAssetRenditions,
       });
       assetsGrid.appendChild(cardElement);
+      newCards.push(cardElement);
+    });
+
+    // On-screen cards get the staggered entry; with scroll reveal support,
+    // off-screen cards are left to fade in as they are scrolled into view.
+    const revealOnScroll = supportsScrollReveal();
+    const onScreen = revealOnScroll
+      ? newCards.filter((card) => card.getBoundingClientRect().top < window.innerHeight)
+      : newCards;
+    onScreen.forEach((cardElement, enterIndex) => {
+      cardElement.classList.add('is-entering');
+      cardElement.style.setProperty('--enter-index', String(Math.min(enterIndex, MAX_ENTER_STAGGER)));
+      const onEnterEnd = (e) => {
+        if (e.target !== cardElement) return;
+        cardElement.classList.remove('is-entering');
+        // Already animated once: don't let the scroll reveal replay it
+        cardElement.classList.add('has-entered');
+        cardElement.style.removeProperty('--enter-index');
+        cardElement.removeEventListener('animationend', onEnterEnd);
+      };
+      cardElement.addEventListener('animationend', onEnterEnd);
     });
 
     // Total count doesn't change during load more, no need to update search panel
@@ -438,10 +578,12 @@ export async function createImageGallery(container, callbacks) {
     const detailUrl = assetId ? buildAssetDetailsUrl(assetId, image?.name) : undefined;
     pushModalState('assetDetailsModal', detailUrl);
 
+    const cardEl = event?.currentTarget?.closest?.(CARD_SELECTOR);
     createAssetDetails({
       asset: image,
       onClose: () => handleCloseDetailsModal(false),
       fetchAssetRenditions,
+      sourceElement: cardEl?.querySelector('img.image-container') || null,
     });
   }
 
@@ -668,23 +810,14 @@ export async function createImageGallery(container, callbacks) {
       if (updates.dmImages !== undefined && !prevState.isLoadingMore) {
         selectedCards = new Set();
       }
-      render();
-      previousImageCount = currentState.dmImages.length;
 
-      if (updates.viewType !== undefined) {
-        if (cartSyncCleanup) cartSyncCleanup();
-        cartSyncCleanup = cart.syncButtons({
-          selector: '.add-to-cart-btn',
-          getAssetIds: (btn) => {
-            const cardEl = btn.closest('.asset-card-view-grid, .asset-card-view-list');
-            return cardEl ? [cardEl.id] : [];
-          },
-          labels: {
-            add: ph(placeholders, 'addToCart', 'Add To Cart'),
-            remove: ph(placeholders, 'removeFromCart', 'Remove From Cart'),
-          },
-        });
-      }
+      const syncCart = updates.viewType !== undefined;
+      // Animate new result sets (filter/sort/search) and grid ↔ list switches,
+      // but only when there are cards on screen to transition from.
+      const isNewResults = updates.dmImages !== undefined && !prevState.isLoadingMore;
+      const animate = (isNewResults || syncCart)
+        && !!container.querySelector('#assets-grid > *');
+      requestRender({ animate, syncCart, isViewSwitch: syncCart });
     }
 
     // Handle deep link asset

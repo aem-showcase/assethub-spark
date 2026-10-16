@@ -21,6 +21,7 @@ import {
   registerCartButtonSync,
 } from './cart-utils.js';
 import { getStorageKey } from './cart-keys.js';
+import { whenActivated } from '../speculation.js';
 
 /**
  * Cart Service Configuration
@@ -325,8 +326,8 @@ class CartService {
 // Create singleton instance
 const cart = new CartService();
 
-// Initialize background job processor on module load
-initCartBackgroundJobs();
+// A prerendered page must not resume jobs while the active page may still be processing them.
+whenActivated(initCartBackgroundJobs);
 
 // Export singleton instance as default
 export default cart;

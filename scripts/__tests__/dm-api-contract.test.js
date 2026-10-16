@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DM_CONTENT_HUB_COLLECTIONS_API_KEY,
   getDynamicMediaApiKeyForPath,
   isDynamicMediaCollectionsPath,
 } from '../dm-api-contract.js';
 
 describe('dm-api-contract', () => {
-  it('uses the Content Hub collections key for collection CRUD paths', () => {
+  it('uses the DM client id for collection CRUD paths', () => {
     expect(getDynamicMediaApiKeyForPath('/adobe/assets/collections', 'dm-client'))
-      .toBe(DM_CONTENT_HUB_COLLECTIONS_API_KEY);
+      .toBe('dm-client');
     expect(getDynamicMediaApiKeyForPath('/adobe/assets/collections/abc/items', 'dm-client'))
-      .toBe(DM_CONTENT_HUB_COLLECTIONS_API_KEY);
+      .toBe('dm-client');
   });
 
   it('uses the DM client id for non-collection paths', () => {
@@ -25,8 +24,10 @@ describe('dm-api-contract', () => {
     )).toBe(true);
   });
 
-  it('requires a DM client id for non-collection paths', () => {
+  it('requires a DM client id for all paths', () => {
     expect(() => getDynamicMediaApiKeyForPath('/adobe/assets/search'))
+      .toThrow(/dmClientId is required/);
+    expect(() => getDynamicMediaApiKeyForPath('/adobe/assets/collections'))
       .toThrow(/dmClientId is required/);
   });
 });

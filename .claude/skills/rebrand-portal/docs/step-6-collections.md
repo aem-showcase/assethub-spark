@@ -38,9 +38,8 @@ technical-account creds from `cloudflare/.secrets` (`SPARK_DM_CLIENT_ID`/
 (`AEM_ENV_ID`). Collections live on the **delivery / Content Hub tier**, so
 this uses the **DM collections API — not the author API** Step 5 writes
 metadata with. It follows the worker's deterministic request contract:
-asset search uses the DM client id as `x-api-key`, collection CRUD uses the
-Content Hub collections key (`aem-assets-content-hub-1`), and the bearer
-token always comes from the existing DM credentials. **No new collection
+asset search and collection CRUD both use the DM client id as `x-api-key`,
+and the bearer token always comes from the existing DM credentials. **No new collection
 credential, no provisioning, no author writes.**
 
 ## Run the controller

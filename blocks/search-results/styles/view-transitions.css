@@ -1,0 +1,97 @@
+/* ========================================
+   View transitions (progressive enhancement)
+   - asset-hero: card image ↔ asset details modal image
+   - *.asset-card: grid re-render after filter/sort/view switch
+   - .is-entering: CSS entry animation for "Load more" cards
+   ======================================== */
+
+/* Card image shown in the modal until the large rendition loads */
+#asset-details-image-placeholder:has(> .asset-details-hero-standin) {
+  position: relative;
+}
+
+.asset-details-hero-standin {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* Modal side of the hero morph (class set only while the transition runs).
+   Prefer the loading stand-in, then the real image, then the media container. */
+.asset-details-modal.vt-hero .asset-details-hero-standin,
+.asset-details-modal.vt-hero #asset-details-image-placeholder:not(:has(.asset-details-hero-standin)) img.asset-details-main-image,
+.asset-details-modal.vt-hero .asset-details-image-container:not(:has(img.asset-details-main-image)) {
+  view-transition-name: asset-hero;
+}
+
+::view-transition-group(asset-hero) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Both snapshots are letterboxed (object-fit: contain) boxes: scale them whole */
+::view-transition-old(asset-hero),
+::view-transition-new(asset-hero) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Modal backdrop fade while the image morphs */
+:root:active-view-transition-type(asset-open, asset-close)::view-transition-old(root),
+:root:active-view-transition-type(asset-open, asset-close)::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+
+/* Grid: matched cards move, unmatched cards fade */
+::view-transition-group(*.asset-card) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+::view-transition-old(*.asset-card),
+::view-transition-new(*.asset-card) {
+  animation-duration: 200ms;
+}
+
+/* Keep the search panel (counts, toolbar) steady instead of cross-fading */
+::view-transition-group(search-panel),
+::view-transition-new(search-panel) {
+  animation: none;
+}
+
+::view-transition-old(search-panel) {
+  display: none;
+}
+
+/* Load more */
+@keyframes asset-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.asset-card-view-grid.is-entering,
+.asset-card-view-list.is-entering {
+  animation: asset-card-enter 280ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--enter-index, 0) * 30ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .asset-card-view-grid.is-entering,
+  .asset-card-view-list.is-entering {
+    animation: none;
+  }
+}
