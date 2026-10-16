@@ -61,9 +61,9 @@ if (!pathExists(worktreeDir)) {
   }
 }
 
-// Copy secret/config files as REAL files, never symlink — each worktree must
-// own independent secrets so parallel demos never share or clobber a token
-// (rebrand-portal I9). Symlinking re-shares one token across worktrees.
+// Copy rather than symlink: demo/customer portal setup may edit these files
+// inside the worktree to target a different AEM environment. Independent copies
+// keep those edits from affecting the main checkout or other running portals.
 const SECRET_FILES = ['cloudflare/.secrets', 'token.env'];
 SECRET_FILES.forEach((rel) => {
   const src = path.join(cwd, rel);

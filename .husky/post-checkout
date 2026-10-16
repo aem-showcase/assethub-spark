@@ -18,8 +18,8 @@ main_root="$(git rev-parse --path-format=absolute --git-common-dir)"
 main_root="$(dirname "${main_root%/}")"
 worktree_root="$(pwd)"
 
-# Copy secret/config files as REAL files, never symlink — each worktree must
-# own independent secrets so parallel demos never share or clobber a token
-# (rebrand-portal I9). Symlinking re-shares one token across worktrees.
+# Copy rather than symlink: demo/customer portal setup may edit these files
+# inside the worktree to target a different AEM environment. Independent copies
+# keep those edits from affecting the main checkout or other running portals.
 [ -f "$main_root/cloudflare/.secrets" ] && cp "$main_root/cloudflare/.secrets" "$worktree_root/cloudflare/.secrets"
 [ -f "$main_root/token.env" ] && cp "$main_root/token.env" "$worktree_root/token.env"
