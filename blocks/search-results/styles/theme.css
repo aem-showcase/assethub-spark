@@ -3,9 +3,18 @@
    ======================================== */
 
 :root {
-  /* Primary colors — align with global :root */
-  --primary-color-hover: #004d61;
-  --primary-color-active: #003d4d;
+  /* Search-page brand accent (Semrush look — live lavender/off-black system).
+     Scoped to the search experience: this stylesheet loads only with the
+     search-results block, so these tokens do not affect the landing page,
+     login, or nav. */
+  --search-brand-accent: #c190ff;
+  --search-brand-accent-hover: #b072ff;
+  --search-brand-accent-active: #a259ff;
+  --search-brand-ink: #181e15;
+
+  /* Primary colors — search-page accent (was base teal) */
+  --primary-color-hover: var(--search-brand-accent-hover);
+  --primary-color-active: var(--search-brand-accent-active);
   --primary-color-disabled: var(--color-neutral-300, #e8e8e8);
 
   /* Color scales (Light mode) */
@@ -15,12 +24,12 @@
   --gray-300: #b8b8b8;
   --gray-400: #8f8f8f;
   --gray-500: #666;
-  --purple-100: rgb(0 100 125 / 12%);
-  --purple-200: rgb(0 100 125 / 20%);
-  --purple-300: rgb(0 100 125 / 30%);
-  --purple-400: var(--primary-color);
-  --purple-500: #004d61;
-  --purple-600: #003d4d;
+  --purple-100: rgb(193 144 255 / 14%);
+  --purple-200: rgb(193 144 255 / 24%);
+  --purple-300: rgb(193 144 255 / 36%);
+  --purple-400: var(--search-brand-accent);
+  --purple-500: var(--search-brand-accent-hover);
+  --purple-600: var(--search-brand-accent-active);
   --red-100: rgb(163 53 50 / 12%);
   --red-200: rgb(163 53 50 / 25%);
   --red-300: var(--color-red);
@@ -31,13 +40,13 @@
   --highlight-pressed: rgb(0 0 0 / 15%);
 
   /* Semantic colors */
-  --focus-ring-color: var(--primary-color);
+  --focus-ring-color: var(--search-brand-accent);
   --text-color-base: var(--color-neutral-600, #8f8f8f);
   --text-color-hover: var(--text-color);
   --text-color-disabled: var(--gray-200);
   --text-color-placeholder: var(--gray-400);
   --link-color-secondary: var(--gray-500);
-  --link-color-pressed: var(--primary-color);
+  --link-color-pressed: var(--search-brand-accent);
   --border-color: var(--color-neutral-400, #d6d6d6);
   --border-color-hover: var(--color-neutral-600, #8f8f8f);
   --border-color-pressed: var(--color-neutral-700, #666);
@@ -47,14 +56,27 @@
   --overlay-background: var(--gray-50);
   --button-background: var(--gray-50);
   --button-background-pressed: var(--light-color);
-  --highlight-background: var(--primary-color);
-  --highlight-background-pressed: #004d61;
+  --highlight-background: var(--search-brand-accent);
+  --highlight-background-pressed: var(--search-brand-accent-hover);
   --highlight-background-invalid: var(--color-red);
   --highlight-foreground: white;
   --highlight-foreground-pressed: var(--light-color);
-  --highlight-overlay: rgb(0 100 125 / 15%);
+  --highlight-overlay: rgb(193 144 255 / 18%);
   --invalid-color: var(--color-red);
   --invalid-color-pressed: var(--color-dark-red);
+}
+
+/* Search-page-only brand override.
+   The search-bar block and the global brand tokens (--primary-color,
+   --link-hover-color) also render on the landing page, so scope the Semrush
+   accent to pages that carry the search-results block. This keeps the landing
+   page, login, and nav on the base look while the search page turns lavender. */
+body:has(.search-results-wrapper) {
+  --primary-color: var(--search-brand-accent, #c190ff);
+  --primary-color-hover: var(--search-brand-accent-hover, #b072ff);
+  --link-hover-color: var(--search-brand-accent, #c190ff);
+  --icon-color-active: var(--search-brand-accent, #c190ff);
+  --focus-ring-color: var(--search-brand-accent, #c190ff);
 }
 
 /* Dark mode */
@@ -68,12 +90,12 @@
     --gray-400: #848484;
     --gray-500: #a7a7a7;
     --gray-600: #cfcfcf;
-    --purple-100: #003d4d;
-    --purple-200: #004d61;
-    --purple-300: #00647D;
-    --purple-400: #3d8fa3;
-    --purple-500: #6ab4c4;
-    --purple-600: #a8d4de;
+    --purple-100: #3a2d54;
+    --purple-200: #4d3a70;
+    --purple-300: #6b4fa0;
+    --purple-400: #8f6fd0;
+    --purple-500: #c190ff;
+    --purple-600: #dcc2ff;
     --red-100: #5c1f1e;
     --red-200: var(--color-dark-red);
     --red-300: var(--color-red);
