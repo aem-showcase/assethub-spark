@@ -23,6 +23,16 @@
   Bearer $DA_TOKEN" <url>` after `set -a; . ./token.env; set +a`). A `PreToolUse`
   hook (`hooks/guard-secret-read.sh`) blocks the dumping shapes as a second line
   of defense — don't rely on it instead of following this rule.
+  **Never run a shell tracer on a command or script that sources a secret.**
+  `bash -x`, `sh -x`, or `set -x` echo every executed line — including the
+  `. ./token.env` / `. cloudflare/.secrets` sourcing line — so the raw token
+  value lands in the transcript (a real leak that happened live: an `-x` debug
+  of the publish enumerator dumped `DA_TOKEN`, forcing a needless rotation).
+  The guard does **not** catch `-x` (it scans for dumping *tools*, not trace
+  flags), so this is on you: to debug a script that sources a secret, print a
+  status banner plus an authenticated `curl -w '%{http_code}'` probe (the shape
+  above), never `-x`. If a trace ever does print a secret, treat it as
+  compromised per this invariant.
 - **I3 — The demo is delivered from the OPEN PR, not a merge.** DA content
   goes live when published; repo code reaches *production* only on merge —
   but the demo does not need production. **Every PR auto-deploys a

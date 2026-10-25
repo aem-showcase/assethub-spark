@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="329" height="230" viewBox="0 0 329 230" fill="none" aria-label="Flipkart">
+  <!-- Flipkart shopping bag: yellow bag body with blue plus mark -->
+  <g transform="translate(94 34)">
+    <!-- bag body -->
+    <path d="M12 44 h116 a10 10 0 0 1 10 10 l8 96 a14 14 0 0 1 -14 15 H8 A14 14 0 0 1 -6 150 l8 -96 A10 10 0 0 1 12 44 Z" fill="#FFE51F"/>
+    <!-- bag handle -->
+    <path d="M40 48 v-8 a30 30 0 0 1 60 0 v8" fill="none" stroke="#2874F0" stroke-width="9" stroke-linecap="round"/>
+    <!-- blue plus mark centered on the bag -->
+    <path d="M63 78 h14 v20 h20 v14 h-20 v20 h-14 v-20 h-20 v-14 h20 Z" fill="#2874F0"/>
+  </g>
+</svg>
