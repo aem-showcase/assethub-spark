@@ -32,8 +32,12 @@ export function renderEmptyCartContent(options = {}, isDownload = false) {
     <div class="empty-content-wrapper">
       <div class="empty-state">
         <div class="empty-state-message">
-          <img class="cart-loader"
-            src="/icons/empty-cart-animation.gif" alt="Empty Cart">
+          <picture>
+            <source media="(prefers-reduced-motion: reduce)"
+              srcset="/icons/empty-cart-trolley.png">
+            <img class="cart-loader"
+              src="/icons/empty-cart-trolley.gif" width="370" height="320" alt="">
+          </picture>
           <div class="empty-state-header">${message}</div>
           <div class="cart-empty-sub-header">${subHeaderMessage}</div>
           <div class="cart-empty-links">
