@@ -41,6 +41,41 @@ Before using the aem-boilerplate, we recommand you to go through the documentati
 
 The asset search functionality is implemented as a vanilla JS EDS block in `blocks/search-results/`.
 
+### DA-authored Dynamic Media images
+
+The native DA asset selector uses these settings in the site's `data` configuration
+sheet, with lowercase `key` and `value` column headers:
+
+| key | value |
+|-----|-------|
+| `aem.repositoryId` | `delivery-p203220-e2129061.adobeaemcloud.com` |
+| `aem.assets.image.type` | `link` |
+
+Authors select an image from **Library > AEM Assets**. DA stores and displays a link;
+image display inside the DA editor is not enabled. Save the DA configuration and
+reload the editor after changing it. The configuration itself does not need publishing.
+
+On the website, `scripts/dm-images.js` converts standalone DM image links into
+`picture` elements before section and block decoration. This works in default content,
+carousels, cards, and fragments. The browser requests `/api/adobe/assets/...` on the
+current portal origin, so preview, live, and branch sites use their own Cloudflare
+session and the existing server-side DM authentication. Image modifiers in the
+reference's query string are preserved; no credentials are stored in the document.
+
+Only image references from the configured Spark delivery environment are converted.
+PDFs, videos, inline navigation links, other delivery environments, and existing
+Media Bus images are left unchanged. If the backing DM environment changes, update
+the delivery origin in `scripts/dm-images.js` along with the DA repository setting
+and `cloudflare/src/config.js`. Add meaningful link title/text to supply image alt
+text; a bare URL produces empty alt text.
+
+Run the site through the Cloudflare portal, not directly on the protected
+`aem.page`/`aem.live` origin: those EDS origins do not provide the `/api` proxy.
+The proxy preserves its existing access rules; this feature does not change asset
+approval targets or grant viewers additional permissions. Re-preview the document
+after authoring and publish it when ready. With link insertion, no
+`html2md.externalImageUrlPrefixes` feature is required.
+
 ### Cloudflare Worker
 
 A Cloudflare Worker is located in the [cloudflare](cloudflare) folder. This worker handles the site and sits in front of AEM Helix and Dynamic Media.
@@ -194,4 +229,3 @@ npm run sonar:branch
 [Github actions](.github/workflows/) build & lint the project, and automatically [deploy the cloudflare worker](cloudflare/README.md#deploying). They also automatically rotate secrets (running on a cron schedule).
 
 Github actions must be configured with these [secrets](cloudflare/README.md#ci-secrets) and [variables](cloudflare/README.md#ci-variables).
-
