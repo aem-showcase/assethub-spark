@@ -41,6 +41,17 @@ Before using the aem-boilerplate, we recommand you to go through the documentati
 
 The asset search functionality is implemented as a vanilla JS EDS block in `blocks/search-results/`.
 
+### Hero Collage Block
+
+`blocks/hero-collage/` is copied from the Heineken portal's `heineken-landing`
+branch. Author a **Hero Collage** table with up to four image cells in the first
+row, followed by a row containing the headline and optional eyebrow/supporting
+copy. Empty image cells display the included Heineken star placeholders.
+The collage uses four image panels on desktop, three on tablet, and the brand
+headline panel only on mobile. Spark supplies fallback theme values without
+changing global styling, and its default hero auto-blocking leaves the collage's
+headline and pictures in place.
+
 ### DA-authored Dynamic Media images
 
 The native DA asset selector uses these settings in the site's `data` configuration

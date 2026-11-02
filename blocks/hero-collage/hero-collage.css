@@ -1,0 +1,212 @@
+main > .section.hero-collage-container {
+  padding: 0;
+}
+
+main > .section > .hero-collage-wrapper {
+  max-width: none;
+  padding: 0;
+}
+
+.hero-collage-inner {
+  position: relative;
+  aspect-ratio: 2048 / 538;
+  min-height: 360px;
+  max-height: 620px;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-neutral-00, #fff);
+}
+
+/* Geometry follows the reference banner (2048 x 538): each parallelogram is
+   24.12% wide with a 33% slant, panels step 16.455% apart (0.29% white gap),
+   and the green brand panel starts where panel 4 ends. */
+.hero-collage-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24.12%;
+  overflow: hidden;
+  clip-path: polygon(33% 0, 100% 0, 67% 100%, 0 100%);
+}
+
+.hero-collage-panel.p1 {
+  left: 0;
+  width: 16.41%;
+  clip-path: polygon(0 0, 100% 0, 51.5% 100%, 0 100%);
+}
+
+.hero-collage-panel.p2 {
+  left: 8.745%;
+}
+
+.hero-collage-panel.p3 {
+  left: 25.2%;
+}
+
+.hero-collage-panel.p4 {
+  left: 41.655%;
+}
+
+.hero-collage-panel.p1 img {
+  object-position: left center;
+}
+
+.hero-collage-panel picture,
+.hero-collage-panel img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* branded placeholders until imagery is authored */
+.hero-collage-panel.is-empty {
+  background:
+    url('/icons/heineken-star.svg') center / 34% auto no-repeat,
+    radial-gradient(circle at 40% 30%, #2f6b3b 0%, #0f2a16 55%, #050d07 100%);
+}
+
+.hero-collage-panel.is-empty.p2 {
+  background:
+    url('/icons/heineken-star.svg') center / 34% auto no-repeat,
+    radial-gradient(circle at 50% 40%, var(--color-green-50, #63ba68) 0%, var(--color-green-75, #008035) 50%, var(--color-green-90, #005523) 100%);
+}
+
+.hero-collage-panel.is-empty.p3 {
+  background:
+    url('/icons/heineken-star.svg') center / 34% auto no-repeat,
+    radial-gradient(circle at 70% 30%, #1d4f87 0%, #0b2241 60%, #050f1e 100%);
+}
+
+.hero-collage-panel.is-empty.p4 {
+  background:
+    url('/icons/heineken-star.svg') center / 34% auto no-repeat,
+    linear-gradient(135deg, #1a1a1a, #2b2b2b 50%, #0f3a1b);
+}
+
+.hero-collage-brand {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 58.11%;
+  width: 41.89%;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  clip-path: polygon(19% 0, 100% 0, 100% 100%, 0 100%);
+  background: var(--color-background-brand, #008035);
+  color: #fff;
+}
+
+.hero-collage-brand::after {
+  content: '';
+  position: absolute;
+  right: -80px;
+  bottom: -120px;
+  width: 360px;
+  height: 360px;
+  border: 28px solid rgb(255 255 255 / 7%);
+  border-radius: 50%;
+}
+
+.hero-collage-content {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  padding: 0 32px 0 21%;
+}
+
+.hero-collage-content p {
+  margin: 0;
+  font-size: var(--font-size-04);
+  color: rgb(255 255 255 / 85%);
+}
+
+.hero-collage-content .hero-collage-eyebrow {
+  font-family: var(--heading-font-family);
+  font-size: var(--font-size-02);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-green-05, #f0f8f0);
+}
+
+.hero-collage-content h1,
+.hero-collage-content h2 {
+  margin: var(--spacing-03, 0.75rem) 0 var(--spacing-04, 1rem);
+  padding: 0;
+  font-family: var(--serif-font-family, var(--heading-font-family));
+  font-size: clamp(1.75rem, 2.6vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.08;
+  color: #fff;
+  text-transform: none;
+}
+
+.hero-collage-content h1::after,
+.hero-collage-content h2::after {
+  content: none;
+}
+
+@media (width <= 1024px) {
+  .hero-collage-inner {
+    aspect-ratio: auto;
+    height: 380px;
+  }
+
+  .hero-collage-panel {
+    width: 29.6%;
+    clip-path: polygon(33.8% 0, 100% 0, 66.2% 100%, 0 100%);
+  }
+
+  .hero-collage-panel.p1 {
+    width: 21.6%;
+    clip-path: polygon(0 0, 100% 0, 53.7% 100%, 0 100%);
+  }
+
+  .hero-collage-panel.p2 {
+    left: 12%;
+  }
+
+  .hero-collage-panel.p3 {
+    left: 32%;
+  }
+
+  .hero-collage-panel.p4 {
+    display: none;
+  }
+
+  .hero-collage-brand {
+    left: 52%;
+    width: 48%;
+    clip-path: polygon(20.8% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .hero-collage-content {
+    padding-left: 23%;
+  }
+}
+
+@media (width <= 767px) {
+  .hero-collage-inner {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-collage-panel {
+    display: none;
+  }
+
+  .hero-collage-brand {
+    position: relative;
+    left: 0;
+    width: 100%;
+    min-height: 340px;
+    clip-path: none;
+  }
+
+  .hero-collage-content {
+    padding: var(--spacing-09, 3rem) 24px var(--spacing-13, 5rem);
+  }
+}
