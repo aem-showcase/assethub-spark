@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Spark Assets Portal",
   "scripts": {
-    "postinstall": "cd cloudflare && npm install",
+    "postinstall": "cd cloudflare && env -u npm_config_allow_scripts -u NPM_CONFIG_ALLOW_SCRIPTS npm install",
     "install-all": "echo 'Deprecated: use npm install instead' && npm install",
     "clean": "rm -rf node_modules && cd cloudflare && rm -rf node_modules .wrangler",
     "start": "./run.sh",

@@ -93,6 +93,10 @@ npm install
 ```
 
 This automatically installs cloudflare worker dependencies via the `postinstall` script.
+The nested install clears npm's exported `allow-scripts` environment variable so
+npm 11 re-reads script permissions from its configuration files rather than
+rejecting the inherited value as a project-scoped CLI policy. It does not disable
+script policy or change your user-level npm configuration.
 
 ### Cleanup
 
