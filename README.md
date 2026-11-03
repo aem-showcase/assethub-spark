@@ -56,17 +56,45 @@ headline and pictures in place.
 
 ### DA-authored Dynamic Media images
 
-The native DA asset selector uses these settings in the site's `data` configuration
-sheet, with lowercase `key` and `value` column headers:
+The repo-hosted DA library plugin at `tools/asset-selector.html` reuses Adobe's
+Asset Selector UI. Authors select an asset from **Library > DM Assets (custom)**.
+The plugin inserts a complete DM link using the DA App SDK; it does not depend
+on the native picker's `aem.repositoryId` or `aem.assets.image.type` settings.
+DA stores and displays a link, not an inline image preview.
 
-| key | value |
-|-----|-------|
-| `aem.repositoryId` | `delivery-p203220-e2129061.adobeaemcloud.com` |
-| `aem.assets.image.type` | `link` |
+The plugin and website renderer share the delivery origin exported by
+`scripts/dm-images.js`. The selector browses the delivery repository using the
+author's in-memory DA SDK IMS token. No tokens or service-account credentials
+are written to the document, configuration, or browser storage. Keep
+`ADOBE_PROVIDED_CLIENT_ID=darkalley` in Cloud Manager for this DA-authenticated
+integration; removing the native picker settings does not remove that requirement.
 
-Authors select an image from **Library > AEM Assets**. DA stores and displays a link;
-image display inside the DA editor is not enabled. Save the DA configuration and
-reload the editor after changing it. The configuration itself does not need publishing.
+Register the plugin in the site's DA configuration **`library`** tab:
+
+| title | path | ref | experience |
+|-------|------|-----|------------|
+| DM Assets (custom) | `/tools/asset-selector.html` | `asset-selector` | `dialog` |
+
+This development-only entry is visible for the `asset-selector` editor ref or
+`ref=local`, not the default editor. For local development, run the EDS server
+on port 3000 and open:
+
+`https://da.live/edit?ref=local#/aem-showcase/assethub-spark/en/drafts/tphan/index`
+
+Open **Library > DM Assets (custom)**, select one asset, and click **Select**.
+The library closes after sending the reference to the document. Initialization,
+authentication, and invalid-selection errors are shown in the plugin with a
+reload action; insertion is handled and saved by DA.
+
+After deploying the plugin to `main`, change the library row's `ref` to `main`
+or leave it empty to enable it for normal authors. Save DA configuration and
+reload the editor after changing it; the configuration itself does not need
+previewing or publishing. Do not register an unpushed branch as a production tool.
+
+Images use the web rendition (`.avif`), videos use the player (`/play`), and
+other asset types use their original delivery URL. This matches the native
+picker's default link-insertion behavior; only image references are rendered
+as images by the website.
 
 On the website, `scripts/dm-images.js` converts DM image links in single-link
 paragraphs and block cells into
@@ -82,8 +110,9 @@ preserved. URL-shaped titles and labels are not used as image alt text.
 Only image references from the configured Spark delivery environment are converted.
 PDFs, videos, non-image navigation links, other delivery environments, and existing
 Media Bus images are left unchanged. If the backing DM environment changes, update
-the delivery origin in `scripts/dm-images.js` along with the DA repository setting
-and `cloudflare/src/config.js`. Add meaningful link title/text to supply image alt
+the delivery origin in `scripts/dm-images.js` and `cloudflare/src/config.js`.
+The custom selector derives its repository from that origin.
+Add meaningful link title/text to supply image alt
 text; a bare URL produces empty alt text.
 
 Run the site through the Cloudflare portal, not directly on the protected

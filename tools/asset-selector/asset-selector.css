@@ -1,0 +1,32 @@
+html,
+body,
+main,
+#asset-selector {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #fff;
+  color: #242424;
+  font-family: system-ui, sans-serif;
+}
+
+#status {
+  margin: 0;
+  padding: 16px;
+}
+
+#status[role='alert'] {
+  color: #a33532;
+}
+
+#retry {
+  margin: 0 16px 16px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
