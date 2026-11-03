@@ -11,7 +11,7 @@ import { loadCSS } from '../../scripts/aem.js';
  * @param {Element} block
  */
 export default async function decorate(block) {
-  await loadCSS(new URL('./hero-collage.css?v=20261102-preview-error', import.meta.url).href);
+  await loadCSS(new URL('./hero-collage.css?v=20261102-error-colors', import.meta.url).href);
 
   const rows = [...block.children];
   const contentRow = rows.length > 1 ? rows[rows.length - 1] : null;

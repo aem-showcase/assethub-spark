@@ -60,12 +60,12 @@ main > .section > .hero-collage-wrapper {
 }
 
 main .hero-collage .hero-collage-panel.is-empty {
-  background: var(--color-neutral-00, #fff);
+  background: #ffccc7;
 }
 
 main .hero-collage .hero-collage-panel picture.missing {
   visibility: visible;
-  background: var(--color-neutral-00, #fff);
+  background: #ffccc7;
 }
 
 .hero-collage-panel.is-empty::before,
