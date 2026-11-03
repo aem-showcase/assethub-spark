@@ -8,6 +8,15 @@ main > .section > .hero-collage-wrapper {
 }
 
 .hero-collage-inner {
+  --panel-count: 1;
+  --brand-start: 58.11;
+  --brand-width: calc(100 - var(--brand-start));
+  --max-slant: 7.96;
+  --slant: min(var(--max-slant), calc(var(--brand-start) / (2 * var(--panel-count) - 1)));
+  --panel-step: calc((var(--brand-start) + var(--slant)) / var(--panel-count));
+  --panel-gap: min(0.29, calc(var(--panel-step) / 10));
+  --panel-width: calc(var(--panel-step) + var(--slant) - var(--panel-gap));
+
   position: relative;
   aspect-ratio: 2048 / 538;
   min-height: 360px;
@@ -17,38 +26,31 @@ main > .section > .hero-collage-wrapper {
   background: var(--color-neutral-00, #fff);
 }
 
-/* Geometry follows the reference banner (2048 x 538): each parallelogram is
-   24.12% wide with a 33% slant, panels step 16.455% apart (0.29% white gap),
-   and the green brand panel starts where panel 4 ends. */
+/* Share the image band across all panels; cap the slant so narrow panels stay visible. */
 .hero-collage-panel {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 24.12%;
+  left: calc((var(--panel-index) * var(--panel-step) - var(--slant)) * 1%);
+  width: calc(var(--panel-width) * 1%);
   overflow: hidden;
-  clip-path: polygon(33% 0, 100% 0, 67% 100%, 0 100%);
+  clip-path: polygon(
+    calc(var(--slant) / var(--panel-width) * 100%) 0,
+    100% 0,
+    calc(100% - var(--slant) / var(--panel-width) * 100%) 100%,
+    0 100%
+  );
 }
 
 .hero-collage-panel.p1 {
   left: 0;
-  width: 16.41%;
-  clip-path: polygon(0 0, 100% 0, 51.5% 100%, 0 100%);
-}
-
-.hero-collage-panel.p2 {
-  left: 8.745%;
-}
-
-.hero-collage-panel.p3 {
-  left: 25.2%;
-}
-
-.hero-collage-panel.p4 {
-  left: 41.655%;
-}
-
-.hero-collage-panel.p1 img {
-  object-position: left center;
+  width: calc((var(--panel-step) - var(--panel-gap)) * 1%);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    calc(100% - var(--slant) / (var(--panel-step) - var(--panel-gap)) * 100%) 100%,
+    0 100%
+  );
 }
 
 .hero-collage-panel picture,
@@ -57,6 +59,15 @@ main > .section > .hero-collage-wrapper {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hero-collage-panel.p1 img {
+  object-position: left center;
+}
+
+.hero-collage-inner.is-text-only {
+  --brand-start: 0;
+  --max-slant: 0;
 }
 
 main .hero-collage .hero-collage-panel.is-empty {
@@ -84,12 +95,17 @@ main .hero-collage .hero-collage-panel picture.missing {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 58.11%;
-  width: 41.89%;
+  left: calc(var(--brand-start) * 1%);
+  width: calc(var(--brand-width) * 1%);
   display: flex;
   align-items: center;
   overflow: hidden;
-  clip-path: polygon(19% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(
+    calc(var(--slant) / var(--brand-width) * 100%) 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
   background: var(--color-background-brand, #008035);
   color: #fff;
 }
@@ -146,40 +162,21 @@ main .hero-collage .hero-collage-panel picture.missing {
 
 @media (width <= 1024px) {
   .hero-collage-inner {
+    --brand-start: 52;
+    --max-slant: 9.984;
+
     aspect-ratio: auto;
     height: 380px;
   }
 
-  .hero-collage-panel {
-    width: 29.6%;
-    clip-path: polygon(33.8% 0, 100% 0, 66.2% 100%, 0 100%);
-  }
-
-  .hero-collage-panel.p1 {
-    width: 21.6%;
-    clip-path: polygon(0 0, 100% 0, 53.7% 100%, 0 100%);
-  }
-
-  .hero-collage-panel.p2 {
-    left: 12%;
-  }
-
-  .hero-collage-panel.p3 {
-    left: 32%;
-  }
-
-  .hero-collage-panel.p4 {
-    display: none;
-  }
-
-  .hero-collage-brand {
-    left: 52%;
-    width: 48%;
-    clip-path: polygon(20.8% 0, 100% 0, 100% 100%, 0 100%);
-  }
-
   .hero-collage-content {
     padding-left: 23%;
+  }
+}
+
+@media (width >= 768px) {
+  .hero-collage-inner.is-text-only .hero-collage-content {
+    padding-inline: 32px;
   }
 }
 

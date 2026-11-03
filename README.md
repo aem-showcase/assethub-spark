@@ -44,13 +44,15 @@ The asset search functionality is implemented as a vanilla JS EDS block in `bloc
 ### Hero Collage Block
 
 `blocks/hero-collage/` is copied from the Heineken portal's `heineken-landing`
-branch. Author a **Hero Collage** table with up to four image cells in the first
+branch. Author a **Hero Collage** table with one cell per image in the first
 row, followed by a row containing the headline and optional eyebrow/supporting
 copy. Empty image cells and unavailable DM images display "Preview not found"
 with the portal's standard pink error background and red text instead of a star;
 panel dimensions and positions are retained.
-The collage uses four image panels on desktop, three on tablet, and the brand
-headline panel only on mobile. Spark supplies fallback theme values without
+There is no four-image limit: all authored image cells share one diagonal row
+on desktop and tablet, with narrower panels as more images are added. The brand
+headline area retains its desktop/tablet width, and a headline-only block fills
+the banner. Mobile keeps the headline-only layout. Spark supplies fallback theme values without
 changing global styling, and its default hero auto-blocking leaves the collage's
 headline and pictures in place.
 

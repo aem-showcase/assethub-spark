@@ -5,13 +5,13 @@ import { loadCSS } from '../../scripts/aem.js';
  * brand panel carrying the page headline.
  *
  * Authoring:
- *   row 1: one cell per image panel (up to 4); empty cells show an error message
+ *   row 1: one cell per image panel; empty cells show an error message
  *   row 2: headline content (optional eyebrow paragraph before the h1,
  *          supporting copy after it)
  * @param {Element} block
  */
 export default async function decorate(block) {
-  await loadCSS(new URL('./hero-collage.css?v=20261102-error-colors', import.meta.url).href);
+  await loadCSS(new URL('./hero-collage.css?v=20261103-flexible-panels', import.meta.url).href);
 
   const rows = [...block.children];
   const contentRow = rows.length > 1 ? rows[rows.length - 1] : null;
@@ -19,10 +19,13 @@ export default async function decorate(block) {
 
   const collage = document.createElement('div');
   collage.className = 'hero-collage-inner';
+  collage.style.setProperty('--panel-count', Math.max(1, imageCells.length).toString());
+  if (!imageCells.length) collage.classList.add('is-text-only');
 
-  imageCells.slice(0, 4).forEach((cell, i) => {
+  imageCells.forEach((cell, i) => {
     const panel = document.createElement('div');
     panel.className = `hero-collage-panel p${i + 1}`;
+    panel.style.setProperty('--panel-index', i.toString());
     const picture = cell.querySelector('picture');
     if (picture) {
       const img = picture.querySelector('img');
