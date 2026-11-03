@@ -5,13 +5,13 @@ import { loadCSS } from '../../scripts/aem.js';
  * brand panel carrying the page headline.
  *
  * Authoring:
- *   row 1: one cell per image panel (up to 4); empty cells reserve a blank panel
+ *   row 1: one cell per image panel (up to 4); empty cells show an error message
  *   row 2: headline content (optional eyebrow paragraph before the h1,
  *          supporting copy after it)
  * @param {Element} block
  */
 export default async function decorate(block) {
-  await loadCSS(new URL('./hero-collage.css?v=20261102-blank-panels', import.meta.url).href);
+  await loadCSS(new URL('./hero-collage.css?v=20261102-preview-error', import.meta.url).href);
 
   const rows = [...block.children];
   const contentRow = rows.length > 1 ? rows[rows.length - 1] : null;
