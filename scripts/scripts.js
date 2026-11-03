@@ -17,7 +17,7 @@ import {
 import { localizePath, getLocaleRedirectUrl, getLocalePrefixFromPath } from './locale-utils.js';
 // Keep the entry module canonical for blocks importing it; version only this new dependency.
 // eslint-disable-next-line import/no-unresolved, import/extensions
-import decorateDmImages from './dm-images.js?v=20261102-dm-images';
+import decorateDmImages from './dm-images.js?v=20261102-href-images';
 import { whenActivated } from './speculation.js';
 import './page-transitions.js';
 

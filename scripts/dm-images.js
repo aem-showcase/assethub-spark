@@ -2,7 +2,7 @@ const DELIVERY_ORIGIN = 'https://delivery-p203220-e2129061.adobeaemcloud.com';
 const IMAGE_PATH = /^\/adobe\/assets\/urn:aaid:aem:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:original\/)?as\/[^/]+\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 /**
- * Render standalone DM image references through the portal's authenticated proxy.
+ * Render DM image references through the portal's authenticated proxy.
  * Other links, including references to other repositories, remain links.
  * @param {Element} main Content to decorate before blocks are built.
  */
@@ -18,15 +18,13 @@ export default function decorateDmImages(main) {
       || (link.parentElement.tagName === 'DIV' ? link.parentElement : null);
     if (!container
       || container.querySelectorAll('a').length !== 1
-      || container.querySelector('img')
-      || container.textContent.trim() !== link.textContent.trim()) return;
+      || container.querySelector('img')) return;
 
     const picture = document.createElement('picture');
     const image = document.createElement('img');
     const title = link.getAttribute('title')?.trim();
     const text = link.textContent.trim();
-    image.alt = title && title !== link.href ? title : '';
-    if (!image.alt && text !== link.href) image.alt = text;
+    image.alt = [title, text].find((value) => value && !/^https?:\/\//i.test(value)) || '';
     image.loading = 'lazy';
     image.decoding = 'async';
     image.addEventListener('error', () => {
