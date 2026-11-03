@@ -73,7 +73,9 @@ Register the plugin in the site's DA configuration **`library`** tab:
 
 | title | path | ref | experience |
 |-------|------|-----|------------|
-| DM Assets (custom) | `/tools/asset-selector.html` | `asset-selector` | `dialog` |
+| DM Assets (custom) | `/tools/asset-selector.html?v=20261102-fullsize` | `asset-selector` | `fullsize-dialog` |
+
+`fullsize-dialog` uses DA's viewport-sized popup instead of its 600px dialog.
 
 This development-only entry is visible for the `asset-selector` editor ref or
 `ref=local`, not the default editor. For local development, run the EDS server
