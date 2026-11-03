@@ -1,0 +1,205 @@
+main > .section.hero-collage-container {
+  padding: 0;
+}
+
+main > .section > .hero-collage-wrapper {
+  max-width: none;
+  padding: 0;
+}
+
+.hero-collage-inner {
+  --panel-count: 1;
+  --brand-start: 58.11;
+  --brand-width: calc(100 - var(--brand-start));
+  --max-slant: 7.96;
+  --slant: min(var(--max-slant), calc(var(--brand-start) / (2 * var(--panel-count) - 1)));
+  --panel-step: calc((var(--brand-start) + var(--slant)) / var(--panel-count));
+  --panel-gap: min(0.29, calc(var(--panel-step) / 10));
+  --panel-width: calc(var(--panel-step) + var(--slant) - var(--panel-gap));
+
+  position: relative;
+  aspect-ratio: 2048 / 538;
+  min-height: 360px;
+  max-height: 620px;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-neutral-00, #fff);
+}
+
+/* Share the image band across all panels; cap the slant so narrow panels stay visible. */
+.hero-collage-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc((var(--panel-index) * var(--panel-step) - var(--slant)) * 1%);
+  width: calc(var(--panel-width) * 1%);
+  overflow: hidden;
+  clip-path: polygon(
+    calc(var(--slant) / var(--panel-width) * 100%) 0,
+    100% 0,
+    calc(100% - var(--slant) / var(--panel-width) * 100%) 100%,
+    0 100%
+  );
+}
+
+.hero-collage-panel.p1 {
+  left: 0;
+  width: calc((var(--panel-step) - var(--panel-gap)) * 1%);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    calc(100% - var(--slant) / (var(--panel-step) - var(--panel-gap)) * 100%) 100%,
+    0 100%
+  );
+}
+
+.hero-collage-panel picture,
+.hero-collage-panel img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-collage-panel.p1 img {
+  object-position: left center;
+}
+
+.hero-collage-inner.is-text-only {
+  --brand-start: 0;
+  --max-slant: 0;
+}
+
+main .hero-collage .hero-collage-panel.is-empty {
+  background: #ffccc7;
+}
+
+main .hero-collage .hero-collage-panel picture.missing {
+  visibility: visible;
+  background: #ffccc7;
+}
+
+.hero-collage-panel.is-empty::before,
+.hero-collage-panel picture.missing::before {
+  content: 'Preview not found';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-red);
+  font-family: var(--body-font-family);
+  text-align: center;
+}
+
+.hero-collage-brand {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--brand-start) * 1%);
+  width: calc(var(--brand-width) * 1%);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  clip-path: polygon(
+    calc(var(--slant) / var(--brand-width) * 100%) 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
+  background: var(--color-background-brand, #008035);
+  color: #fff;
+}
+
+.hero-collage-brand::after {
+  content: '';
+  position: absolute;
+  right: -80px;
+  bottom: -120px;
+  width: 360px;
+  height: 360px;
+  border: 28px solid rgb(255 255 255 / 7%);
+  border-radius: 50%;
+}
+
+.hero-collage-content {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  padding: 0 32px 0 21%;
+}
+
+.hero-collage-content p {
+  margin: 0;
+  font-size: var(--font-size-04);
+  color: rgb(255 255 255 / 85%);
+}
+
+.hero-collage-content .hero-collage-eyebrow {
+  font-family: var(--heading-font-family);
+  font-size: var(--font-size-02);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-green-05, #f0f8f0);
+}
+
+.hero-collage-content h1,
+.hero-collage-content h2 {
+  margin: var(--spacing-03, 0.75rem) 0 var(--spacing-04, 1rem);
+  padding: 0;
+  font-family: var(--serif-font-family, var(--heading-font-family));
+  font-size: clamp(1.75rem, 2.6vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.08;
+  color: #fff;
+  text-transform: none;
+}
+
+.hero-collage-content h1::after,
+.hero-collage-content h2::after {
+  content: none;
+}
+
+@media (width <= 1024px) {
+  .hero-collage-inner {
+    --brand-start: 52;
+    --max-slant: 9.984;
+
+    aspect-ratio: auto;
+    height: 380px;
+  }
+
+  .hero-collage-content {
+    padding-left: 23%;
+  }
+}
+
+@media (width >= 768px) {
+  .hero-collage-inner.is-text-only .hero-collage-content {
+    padding-inline: 32px;
+  }
+}
+
+@media (width <= 767px) {
+  .hero-collage-inner {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-collage-panel {
+    display: none;
+  }
+
+  .hero-collage-brand {
+    position: relative;
+    left: 0;
+    width: 100%;
+    min-height: 340px;
+    clip-path: none;
+  }
+
+  .hero-collage-content {
+    padding: var(--spacing-09, 3rem) 24px var(--spacing-13, 5rem);
+  }
+}

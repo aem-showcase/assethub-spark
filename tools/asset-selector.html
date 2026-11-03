@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DM Asset Selector</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./asset-selector/asset-selector.css?v=20261102-selector-label">
+    <script src="https://da.live/nx/utils/sdk.js" type="module"></script>
+    <script src="./asset-selector/asset-selector.js?v=20261102-selector-label" type="module"></script>
+  </head>
+  <body>
+    <main>
+      <p id="status" role="status">Connecting to DA...</p>
+      <button id="retry" type="button" hidden>Reload selector</button>
+      <div id="asset-selector" hidden></div>
+    </main>
+  </body>
+</html>

@@ -204,32 +204,27 @@ function checkAssetMetadataAuthorization(authClauses, assetMetadata) {
 /**
  * Enforce asset metadata authorization and return 403 if violated.
  * Parses the response body, checks against auth clauses, and returns
- * either a 403 Forbidden response or the original response.
+ * a 403 Forbidden response, a 502 when metadata cannot be verified, or the original response.
  *
  * @param {Object[]} authClauses - Authorization clauses from buildAssetAuthClauses
  * @param {Response} response - Response from Adobe API with asset metadata
  * @param {string} [userEmail] - User email for logging (optional)
- * @returns {Promise<Response>} Either 403 Forbidden or the original response
+ * @returns {Promise<Response>} Authorized metadata or an explicit authorization/verification error
  */
 async function enforceAssetMetadataAuthorization(authClauses, response, userEmail) {
-  // Empty array means admin - no check needed
-  if (authClauses.length === 0) {
-    return response;
-  }
-
   // Parse response to get asset metadata
   let responseData;
   try {
     responseData = await response.clone().json();
-  } catch {
-    // If we can't parse JSON, pass through
-    return response;
+  } catch (error) {
+    console.error(`[${userEmail}] Unable to parse asset metadata for authorization`, error);
+    return new Response('Unable to verify asset permissions', { status: 502 });
   }
 
   const assetMetadata = responseData?.assetMetadata;
-  if (!assetMetadata) {
-    // No asset metadata to check, pass through
-    return response;
+  if (!assetMetadata || typeof assetMetadata !== 'object' || Array.isArray(assetMetadata)) {
+    console.error(`[${userEmail}] Invalid or missing assetMetadata in authorization response`);
+    return new Response('Unable to verify asset permissions', { status: 502 });
   }
 
   // Check if asset metadata violates auth clauses

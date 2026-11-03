@@ -22,6 +22,7 @@
 
 import { decodeJwt } from 'jose';
 import config from '../config.js';
+import { ASSET_ID_PREFIX, isBareUuid } from '../../../scripts/asset-id-utils.js';
 import {
   CollectionCreatedByMeVisibility,
   CollectionKind,
@@ -860,6 +861,75 @@ function stampCollectionCompany(parsedBody) {
   return b;
 }
 
+function parseAssetPath(pathname) {
+  const match = decodeURIComponent(pathname).match(/^\/adobe\/assets\/([^/]+)(\/.*)?$/i);
+  if (!match) return {};
+
+  const pathId = match[1].trim().toLowerCase();
+  const uuid = pathId.startsWith(ASSET_ID_PREFIX) ? pathId.slice(ASSET_ID_PREFIX.length) : pathId;
+  if (isBareUuid(uuid)) {
+    return {
+      assetId: `${ASSET_ID_PREFIX}${uuid}`,
+      isMetadata: /^\/metadata\/?$/i.test(match[2] || ''),
+    };
+  }
+  if (pathId.startsWith('urn:') || pathId.includes('%')) {
+    throw new URIError('Invalid asset ID');
+  }
+  return {};
+}
+
+function privateAssetResponse(response) {
+  const result = new Response(response.body, response);
+  result.headers.set('Cache-Control', 'private, no-store');
+  result.headers.set('CDN-Cache-Control', 'no-store');
+  result.headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
+  return result;
+}
+
+async function fetchAuthorizedAssetMetadata(request, env, url, headers, assetId) {
+  if (!request.user) {
+    console.warn(`Asset access denied for ${assetId}: no authenticated user`);
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  const authClauses = await buildAssetAuthClauses(request, env);
+  const metadataUrl = new URL(`/adobe/assets/${assetId}/metadata`, url.origin);
+  // Do not forward rendition modifiers, Range, or conditional browser headers.
+  const metadataHeaders = new Headers({
+    [HEADER_AUTHORIZATION]: headers.get(HEADER_AUTHORIZATION),
+    [HEADER_API_KEY]: headers.get(HEADER_API_KEY),
+    Accept: 'application/json',
+  });
+
+  let metadataResponse;
+  try {
+    metadataResponse = await fetch(metadataUrl, {
+      headers: metadataHeaders,
+      cache: 'no-store',
+      redirect: 'manual',
+    });
+  } catch (error) {
+    console.error(`[${request.user.email}] Asset metadata lookup failed for ${assetId}`, error);
+    return new Response('Unable to verify asset permissions', { status: 502 });
+  }
+
+  if (!metadataResponse.ok) {
+    console.warn(`[${request.user.email}] Asset metadata lookup failed for ${assetId}: ${metadataResponse.status}`);
+    const status = [403, 404].includes(metadataResponse.status) ? metadataResponse.status : 502;
+    await metadataResponse.body?.cancel();
+    return new Response(status === 403 ? 'Forbidden' : status === 404 ? 'Not Found' : 'Unable to verify asset permissions', {
+      status,
+    });
+  }
+
+  const authorizedResponse = await enforceAssetMetadataAuthorization(authClauses, metadataResponse, request.user.email);
+  if (authorizedResponse !== metadataResponse) {
+    await metadataResponse.body?.cancel();
+  }
+  return authorizedResponse;
+}
+
 /**
  * Main handler for Adobe Dynamic Media origin requests
  *
@@ -868,7 +938,8 @@ function stampCollectionCompany(parsedBody) {
  * 2. Authenticates requests with cached IMS tokens
  * 3. Applies role-based authorization filters for searches
  * 4. Enforces collection-level ACL for CRUD operations
- * 5. Tracks download and search analytics (fire-and-forget)
+ * 5. Authorizes individual asset requests against metadata before delivery
+ * 6. Tracks download and search analytics (fire-and-forget)
  *
  * URL transformation:
  * - Incoming: <host>/api/adobe/assets/...
@@ -907,6 +978,16 @@ export async function originDynamicMedia(request, env, ctx) {
   // remove /api from path
   url.pathname = url.pathname.replace(PATH_API_PREFIX, '');
 
+  let assetPath;
+  try {
+    assetPath = parseAssetPath(url.pathname);
+  } catch (error) {
+    if (!(error instanceof URIError)) throw error;
+    console.warn('Invalid asset request path', error);
+    return privateAssetResponse(new Response('Invalid asset path', { status: 400 }));
+  }
+  const { assetId, isMetadata } = assetPath;
+
   const headers = new Headers(request.headers);
   // Convert body to string immediately so we can log it later
   let body = request.body ? await request.text() : null;
@@ -915,7 +996,8 @@ export async function originDynamicMedia(request, env, ctx) {
   const imsToken = await getIMSToken(request, env);
 
   if (!imsToken) {
-    return new Response('Unauthorized', { status: 401 });
+    const unauthorized = new Response('Unauthorized', { status: 401 });
+    return assetId ? privateAssetResponse(unauthorized) : unauthorized;
   }
 
   const dmClientId = await env.DM_CLIENT_ID.get();
@@ -1063,28 +1145,28 @@ export async function originDynamicMedia(request, env, ctx) {
   // Let fetch() (via undici) compute the correct Content-Length from the actual body.
   headers.delete('content-length');
 
+  if (assetId) {
+    const metadataResponse = await fetchAuthorizedAssetMetadata(request, env, url, headers, assetId);
+    if (!metadataResponse.ok
+      || (request.method === 'GET' && isMetadata && !url.search)) {
+      return privateAssetResponse(metadataResponse);
+    }
+    await metadataResponse.body?.cancel();
+  }
+
   const response = await fetch(url, {
     method: request.method,
     headers: headers,
     body: body,
+    ...(assetId ? { cache: 'no-store' } : {}),
   });
-
-  // ACCESS CHECK for asset metadata requests
-  // Pattern: GET /adobe/assets/urn:aaid:aem:{uuid}/metadata
-  const assetMetadataMatch = url.pathname.match(/^\/adobe\/assets\/.*\/metadata$/i);
-  if (request.method === 'GET' && assetMetadataMatch && response.ok) {
-    if (!request.user) {
-      return new Response('Forbidden', { status: 403 });
-    }
-    const authClauses = await buildAssetAuthClauses(request, env);
-    const authResponse = await enforceAssetMetadataAuthorization(authClauses, response, request.user.email);
-    if (authResponse.status === 403) {
-      return authResponse;
-    }
-  }
 
   handleDownloadAnalytics(url, request, response, env, ctx);
   handleSearchAnalytics(url, request, response, env, ctx);
+
+  if (assetId) {
+    return privateAssetResponse(response);
+  }
 
   // Paths that must never be served from Cloudflare's edge cache.
   // These are mutable or short-lived endpoints where a stale cached response

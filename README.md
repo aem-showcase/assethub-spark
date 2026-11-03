@@ -41,6 +41,96 @@ Before using the aem-boilerplate, we recommand you to go through the documentati
 
 The asset search functionality is implemented as a vanilla JS EDS block in `blocks/search-results/`.
 
+### Hero Collage Block
+
+`blocks/hero-collage/` is copied from the Heineken portal's `heineken-landing`
+branch. Author a **Hero Collage** table with one cell per image in the first
+row, followed by a row containing the headline and optional eyebrow/supporting
+copy. Empty image cells and unavailable DM images display "Preview not found"
+with the portal's standard pink error background and red text instead of a star;
+panel dimensions and positions are retained.
+There is no four-image limit: all authored image cells share one diagonal row
+on desktop and tablet, with narrower panels as more images are added. The brand
+headline area retains its desktop/tablet width, and a headline-only block fills
+the banner. Mobile keeps the headline-only layout. Spark supplies fallback theme values without
+changing global styling, and its default hero auto-blocking leaves the collage's
+headline and pictures in place.
+
+### DA-authored Dynamic Media images
+
+The repo-hosted DA library plugin at `tools/asset-selector.html` reuses Adobe's
+Asset Selector UI. Authors select an asset from **Library > DM Asset Selector**.
+The plugin inserts a complete DM link using the DA App SDK; it does not depend
+on the native picker's `aem.repositoryId` or `aem.assets.image.type` settings.
+DA stores and displays a link, not an inline image preview.
+
+The plugin and website renderer share the delivery origin exported by
+`scripts/dm-images.js`. The selector browses the delivery repository using the
+author's in-memory DA SDK IMS token. No tokens or service-account credentials
+are written to the document, configuration, or browser storage. Keep
+`ADOBE_PROVIDED_CLIENT_ID=darkalley` in Cloud Manager for this DA-authenticated
+integration; removing the native picker settings does not remove that requirement.
+
+Register the plugin in the site's DA configuration **`library`** tab:
+
+| title | path | ref | experience |
+|-------|------|-----|------------|
+| DM Asset Selector | `/tools/asset-selector.html?v=20261102-selector-label` | `asset-selector` | `fullsize-dialog` |
+
+`fullsize-dialog` uses DA's viewport-sized popup instead of its 600px dialog.
+
+This development-only entry is visible for the `asset-selector` editor ref or
+`ref=local`, not the default editor. For local development, run the EDS server
+on port 3000 and open:
+
+`https://da.live/edit?ref=local#/aem-showcase/assethub-spark/en/drafts/tphan/index`
+
+Open **Library > DM Asset Selector**, select one asset, and click **Select**.
+The library closes after sending the reference to the document. Initialization,
+authentication, and invalid-selection errors are shown in the plugin with a
+reload action; insertion is handled and saved by DA.
+
+After deploying the plugin to `main`, change the library row's `ref` to `main`
+or leave it empty to enable it for normal authors. Save DA configuration and
+reload the editor after changing it; the configuration itself does not need
+previewing or publishing. Do not register an unpushed branch as a production tool.
+
+Images use the web rendition (`.avif`), videos use the player (`/play`), and
+other asset types use their original delivery URL. This matches the native
+picker's default link-insertion behavior; only image references are rendered
+as images by the website.
+
+On the website, `scripts/dm-images.js` converts DM image links in single-link
+paragraphs and block cells into
+`picture` elements before section and block decoration. This works in default content,
+carousels, cards, and fragments. The browser requests `/api/adobe/assets/...` on the
+current portal origin, so preview, live, and branch sites use their own Cloudflare
+session and the existing server-side DM authentication. Image modifiers in the
+reference's query string are preserved; no credentials are stored in the document.
+Image detection and delivery use the link's URL (`href`), not its display text.
+Different or truncated labels do not prevent rendering, and adjacent text is
+preserved. URL-shaped titles and labels are not used as image alt text.
+
+Only image references from the configured Spark delivery environment are converted.
+PDFs, videos, non-image navigation links, other delivery environments, and existing
+Media Bus images are left unchanged. If the backing DM environment changes, update
+the delivery origin in `scripts/dm-images.js` and `cloudflare/src/config.js`.
+The custom selector derives its repository from that origin.
+Add meaningful link title/text to supply image alt
+text; a bare URL produces empty alt text.
+
+Run the site through the Cloudflare portal, not directly on the protected
+`aem.page`/`aem.live` origin: those EDS origins do not provide the `/api` proxy.
+Before fetching image bytes, the proxy retrieves the asset's metadata and applies
+the same viewer permission clauses and evaluator used by Asset Details, including
+company scope, country access, internal status, and admin/simulated-user handling.
+Denied or unverifiable metadata prevents delivery. Individual asset responses are
+private and non-cacheable so they cannot be reused across viewers.
+This does not change asset approval targets or grant viewers additional permissions.
+Re-preview the document
+after authoring and publish it when ready. With link insertion, no
+`html2md.externalImageUrlPrefixes` feature is required.
+
 ### Cloudflare Worker
 
 A Cloudflare Worker is located in the [cloudflare](cloudflare) folder. This worker handles the site and sits in front of AEM Helix and Dynamic Media.
@@ -58,6 +148,10 @@ npm install
 ```
 
 This automatically installs cloudflare worker dependencies via the `postinstall` script.
+The nested install clears npm's exported `allow-scripts` environment variable so
+npm 11 re-reads script permissions from its configuration files rather than
+rejecting the inherited value as a project-scoped CLI policy. It does not disable
+script policy or change your user-level npm configuration.
 
 ### Cleanup
 
@@ -194,4 +288,3 @@ npm run sonar:branch
 [Github actions](.github/workflows/) build & lint the project, and automatically [deploy the cloudflare worker](cloudflare/README.md#deploying). They also automatically rotate secrets (running on a cron schedule).
 
 Github actions must be configured with these [secrets](cloudflare/README.md#ci-secrets) and [variables](cloudflare/README.md#ci-variables).
-

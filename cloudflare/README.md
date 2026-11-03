@@ -41,6 +41,28 @@ Smart Collection thumbnails use the first asset matching the saved query and the
 asset access rules. Empty collections keep the placeholder. Previews refresh on collection
 fetches rather than using a session-cached Smart Collection thumbnail.
 
+### Individual asset delivery permissions
+
+Requests under `/api/adobe/assets/{assetId}` are checked against fresh server-side
+metadata before fetching the requested resource. This covers web images, originals,
+renditions, and download-token requests, including HEAD, conditional, and range requests.
+Asset IDs may be URNs or UUIDs, including URL-encoded IDs.
+
+The check reuses Asset Details' metadata clauses and evaluator: company scope still
+applies to admins, while non-admin country/internal-status rules and simulated identities
+behave as before. Existing optional-field matching behavior is unchanged.
+Denied metadata returns 403; missing assets return 404; failed or malformed metadata
+lookups return 502 rather than delivering the resource. Plain GET metadata requests reuse
+the authorized metadata response instead of fetching it twice.
+
+Metadata lookups do not inherit rendition query parameters or browser range/conditional
+headers. Individual asset fetches bypass the worker's subrequest cache, and responses set
+private/no-store browser and CDN cache directives. Asset approval targets are unchanged;
+these checks protect the portal proxy, not direct public Dynamic Media URLs.
+The COA image proxy also delegates URLs on the configured DM delivery host to this
+handler, so it cannot bypass these checks for the same assets. Other trusted COA
+output hosts keep their existing behavior.
+
 ## Setup
 
 - Node.js and npm installed
