@@ -73,7 +73,7 @@ async function connectToDa() {
       DA_SDK,
       new Promise((resolve, reject) => {
         timeout = window.setTimeout(() => {
-          reject(new Error('DA did not connect. Open DM Assets from the document Library.'));
+          reject(new Error('DA did not connect. Open DM Asset Selector from the document Library.'));
         }, 15000);
       }),
     ]);
@@ -90,7 +90,7 @@ async function init() {
 
     const { token, actions } = await connectToDa();
     if (typeof token !== 'string' || !token.trim()) {
-      throw new Error('DA did not provide an Adobe access token. Sign into DA and reopen DM Assets.');
+      throw new Error('DA did not provide an Adobe access token. Sign into DA and reopen DM Asset Selector.');
     }
     if (typeof actions?.sendHTML !== 'function' || typeof actions?.closeLibrary !== 'function') {
       throw new Error('This DA host does not support document insertion.');

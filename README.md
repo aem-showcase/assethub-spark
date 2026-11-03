@@ -57,7 +57,7 @@ headline and pictures in place.
 ### DA-authored Dynamic Media images
 
 The repo-hosted DA library plugin at `tools/asset-selector.html` reuses Adobe's
-Asset Selector UI. Authors select an asset from **Library > DM Assets (custom)**.
+Asset Selector UI. Authors select an asset from **Library > DM Asset Selector**.
 The plugin inserts a complete DM link using the DA App SDK; it does not depend
 on the native picker's `aem.repositoryId` or `aem.assets.image.type` settings.
 DA stores and displays a link, not an inline image preview.
@@ -73,7 +73,7 @@ Register the plugin in the site's DA configuration **`library`** tab:
 
 | title | path | ref | experience |
 |-------|------|-----|------------|
-| DM Assets (custom) | `/tools/asset-selector.html?v=20261102-fullsize` | `asset-selector` | `fullsize-dialog` |
+| DM Asset Selector | `/tools/asset-selector.html?v=20261102-selector-label` | `asset-selector` | `fullsize-dialog` |
 
 `fullsize-dialog` uses DA's viewport-sized popup instead of its 600px dialog.
 
@@ -83,7 +83,7 @@ on port 3000 and open:
 
 `https://da.live/edit?ref=local#/aem-showcase/assethub-spark/en/drafts/tphan/index`
 
-Open **Library > DM Assets (custom)**, select one asset, and click **Select**.
+Open **Library > DM Asset Selector**, select one asset, and click **Select**.
 The library closes after sending the reference to the document. Initialization,
 authentication, and invalid-selection errors are shown in the plugin with a
 reload action; insertion is handled and saved by DA.
