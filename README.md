@@ -46,7 +46,8 @@ The asset search functionality is implemented as a vanilla JS EDS block in `bloc
 `blocks/hero-collage/` is copied from the Heineken portal's `heineken-landing`
 branch. Author a **Hero Collage** table with up to four image cells in the first
 row, followed by a row containing the headline and optional eyebrow/supporting
-copy. Empty image cells display the included Heineken star placeholders.
+copy. Empty image cells and unavailable DM images remain blank, without a star
+or error placeholder; panel dimensions and positions are retained.
 The collage uses four image panels on desktop, three on tablet, and the brand
 headline panel only on mobile. Spark supplies fallback theme values without
 changing global styling, and its default hero auto-blocking leaves the collage's

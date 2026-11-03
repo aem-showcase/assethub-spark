@@ -1,15 +1,18 @@
+import { loadCSS } from '../../scripts/aem.js';
+
 /**
  * Hero collage: diagonal (parallelogram) image panels that end in a solid
  * brand panel carrying the page headline.
  *
  * Authoring:
- *   row 1: one cell per image panel (up to 4); empty cells show a branded
- *          placeholder until imagery is added
+ *   row 1: one cell per image panel (up to 4); empty cells reserve a blank panel
  *   row 2: headline content (optional eyebrow paragraph before the h1,
  *          supporting copy after it)
  * @param {Element} block
  */
-export default function decorate(block) {
+export default async function decorate(block) {
+  await loadCSS(new URL('./hero-collage.css?v=20261102-blank-panels', import.meta.url).href);
+
   const rows = [...block.children];
   const contentRow = rows.length > 1 ? rows[rows.length - 1] : null;
   const imageCells = rows[0] && rows.length > 1 ? [...rows[0].children] : [];
