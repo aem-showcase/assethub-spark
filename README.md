@@ -121,8 +121,13 @@ text; a bare URL produces empty alt text.
 
 Run the site through the Cloudflare portal, not directly on the protected
 `aem.page`/`aem.live` origin: those EDS origins do not provide the `/api` proxy.
-The proxy preserves its existing access rules; this feature does not change asset
-approval targets or grant viewers additional permissions. Re-preview the document
+Before fetching image bytes, the proxy retrieves the asset's metadata and applies
+the same viewer permission clauses and evaluator used by Asset Details, including
+company scope, country access, internal status, and admin/simulated-user handling.
+Denied or unverifiable metadata prevents delivery. Individual asset responses are
+private and non-cacheable so they cannot be reused across viewers.
+This does not change asset approval targets or grant viewers additional permissions.
+Re-preview the document
 after authoring and publish it when ready. With link insertion, no
 `html2md.externalImageUrlPrefixes` feature is required.
 

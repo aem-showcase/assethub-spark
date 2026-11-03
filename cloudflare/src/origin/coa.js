@@ -14,7 +14,7 @@
 
 import { decodeJwt } from 'jose';
 import config from '../config.js';
-import { getIMSToken } from './dm.js';
+import { getIMSToken, originDynamicMedia } from './dm.js';
 import { isTrustedHost } from '../util/trusted-hosts.js';
 
 const COA_ENDPOINTS = {
@@ -156,13 +156,24 @@ export async function originCoa(request, env) {
  *
  * @param {Request} request
  * @param {Object} env
+ * @param {ExecutionContext} ctx
  * @returns {Promise<Response>}
  */
-export async function originCoaImage(request, env) {
+export async function originCoaImage(request, env, ctx) {
   const url = new URL(request.url);
   const src = url.searchParams.get('src');
   if (!src || !isTrustedHost(src)) {
     return new Response('Invalid or untrusted src', { status: 400 });
+  }
+
+  const sourceUrl = new URL(src);
+  if (sourceUrl.hostname === deliveryDomainFromEnvId(config.AEM_ENV_ID)) {
+    const proxyUrl = new URL(request.url);
+    proxyUrl.pathname = `/api${sourceUrl.pathname}`;
+    proxyUrl.search = sourceUrl.search;
+    const assetRequest = new Request(proxyUrl, request);
+    assetRequest.user = request.user;
+    return originDynamicMedia(assetRequest, env, ctx);
   }
 
   const imsToken = await getIMSToken(request, env);
