@@ -907,7 +907,7 @@ async function fetchAuthorizedAssetMetadata(request, env, url, headers, assetId)
     metadataResponse = await fetch(metadataUrl, {
       headers: metadataHeaders,
       cache: 'no-store',
-      redirect: 'error',
+      redirect: 'manual',
     });
   } catch (error) {
     console.error(`[${request.user.email}] Asset metadata lookup failed for ${assetId}`, error);
