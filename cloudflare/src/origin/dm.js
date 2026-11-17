@@ -61,16 +61,28 @@ const IMS_TOKEN_EXPIRY_BUFFER = 5 * 60;
  */
 const IMS_SCOPE = 'AdobeID,openid';
 
-function getAssetContentMatch(pathname) {
-  return pathname.match(/^\/adobe\/assets\/([^/]+)\/(?:renditions(?:\/|$)|as\/)/i);
+async function authorizeAssetMetadataResponse(request, env, response, options) {
+  if (!request.user) return new Response('Forbidden', { status: 403 });
+
+  const authClauses = await buildAssetAuthClauses(request, env);
+  return enforceAssetMetadataAuthorization(
+    authClauses,
+    response,
+    request.user.email,
+    options,
+  );
 }
 
-async function authorizeAssetContentRequest(request, url, headers, env) {
-  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+function getAssetAccessMatch(pathname) {
+  return pathname.match(/^\/adobe\/assets\/([^/]+)\/(?:renditions(?:\/|$)|as\/|token$)/i);
+}
 
-  const assetMatch = getAssetContentMatch(url.pathname);
+async function authorizeAssetAccessRequest(request, url, headers, env) {
+  const assetMatch = getAssetAccessMatch(url.pathname);
   if (!assetMatch) return null;
-
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    return null;
+  }
   if (!request.user) return new Response('Forbidden', { status: 403 });
 
   let assetId;
@@ -87,19 +99,16 @@ async function authorizeAssetContentRequest(request, url, headers, env) {
   const metadataHeaders = new Headers(headers);
   metadataHeaders.set('accept', 'application/json');
   metadataHeaders.delete('range');
-  const metadataInit = { method: 'GET', headers: metadataHeaders };
-
-  const metadataResponse = await fetch(metadataUrl, metadataInit);
+  const metadataResponse = await fetch(metadataUrl, { method: 'GET', headers: metadataHeaders });
 
   if (!metadataResponse.ok) {
     return new Response('Unable to verify asset authorization', { status: metadataResponse.status });
   }
 
-  const authClauses = await buildAssetAuthClauses(request, env);
-  const authResponse = await enforceAssetMetadataAuthorization(
-    authClauses,
+  const authResponse = await authorizeAssetMetadataResponse(
+    request,
+    env,
     metadataResponse,
-    request.user.email,
     { requireMetadata: true },
   );
 
@@ -1108,7 +1117,7 @@ export async function originDynamicMedia(request, env, ctx) {
   // Let fetch() (via undici) compute the correct Content-Length from the actual body.
   headers.delete('content-length');
 
-  const assetContentAuthResponse = await authorizeAssetContentRequest(request, url, headers, env);
+  const assetContentAuthResponse = await authorizeAssetAccessRequest(request, url, headers, env);
   if (assetContentAuthResponse) return assetContentAuthResponse;
 
   const response = await fetch(url, {
@@ -1121,11 +1130,7 @@ export async function originDynamicMedia(request, env, ctx) {
   // Pattern: GET /adobe/assets/urn:aaid:aem:{uuid}/metadata
   const assetMetadataMatch = url.pathname.match(/^\/adobe\/assets\/.*\/metadata$/i);
   if (request.method === 'GET' && assetMetadataMatch && response.ok) {
-    if (!request.user) {
-      return new Response('Forbidden', { status: 403 });
-    }
-    const authClauses = await buildAssetAuthClauses(request, env);
-    const authResponse = await enforceAssetMetadataAuthorization(authClauses, response, request.user.email);
+    const authResponse = await authorizeAssetMetadataResponse(request, env, response);
     if (authResponse.status === 403) {
       return authResponse;
     }
