@@ -7,6 +7,7 @@ import {
   chunkIntoOr,
   collectionsSearchContentAIAuthorization,
   forceContentAISearchFilter,
+  originDynamicMedia,
   searchContentAIAuthorization,
   stampCollectionCompany,
   validateCollectionAccess,
@@ -1576,6 +1577,93 @@ describe('stampCollectionCompany', () => {
     config.DEMO_COMPANY = 'santander';
     const out = stampCollectionCompany({ title: 'X' });
     expect(out['custom:metadata'].company).toBe('santander');
+  });
+});
+
+describe('originDynamicMedia asset authorization', () => {
+  let savedDemoCompany;
+
+  beforeEach(() => {
+    savedDemoCompany = config.DEMO_COMPANY;
+    config.DEMO_COMPANY = 'frescopa';
+  });
+
+  afterEach(() => {
+    config.DEMO_COMPANY = savedDemoCompany;
+    vi.unstubAllGlobals();
+  });
+
+  const createEnv = () => ({
+    DM_CLIENT_ID: { get: async () => 'client-id' },
+    AUTH_TOKENS: {
+      getWithMetadata: async () => ({
+        value: 'test-ims-token',
+        metadata: { expiration: Math.floor(Date.now() / 1000) + 3600 },
+      }),
+    },
+  });
+
+  it('denies metadata when its company does not match the configured scope', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ assetMetadata: { company: 'microsoft' } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const request = new Request(
+      'https://frescopamedia.com/api/adobe/assets/urn:aaid:aem:asset-id/metadata',
+    );
+    request.user = { email: 'admin@example.com', roles: ['admin'], userType: 'internal' };
+
+    const response = await originDynamicMedia(request, createEnv(), { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('fetches metadata before returning an authorized rendition', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ assetMetadata: { company: 'frescopa' } }))
+      .mockResolvedValueOnce(new Response('image bytes', { headers: { 'content-type': 'image/jpeg' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const request = new Request(
+      'https://frescopamedia.com/api/adobe/assets/urn:aaid:aem:asset-id/renditions/original/as/image.jpg',
+    );
+    request.user = { email: 'admin@example.com', roles: ['admin'], userType: 'internal', userId: 'test-user' };
+
+    const response = await originDynamicMedia(request, createEnv(), { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['rendition', '/renditions/original/as/image.jpg'],
+    ['direct asset', '/as/image.jpg'],
+  ])('denies an unauthorized %s before fetching its bytes', async (_kind, suffix) => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ assetMetadata: { company: 'microsoft' } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const request = new Request(`https://frescopamedia.com/api/adobe/assets/urn:aaid:aem:asset-id${suffix}`);
+    request.user = { email: 'admin@example.com', roles: ['admin'], userType: 'internal' };
+
+    const response = await originDynamicMedia(request, createEnv(), { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed if the upstream metadata response cannot be checked', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ repositoryMetadata: {} }));
+    vi.stubGlobal('fetch', fetchMock);
+    const request = new Request(
+      'https://frescopamedia.com/api/adobe/assets/urn:aaid:aem:asset-id/renditions/original/as/image.jpg',
+    );
+    request.user = { email: 'admin@example.com', roles: ['admin'], userType: 'internal' };
+
+    const response = await originDynamicMedia(request, createEnv(), { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 

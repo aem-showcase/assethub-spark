@@ -61,6 +61,51 @@ const IMS_TOKEN_EXPIRY_BUFFER = 5 * 60;
  */
 const IMS_SCOPE = 'AdobeID,openid';
 
+function getAssetContentMatch(pathname) {
+  return pathname.match(/^\/adobe\/assets\/([^/]+)\/(?:renditions(?:\/|$)|as\/)/i);
+}
+
+async function authorizeAssetContentRequest(request, url, headers, env) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+
+  const assetMatch = getAssetContentMatch(url.pathname);
+  if (!assetMatch) return null;
+
+  if (!request.user) return new Response('Forbidden', { status: 403 });
+
+  let assetId;
+  try {
+    assetId = decodeURIComponent(assetMatch[1]);
+  } catch {
+    return new Response('Invalid asset ID', { status: 400 });
+  }
+
+  const metadataUrl = new URL(url);
+  metadataUrl.pathname = `/adobe/assets/${encodeURIComponent(assetId)}/metadata`;
+  metadataUrl.search = '';
+  metadataUrl.hash = '';
+  const metadataHeaders = new Headers(headers);
+  metadataHeaders.set('accept', 'application/json');
+  metadataHeaders.delete('range');
+  const metadataInit = { method: 'GET', headers: metadataHeaders };
+
+  const metadataResponse = await fetch(metadataUrl, metadataInit);
+
+  if (!metadataResponse.ok) {
+    return new Response('Unable to verify asset authorization', { status: metadataResponse.status });
+  }
+
+  const authClauses = await buildAssetAuthClauses(request, env);
+  const authResponse = await enforceAssetMetadataAuthorization(
+    authClauses,
+    metadataResponse,
+    request.user.email,
+    { requireMetadata: true },
+  );
+
+  return authResponse.status === 403 || authResponse.status === 502 ? authResponse : null;
+}
+
 // ==========================================
 // Adobe API Constants
 // ==========================================
@@ -1062,6 +1107,9 @@ export async function originDynamicMedia(request, env, ctx) {
   // upstream to read a truncated/misframed body ("Expecting value" JSON parse errors).
   // Let fetch() (via undici) compute the correct Content-Length from the actual body.
   headers.delete('content-length');
+
+  const assetContentAuthResponse = await authorizeAssetContentRequest(request, url, headers, env);
+  if (assetContentAuthResponse) return assetContentAuthResponse;
 
   const response = await fetch(url, {
     method: request.method,
